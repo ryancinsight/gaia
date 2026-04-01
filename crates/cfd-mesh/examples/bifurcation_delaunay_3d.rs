@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // A 0.24 cell size deliberately phases the BCC lattice out of exact integer alignment 
     // with the origin-centered Y-junction, eliminating the 8-edge non-manifold triple-point pinches.
     let cell_size = 0.24;
-    let mut mesher = SdfMesher::new(cell_size);
+    let mesher = SdfMesher::new(cell_size);
 
     // Parent channel axis
     let parent = CapsuleSdf::new(

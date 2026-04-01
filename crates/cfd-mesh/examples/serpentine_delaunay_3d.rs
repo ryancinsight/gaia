@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // To prevent severe discrete chordal aliasing on the extreme inner U-turn bend (R=0.5),
     // the max cell scale must drop below the target features.
     let cell_size = 0.25;
-    let mut mesher = SdfMesher::new(cell_size);
+    let mesher = SdfMesher::new(cell_size);
 
     // Segment 1 (Forward flow)
     let seg1 = CapsuleSdf::new(

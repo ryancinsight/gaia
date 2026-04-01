@@ -11,6 +11,7 @@ readme.workspace = true
 description = "Watertight CFD mesh generation for millifluidic devices — GhostCell-permissioned, indexed, BSP-based"
 keywords = ["mesh", "cfd", "millifluidic", "watertight", "ghostcell"]
 categories = ["science", "simulation"]
+autoexamples = false
 
 [features]
 default = []
@@ -299,6 +300,22 @@ name = "csg_coplanar_disk_disk"
 path = "examples/csg_coplanar/disk_disk.rs"
 
 [[example]]
+name = "check_2d_seam"
+path = "examples/check_2d_seam.rs"
+
+[[example]]
+name = "csg_dump"
+path = "examples/csg_dump.rs"
+
+[[example]]
+name = "debug_stl"
+path = "examples/debug_stl.rs"
+
+[[example]]
+name = "delaunay_demo"
+path = "examples/delaunay_demo.rs"
+
+[[example]]
 name = "schematic_to_3d_mesh"
 path = "examples/schematic_to_3d_mesh.rs"
 required-features = ["cfdrs-integration"]
@@ -318,6 +335,10 @@ required-features = ["cfdrs-integration"]
 name = "millifluidic_shell_tpms"
 path = "examples/millifluidic/millifluidic_shell_tpms.rs"
 required-features = ["cfdrs-integration"]
+
+[[example]]
+name = "sbs_96_well_plate"
+path = "examples/millifluidic/sbs_96_well_plate.rs"
 
 [[example]]
 name = "tpms_blood_chip_mesh"

@@ -1,0 +1,43 @@
+name: Examples
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  cfd-mesh-examples:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check library without integration
+        run: cargo check -p cfd-mesh --lib --no-default-features
+
+      - name: Check ungated examples without integration
+        run: cargo check -p cfd-mesh --examples --no-default-features
+
+      - name: Confirm gated example is rejected without integration
+        shell: bash
+        run: |
+          set +e
+          output=$(cargo check -p cfd-mesh --example schematic_to_3d_mesh --no-default-features 2>&1)
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "$output"
+            echo "schematic_to_3d_mesh unexpectedly built without cfdrs-integration"
+            exit 1
+          fi
+          echo "$output"
+          echo "$output" | grep -q 'requires the features: `cfdrs-integration`'
+
+      - name: Check all examples with integration enabled
+        run: cargo check -p cfd-mesh --examples --no-default-features --features cfdrs-integration
