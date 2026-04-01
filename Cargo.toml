@@ -1,0 +1,35 @@
+[workspace]
+members = ["crates/cfd-mesh"]
+default-members = ["crates/cfd-mesh"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Ryan Clanton <ryan@clanton.dev>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ryancinsight/gaia"
+homepage = "https://github.com/ryancinsight/gaia"
+documentation = "https://docs.rs/cfd-mesh"
+readme = "README.md"
+keywords = ["mesh", "cfd", "millifluidic", "watertight", "ghostcell"]
+categories = ["science", "simulation"]
+
+[workspace.dependencies]
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+nalgebra = { version = "0.33", features = ["serde-serialize"] }
+num-traits = "0.2"
+approx = "0.5"
+indexmap = "2.0"
+slotmap = "1.0"
+geometry-predicates = "0.3"
+aquamarine = "0.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rayon = "1.8"
+proptest = "1.4"
+criterion = "0.5"
+rand = "0.8"
+cfd-schematics = { git = "https://github.com/ryancinsight/CFDrs.git", package = "cfd-schematics" }
