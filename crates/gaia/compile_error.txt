@@ -1,0 +1,52 @@
+    Checking cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+error[E0425]: cannot find value `combined` in this scope
+  --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:15:24
+   |
+15 |         let v_offset = combined.vertices.len();
+   |                        ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `combined` in this scope
+  --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:18:13
+   |
+18 |             combined.add_vertex(vdata.position, vdata.normal);
+   |             ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `combined` in this scope
+  --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:21:13
+   |
+21 |             combined.add_face_with_region(
+   |             ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `combined` in this scope
+  --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:29:5
+   |
+29 |     combined.rebuild_edges();
+   |     ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `combined` in this scope
+  --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:30:5
+   |
+30 |     combined
+   |     ^^^^^^^^ not found in this scope
+
+error[E0599]: no method named `index` found for struct `VertexId` in the current scope
+  --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:22:87
+   |
+22 |                 cfd_mesh::domain::core::index::VertexId::new(v_offset + f.vertices[0].index()),
+   |                                                                                       ^^^^^ method not found in `VertexId`
+
+error[E0599]: no method named `index` found for struct `VertexId` in the current scope
+  --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:23:87
+   |
+23 |                 cfd_mesh::domain::core::index::VertexId::new(v_offset + f.vertices[1].index()),
+   |                                                                                       ^^^^^ method not found in `VertexId`
+
+error[E0599]: no method named `index` found for struct `VertexId` in the current scope
+  --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:24:87
+   |
+24 |                 cfd_mesh::domain::core::index::VertexId::new(v_offset + f.vertices[2].index()),
+   |                                                                                       ^^^^^ method not found in `VertexId`
+
+Some errors have detailed explanations: E0425, E0599.
+For more information about an error, try `rustc --explain E0425`.
+error: could not compile `cfd-mesh` (example "sbs_96_well_plate") due to 8 previous errors

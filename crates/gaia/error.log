@@ -1,0 +1,18 @@
+    Checking cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+error[E0432]: unresolved import `super::weld`
+  --> crates\cfd-mesh\src\application\csg\clip\polygon2d\cdt.rs:10:12
+   |
+10 | use super::weld::{SpatialHashWeld2d, INTERIOR_TOL, WELD_TOL};
+   |            ^^^^ could not find `weld` in `super`
+
+warning: unused import: `std::collections::HashMap`
+  --> crates\cfd-mesh\src\application\csg\clip\polygon2d\cdt.rs:18:5
+   |
+18 | use std::collections::HashMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0432`.
+warning: `cfd-mesh` (lib) generated 1 warning
+error: could not compile `cfd-mesh` (lib) due to 1 previous error; 1 warning emitted

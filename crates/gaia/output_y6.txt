@@ -1,0 +1,79 @@
+   Compiling cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+warning: function `first_degenerate_boolean_face` is never used
+   --> crates\cfd-mesh\src\application\csg\boolean\indexed.rs:374:4
+    |
+374 | fn first_degenerate_boolean_face(mesh: &IndexedMesh) -> Option<crate::domain::core::index::FaceId> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `cfd-mesh` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 30.59s
+     Running `C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\target\release\examples\csg_cylinder_cylinder_y_junction.exe`
+=================================================================
+  CSG CylinderΓÇôCylinder (Y-Junction)
+  Union | Branch Intersection | Trunk Difference
+  r=0.5 mm  h_trunk=3 mm  h_branch=3 mm  ╬╡=0.000 mm
+=================================================================
+
+  V_A (trunk+╬╡)  = ╧Çr┬▓(h_trunk + ╬╡) = 2.3562 mm┬│
+  V_B = V_C      = ╧Çr┬▓┬╖h_branch      = 2.3562 mm┬│
+  V_naive (sum)  = V_A + 2┬╖V_B       = 7.0686 mm┬│
+  Actual union   < V_naive (overlap subtracted)
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 30┬░  (branches 60┬░ apart) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Meshes built: 256 + 256 + 256 faces  (0 ms)
+  ΓöÇΓöÇ Union (A Γê¬ B Γê¬ C)  ╬╕=30┬░ ΓöÇΓöÇ
+    Faces      : 924
+    Volume     : 6.6799 mm┬│  (naive 7.0686 mm┬│, overlap 5.5%)
+    Bounds     : V > 0 [PASS]  V < V_naive [PASS]
+    Watertight : true
+    Normals    : outward=924, inward=0 (0.0%), degen=0
+    Alignment  : mean=0.8747  min=-0.9631
+    Elapsed    : 54 ms
+  ΓöÇΓöÇ Connectivity [Union (A Γê¬ B Γê¬ C)  ╬╕=30┬░] ΓöÇΓöÇ
+    Euler ╧ç    : 2 (expected 2 for 1 genus-0 body/bodies)
+    Components : 1
+      [0] 924 faces
+
+  STL: outputs/csg/cylinder_cylinder_y_junction_union_30deg.stl
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 45┬░  (branches 90┬░ apart) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Meshes built: 256 + 256 + 256 faces  (0 ms)
+  ΓöÇΓöÇ Union (A Γê¬ B Γê¬ C)  ╬╕=45┬░ ΓöÇΓöÇ
+    Faces      : 976
+    Volume     : 6.7532 mm┬│  (naive 7.0686 mm┬│, overlap 4.5%)
+    Bounds     : V > 0 [PASS]  V < V_naive [PASS]
+    Watertight : true
+    Normals    : outward=976, inward=0 (0.0%), degen=0
+    Alignment  : mean=0.8819  min=-0.9843
+    Elapsed    : 47 ms
+  ΓöÇΓöÇ Connectivity [Union (A Γê¬ B Γê¬ C)  ╬╕=45┬░] ΓöÇΓöÇ
+    Euler ╧ç    : 2 (expected 2 for 1 genus-0 body/bodies)
+    Components : 1
+      [0] 976 faces
+
+  STL: outputs/csg/cylinder_cylinder_y_junction_union_45deg.stl
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 60┬░  (branches 120┬░ apart) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Meshes built: 256 + 256 + 256 faces  (0 ms)
+  ΓöÇΓöÇ Union (A Γê¬ B Γê¬ C)  ╬╕=60┬░ ΓöÇΓöÇ
+    Faces      : 990
+    Volume     : 6.7692 mm┬│  (naive 7.0686 mm┬│, overlap 4.2%)
+    Bounds     : V > 0 [PASS]  V < V_naive [PASS]
+    Watertight : true
+    Normals    : outward=990, inward=0 (0.0%), degen=0
+    Alignment  : mean=0.8883  min=-0.9774
+    Elapsed    : 44 ms
+  ΓöÇΓöÇ Connectivity [Union (A Γê¬ B Γê¬ C)  ╬╕=60┬░] ΓöÇΓöÇ
+    Euler ╧ç    : 2 (expected 2 for 1 genus-0 body/bodies)
+    Components : 1
+      [0] 990 faces
+
+  STL: outputs/csg/cylinder_cylinder_y_junction_union_60deg.stl
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 45┬░: branch intersection and trunk difference ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  Quarter-Steinmetz (B Γê⌐ C at 90┬░): V = 4r┬│/3 = 0.1667 mm┬│
+Error: NotWatertight { count: 0 }
+error: process didn't exit successfully: `C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\target\release\examples\csg_cylinder_cylinder_y_junction.exe` (exit code: 1)

@@ -1,0 +1,5 @@
+    Finished `test` profile [optimized] target(s) in 0.29s
+     Running unittests src\lib.rs (target\debug\deps\cfd_mesh-58f7a20e503ada43.exe)
+
+running 1 test
+test application::csg::arrangement::tests::t_junction_volume_and_watertightness has been running for over 60 seconds

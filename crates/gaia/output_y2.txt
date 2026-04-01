@@ -1,0 +1,45 @@
+   Compiling cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+error[E0502]: cannot borrow `unique_pts` as mutable because it is also borrowed as immutable
+   --> crates\cfd-mesh\src\application\csg\arrangement\coplanar_dispatch.rs:273:21
+    |
+223 |       let add_shattered = |
+    |  _________________________-
+224 | |         start_slot: usize,
+225 | |         end_slot: usize,
+226 | |         edges: &mut Vec<(usize, usize)>,
+227 | |         candidates: &mut Vec<usize>,
+228 | |     | {
+    | |_____- immutable borrow occurs here
+229 |           if start_slot != end_slot {
+230 |               let pt0 = unique_pts[start_slot];
+    |                         ---------- first borrow occurs due to use of `unique_pts` in closure
+...
+273 |                       &mut unique_pts,
+    |                       ^^^^^^^^^^^^^^^ mutable borrow occurs here
+...
+286 |               add_shattered(start_slot, end_slot, &mut edges, &mut candidates);
+    |               ------------- immutable borrow later used here
+
+error[E0502]: cannot borrow `unique_pts` as mutable because it is also borrowed as immutable
+   --> crates\cfd-mesh\src\application\csg\arrangement\coplanar_dispatch.rs:282:21
+    |
+223 |       let add_shattered = |
+    |  _________________________-
+224 | |         start_slot: usize,
+225 | |         end_slot: usize,
+226 | |         edges: &mut Vec<(usize, usize)>,
+227 | |         candidates: &mut Vec<usize>,
+228 | |     | {
+    | |_____- immutable borrow occurs here
+229 |           if start_slot != end_slot {
+230 |               let pt0 = unique_pts[start_slot];
+    |                         ---------- first borrow occurs due to use of `unique_pts` in closure
+...
+282 |                       &mut unique_pts,
+    |                       ^^^^^^^^^^^^^^^ mutable borrow occurs here
+...
+286 |               add_shattered(start_slot, end_slot, &mut edges, &mut candidates);
+    |               ------------- immutable borrow later used here
+
+For more information about this error, try `rustc --explain E0502`.
+error: could not compile `cfd-mesh` (lib) due to 2 previous errors

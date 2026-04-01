@@ -1,0 +1,59 @@
+    Blocking waiting for file lock on build directory
+    Checking cfd-schematics v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-schematics)
+warning: unused import: `NodeId`
+ --> crates\cfd-schematics\src\interface\layout.rs:7:68
+  |
+7 |     ChannelShape, ChannelSpec, CrossSectionSpec, NetworkBlueprint, NodeId, NodeKind,
+  |                                                                    ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `double_trifurcation_selective_serpentine_rect`
+  --> crates\cfd-schematics\src\interface\presets\composite\mod.rs:37:5
+   |
+37 |     double_trifurcation_selective_serpentine_rect,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `double_trifurcation_selective_serpentine_rect` is never used
+   --> crates\cfd-schematics\src\interface\presets\composite\specialized\double_trifurcation.rs:339:8
+    |
+339 | pub fn double_trifurcation_selective_serpentine_rect(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `cfd-schematics` (lib) generated 3 warnings (run `cargo fix --lib -p cfd-schematics` to apply 2 suggestions)
+    Checking cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+error[E0596]: cannot borrow `substrate` as mutable, as it is not declared as mutable
+   --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:144:13
+    |
+144 |     assert!(substrate.is_watertight(), "Substrate not watertight!");
+    |             ^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+135 |     let mut substrate = Cube {
+    |         +++
+
+error[E0596]: cannot borrow `chip_body_mesh` as mutable, as it is not declared as mutable
+   --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:157:13
+    |
+157 |     assert!(chip_body_mesh.is_watertight(), "Chip body mesh not watertight!");
+    |             ^^^^^^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+154 |     let mut chip_body_mesh = csg_boolean_indexed(BooleanOp::Difference, &substrate, &fluid_mesh)?;
+    |         +++
+
+warning: unused variable: `start_time`
+   --> crates\cfd-mesh\examples\sbs_96_well_plate.rs:133:9
+    |
+133 |     let start_time = Instant::now();
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_start_time`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0596`.
+warning: `cfd-mesh` (example "sbs_96_well_plate") generated 1 warning
+error: could not compile `cfd-mesh` (example "sbs_96_well_plate") due to 2 previous errors; 1 warning emitted

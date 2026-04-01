@@ -1,0 +1,111 @@
+   Compiling cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+warning: function `remove_degenerate_boolean_faces` is never used
+   --> crates\cfd-mesh\src\application\csg\boolean\indexed.rs:374:4
+    |
+374 | fn remove_degenerate_boolean_faces(mesh: &mut IndexedMesh) {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `cfd-mesh` (lib) generated 1 warning
+warning: unused import: `csg_boolean`
+  --> crates\cfd-mesh\examples\csg\cylinder_cylinder_y_junction.rs:59:43
+   |
+59 | use cfd_mesh::application::csg::boolean::{csg_boolean, BooleanOp};
+   |                                           ^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `cfd-mesh` (example "csg_cylinder_cylinder_y_junction") generated 1 warning (run `cargo fix --example "csg_cylinder_cylinder_y_junction"` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 31.54s
+     Running `C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\target\release\examples\csg_cylinder_cylinder_y_junction.exe`
+=================================================================
+  CSG CylinderΓÇôCylinder (Y-Junction)
+  Union | Branch Intersection | Trunk Difference
+  r=0.5 mm  h_trunk=3 mm  h_branch=3 mm  ╬╡=0.000 mm
+=================================================================
+
+  V_A (trunk+╬╡)  = ╧Çr┬▓(h_trunk + ╬╡) = 2.3562 mm┬│
+  V_B = V_C      = ╧Çr┬▓┬╖h_branch      = 2.3562 mm┬│
+  V_naive (sum)  = V_A + 2┬╖V_B       = 7.0686 mm┬│
+  Actual union   < V_naive (overlap subtracted)
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 30┬░  (branches 60┬░ apart) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Meshes built: 256 + 256 + 256 faces  (0 ms)
+  ΓöÇΓöÇ Union (A Γê¬ B Γê¬ C)  ╬╕=30┬░ ΓöÇΓöÇ
+    Faces      : 924
+    Volume     : 6.6799 mm┬│  (naive 7.0686 mm┬│, overlap 5.5%)
+    Bounds     : V > 0 [PASS]  V < V_naive [PASS]
+    Watertight : true
+    Normals    : outward=924, inward=0 (0.0%), degen=0
+    Alignment  : mean=0.8747  min=-0.9631
+    Elapsed    : 54 ms
+  ΓöÇΓöÇ Connectivity [Union (A Γê¬ B Γê¬ C)  ╬╕=30┬░] ΓöÇΓöÇ
+    Euler ╧ç    : 2 (expected 2 for 1 genus-0 body/bodies)
+    Components : 1
+      [0] 924 faces
+
+  STL: outputs/csg/cylinder_cylinder_y_junction_union_30deg.stl
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 45┬░  (branches 90┬░ apart) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Meshes built: 256 + 256 + 256 faces  (0 ms)
+  ΓöÇΓöÇ Union (A Γê¬ B Γê¬ C)  ╬╕=45┬░ ΓöÇΓöÇ
+    Faces      : 976
+    Volume     : 6.7532 mm┬│  (naive 7.0686 mm┬│, overlap 4.5%)
+    Bounds     : V > 0 [PASS]  V < V_naive [PASS]
+    Watertight : true
+    Normals    : outward=976, inward=0 (0.0%), degen=0
+    Alignment  : mean=0.8819  min=-0.9843
+    Elapsed    : 48 ms
+  ΓöÇΓöÇ Connectivity [Union (A Γê¬ B Γê¬ C)  ╬╕=45┬░] ΓöÇΓöÇ
+    Euler ╧ç    : 2 (expected 2 for 1 genus-0 body/bodies)
+    Components : 1
+      [0] 976 faces
+
+  STL: outputs/csg/cylinder_cylinder_y_junction_union_45deg.stl
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 60┬░  (branches 120┬░ apart) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Meshes built: 256 + 256 + 256 faces  (0 ms)
+  ΓöÇΓöÇ Union (A Γê¬ B Γê¬ C)  ╬╕=60┬░ ΓöÇΓöÇ
+    Faces      : 990
+    Volume     : 6.7692 mm┬│  (naive 7.0686 mm┬│, overlap 4.2%)
+    Bounds     : V > 0 [PASS]  V < V_naive [PASS]
+    Watertight : true
+    Normals    : outward=990, inward=0 (0.0%), degen=0
+    Alignment  : mean=0.8883  min=-0.9774
+    Elapsed    : 45 ms
+  ΓöÇΓöÇ Connectivity [Union (A Γê¬ B Γê¬ C)  ╬╕=60┬░] ΓöÇΓöÇ
+    Euler ╧ç    : 2 (expected 2 for 1 genus-0 body/bodies)
+    Components : 1
+      [0] 990 faces
+
+  STL: outputs/csg/cylinder_cylinder_y_junction_union_60deg.stl
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 45┬░: branch intersection and trunk difference ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+  Quarter-Steinmetz (B Γê⌐ C at 90┬░): V = 4r┬│/3 = 0.1667 mm┬│
+  ΓöÇΓöÇ Branch Intersection (B Γê⌐ C)  ╬╕=45┬░ ΓöÇΓöÇ
+    Faces      : 304
+    Volume     : 0.1663 mm┬│  (expected 0.1667)
+    Vol error  : 0.24%  [PASS]
+    Watertight : true  (boundary=0, non-manifold=0)
+    Euler ╧ç    : Some(2)  (expected 2)  [PASS]
+    Components : 1  [PASS]
+    Normals    : outward=304, inward=0 (0.0%), degen=0  [PASS]
+    Alignment  : mean=0.9099  min=0.6224
+    Elapsed    : 12 ms
+  STL: outputs/csg/cylinder_cylinder_y_junction_branch_intersection_45deg.stl
+
+  ΓöÇΓöÇ Trunk Difference (A \ (B Γê¬ C))  ╬╕=45┬░ ΓöÇΓöÇ
+    Faces      : 636
+    Volume     : 2.2147 mm┬│  (expected 2.3562)
+    Vol error  : 6.01%  [PASS]
+    Watertight : true  (boundary=0, non-manifold=0)
+    Euler ╧ç    : Some(2)  (expected 2)  [PASS]
+    Components : 1  [PASS]
+    Normals    : outward=636, inward=0 (0.0%), degen=0  [PASS]
+    Alignment  : mean=0.7016  min=-0.1523
+    Elapsed    : 79 ms
+  STL: outputs/csg/cylinder_cylinder_y_junction_trunk_diff_45deg.stl
+
+=================================================================

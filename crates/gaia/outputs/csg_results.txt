@@ -1,0 +1,187 @@
+FAIL csg_compound (0.2s) exit=101
+  ERR: ives_pyramid
+    primitives_revolution_sweep
+    primitives_rounded_cube
+    primitives_schwarz_d_sphere
+    primitives_schwarz_p_sphere
+    primitives_sphere
+    primitives_spherical_shell
+    primitives_split_p_sphere
+    primitives_stadium_prism
+    primitives_tetrahedron
+    primitives_torus
+    primitives_truncated_icosahedron
+    primitives_venturi
+    sbs_96_well_plate
+    schematic_to_3d_mesh
+    schematic_to_mesh_demo
+    schematic_to_openfoam
+    tpms_blood_chip_mesh
+
+PASS csg_cube_cube (7.7s) exit=0
+PASS csg_cube_cylinder (3.6s) exit=0
+PASS csg_cube_cylinder_coplanar (2.1s) exit=0
+PASS csg_cube_sphere (10.5s) exit=0
+FAIL csg_cylinder_cylinder (2.5s) exit=1
+  ERR: cted 5.4592)
+    Vol error  : 0.13%  [PASS]
+    Watertight : true  (boundary=0, non-manifold=0)
+    Euler ╧ç    : Some(2)  (expected 2)  [PASS]
+    Components : 1  [PASS]
+    Normals    : outward=662, inward=0 (0.0%), degen=0  [PASS]
+    Alignment  : mean=0.8663  min=-1.0000
+    Elapsed    : 464 ms
+  STL: outputs/csg/cylinder_cylinder_union.stl
+
+Error: NotWatertight { count: 4 }
+error: process didn't exit successfully: `target\debug\examples\csg_cylinder_cylinder.exe` (exit code: 1)
+
+FAIL csg_cylinder_cylinder_asymmetric (3.6s) exit=1
+  ERR: .30,-2.00,0), r=0.6, h=4  V = 4.5239 mm┬│
+  Axis sep d=0.6 mm (=r ΓåÆ ╬╕=╧Ç/3);  caps at y=┬▒1.5 (A) vs y=┬▒2.0 (B)
+  Overlap h=3 mm, lens cross-section V_Γê⌐ = 1.3266 mm┬│
+
+  Expected volumes:
+    Union        : 6.5902 mm┬│
+    Intersection : 1.3266 mm┬│
+    Difference   : 2.0663 mm┬│
+
+  Mesh built: 256 + 256 cylinder faces  (4 ms)
+
+Error: NotWatertight { count: 3 }
+error: process didn't exit successfully: `target\debug\examples\csg_cylinder_cylinder_asymmetric.exe` (exit code: 1)
+
+FAIL csg_cylinder_cylinder_l_shape (12s) exit=1
+  ERR: 1 mm
+  Arm length H = 3 mm  ΓåÆ  straight leg = 2 mm (+0.025 mm overlap)
+
+  Piece volumes (Pappus, ignoring eps overlaps):
+    Stem straight  : 1.5708 mm┬│
+    Arm  straight  : 1.5708 mm┬│
+    90┬░ elbow      : 1.2337 mm┬│  (╧Ç r┬▓ R_bend ╧Ç/2)
+    Total (approx) : 4.3753 mm┬│
+
+  Pieces built: stem=256 elbow=4224 arm=256 faces  (27 ms)
+
+Error: NotWatertight { count: 3 }
+error: process didn't exit successfully: `target\debug\examples\csg_cylinder_cylinder_l_shape.exe` (exit code: 1)
+
+PASS csg_cylinder_cylinder_pentafurcation (46.6s) exit=0
+PASS csg_cylinder_cylinder_perpendicular (5.9s) exit=0
+PASS csg_cylinder_cylinder_quadfurcation (31.6s) exit=0
+FAIL csg_cylinder_cylinder_symmetric (2.6s) exit=1
+  ERR: l error  : 0.13%  [PASS]
+    Watertight : true  (boundary=0, non-manifold=0)
+    Euler ╧ç    : Some(2)  (expected 2)  [PASS]
+    Components : 1  [PASS]
+    Normals    : outward=662, inward=0 (0.0%), degen=0  [PASS]
+    Alignment  : mean=0.8663  min=-1.0000
+    Elapsed    : 466 ms
+  STL: outputs/csg/cylinder_cylinder_symmetric_union.stl
+
+Error: NotWatertight { count: 4 }
+error: process didn't exit successfully: `target\debug\examples\csg_cylinder_cylinder_symmetric.exe` (exit code: 1)
+
+FAIL csg_cylinder_cylinder_t_junction (4.3s) exit=1
+  ERR:  : 0.24%  [PASS]
+    Watertight : true  (boundary=0, non-manifold=0)
+    Euler ╧ç    : Some(2)  (expected 2)  [PASS]
+    Components : 1  [PASS]
+    Normals    : outward=504, inward=0 (0.0%), degen=0  [PASS]
+    Alignment  : mean=0.9239  min=0.6576
+    Elapsed    : 792 ms
+  STL: outputs/csg/cylinder_cylinder_t_junction_intersection.stl
+
+Error: NotWatertight { count: 6 }
+error: process didn't exit successfully: `target\debug\examples\csg_cylinder_cylinder_t_junction.exe` (exit code: 1)
+
+FAIL csg_cylinder_cylinder_trifurcation (12.5s) exit=1
+  ERR: ╕=30┬░] ΓöÇΓöÇ
+    Euler ╧ç    : 2 (expected 2 for 1 genus-0 body/bodies)
+    Components : 1
+      [0] 1280 faces
+
+  STL: outputs/csg/cylinder_cylinder_trifurcation_union_30deg.stl
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 45┬░  (outer branches ┬▒45┬░, centre +90┬░) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Meshes built: 256 + 256 + 256 + 256 faces  (11 ms)
+Error: NotWatertight { count: 3 }
+error: process didn't exit successfully: `target\debug\examples\csg_cylinder_cylinder_trifurcation.exe` (exit code: 1)
+
+FAIL csg_cylinder_cylinder_y_junction (135.6s) exit=1
+  ERR: ΓöÇΓöÇ
+    Euler ╧ç    : 2 (expected 2 for 1 genus-0 body/bodies)
+    Components : 1
+      [0] 974 faces
+
+  STL: outputs/csg/cylinder_cylinder_y_junction_union_30deg.stl
+
+  ΓöÇΓöÇΓöÇ ╬╕ = 45┬░  (branches 90┬░ apart) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Meshes built: 256 + 256 + 256 faces  (8 ms)
+Error: NotWatertight { count: 3 }
+error: process didn't exit successfully: `target\debug\examples\csg_cylinder_cylinder_y_junction.exe` (exit code: 1)
+
+FAIL csg_difference (0.3s) exit=101
+  ERR: ives_pyramid
+    primitives_revolution_sweep
+    primitives_rounded_cube
+    primitives_schwarz_d_sphere
+    primitives_schwarz_p_sphere
+    primitives_sphere
+    primitives_spherical_shell
+    primitives_split_p_sphere
+    primitives_stadium_prism
+    primitives_tetrahedron
+    primitives_torus
+    primitives_truncated_icosahedron
+    primitives_venturi
+    sbs_96_well_plate
+    schematic_to_3d_mesh
+    schematic_to_mesh_demo
+    schematic_to_openfoam
+    tpms_blood_chip_mesh
+
+FAIL csg_intersection (0.2s) exit=101
+  ERR: ives_pyramid
+    primitives_revolution_sweep
+    primitives_rounded_cube
+    primitives_schwarz_d_sphere
+    primitives_schwarz_p_sphere
+    primitives_sphere
+    primitives_spherical_shell
+    primitives_split_p_sphere
+    primitives_stadium_prism
+    primitives_tetrahedron
+    primitives_torus
+    primitives_truncated_icosahedron
+    primitives_venturi
+    sbs_96_well_plate
+    schematic_to_3d_mesh
+    schematic_to_mesh_demo
+    schematic_to_openfoam
+    tpms_blood_chip_mesh
+
+PASS csg_sphere_cylinder (13.8s) exit=0
+PASS csg_sphere_sphere (92.1s) exit=0
+FAIL csg_union (0.3s) exit=101
+  ERR: ives_pyramid
+    primitives_revolution_sweep
+    primitives_rounded_cube
+    primitives_schwarz_d_sphere
+    primitives_schwarz_p_sphere
+    primitives_sphere
+    primitives_spherical_shell
+    primitives_split_p_sphere
+    primitives_stadium_prism
+    primitives_tetrahedron
+    primitives_torus
+    primitives_truncated_icosahedron
+    primitives_venturi
+    sbs_96_well_plate
+    schematic_to_3d_mesh
+    schematic_to_mesh_demo
+    schematic_to_openfoam
+    tpms_blood_chip_mesh
+
+PASS csg_coplanar_disk_disk (7.4s) exit=0
+

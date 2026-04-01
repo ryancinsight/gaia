@@ -1,0 +1,30 @@
+   Compiling cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+    Finished `test` profile [optimized] target(s) in 12.72s
+     Running unittests src\lib.rs (target\debug\deps\cfd_mesh-58f7a20e503ada43.exe)
+
+running 1 test
+[DIAG] 10 boundary edges, 259 verts, 514 faces
+  bnd: (0.04980,1.45104,0.49747)->(0.02411,1.47589,0.49882) len=0.035764 r_a=0.49996 r_b=0.49940
+  bnd: (0.02491,1.47509,-0.49878)->(0.04822,1.45178,-0.49763) len=0.032985 r_a=0.49940 r_b=0.49996
+  bnd: (-0.04822,1.45178,0.49763)->(-0.04901,1.45099,0.49759) len=0.001115 r_a=0.49996 r_b=0.50000
+  bnd: (0.04822,1.45178,-0.49763)->(0.04901,1.45099,-0.49759) len=0.001115 r_a=0.49996 r_b=0.50000
+  bnd: (-0.02491,1.47509,0.49878)->(-0.04822,1.45178,0.49763) len=0.032985 r_a=0.49940 r_b=0.49996
+  bnd: (-0.04980,1.45104,-0.49747)->(-0.02411,1.47589,-0.49882) len=0.035764 r_a=0.49996 r_b=0.49940
+  bnd: (-0.04901,1.45099,-0.49759)->(0.04901,1.45099,-0.49759) len=0.098017 r_a=0.50000 r_b=0.50000
+  bnd: (0.02491,1.47509,-0.49878)->(0.04821,1.45100,-0.49763) len=0.033528 r_a=0.49940 r_b=0.49996
+  bnd: (-0.02491,1.47509,0.49878)->(-0.04821,1.45100,0.49763) len=0.033528 r_a=0.49940 r_b=0.49996
+  bnd: (0.04901,1.45099,0.49759)->(-0.04901,1.45099,0.49759) len=0.098017 r_a=0.50000 r_b=0.50000
+
+thread 'application::csg::arrangement::tests::t_junction_volume_and_watertightness' (68908) panicked at crates\cfd-mesh\src\application\csg\arrangement\tests.rs:373:76:
+intersection: NotWatertight { count: 16 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test application::csg::arrangement::tests::t_junction_volume_and_watertightness ... FAILED
+
+failures:
+
+failures:
+    application::csg::arrangement::tests::t_junction_volume_and_watertightness
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 600 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p cfd-mesh --lib`

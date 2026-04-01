@@ -1,0 +1,81 @@
+PASS check_2d_seam (7.7s) exit=0
+PASS debug_stl (3.2s) exit=0
+PASS delaunay_demo (1.8s) exit=0
+FAIL millifluidic_shell_tpms (185.2s) exit=1
+  ERR: ÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
+
+Building shell_tpms_gyroid ...
+Error: "Pipeline failed: mesh has 92 boundary edges ΓÇö not watertight"
+error: process didn't exit successfully: `target\debug\examples\millifluidic_shell_tpms.exe` (exit code: 1)
+
+PASS primitives_antiprism (3.5s) exit=0
+PASS primitives_biconcave_disk (1.7s) exit=0
+PASS primitives_capsule (1.8s) exit=0
+PASS primitives_cone (1.8s) exit=0
+PASS primitives_cube (1.8s) exit=0
+PASS primitives_cuboctahedron (1.8s) exit=0
+PASS primitives_cylinder (1.8s) exit=0
+PASS primitives_disk (3.1s) exit=0
+PASS primitives_dodecahedron (1.8s) exit=0
+PASS primitives_elbow (1.8s) exit=0
+PASS primitives_ellipsoid (1.8s) exit=0
+PASS primitives_fischer_koch_cy_sphere (8.2s) exit=0
+PASS primitives_frd_sphere (6s) exit=0
+PASS primitives_frustum (1.8s) exit=0
+PASS primitives_geodesic_sphere (1.8s) exit=0
+PASS primitives_gyroid_sphere (6s) exit=0
+PASS primitives_helix_sweep (2.1s) exit=0
+PASS primitives_icosahedron (1.8s) exit=0
+PASS primitives_iwp_sphere (5.1s) exit=0
+PASS primitives_lidinoid_sphere (7.3s) exit=0
+PASS primitives_linear_sweep (1.9s) exit=0
+PASS primitives_neovius_sphere (4.6s) exit=0
+PASS primitives_octahedron (1.8s) exit=0
+PASS primitives_pipe (1.9s) exit=0
+PASS primitives_pyramid (1.9s) exit=0
+PASS primitives_rounded_cube (3.1s) exit=0
+FAIL primitives_schoen_iwp_sphere (0.2s) exit=101
+  ERR:  primitives_split_p_sphere
+    primitives_stadium_prism
+    primitives_tetrahedron
+    primitives_torus
+    primitives_truncated_icosahedron
+    primitives_venturi
+    sbs_96_well_plate
+    schematic_to_3d_mesh
+    schematic_to_mesh_demo
+    schematic_to_openfoam
+    tpms_blood_chip_mesh
+
+PASS primitives_schwarz_d_sphere (5.2s) exit=0
+PASS primitives_schwarz_p_sphere (4s) exit=0
+PASS primitives_sphere (1.9s) exit=0
+PASS primitives_tetrahedron (1.9s) exit=0
+PASS primitives_torus (3.1s) exit=0
+FAIL primitives_torus_knot (0.2s) exit=101
+  ERR:  primitives_split_p_sphere
+    primitives_stadium_prism
+    primitives_tetrahedron
+    primitives_torus
+    primitives_truncated_icosahedron
+    primitives_venturi
+    sbs_96_well_plate
+    schematic_to_3d_mesh
+    schematic_to_mesh_demo
+    schematic_to_openfoam
+    tpms_blood_chip_mesh
+
+FAIL primitives_tubular_helix (0.2s) exit=101
+  ERR:  primitives_split_p_sphere
+    primitives_stadium_prism
+    primitives_tetrahedron
+    primitives_torus
+    primitives_truncated_icosahedron
+    primitives_venturi
+    sbs_96_well_plate
+    schematic_to_3d_mesh
+    schematic_to_mesh_demo
+    schematic_to_openfoam
+    tpms_blood_chip_mesh
+
+

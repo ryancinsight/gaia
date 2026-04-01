@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  cfd-mesh-examples:
+  gaia-examples:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,16 +19,16 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Check library without integration
-        run: cargo check -p cfd-mesh --lib --no-default-features
+        run: cargo check -p gaia --lib --no-default-features
 
       - name: Check ungated examples without integration
-        run: cargo check -p cfd-mesh --examples --no-default-features
+        run: cargo check -p gaia --examples --no-default-features
 
       - name: Confirm gated example is rejected without integration
         shell: bash
         run: |
           set +e
-          output=$(cargo check -p cfd-mesh --example schematic_to_3d_mesh --no-default-features 2>&1)
+          output=$(cargo check -p gaia --example schematic_to_3d_mesh --no-default-features 2>&1)
           status=$?
           set -e
           if [ "$status" -eq 0 ]; then
@@ -40,4 +40,4 @@ jobs:
           echo "$output" | grep -q 'requires the features: `cfdrs-integration`'
 
       - name: Check all examples with integration enabled
-        run: cargo check -p cfd-mesh --examples --no-default-features --features cfdrs-integration
+        run: cargo check -p gaia --examples --no-default-features --features cfdrs-integration

@@ -1,12 +1,12 @@
 # Gaia
 
-Gaia is the standalone repository for the `cfd-mesh` Rust crate.
+Gaia is the standalone repository for the `gaia` Rust crate.
 
-`cfd-mesh` provides watertight CFD mesh generation primitives, indexed and half-edge mesh representations, exact geometric predicates, Boolean CSG operations, quality analysis, and mesh I/O.
+`gaia` provides watertight CFD mesh generation primitives, indexed and half-edge mesh representations, exact geometric predicates, Boolean CSG operations, quality analysis, and mesh I/O. Within CFDrs, the workspace aliases `gaia` as `cfd-mesh` to preserve downstream dependency names.
 
 ## Layout
 
-- `crates/cfd-mesh`: the library crate published and consumed as `cfd-mesh`
+- `crates/gaia`: the standalone library crate published and consumed as `gaia`
 
 ## Features
 
@@ -18,13 +18,13 @@ Gaia is the standalone repository for the `cfd-mesh` Rust crate.
 ## Build
 
 ```sh
-cargo check -p cfd-mesh --lib --no-default-features
-cargo check -p cfd-mesh --examples --no-default-features
+cargo check -p gaia --lib --no-default-features
+cargo check -p gaia --examples --no-default-features
 ```
 
 To validate the optional CFDrs bridge:
 
 ```sh
-cargo check -p cfd-mesh --lib --no-default-features --features cfdrs-integration
-cargo check -p cfd-mesh --examples --no-default-features --features cfdrs-integration
+cargo check -p gaia --lib --no-default-features --features cfdrs-integration
+cargo check -p gaia --examples --no-default-features --features cfdrs-integration
 ```

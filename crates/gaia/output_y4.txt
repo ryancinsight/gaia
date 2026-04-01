@@ -1,0 +1,50 @@
+   Compiling cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+error[E0308]: mismatched types
+   --> crates\cfd-mesh\examples\csg\cylinder_cylinder_y_junction.rs:145:17
+    |
+143 |             cfd_mesh::application::csg::boolean::indexed::csg_boolean_indexed_best_effort(
+    |             ----------------------------------------------------------------------------- arguments to this function are incorrect
+144 |                 BooleanOp::Union,
+145 |                 &a_union_b,
+    |                 ^^^^^^^^^^ expected `&IndexedMesh`, found `&Result<IndexedMesh, MeshError>`
+    |
+    = note: expected reference `&IndexedMesh`
+               found reference `&Result<IndexedMesh, MeshError>`
+note: function defined here
+   --> C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh\src\application\csg\boolean\indexed.rs:50:8
+
+error[E0308]: mismatched types
+   --> crates\cfd-mesh\examples\csg\cylinder_cylinder_y_junction.rs:152:13
+    |
+150 |         report_union(
+    |         ------------ arguments to this function are incorrect
+151 |             &format!("Union (A Γê¬ B Γê¬ C)  ╬╕={theta_deg}┬░"),
+152 |             &mut result,
+    |             ^^^^^^^^^^^ expected `&mut IndexedMesh`, found `&mut Result<IndexedMesh, MeshError>`
+    |
+    = note: expected mutable reference `&mut IndexedMesh`
+               found mutable reference `&mut Result<IndexedMesh, MeshError>`
+note: function defined here
+   --> crates\cfd-mesh\examples\csg\cylinder_cylinder_y_junction.rs:322:4
+    |
+322 | fn report_union(label: &str, mesh: &mut IndexedMesh, v_naive: f64, ms: u128) {
+    |    ^^^^^^^^^^^^              ----------------------
+
+error[E0308]: mismatched types
+   --> crates\cfd-mesh\examples\csg\cylinder_cylinder_y_junction.rs:158:19
+    |
+158 |         write_stl(&result, &out_dir.join(&stl_name))?;
+    |         --------- ^^^^^^^ expected `&IndexedMesh`, found `&Result<IndexedMesh, MeshError>`
+    |         |
+    |         arguments to this function are incorrect
+    |
+    = note: expected reference `&IndexedMesh`
+               found reference `&Result<IndexedMesh, MeshError>`
+note: function defined here
+   --> crates\cfd-mesh\examples\csg\cylinder_cylinder_y_junction.rs:514:4
+    |
+514 | fn write_stl(mesh: &IndexedMesh, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    |    ^^^^^^^^^ ------------------
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `cfd-mesh` (example "csg_cylinder_cylinder_y_junction") due to 3 previous errors

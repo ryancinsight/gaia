@@ -1,0 +1,105 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-python\Cargo.toml
+workspace: C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\Cargo.toml
+warning: profile package spec `pycfdrs` in profile `release` did not match any packages
+   Compiling proc-macro2 v1.0.95
+   Compiling libm v0.2.15
+   Compiling paste v1.0.15
+   Compiling crossbeam-utils v0.8.21
+   Compiling typenum v1.18.0
+   Compiling zerocopy v0.8.26
+   Compiling rayon-core v1.12.1
+   Compiling num-traits v0.2.19
+   Compiling matrixmultiply v0.3.10
+   Compiling serde_json v1.0.142
+   Compiling anyhow v1.0.98
+   Compiling thiserror v1.0.69
+    Checking crossbeam-epoch v0.9.18
+   Compiling quote v1.0.40
+   Compiling syn v1.0.109
+    Checking crossbeam-deque v0.8.6
+   Compiling syn v2.0.104
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling include_dir_macros v0.7.4
+    Checking rayon v1.10.0
+   Compiling include_dir v0.7.4
+   Compiling proc-macro-error v1.0.4
+    Checking ppv-lite86 v0.2.21
+    Checking num-integer v0.1.46
+    Checking approx v0.5.1
+    Checking fixed v1.30.0
+    Checking ordered-float v5.1.0
+    Checking rstar v0.12.2
+    Checking spade v2.15.0
+    Checking num-bigint v0.4.6
+    Checking num-iter v0.1.45
+    Checking rand_chacha v0.3.1
+    Checking rand v0.8.5
+    Checking num-rational v0.4.2
+   Compiling serde_derive v1.0.228
+   Compiling nalgebra-macros v0.2.2
+   Compiling equator-macro v0.4.2
+   Compiling tracing-attributes v0.1.30
+   Compiling thiserror-impl v1.0.69
+   Compiling aquamarine v0.5.0
+    Checking equator v0.4.2
+    Checking aligned-vec v0.6.4
+    Checking tracing v0.1.41
+    Checking serde v1.0.228
+    Checking num-complex v0.4.6
+    Checking simba v0.8.1
+    Checking num v0.4.3
+    Checking simba v0.9.1
+    Checking kiddo v5.2.4
+    Checking nalgebra v0.33.2
+    Checking nalgebra v0.32.6
+    Checking bvh v0.9.0
+    Checking cfd-mesh v0.1.0 (C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh)
+error[E0432]: unresolved import `crate::topology::predicates`
+ --> crates\cfd-mesh\src\csg\classify.rs:6:22
+  |
+6 | use crate::topology::predicates::{orient3d, Sign};
+  |                      ^^^^^^^^^^ could not find `predicates` in `topology`
+
+error[E0308]: mismatched types
+   --> crates\cfd-mesh\src\csg\bsp.rs:288:18
+    |
+288 |     ExactPlane { pa, pb, pc, normal }
+    |                  ^^ expected `OPoint<f64, Const<3>>`, found `&OPoint<f64, Const<3>>`
+    |
+    = note: expected struct `OPoint<_, _>`
+            found reference `&OPoint<_, _>`
+help: consider dereferencing the borrow
+    |
+288 |     ExactPlane { pa: *pa, pb, pc, normal }
+    |                  +++++
+
+error[E0308]: mismatched types
+   --> crates\cfd-mesh\src\csg\bsp.rs:288:22
+    |
+288 |     ExactPlane { pa, pb, pc, normal }
+    |                      ^^ expected `OPoint<f64, Const<3>>`, found `&OPoint<f64, Const<3>>`
+    |
+    = note: expected struct `OPoint<_, _>`
+            found reference `&OPoint<_, _>`
+help: consider dereferencing the borrow
+    |
+288 |     ExactPlane { pa, pb: *pb, pc, normal }
+    |                      +++++
+
+error[E0308]: mismatched types
+   --> crates\cfd-mesh\src\csg\bsp.rs:288:26
+    |
+288 |     ExactPlane { pa, pb, pc, normal }
+    |                          ^^ expected `OPoint<f64, Const<3>>`, found `&OPoint<f64, Const<3>>`
+    |
+    = note: expected struct `OPoint<_, _>`
+            found reference `&OPoint<_, _>`
+help: consider dereferencing the borrow
+    |
+288 |     ExactPlane { pa, pb, pc: *pc, normal }
+    |                          +++++
+
+Some errors have detailed explanations: E0308, E0432.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `cfd-mesh` (lib) due to 4 previous errors

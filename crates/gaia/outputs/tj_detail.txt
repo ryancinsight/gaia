@@ -1,0 +1,43 @@
+    Finished `test` profile [optimized] target(s) in 0.27s
+     Running unittests src\lib.rs (target\debug\deps\cfd_mesh-58f7a20e503ada43.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 601 filtered out; finished in 0.00s
+
+     Running unittests src\bin\inspect_stl.rs (target\debug\deps\inspect_stl-c6acb152eece3c08.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\blueprint_pipeline.rs (target\debug\deps\blueprint_pipeline-42d7db7d07d365a1.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.00s
+
+     Running tests\csg_regressions.rs (target\debug\deps\csg_regressions-1c8d275a1ae94cfe.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\debug_volume.rs (target\debug\deps\debug_volume-912b6c8befea681f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests\diag_cube_cube.rs (target\debug\deps\diag_cube_cube-ee78740c83f8d33f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests cfd_mesh
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.00s
+

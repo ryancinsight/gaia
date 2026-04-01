@@ -1,0 +1,18 @@
+PASS primitives_revolution_sweep (1.8s) exit=0
+PASS primitives_spherical_shell (1.8s) exit=0
+PASS primitives_split_p_sphere (6.3s) exit=0
+PASS primitives_stadium_prism (11.4s) exit=0
+PASS primitives_truncated_icosahedron (1.8s) exit=0
+PASS primitives_venturi (1.9s) exit=0
+PASS sbs_96_well_plate (61.7s) exit=0
+PASS schematic_to_3d_mesh (2.1s) exit=0
+PASS schematic_to_mesh_demo (3.1s) exit=0
+FAIL schematic_to_openfoam (6.7s) exit=1
+  ERR: sh\outputs\schematic_to_openfoam\symmetric_bifurcation\constant/polyMesh/
+         chip OF    ΓåÆ C:\Users\RyanClanton\gcli\software\millifluidic_design\CFDrs\crates\cfd-mesh\outputs\schematic_to_openfoam\symmetric_bifurcation\chip_polyMesh/
+Error: "symmetric_trifurcation: pipeline failed ΓÇö mesh has 3 boundary edges ΓÇö not watertight"
+error: process didn't exit successfully: `target\debug\examples\schematic_to_openfoam.exe` (exit code: 1)
+  [3/6] symmetric_trifurcation .................
+
+PASS tpms_blood_chip_mesh (5.8s) exit=0
+

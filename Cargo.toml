@@ -1,6 +1,6 @@
 [workspace]
-members = ["crates/cfd-mesh"]
-default-members = ["crates/cfd-mesh"]
+members = ["crates/gaia"]
+default-members = ["crates/gaia"]
 resolver = "2"
 
 [workspace.package]
@@ -10,7 +10,7 @@ authors = ["Ryan Clanton <ryan@clanton.dev>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ryancinsight/gaia"
 homepage = "https://github.com/ryancinsight/gaia"
-documentation = "https://docs.rs/cfd-mesh"
+documentation = "https://docs.rs/gaia"
 readme = "README.md"
 keywords = ["mesh", "cfd", "millifluidic", "watertight", "ghostcell"]
 categories = ["science", "simulation"]
