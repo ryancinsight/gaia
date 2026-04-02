@@ -915,6 +915,14 @@ fn synthesize_complex_layout(
 // ── Segment mesh ──────────────────────────────────────────────────────────────
 
 fn build_segment_mesh(seg: &SegmentLayout, config: &PipelineConfig) -> MeshResult<IndexedMesh> {
+    build_segment_mesh_with_policy(seg, config, true)
+}
+
+fn build_segment_mesh_with_policy(
+    seg: &SegmentLayout,
+    config: &PipelineConfig,
+    require_watertight: bool,
+) -> MeshResult<IndexedMesh> {
     let dir = seg.end - seg.start;
     let len = dir.norm();
     if len < 1e-9 {
@@ -970,7 +978,7 @@ fn build_segment_mesh(seg: &SegmentLayout, config: &PipelineConfig) -> MeshResul
         );
     }
     mesh.rebuild_edges();
-    repair_pipeline_mesh(&mut mesh, true)?;
+    repair_pipeline_mesh(&mut mesh, require_watertight)?;
     Ok(mesh)
 }
 
@@ -1075,10 +1083,27 @@ fn assemble_fluid_mesh_with_policy(
         });
     }
 
-    let mut accumulated = crate::application::csg::boolean::csg_boolean_nary(
+    let mut accumulated = match crate::application::csg::boolean::csg_boolean_nary(
         crate::application::csg::BooleanOp::Union,
         &meshes,
-    )?;
+    ) {
+        Ok(mesh) => mesh,
+        Err(_) if meshes.len() > 1 => {
+            let mut iter = meshes.into_iter();
+            let mut accumulated = iter.next().expect("checked non-empty above");
+            repair_pipeline_mesh(&mut accumulated, false)?;
+            for mesh in iter {
+                accumulated = crate::application::csg::boolean::csg_boolean(
+                    crate::application::csg::BooleanOp::Union,
+                    &accumulated,
+                    &mesh,
+                )?;
+                repair_pipeline_mesh(&mut accumulated, false)?;
+            }
+            accumulated
+        }
+        Err(error) => return Err(error),
+    };
     repair_pipeline_mesh(&mut accumulated, require_watertight)?;
     Ok(accumulated)
 }
@@ -1615,7 +1640,7 @@ fn build_complex_fluid_mesh(
     let mut chain_meshes: Vec<IndexedMesh> = Vec::with_capacity(oriented_chains.len());
     for chain_segs in &oriented_chains {
         if chain_segs.len() == 1 {
-            let mesh = build_segment_mesh(&chain_segs[0], config).map_err(|error| {
+            let mesh = build_segment_mesh_with_policy(&chain_segs[0], config, false).map_err(|error| {
                 MeshError::ChannelError {
                     message: format!("complex chain segment mesh failed: {error}"),
                 }
