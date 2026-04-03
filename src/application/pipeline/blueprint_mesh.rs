@@ -1093,11 +1093,18 @@ fn assemble_fluid_mesh_with_policy(
             let mut accumulated = iter.next().expect("checked non-empty above");
             repair_pipeline_mesh(&mut accumulated, false)?;
             for mesh in iter {
-                accumulated = crate::application::csg::boolean::csg_boolean(
+                accumulated = match crate::application::csg::boolean::csg_boolean(
                     crate::application::csg::BooleanOp::Union,
                     &accumulated,
                     &mesh,
-                )?;
+                ) {
+                    Ok(unioned) => unioned,
+                    Err(_) => crate::application::csg::boolean::csg_boolean(
+                        crate::application::csg::BooleanOp::Union,
+                        &mesh,
+                        &accumulated,
+                    )?,
+                };
                 repair_pipeline_mesh(&mut accumulated, false)?;
             }
             accumulated

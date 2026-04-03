@@ -174,8 +174,23 @@ impl<T: Scalar> SdfMesher<T> {
         println!("DEBUG: Welded snapped candidates into {} topological bounding nodes.", unique_points.len());
         
         {
-            use rand::seq::SliceRandom;
-            let mut rng = rand::thread_rng();
+            use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
+
+            // Use a geometry-derived deterministic seed so repeated meshing of
+            // the same SDF produces identical insertion order and perturbation.
+            let seed_component = |value: T| {
+                num_traits::ToPrimitive::to_f64(&value)
+                    .expect("finite SDF mesher bounds")
+                    .to_bits()
+            };
+            let seed = seed_component(min.x)
+                ^ seed_component(min.y).rotate_left(7)
+                ^ seed_component(min.z).rotate_left(13)
+                ^ seed_component(max.x).rotate_left(19)
+                ^ seed_component(max.y).rotate_left(29)
+                ^ seed_component(max.z).rotate_left(37)
+                ^ seed_component(h).rotate_left(43);
+            let mut rng = StdRng::seed_from_u64(seed);
             
             // Spatial macro-block sorting restores O(1) BFS locality while retaining pseudo-random insertion
             // to definitively break incremental Delaunay collinear degeneracies.
@@ -211,7 +226,6 @@ impl<T: Scalar> SdfMesher<T> {
             // and coplanar numeric conditions are broken deterministically. This resolves Bowyer-Watson's
             // overlapping failure modes without degrading mesh curvature, as coordinates are
             // rigorously re-anchored to the surface by the downstream Laplacian pass.
-            use rand::Rng;
             let jitter_magnitude = <T as Scalar>::from_f64(1e-7) * h;
             for p in &mut unique_points {
                 let j_x = <T as Scalar>::from_f64(rng.gen_range(-1.0..1.0)) * jitter_magnitude;
