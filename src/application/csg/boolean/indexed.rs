@@ -2419,14 +2419,14 @@ mod tests {
         let branches = csg_boolean(BooleanOp::Union, &branch_up, &branch_dn).unwrap();
         let mut result = csg_boolean(BooleanOp::Difference, &trunk, &branches).unwrap();
         let normals_before = analyze_normals(&result);
-        tracing::info!("before orient_outward: outward={}, inward={}, degen={}",
+        eprintln!("before orient_outward: outward={}, inward={}, degen={}",
             normals_before.outward_faces,
             normals_before.inward_faces,
             normals_before.degenerate_faces,
         );
         result.orient_outward();
         let normals_after = analyze_normals(&result);
-        tracing::info!("after  orient_outward: outward={}, inward={}, degen={}",
+        eprintln!("after  orient_outward: outward={}, inward={}, degen={}",
             normals_after.outward_faces, normals_after.inward_faces, normals_after.degenerate_faces,
         );
         assert_eq!(
@@ -2841,4 +2841,3 @@ mod tests {
         );
     }
 }
-
