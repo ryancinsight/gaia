@@ -137,19 +137,19 @@ impl CsgNode {
 fn transform_mesh(mesh: IndexedMesh, iso: &Isometry3<Real>) -> IndexedMesh {
     use crate::domain::core::index::VertexId;
     let mut new_mesh = IndexedMesh::new();
-    let mut remap: Vec<Option<VertexId>> = vec![None; mesh.vertices.len()];
+    let mut remap: std::collections::HashMap<VertexId, VertexId> = std::collections::HashMap::with_capacity(mesh.vertices.len());
 
     for face in mesh.faces.iter() {
         let mut new_verts = [VertexId::default(); 3];
         for (k, &vid) in face.vertices.iter().enumerate() {
             let idx = vid.as_usize();
-            let new_id = if let Some(id) = remap[idx] {
+            let new_id = if let Some(id) = remap.get(&VertexId(idx as u32)).copied() {
                 id
             } else {
                 let pos = iso * *mesh.vertices.position(vid);
                 let nrm = iso.rotation * *mesh.vertices.normal(vid);
                 let id = new_mesh.add_vertex(pos, nrm);
-                remap[idx] = Some(id);
+                remap.insert(VertexId(idx as u32), id);
                 id
             };
             new_verts[k] = new_id;

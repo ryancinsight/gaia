@@ -246,6 +246,67 @@ pub(crate) fn gwn_bounded_prepared(query: &Point3r, faces: &[PreparedFace]) -> f
     (solid_angle_sum / (4.0 * std::f64::consts::PI)).clamp(-1.0, 1.0)
 }
 
+/// Exact analytical spatial gradient of the Generalized Winding Number ∇GWN(p).
+///
+/// ## Theorem — Solid Angle Spatial Gradient
+/// Derived from the van Oosterom & Strackee exact solid angle formulation:
+/// `∇_p Ω = 2 (D ∇_p N - N ∇_p D) / (N² + D²)`
+/// where `N = va · (vb × vc)`, `D = |va||vb||vc| + (va·vb)|vc| + (vb·vc)|va| + (vc·va)|vb|`
+/// `∇_p N = -normal`  (the unnormalized face normal `(b-a) × (c-a)`)
+/// `∇_p D = -(K_a va + K_b vb + K_c vc)`
+/// where `K_a = (lb·lc + vb·vc)/la + lb + lc` (cyclic for b, c).
+///
+/// This exact $O(N)$ evaluation completely removes numerical finite-difference parameters.
+pub(crate) fn gwn_gradient_prepared(query: &Point3r, faces: &[PreparedFace]) -> Vector3r {
+    let mut grad_sum = Vector3r::zeros();
+    for face in faces {
+        let va = nalgebra::Vector3::new(face.a.x - query.x, face.a.y - query.y, face.a.z - query.z);
+        let vb = nalgebra::Vector3::new(face.b.x - query.x, face.b.y - query.y, face.b.z - query.z);
+        let vc = nalgebra::Vector3::new(face.c.x - query.x, face.c.y - query.y, face.c.z - query.z);
+
+        if va.norm_squared() < f64::MIN_POSITIVE
+            || vb.norm_squared() < f64::MIN_POSITIVE
+            || vc.norm_squared() < f64::MIN_POSITIVE
+        {
+            continue;
+        }
+
+        let la = va.norm();
+        let lb = vb.norm();
+        let lc = vc.norm();
+        
+        // Numerator and Denominator
+        let num = va.dot(&vb.cross(&vc));
+        let den = la * lb * lc + va.dot(&vb) * lc + vb.dot(&vc) * la + vc.dot(&va) * lb;
+
+        let den_sq = den * den + num * num;
+        if den_sq < 1e-60 {
+            continue;
+        }
+
+        // Topological singularity bounds:
+        // If the query point lies exactly on the open face (num ≈ 0, den < 0),
+        // the face itself represents a 4π topological branch cut and its analytical
+        // principal value spatial gradient is entirely zero. We must explicitly skip it
+        // to prevent `atan2` branch-cut derivative explosions.
+        if num.abs() < 1e-12 && den < 0.0 {
+            continue;
+        }
+
+        // Analytical derivatives
+        let k_a = (lb * lc + vb.dot(&vc)) / la + lb + lc;
+        let k_b = (la * lc + va.dot(&vc)) / lb + la + lc;
+        let k_c = (la * lb + va.dot(&vb)) / lc + la + lb;
+
+        let grad_n = -face.normal;
+        let grad_d = -(va * k_a + vb * k_b + vc * k_c);
+
+        let grad_omega = 2.0 * (den * grad_n - num * grad_d) / den_sq;
+        grad_sum += grad_omega;
+    }
+    grad_sum / (4.0 * std::f64::consts::PI)
+}
+
 // ── WNNC normal consistency ───────────────────────────────────────────────────
 
 /// Winding Number Normal Consistency (WNNC) score at a surface point.
@@ -263,48 +324,34 @@ pub(crate) fn gwn_bounded_prepared(query: &Point3r, faces: &[PreparedFace]) -> f
 /// consistent with the surrounding winding-number field.  A negative score
 /// indicates an inverted or inconsistent normal.
 ///
-/// ## Implementation
-///
-/// The gradient is approximated by central differences with step size `h`:
-///
-/// ```text
-/// ∂GWN/∂x ≈ (GWN(p + h·x̂) − GWN(p − h·x̂)) / (2h)
-/// ```
+/// The exact gradient is computed directly via boundary integrals, fully eliminating
+/// parameterized finite-difference approximations (`h`).
 ///
 /// The returned score is the cosine of the angle between `−∇GWN` and `normal`:
 /// `score ∈ [-1, 1]`.  Positive values indicate consistent normals.
 ///
-/// ## Complexity — O(6n) per point (six GWN evaluations).
+/// ## Complexity — O(N) per point.
 ///
 /// ## Reference
 ///
 /// Feng et al. (2024), *Winding Number Normal Consistency*, adapted for
-/// post-CSG normal validation. ∎
+/// post-CSG normal validation using exact analytical solid angle gradients. ∎
 #[must_use]
 pub fn wnnc_score(
     point: &Point3r,
     normal: &Vector3r,
     faces: &[PreparedFace],
-    h: f64,
 ) -> f64 {
-    let gx = (gwn_prepared(&Point3r::new(point.x + h, point.y, point.z), faces)
-        - gwn_prepared(&Point3r::new(point.x - h, point.y, point.z), faces))
-        / (2.0 * h);
-    let gy = (gwn_prepared(&Point3r::new(point.x, point.y + h, point.z), faces)
-        - gwn_prepared(&Point3r::new(point.x, point.y - h, point.z), faces))
-        / (2.0 * h);
-    let gz = (gwn_prepared(&Point3r::new(point.x, point.y, point.z + h), faces)
-        - gwn_prepared(&Point3r::new(point.x, point.y, point.z - h), faces))
-        / (2.0 * h);
-
-    let grad_norm_sq = gx * gx + gy * gy + gz * gz;
+    let grad = gwn_gradient_prepared(point, faces);
+    
+    let grad_norm_sq = grad.norm_squared();
     let normal_norm_sq = normal.norm_squared();
     if grad_norm_sq < 1e-60 || normal_norm_sq < 1e-60 {
         return 0.0;
     }
     // Score = cos(angle between -∇GWN and normal)
     //       = dot(-grad, normal) / (|grad| × |normal|)
-    let neg_grad_dot_n = -(gx * normal.x + gy * normal.y + gz * normal.z);
+    let neg_grad_dot_n = -grad.dot(normal);
     neg_grad_dot_n / (grad_norm_sq.sqrt() * normal_norm_sq.sqrt())
 }
 

@@ -376,7 +376,6 @@ mod tests {
         // Test WNNC at each face centroid with its outward normal.
         // On the surface, GWN transitions from 1 (inside) to 0 (outside),
         // so -∇GWN points in the outward normal direction → positive score.
-        let h = 1e-4; // step size for numerical gradient
         for pf in &prepared {
             let face_n = pf.normal; // unnormalised outward normal
             let n_len = face_n.norm();
@@ -385,7 +384,7 @@ mod tests {
             }
             let unit_n = face_n / n_len;
             // Query at the face centroid (on the surface).
-            let score = wnnc_score(&pf.centroid, &unit_n, &prepared, h);
+            let score = wnnc_score(&pf.centroid, &unit_n, &prepared);
             assert!(
                 score > 0.0,
                 "WNNC score should be positive for outward normal, got {score:.4} \
@@ -401,14 +400,13 @@ mod tests {
     fn wnnc_flipped_normals_negative() {
         let (pool, faces) = unit_cube_mesh();
         let prepared = prepare_classification_faces(&faces, &pool);
-        let h = 1e-4;
         // Use the first face and flip its normal
         let pf = &prepared[0];
         let n_len = pf.normal.norm();
         let unit_n = pf.normal / n_len;
         let flipped = -unit_n;
         // Query at the face centroid (on the surface).
-        let score = wnnc_score(&pf.centroid, &flipped, &prepared, h);
+        let score = wnnc_score(&pf.centroid, &flipped, &prepared);
         assert!(
             score < 0.0,
             "WNNC score should be negative for flipped normal, got {score:.4}"
@@ -465,7 +463,6 @@ mod tests {
     fn wnnc_sphere_normals_consistent() {
         let (pool, faces) = sphere_mesh(8); // 8 latitude bands → ~240 faces
         let prepared = prepare_classification_faces(&faces, &pool);
-        let h = 1e-4;
         let mut positive_count = 0;
         let mut total_checked = 0;
         for pf in &prepared {
@@ -475,7 +472,7 @@ mod tests {
             }
             let unit_n = pf.normal / n_len;
             // Query at the face centroid (on the surface).
-            let score = wnnc_score(&pf.centroid, &unit_n, &prepared, h);
+            let score = wnnc_score(&pf.centroid, &unit_n, &prepared);
             if score > 0.0 {
                 positive_count += 1;
             }

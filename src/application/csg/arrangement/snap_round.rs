@@ -304,8 +304,7 @@ pub(crate) fn snap_round_tjunctions(faces: &mut Vec<FaceData>, pool: &VertexPool
 
         #[cfg(test)]
         if trace_enabled() {
-            eprintln!(
-                "[snap-round {}] {} bnd edges, {} bnd verts, {} splits",
+            tracing::info!("[snap-round {}] {} bnd edges, {} bnd verts, {} splits",
                 iter_idx,
                 boundary.len(),
                 bnd_verts.len(),

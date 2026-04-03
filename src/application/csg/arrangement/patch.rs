@@ -347,7 +347,6 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
 
         #[cfg(test)]
         if trace_enabled() {
-            eprintln!("[patch-iter] {} boundary edges", boundary_edges.len());
         }
 
         let loops = trace_loops(&boundary_edges);
@@ -461,12 +460,10 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
     {
         let remain = build_boundary(faces);
         if trace_enabled() {
-            eprintln!("[patch-done] {} boundary edges remain", remain.len());
             for (a, b) in &remain {
                 let pa = pool.position(*a);
                 let pb = pool.position(*b);
-                eprintln!(
-                    "  {:?}->{:?}  ({:.9},{:.9},{:.9})->({:.9},{:.9},{:.9})",
+                tracing::info!("  {:?}->{:?}  ({:.9},{:.9},{:.9})->({:.9},{:.9},{:.9})",
                     a, b, pa.x, pa.y, pa.z, pb.x, pb.y, pb.z
                 );
             }

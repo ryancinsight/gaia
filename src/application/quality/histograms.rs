@@ -5,7 +5,7 @@
 //! | Operation | Complexity | Notes |
 //! |-----------|------------|-------|
 //! | `compute` | O(n)       | n = value count |
-//! | `percentile` | O(n log n) | sort-based; result is approximate (bin midpoint) |
+//! | `exact_percentile` | O(n log n) | strictly sort-based exact percentile |
 //!
 //! ## References
 //!
@@ -13,6 +13,23 @@
 
 use crate::domain::core::scalar::Real;
 
+/// Compute the exact p-th percentile (0.0 = min, 1.0 = max) from a slice of values.
+///
+/// This avoids the histogram bin-midpoint approximation error by returning to the exact 
+/// domain array and explicitly sorting. Non-finite values (NaN, ±∞) are ignored.
+///
+/// ## Complexity
+/// O(n log n) due to `sort_unstable_by`.
+#[must_use]
+pub fn exact_percentile(values: &[Real], p: f64) -> Option<Real> {
+    let mut finite: Vec<Real> = values.iter().copied().filter(|v| v.is_finite()).collect();
+    if finite.is_empty() {
+        return None;
+    }
+    finite.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let target_idx = (p.clamp(0.0, 1.0) * (finite.len() - 1) as f64).round() as usize;
+    Some(finite[target_idx])
+}
 // ── Histogram ─────────────────────────────────────────────────────────────────
 
 /// Fixed-width histogram over a set of scalar values.
@@ -101,29 +118,7 @@ impl Histogram {
     pub fn midpoint(&self, i: usize) -> Real {
         0.5 * (self.edges[i] + self.edges[i + 1])
     }
-
-    /// Approximate p-th percentile (0.0 = min, 1.0 = max) using bin midpoints.
-    ///
-    /// Returns `None` if the histogram is empty.
-    #[must_use]
-    pub fn percentile(&self, p: f64) -> Option<Real> {
-        let total: usize = self.bins.iter().sum();
-        if total == 0 {
-            return None;
-        }
-        let target = (p.clamp(0.0, 1.0) * total as f64) as usize;
-        let mut cumulative = 0usize;
-        for (i, &count) in self.bins.iter().enumerate() {
-            cumulative += count;
-            if cumulative > target {
-                return Some(self.midpoint(i));
-            }
-        }
-        Some(self.midpoint(self.bins.len() - 1))
-    }
 }
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
@@ -166,14 +161,12 @@ mod tests {
     }
 
     #[test]
-    fn histogram_percentile_median_is_central() {
-        // 0..100 uniform, 10 bins → p50 should be near 50.
-        let values: Vec<Real> = (0..100).map(|i| Real::from(i)).collect();
-        let h = Histogram::compute(&values, 10).unwrap();
-        let p50 = h.percentile(0.5).unwrap();
+    fn exact_percentile_median_is_exact() {
+        let values: Vec<Real> = (0..=100).map(|i| Real::from(i)).collect();
+        let p50 = exact_percentile(&values, 0.5).unwrap();
         assert!(
-            (p50 - 50.0).abs() < 15.0,
-            "median should be near 50, got {p50}"
+            (p50 - 50.0).abs() < 1e-12,
+            "exact median should be exactly 50, got {p50}"
         );
     }
 }

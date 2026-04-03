@@ -90,28 +90,24 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
     let r_parent = d_parent / 2.0_f64;
     let r_daughter = d_daughter / 2.0_f64;
     let n_ax = b.resolution.max(4);
-    let n_ang: usize = 8;
+    let n_ang: usize = 32;
 
     let wall_region = RegionId::from_usize(0);
-    let inlet_region = RegionId::from_usize(1);
 
-    let mut mesh = IndexedMesh::new();
-
-    // Helper: add a tube section along an axis defined by (origin, direction, radius)
-    // and return the rings of VertexIds.
-    let build_tube = |mesh: &mut IndexedMesh,
-                      origin: (Real, Real, Real),
-                      dir: (Real, Real, Real),
-                      r: Real,
-                      n_steps: usize|
-     -> Vec<Vec<crate::domain::core::index::VertexId>> {
+    // Helper: build a watertight closed tube.
+    let build_closed_tube = |origin: (Real, Real, Real),
+                             dir: (Real, Real, Real),
+                             r: Real,
+                             n_steps: usize,
+                             is_parent: bool,
+                             d_idx: usize|
+     -> IndexedMesh {
+        let mut mesh = IndexedMesh::new();
         let (ox, oy, oz) = origin;
         let (dx, dy, dz) = dir;
         let len = (dx * dx + dy * dy + dz * dz).sqrt();
         let (udx, udy, udz) = (dx / len, dy / len, dz / len);
 
-        // Build a local frame perpendicular to the tube direction.
-        // If dir is nearly along z, use x as "up"; otherwise use z.
         let (ex, ey, ez) = if udz.abs() < 0.9 {
             let (lx, ly, lz) = (0.0, 0.0, 1.0);
             let dot = udx * lx + udy * ly + udz * lz;
@@ -125,12 +121,7 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
             let slen = (sx * sx + sy * sy + sz * sz).sqrt();
             (sx / slen, sy / slen, sz / slen)
         };
-        // Third frame axis = dir × e
-        let (fx, fy, fz) = (
-            udy * ez - udz * ey,
-            udz * ex - udx * ez,
-            udx * ey - udy * ex,
-        );
+        let (fx, fy, fz) = (udy * ez - udz * ey, udz * ex - udx * ez, udx * ey - udy * ex);
 
         let mut rings = Vec::with_capacity(n_steps);
         for i in 0..n_steps {
@@ -153,40 +144,62 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
             }
             rings.push(ring);
         }
-        rings
-    };
 
-    // Parent tube along +z.
-    let parent_rings = build_tube(
-        &mut mesh,
-        (0.0, 0.0, 0.0),
-        (0.0, 0.0, l_parent),
-        r_parent,
-        n_ax,
-    );
+        // Walls
+        for iz in 0..(n_steps - 1) {
+            for ia in 0..n_ang {
+                let ia1 = (ia + 1) % n_ang;
+                let v00 = rings[iz][ia];
+                let v01 = rings[iz][ia1];
+                let v10 = rings[iz + 1][ia];
+                let v11 = rings[iz + 1][ia1];
+                mesh.add_face_with_region(v00, v10, v01, wall_region);
+                mesh.add_face_with_region(v01, v10, v11, wall_region);
+            }
+        }
 
-    // Wall faces for parent.
-    for iz in 0..(n_ax - 1) {
+        // Inlet cap (starts at t=0, normal = -dir)
+        let ic = mesh.add_vertex(Point3r::new(ox, oy, oz), Vector3r::new(-udx, -udy, -udz));
+        let inlet_region = RegionId::from_usize(1);
         for ia in 0..n_ang {
             let ia1 = (ia + 1) % n_ang;
-            let v00 = parent_rings[iz][ia];
-            let v01 = parent_rings[iz][ia1];
-            let v10 = parent_rings[iz + 1][ia];
-            let v11 = parent_rings[iz + 1][ia1];
-            mesh.add_face_with_region(v00, v10, v01, wall_region);
-            mesh.add_face_with_region(v01, v10, v11, wall_region);
+            let fid = mesh.add_face_with_region(ic, rings[0][ia1], rings[0][ia], inlet_region);
+            if is_parent {
+                mesh.mark_boundary(fid, "inlet");
+            }
         }
-    }
 
-    // Inlet cap at z = 0.
-    let ic = mesh.add_vertex(Point3r::new(0.0, 0.0, 0.0), Vector3r::new(0.0, 0.0, -1.0));
-    for ia in 0..n_ang {
-        let ia1 = (ia + 1) % n_ang;
-        let fid = mesh.add_face_with_region(ic, parent_rings[0][ia1], parent_rings[0][ia], inlet_region);
-        mesh.mark_boundary(fid, "inlet");
-    }
+        // Outlet cap (ends at t=1, normal = dir)
+        let oc = mesh.add_vertex(Point3r::new(ox + dx, oy + dy, oz + dz), Vector3r::new(udx, udy, udz));
+        let outlet_region = RegionId::from_usize(2 + d_idx);
+        let last = n_steps - 1;
+        for ia in 0..n_ang {
+            let ia1 = (ia + 1) % n_ang;
+            let fid = mesh.add_face_with_region(oc, rings[last][ia], rings[last][ia1], outlet_region);
+            if !is_parent {
+                mesh.mark_boundary(fid, format!("outlet_{}", d_idx));
+            }
+        }
 
-    // Daughter tubes.
+        mesh
+    };
+
+    let mut meshes = Vec::new();
+
+    // 1. Parent tube
+    // Extend slightly past l_parent to ensure solid overlap for CSG union
+    let parent_overlap = r_parent * 1.5;
+    let mesh_parent = build_closed_tube(
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, l_parent + parent_overlap),
+        r_parent,
+        n_ax,
+        true,
+        0,
+    );
+    meshes.push(mesh_parent);
+
+    // 2. Daughter tubes
     for d in 0..b.n_daughters {
         let angle_step = if b.n_daughters == 1 {
             0.0_f64
@@ -196,46 +209,33 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
         let sin_a = angle_step.sin();
         let cos_a = angle_step.cos();
 
-        let daughter_rings = build_tube(
-            &mut mesh,
-            (0.0, 0.0, l_parent),
-            (l_daughter * sin_a, 0.0, l_daughter * cos_a),
+        // Start daughter tube deep inside the parent to guarantee volume overlap
+        let overlap_dist = r_parent * 1.5;
+        let start_x = -overlap_dist * sin_a;
+        let start_y = 0.0;
+        let start_z = l_parent - overlap_dist * cos_a;
+
+        // End position
+        let run_dist = l_daughter + overlap_dist;
+        let dx = run_dist * sin_a;
+        let dy = 0.0;
+        let dz = run_dist * cos_a;
+
+        let mesh_d = build_closed_tube(
+            (start_x, start_y, start_z),
+            (dx, dy, dz),
             r_daughter,
             n_ax,
+            false,
+            d,
         );
-
-        for iz in 0..(n_ax - 1) {
-            for ia in 0..n_ang {
-                let ia1 = (ia + 1) % n_ang;
-                let v00 = daughter_rings[iz][ia];
-                let v01 = daughter_rings[iz][ia1];
-                let v10 = daughter_rings[iz + 1][ia];
-                let v11 = daughter_rings[iz + 1][ia1];
-                mesh.add_face_with_region(v00, v10, v01, wall_region);
-                mesh.add_face_with_region(v01, v10, v11, wall_region);
-            }
-        }
-
-        // Outlet cap for this daughter.
-        let outlet_region = RegionId::from_usize(2 + d);
-        let last = n_ax - 1;
-        let end_x = l_daughter * sin_a;
-        let end_z = l_parent + l_daughter * cos_a;
-        let oc = mesh.add_vertex(
-            Point3r::new(end_x, 0.0, end_z),
-            Vector3r::new(sin_a, 0.0, cos_a),
-        );
-        for ia in 0..n_ang {
-            let ia1 = (ia + 1) % n_ang;
-            let fid = mesh.add_face_with_region(
-                oc,
-                daughter_rings[last][ia],
-                daughter_rings[last][ia1],
-                outlet_region,
-            );
-            mesh.mark_boundary(fid, format!("outlet_{}", d));
-        }
+        meshes.push(mesh_d);
     }
 
-    Ok(mesh)
+    // 3. Exact evaluate Boolean Union across all branch bounds
+    use crate::application::csg::boolean::{BooleanOp, csg_boolean_nary};
+    let union_mesh = csg_boolean_nary(BooleanOp::Union, &meshes)
+        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {:?}", e)))?;
+
+    Ok(union_mesh)
 }
