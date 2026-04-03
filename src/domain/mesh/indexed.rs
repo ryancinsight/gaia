@@ -804,7 +804,7 @@ impl<T: Scalar> IndexedMesh<T> {
         // Single-pass over components: build a fresh mesh from kept faces only.
         let mut new_mesh = self.empty_clone();
         // Map old VertexId → new VertexId (None = not yet seen).
-        let mut vertex_remap: Vec<Option<VertexId>> = vec![None; self.vertices.len()];
+        let mut vertex_remap: std::collections::HashMap<VertexId, VertexId> = std::collections::HashMap::new();
         // Map old FaceId → new FaceId for attribute/label remapping.
         let mut face_remap: HashMap<FaceId, FaceId> = HashMap::new();
         let mut discarded = 0usize;
@@ -825,7 +825,8 @@ impl<T: Scalar> IndexedMesh<T> {
                 let mut nv = [VertexId::default(); 3];
                 for (k, &vid) in fd.vertices.iter().enumerate() {
                     let idx = vid.as_usize();
-                    nv[k] = *vertex_remap[idx].get_or_insert_with(|| {
+                    let entry = vertex_remap.entry(VertexId(idx as u32));
+nv[k] = *entry.or_insert_with(|| {
                         new_mesh
                             .add_vertex(*self.vertices.position(vid), *self.vertices.normal(vid))
                     });

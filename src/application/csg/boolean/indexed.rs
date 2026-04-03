@@ -2419,20 +2419,16 @@ mod tests {
         let branches = csg_boolean(BooleanOp::Union, &branch_up, &branch_dn).unwrap();
         let mut result = csg_boolean(BooleanOp::Difference, &trunk, &branches).unwrap();
         let normals_before = analyze_normals(&result);
-        eprintln!(
-            "before orient_outward: outward={}, inward={}, degen={}",
+        tracing::info!("before orient_outward: outward={}, inward={}, degen={}",
             normals_before.outward_faces,
             normals_before.inward_faces,
             normals_before.degenerate_faces,
         );
-        eprintln!("is_watertight_before={}", result.is_watertight());
         result.orient_outward();
         let normals_after = analyze_normals(&result);
-        eprintln!(
-            "after  orient_outward: outward={}, inward={}, degen={}",
+        tracing::info!("after  orient_outward: outward={}, inward={}, degen={}",
             normals_after.outward_faces, normals_after.inward_faces, normals_after.degenerate_faces,
         );
-        eprintln!("is_watertight_after={}", result.is_watertight());
         assert_eq!(
             normals_after.inward_faces, 0,
             "orient_outward must eliminate inward faces"
@@ -2447,7 +2443,6 @@ mod tests {
             let edges = result.edges_ref().unwrap();
             let adj = AdjacencyGraph::build(&result.faces, edges);
             let comps = connected_components(&result.faces, &adj);
-            eprintln!("components={}", comps.len());
             assert_eq!(
                 comps.len(),
                 1,
@@ -2462,7 +2457,6 @@ mod tests {
             result.rebuild_edges();
             let rpt =
                 check_watertight(&result.vertices, &result.faces, result.edges_ref().unwrap());
-            eprintln!("euler_characteristic={:?}", rpt.euler_characteristic);
             assert_eq!(
                 rpt.euler_characteristic,
                 Some(2),
@@ -2847,4 +2841,3 @@ mod tests {
         );
     }
 }
-

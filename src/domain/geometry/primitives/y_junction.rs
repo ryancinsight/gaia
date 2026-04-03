@@ -459,7 +459,6 @@ mod tests {
             )
         };
         let _ = is_wt;
-        println!("ns={}: V={} F={} boundary={} nm={} closed={} chi={:?} vol={:.4}",
             ns,
             mesh.vertex_count(), mesh.face_count(),
             report.boundary_edge_count, report.non_manifold_edge_count,
@@ -473,7 +472,6 @@ mod tests {
                     let (v0, v1) = edge.vertices;
                     let p0 = mesh.vertices.position(v0);
                     let p1 = mesh.vertices.position(v1);
-                    println!("  boundary edge: ({:.2},{:.2},{:.2})→({:.2},{:.2},{:.2})",
                         p0.x,p0.y,p0.z, p1.x,p1.y,p1.z);
                 }
             }

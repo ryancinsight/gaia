@@ -132,8 +132,7 @@ pub(crate) fn fill_boundary_loops(faces: &mut Vec<FaceData>, pool: &VertexPool) 
 
         #[cfg(test)]
         if trace_enabled() {
-            eprintln!(
-                "[stitch {}] {} bnd edges, {} loops, {} fill tris",
+            tracing::info!("[stitch {}] {} bnd edges, {} loops, {} fill tris",
                 iter_idx,
                 boundary.len(),
                 loops.len(),
