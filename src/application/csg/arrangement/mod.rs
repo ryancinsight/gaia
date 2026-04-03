@@ -181,11 +181,10 @@ pub fn boolean_intersecting_arrangement(
     pool: &mut VertexPool,
 ) -> Vec<FaceData> {
     // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 1: broad phase Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-    let t_phase1 = std::time::Instant::now();
+    let _t_phase1 = std::time::Instant::now();
     // Both soups share the same pool so pool_a = pool_b = pool.
     let pairs = broad_phase_pairs(faces_a, pool, faces_b, pool);
     if trace_enabled() {
-        eprintln!("CSG Phase 1 (broad): {:?}", t_phase1.elapsed());
     }
 
     // Build per-face lists of intersection snap-segments for CDT co-refinement.
@@ -230,8 +229,7 @@ pub fn boolean_intersecting_arrangement(
     propagate_seam_vertices_until_stable(faces_a, &mut segs_a, pool);
     propagate_seam_vertices_until_stable(faces_b, &mut segs_b, pool);
     if trace_enabled() {
-        eprintln!(
-            "CSG Phase 2 (narrow + propagation): {:?}",
+        tracing::info!("CSG Phase 2 (narrow + propagation): {:?}",
             t_narrow_phase.elapsed()
         );
     }
@@ -307,8 +305,7 @@ pub fn boolean_intersecting_arrangement(
         },
     );
     if trace_enabled() {
-        eprintln!(
-            "CSG Fragment refinement (corefine CDT): {:?}",
+        tracing::info!("CSG Fragment refinement (corefine CDT): {:?}",
             t_fragment_refinement.elapsed()
         );
     }
@@ -316,8 +313,7 @@ pub fn boolean_intersecting_arrangement(
     // Phase 3.5: global cross-mesh vertex consolidation.
     consolidate_cross_mesh_vertices(&mut frags, pool);
     if trace_enabled() {
-        eprintln!(
-            "CSG Fragment consolidation: {:?}",
+        tracing::info!("CSG Fragment consolidation: {:?}",
             t_fragment_refinement.elapsed()
         );
     }
@@ -330,8 +326,7 @@ pub fn boolean_intersecting_arrangement(
         .collect();
     let kept_faces = classify_kept_fragments(op, &frags, faces_a, faces_b, pool, &coplanar_groups);
     if trace_enabled() {
-        eprintln!(
-            "CSG Fragment classification (GWN): {:?}",
+        tracing::info!("CSG Fragment classification (GWN): {:?}",
             t_fragment_classification.elapsed()
         );
     }

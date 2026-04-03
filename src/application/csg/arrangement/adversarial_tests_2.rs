@@ -153,7 +153,6 @@ mod tests {
             Err(e) => {
                 // Some arrangements may fail on complex genus-1 topology —
                 // acceptable as long as it's a clean error, not a panic.
-                eprintln!("torus partial intersection returned error (acceptable): {e:?}");
             }
         }
     }
@@ -202,7 +201,6 @@ mod tests {
             Err(e) => {
                 // If the pipeline rejects reversed-winding input, that's
                 // acceptable — but it must not panic.
-                eprintln!("mixed-orientation union error (acceptable): {e:?}");
             }
         }
     }
@@ -518,7 +516,6 @@ mod tests {
             }
             Err(e) => {
                 // Acceptable if pipeline gracefully rejects degenerate overlap.
-                eprintln!("near-tangent cylinder union error (acceptable): {e:?}");
             }
         }
     }

@@ -37,25 +37,25 @@ pub fn to_indexed_mesh(dt: &DelaunayTriangulation) -> IndexedMesh<f64> {
 
     // Map from PslgVertexId → VertexId in the IndexedMesh.
     let n = dt.vertices().len();
-    let mut id_map: Vec<Option<VertexId>> = vec![None; n];
+    let mut id_map: std::collections::HashMap<usize, VertexId> = std::collections::HashMap::with_capacity(n);
 
     // Only insert vertices referenced by interior triangles.
     for (_, tri) in dt.interior_triangles() {
         for &vid in &tri.vertices {
-            if id_map[vid.idx()].is_none() {
+            if !id_map.contains_key(&vid.idx()) {
                 let v = dt.vertex(vid);
                 let pos = Point3::new(v.x, v.y, 0.0);
                 let mid = mesh.add_vertex(pos, normal);
-                id_map[vid.idx()] = Some(mid);
+                id_map.insert(vid.idx(), mid);
             }
         }
     }
 
     // Insert faces.
     for (_, tri) in dt.interior_triangles() {
-        let v0 = id_map[tri.vertices[0].idx()].expect("vertex not mapped");
-        let v1 = id_map[tri.vertices[1].idx()].expect("vertex not mapped");
-        let v2 = id_map[tri.vertices[2].idx()].expect("vertex not mapped");
+        let v0 = id_map[&tri.vertices[0].idx()];
+        let v1 = id_map[&tri.vertices[1].idx()];
+        let v2 = id_map[&tri.vertices[2].idx()];
         mesh.add_face(v0, v1, v2);
     }
 
@@ -70,23 +70,23 @@ pub fn to_indexed_mesh_at_z(dt: &DelaunayTriangulation, z: Real) -> IndexedMesh<
     let normal = Vector3::new(0.0, 0.0, 1.0);
 
     let n = dt.vertices().len();
-    let mut id_map: Vec<Option<VertexId>> = vec![None; n];
+    let mut id_map: std::collections::HashMap<usize, VertexId> = std::collections::HashMap::with_capacity(n);
 
     for (_, tri) in dt.interior_triangles() {
         for &vid in &tri.vertices {
-            if id_map[vid.idx()].is_none() {
+            if !id_map.contains_key(&vid.idx()) {
                 let v = dt.vertex(vid);
                 let pos = Point3::new(v.x, v.y, z);
                 let mid = mesh.add_vertex(pos, normal);
-                id_map[vid.idx()] = Some(mid);
+                id_map.insert(vid.idx(), mid);
             }
         }
     }
 
     for (_, tri) in dt.interior_triangles() {
-        let v0 = id_map[tri.vertices[0].idx()].expect("vertex not mapped");
-        let v1 = id_map[tri.vertices[1].idx()].expect("vertex not mapped");
-        let v2 = id_map[tri.vertices[2].idx()].expect("vertex not mapped");
+        let v0 = id_map[&tri.vertices[0].idx()];
+        let v1 = id_map[&tri.vertices[1].idx()];
+        let v2 = id_map[&tri.vertices[2].idx()];
         mesh.add_face(v0, v1, v2);
     }
 

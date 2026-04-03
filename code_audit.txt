@@ -1,2 +1,0 @@
-[i] Token count: 329,774, Model info: ChatGPT models, text-embedding-ada-002
-[✓] Copied to clipboard successfully.
