@@ -1465,7 +1465,6 @@ mod tests {
             }
             Err(e) => {
                 // Graceful error is acceptable for degenerate coplanar inputs.
-                eprintln!("coplanar nary union returned expected error: {e:?}");
             }
         }
     }

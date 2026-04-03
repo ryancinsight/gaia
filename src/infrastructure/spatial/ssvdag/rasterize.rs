@@ -163,7 +163,6 @@ mod tests {
         let mesh = Cube::centred(1.0).build().unwrap();
         let svo = SparseVoxelOctree::from_mesh(&mesh, 3);
 
-        println!("depth=3 node count: {}", svo.nodes.len());
         match &svo.nodes[svo.root_index.0 as usize] {
             SvoNode::Leaf(solid) => {
                 assert!(
@@ -192,7 +191,6 @@ mod tests {
         let mesh = Cube::centred(1.0).build().unwrap();
         let svo = SparseVoxelOctree::from_mesh(&mesh, 6);
 
-        println!("depth=6 node count: {}", svo.nodes.len());
         match &svo.nodes[svo.root_index.0 as usize] {
             SvoNode::Internal(children) => {
                 assert_eq!(

@@ -171,7 +171,6 @@ impl<T: Scalar> SdfMesher<T> {
             }
         }
 
-        println!("DEBUG: Welded snapped candidates into {} topological bounding nodes.", unique_points.len());
         
         {
             use rand::seq::SliceRandom;
@@ -228,9 +227,7 @@ impl<T: Scalar> SdfMesher<T> {
             delaunay.insert_point(p);
         }
 
-        println!("DEBUG: Found {} points within SDF...", delaunay.vertices.len());
         let (points, tetrahedra) = delaunay.finalize();
-        println!("DEBUG: Delaunay generated {} tets out of {} final points", tetrahedra.len(), points.len());
 
         // `finalize()` returns contiguous, super-vertex-free points and
         // remapped tet indices.  The carving filter removes tets whose interior
