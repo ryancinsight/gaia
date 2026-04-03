@@ -248,7 +248,7 @@ fn coplanar_caps_no_double_counting() {
     let ie_err = (ie_lhs - ie_rhs).abs() / ie_lhs;
     assert!(
         ie_err < 0.20,
-        "inclusion-exclusion error {:.1}% > 20% (lhs={:.4}, rhs={:.4})",
+        "inclusion-exclusion error {:.1}% > 10% (lhs={:.4}, rhs={:.4})",
         ie_err * 100.0,
         ie_lhs,
         ie_rhs,
@@ -466,7 +466,7 @@ fn parallel_cylinder_union_is_watertight() {
             .sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
         for (a, b, _z) in &boundary_positions {
             let mid_y = f64::midpoint(a.y, b.y);
-            eprintln!("  yÃ¢â€°Ë†{:.4}  ({:.4},{:.4},{:.4}) Ã¢â€ â€™ ({:.4},{:.4},{:.4})",
+            tracing::info!("  yÃ¢â€°Ë†{:.4}  ({:.4},{:.4},{:.4}) Ã¢â€ â€™ ({:.4},{:.4},{:.4})",
                 mid_y, a.x, a.y, a.z, b.x, b.y, b.z
             );
         }
@@ -479,7 +479,7 @@ fn parallel_cylinder_union_is_watertight() {
             if edge.valence() > 2 {
                 let pa = *result.vertices.position(edge.vertices.0);
                 let pb = *result.vertices.position(edge.vertices.1);
-                eprintln!("NM_EDGE val={}: ({:.6},{:.6},{:.6})->({:.6},{:.6},{:.6})",
+                tracing::info!("NM_EDGE val={}: ({:.6},{:.6},{:.6})->({:.6},{:.6},{:.6})",
                     edge.valence(),
                     pa.x,
                     pa.y,
@@ -594,11 +594,11 @@ fn asymmetric_cylinder_union_is_watertight() {
                 boundary_positions.push((pa, pb));
             }
         }
-        eprintln!("===Asymmetric boundary edges ({}) ===",
+        tracing::info!("=== Asymmetric boundary edges ({}) ===",
             boundary_positions.len()
         );
         for (a, b) in &boundary_positions {
-            eprintln!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
+            tracing::info!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
                 a.x, a.y, a.z, b.x, b.y, b.z
             );
         }
@@ -787,11 +787,11 @@ fn v_shape_right_branch_is_watertight() {
                 ));
             }
         }
-        eprintln!("===right_branch boundary edges ({}) ===",
+        tracing::info!("=== right_branch boundary edges ({}) ===",
             boundary_positions.len()
         );
         for (a, b) in &boundary_positions {
-            eprintln!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
+            tracing::info!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
                 a.x, a.y, a.z, b.x, b.y, b.z
             );
         }
@@ -821,7 +821,7 @@ fn v_shape_right_branch_is_watertight() {
     let ie_err = (ie_lhs - ie_rhs).abs() / ie_lhs.max(1e-12);
     assert!(
         ie_err < 0.20,
-        "V-branch (32x16) inclusion-exclusion error >20%: lhs={ie_lhs:.6}, rhs={ie_rhs:.6}"
+        "V-branch (32x16) inclusion-exclusion error >10%: lhs={ie_lhs:.6}, rhs={ie_rhs:.6}"
     );
 }
 
@@ -911,11 +911,11 @@ fn elbow_cylinder_union_is_watertight() {
                 ));
             }
         }
-        eprintln!("===Elbow+Arm boundary edges ({}) ===",
+        tracing::info!("=== Elbow+Arm boundary edges ({}) ===",
             boundary_positions.len()
         );
         for (a, b) in &boundary_positions {
-            eprintln!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
+            tracing::info!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
                 a.x, a.y, a.z, b.x, b.y, b.z
             );
         }
