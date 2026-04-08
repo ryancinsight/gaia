@@ -4,13 +4,11 @@
 //! substrates, and junctions. Adapted from blue2mesh's extrusion pipeline
 //! but using indexed mesh storage.
 
-pub mod junction;
 pub mod path;
 pub mod profile;
 pub mod substrate;
 pub mod sweep;
 
-pub use junction::JunctionType;
 pub use path::ChannelPath;
 pub use profile::ChannelProfile;
 pub use substrate::SubstrateBuilder;
