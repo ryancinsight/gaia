@@ -316,13 +316,18 @@ impl<T: Scalar> SdfMesher<T> {
         let used_vertex_count = used.iter().filter(|&&u| u).count();
         let face_capacity = keep.len().saturating_mul(4);
 
+        // Bowyer–Watson `finalize()` returns a clean, already-deduplicated point set.
+        // Use `add_vertex_unique` (bypasses the snap-rounding cell-hash weld check) so that
+        // every finalized vertex receives a distinct `VertexId` regardless of the mesh's
+        // `cell_size` grid spacing.  This is safe because deduplication was performed
+        // separately (weld_tol pass on `raw_points`, plus B–W super-vertex removal).
         let mut mesh = IndexedMesh::with_capacity(used_vertex_count, face_capacity, keep.len());
 
         // Map clean point indices into IndexedMesh VertexIds.
         let mut idx_to_vid = vec![VertexId::default(); points.len()];
         for (i, p) in points.into_iter().enumerate() {
             if used[i] {
-                idx_to_vid[i] = mesh.add_vertex_pos(p);
+                idx_to_vid[i] = mesh.add_vertex_unique(p, nalgebra::Vector3::zeros());
             }
         }
 
