@@ -74,7 +74,7 @@ impl<T: Scalar> SdfMesher<T> {
                         h_val = h_val.wrapping_mul(0xc2b2ae35);
                         h_val ^= h_val >> 16;
                         // Map [0, u32::MAX] to [-1.0, 1.0]
-                        let fract = (h_val as f64) / (u32::MAX as f64) * 2.0 - 1.0;
+                        let fract = f64::from(h_val) / f64::from(u32::MAX) * 2.0 - 1.0;
                         <T as Scalar>::from_f64(fract)
                     };
 
@@ -139,7 +139,7 @@ impl<T: Scalar> SdfMesher<T> {
         let mut grid: std::collections::HashMap<[isize; 3], Vec<usize>> = std::collections::HashMap::with_capacity(raw_points.len());
         let mut unique_points = Vec::with_capacity(raw_points.len());
 
-        for p in raw_points.into_iter() {
+        for p in raw_points {
             let px: f64 = num_traits::ToPrimitive::to_f64(&p.x).unwrap();
             let py: f64 = num_traits::ToPrimitive::to_f64(&p.y).unwrap();
             let pz: f64 = num_traits::ToPrimitive::to_f64(&p.z).unwrap();
@@ -390,7 +390,7 @@ impl<T: Scalar> SdfMesher<T> {
         let third = <T as Scalar>::from_f64(3.0);
         for &fid in &b_faces {
             if let Some(cell) = face_to_cell.get(&fid) {
-                let face_data = mesh.faces.get(fid).clone();
+                let face_data = *mesh.faces.get(fid);
                 let a = mesh.vertices.position(face_data.vertices[0]);
                 let b = mesh.vertices.position(face_data.vertices[1]);
                 let c = mesh.vertices.position(face_data.vertices[2]);

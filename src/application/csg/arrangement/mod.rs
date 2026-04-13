@@ -184,8 +184,7 @@ pub fn boolean_intersecting_arrangement(
     let _t_phase1 = std::time::Instant::now();
     // Both soups share the same pool so pool_a = pool_b = pool.
     let pairs = broad_phase_pairs(faces_a, pool, faces_b, pool);
-    if trace_enabled() {
-    }
+    trace_enabled();
 
     // Build per-face lists of intersection snap-segments for CDT co-refinement.
     let mut segs_a = vec![Vec::new(); faces_a.len()];

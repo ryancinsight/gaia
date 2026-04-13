@@ -177,7 +177,7 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
             let ia1 = (ia + 1) % n_ang;
             let fid = mesh.add_face_with_region(oc, rings[last][ia], rings[last][ia1], outlet_region);
             if !is_parent {
-                mesh.mark_boundary(fid, format!("outlet_{}", d_idx));
+                mesh.mark_boundary(fid, format!("outlet_{d_idx}"));
             }
         }
 
@@ -235,7 +235,7 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
     // 3. Exact evaluate Boolean Union across all branch bounds
     use crate::application::csg::boolean::{BooleanOp, csg_boolean_nary};
     let union_mesh = csg_boolean_nary(BooleanOp::Union, &meshes)
-        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {:?}", e)))?;
+        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))?;
 
     Ok(union_mesh)
 }

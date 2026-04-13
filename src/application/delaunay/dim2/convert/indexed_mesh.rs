@@ -42,12 +42,11 @@ pub fn to_indexed_mesh(dt: &DelaunayTriangulation) -> IndexedMesh<f64> {
     // Only insert vertices referenced by interior triangles.
     for (_, tri) in dt.interior_triangles() {
         for &vid in &tri.vertices {
-            if !id_map.contains_key(&vid.idx()) {
+            id_map.entry(vid.idx()).or_insert_with(|| {
                 let v = dt.vertex(vid);
                 let pos = Point3::new(v.x, v.y, 0.0);
-                let mid = mesh.add_vertex(pos, normal);
-                id_map.insert(vid.idx(), mid);
-            }
+                mesh.add_vertex(pos, normal)
+            });
         }
     }
 
@@ -74,12 +73,11 @@ pub fn to_indexed_mesh_at_z(dt: &DelaunayTriangulation, z: Real) -> IndexedMesh<
 
     for (_, tri) in dt.interior_triangles() {
         for &vid in &tri.vertices {
-            if !id_map.contains_key(&vid.idx()) {
+            id_map.entry(vid.idx()).or_insert_with(|| {
                 let v = dt.vertex(vid);
                 let pos = Point3::new(v.x, v.y, z);
-                let mid = mesh.add_vertex(pos, normal);
-                id_map.insert(vid.idx(), mid);
-            }
+                mesh.add_vertex(pos, normal)
+            });
         }
     }
 

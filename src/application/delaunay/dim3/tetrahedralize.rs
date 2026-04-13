@@ -241,7 +241,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
             i
         };
         
-        for face in self.tetrahedra[idx].as_ref().unwrap().faces().iter() {
+        for face in &self.tetrahedra[idx].as_ref().unwrap().faces() {
             let entry = self.face_tets.entry(*face).or_insert([usize::MAX, usize::MAX]);
             if entry[0] == usize::MAX {
                 entry[0] = idx;
@@ -259,7 +259,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
         let tet = self.tetrahedra[idx].take().unwrap();
         self.free_list.push(idx);
         
-        for face in tet.faces().iter() {
+        for face in &tet.faces() {
             if let Some(entry) = self.face_tets.get_mut(face) {
                 if entry[0] == idx {
                     entry[0] = usize::MAX;
@@ -310,7 +310,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
                     seed = current;
                     break;
                 }
-                for face in tet.faces().iter() {
+                for face in &tet.faces() {
                     if let Some(&[t0, t1]) = self.face_tets.get(face) {
                         let neighbor = if t0 == current { t1 } else { t0 };
                         if neighbor != usize::MAX && search_visited.insert(neighbor) {
@@ -348,7 +348,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
             
             let face_list = self.tetrahedra[curr].as_ref().unwrap().faces();
             
-            for face in face_list.iter() {
+            for face in &face_list {
                 *self.cavity_cache.entry(*face).or_insert(0) += 1;
                 
                 if let Some(&[t0, t1]) = self.face_tets.get(face) {
@@ -373,7 +373,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
         }
 
         // 3. Extrude forming the new Delaunay boundary 
-        for (&face, &count) in self.cavity_cache.iter() {
+        for (&face, &count) in &self.cavity_cache {
             if count == 1 {
                 self.cavity_faces.push((face, count));
             }
