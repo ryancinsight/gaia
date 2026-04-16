@@ -56,6 +56,16 @@ impl<I: std::hash::Hash + Eq + Copy> AttributeStore<I> {
             .collect()
     }
 
+    /// Iterate over all `(element_id, value)` pairs in a channel.
+    pub fn iter_channel(
+        &self,
+        channel: &str,
+    ) -> Option<impl Iterator<Item = (I, f64)> + '_> {
+        self.channels
+            .get(channel)
+            .map(|entries| entries.iter().map(|(id, value)| (*id, *value)))
+    }
+
     /// Remove a channel.
     pub fn remove_channel(&mut self, channel: &str) {
         self.channels.remove(channel);

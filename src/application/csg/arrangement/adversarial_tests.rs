@@ -1463,7 +1463,7 @@ mod tests {
                     "coplanar 3-cube union volume out of range: {vol:.4}"
                 );
             }
-            Err(e) => {
+            Err(_e) => {
                 // Graceful error is acceptable for degenerate coplanar inputs.
             }
         }

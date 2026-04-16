@@ -150,7 +150,7 @@ mod tests {
                      result={vol_result:.4} vs torus={vol_torus:.4}"
                 );
             }
-            Err(e) => {
+            Err(_e) => {
                 // Some arrangements may fail on complex genus-1 topology —
                 // acceptable as long as it's a clean error, not a panic.
             }
@@ -198,7 +198,7 @@ mod tests {
                     "union with flipped operand should have ≥ single cube vol: {vol:.4}"
                 );
             }
-            Err(e) => {
+            Err(_e) => {
                 // If the pipeline rejects reversed-winding input, that's
                 // acceptable — but it must not panic.
             }
@@ -514,7 +514,7 @@ mod tests {
                     "near-tangent union vol {vol:.4} should ≈ sum {sum:.4}"
                 );
             }
-            Err(e) => {
+            Err(_e) => {
                 // Acceptable if pipeline gracefully rejects degenerate overlap.
             }
         }

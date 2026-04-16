@@ -394,6 +394,18 @@ impl<T: Scalar> VertexPool<T> {
         self.vertices.iter().map(|v| &v.position)
     }
 
+    /// Return the exact weld grid cell size.
+    #[must_use]
+    pub fn cell_size(&self) -> T {
+        T::one() / self.inv_cell_size
+    }
+
+    /// Return the weld tolerance, if tolerance-based welding is enabled.
+    #[must_use]
+    pub fn tolerance(&self) -> Option<T> {
+        self.tolerance_sq.map(num_traits::Float::sqrt)
+    }
+
     /// Update the exact position of a previously inserted vertex.
     ///
     /// Exclusively intended for post-processing topological relaxation (e.g., Laplacian 

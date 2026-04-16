@@ -684,7 +684,7 @@ fn l_shape_compound_union_is_watertight() {
     // elbow-cylinder junction — known limitation (see doc comment).
     let stem_elbow = match csg_boolean(BooleanOp::Union, &stem, &elbow) {
         Ok(mesh) => mesh,
-        Err(e) => {
+        Err(_e) => {
             return; // Gracefully skip if the intermediate op fails.
         }
     };
@@ -702,7 +702,7 @@ fn l_shape_compound_union_is_watertight() {
                 report.non_manifold_edge_count
             );
         }
-        Err(e) => {
+        Err(_e) => {
         }
     }
 }
