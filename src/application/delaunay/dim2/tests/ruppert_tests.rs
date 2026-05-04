@@ -186,10 +186,7 @@ fn steiner_respects_limit() {
     refiner.set_max_steiner(10);
     let n = refiner.refine();
 
-    assert!(
-        n <= 10,
-        "Steiner count {n} should respect the limit of 10"
-    );
+    assert!(n <= 10, "Steiner count {n} should respect the limit of 10");
 }
 
 // ── Refinement preserves Delaunay ─────────────────────────────────────────

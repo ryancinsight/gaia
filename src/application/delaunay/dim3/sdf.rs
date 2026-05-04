@@ -5,14 +5,14 @@
 //!
 //! # Theorem 1: Signed Distance Field (SDF) Boundary Projection
 //!
-//! **Statement**: For any implicit bounded geometry defined by $SDF(\mathbf{x}) \le 0$, 
-//! a point $\mathbf{x}_{near}$ proximal to the surface can be strictly projected onto 
-//! the mathematically exact manifold via gradient descent: $\mathbf{x}_{surface} = 
+//! **Statement**: For any implicit bounded geometry defined by $SDF(\mathbf{x}) \le 0$,
+//! a point $\mathbf{x}_{near}$ proximal to the surface can be strictly projected onto
+//! the mathematically exact manifold via gradient descent: $\mathbf{x}_{surface} =
 //! \mathbf{x}_{near} - SDF(\mathbf{x}_{near}) \cdot \nabla SDF(\mathbf{x}_{near})$.
 //!
-//! **Proof sketch**: The continuous gradient $\nabla SDF$ is strictly orthogonal to 
-//! the 0-level set. Small Eulerian steps along the negative gradient unconditionally 
-//! converge to the lowest-energy isosurface, guaranteeing mathematically watertight 
+//! **Proof sketch**: The continuous gradient $\nabla SDF$ is strictly orthogonal to
+//! the 0-level set. Small Eulerian steps along the negative gradient unconditionally
+//! converge to the lowest-energy isosurface, guaranteeing mathematically watertight
 //! boundary closure for volumetric grids.
 
 use nalgebra::{Point3, Vector3};
@@ -45,7 +45,7 @@ pub trait Sdf3D<T: Scalar> {
 
         let denom = <T as Scalar>::from_f64(2.0) * eps;
         let mut grad = Vector3::new(df_dx / denom, df_dy / denom, df_dz / denom);
-        
+
         // Normalize the gradient to ensure strict unity length for projection
         let norm = grad.norm();
         if norm > T::tolerance() {
@@ -99,7 +99,11 @@ impl<T: Scalar> CylinderSdf<T> {
         } else {
             axis = Vector3::new(T::one(), T::zero(), T::zero());
         }
-        Self { point, axis, radius }
+        Self {
+            point,
+            axis,
+            radius,
+        }
     }
 }
 
@@ -188,21 +192,21 @@ impl<T: Scalar> Sdf3D<T> for FiniteCylinderSdf<T> {
         if baba < T::tolerance() {
             return (p - self.a).norm() - self.radius; // Degenerate point cylinder is a sphere
         }
-        
+
         let paba = pa.dot(&ba);
         let h = paba / baba; // fractional projection along cylinder
         let radial_vec = pa - ba * h;
-        
+
         let radial_dist = radial_vec.norm() - self.radius;
         let half = <T as Scalar>::from_f64(0.5);
         let axial_dist = Float::abs(h - half) * Float::sqrt(baba) - Float::sqrt(baba) * half;
-        
+
         let interior_dist = Float::min(Float::max(radial_dist, axial_dist), T::zero());
-        
+
         let radial_ext = Float::max(radial_dist, T::zero());
         let axial_ext = Float::max(axial_dist, T::zero());
         let exterior_dist = Float::sqrt(radial_ext * radial_ext + axial_ext * axial_ext);
-        
+
         interior_dist + exterior_dist
     }
 
@@ -253,19 +257,19 @@ impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> Sdf3D<T> for UnionSdf<T, A, B> {
             Point3::new(
                 Float::min(min1.x, min2.x),
                 Float::min(min1.y, min2.y),
-                Float::min(min1.z, min2.z)
+                Float::min(min1.z, min2.z),
             ),
             Point3::new(
                 Float::max(max1.x, max2.x),
                 Float::max(max1.y, max2.y),
-                Float::max(max1.z, max2.z)
+                Float::max(max1.z, max2.z),
             ),
         )
     }
 }
 
 /// Polynomial smooth union (smin) of two SDF geometries.
-/// 
+///
 /// Produces a $C^1$-continuous fillet at intersections, preventing perfectly
 /// sharp creases that collapse into non-manifold 1D edges on discrete lattices.
 #[derive(Debug, Clone)]
@@ -278,7 +282,11 @@ pub struct SmoothUnionSdf<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> {
 impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> SmoothUnionSdf<T, A, B> {
     /// Constructs a smooth mathematical union with blending radius `k`.
     pub fn new(primary: A, secondary: B, k: T) -> Self {
-        Self { primary, secondary, k }
+        Self {
+            primary,
+            secondary,
+            k,
+        }
     }
 }
 
@@ -286,11 +294,11 @@ impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> Sdf3D<T> for SmoothUnionSdf<T, A, B> {
     fn eval(&self, p: &Point3<T>) -> T {
         let a = self.primary.eval(p);
         let b = self.secondary.eval(p);
-        
+
         let diff = Float::abs(a - b);
         let h = Float::max(self.k - diff, T::zero()) / self.k;
         let quarter = <T as Scalar>::from_f64(0.25);
-        
+
         Float::min(a, b) - h * h * self.k * quarter
     }
 
@@ -302,12 +310,12 @@ impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> Sdf3D<T> for SmoothUnionSdf<T, A, B> {
             Point3::new(
                 Float::min(min1.x, min2.x),
                 Float::min(min1.y, min2.y),
-                Float::min(min1.z, min2.z)
+                Float::min(min1.z, min2.z),
             ) - k_vec,
             Point3::new(
                 Float::max(max1.x, max2.x),
                 Float::max(max1.y, max2.y),
-                Float::max(max1.z, max2.z)
+                Float::max(max1.z, max2.z),
             ) + k_vec,
         )
     }

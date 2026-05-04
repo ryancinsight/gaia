@@ -139,7 +139,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let t0 = Instant::now();
         let mut result = csg_boolean(BooleanOp::Intersection, &sphere, &cylinder)?;
         let ms = t0.elapsed().as_millis();
-        report("Intersection (A ∩ B)", &mut result, v_intersect, 0.05, ms, 2);
+        report(
+            "Intersection (A ∩ B)",
+            &mut result,
+            v_intersect,
+            0.05,
+            ms,
+            2,
+        );
         write_stl(&result, &out_dir.join("sphere_cylinder_intersection.stl"))?;
         println!("  STL: outputs/csg/sphere_cylinder_intersection.stl");
         println!();
@@ -170,7 +177,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-fn report(label: &str, mesh: &mut IndexedMesh, expected: f64, tol: f64, ms: u128, expected_chi: i64) {
+fn report(
+    label: &str,
+    mesh: &mut IndexedMesh,
+    expected: f64,
+    tol: f64,
+    ms: u128,
+    expected_chi: i64,
+) {
     let vol = mesh.signed_volume();
     let n = analyze_normals(mesh);
     let err = (vol - expected).abs() / expected.abs().max(1e-12);

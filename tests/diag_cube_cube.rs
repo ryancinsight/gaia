@@ -1,5 +1,3 @@
-
-
 use gaia::application::csg::boolean::{csg_boolean, BooleanOp};
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::core::index::VertexId;
@@ -48,7 +46,13 @@ fn csg_boolean_unchecked(
         })
         .collect();
 
-    let result_faces = gaia::application::csg::boolean::operations::csg_boolean(op, &faces_a, &faces_b, &mut combined).unwrap();
+    let result_faces = gaia::application::csg::boolean::operations::csg_boolean(
+        op,
+        &faces_a,
+        &faces_b,
+        &mut combined,
+    )
+    .unwrap();
     gaia::application::csg::reconstruct::reconstruct_mesh(&result_faces, &combined)
 }
 

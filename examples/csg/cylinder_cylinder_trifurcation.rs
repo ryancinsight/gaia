@@ -341,7 +341,14 @@ fn report_union(label: &str, mesh: &mut IndexedMesh, v_naive: f64, ms: u128) {
 /// Report for operations with an approximate expected volume (difference).
 /// Volume error is compared against `expected` with tolerance `tol` (fraction,
 /// e.g. 0.20 = 20 %).
-fn report(label: &str, mesh: &mut IndexedMesh, expected: f64, tol: f64, ms: u128, expected_chi: i64) {
+fn report(
+    label: &str,
+    mesh: &mut IndexedMesh,
+    expected: f64,
+    tol: f64,
+    ms: u128,
+    expected_chi: i64,
+) {
     let vol = mesh.signed_volume();
     let n = analyze_normals(mesh);
     let err = (vol - expected).abs() / expected.abs().max(1e-12);
@@ -467,7 +474,10 @@ fn connectivity_report(label: &str, mesh: &mut IndexedMesh, expected_components:
         let v = seen_verts.len() as i64;
         let e = edges.len() as i64;
         let f = mesh.faces.len() as i64;
-        println!("    V-E-F      : V={v}  E={e}  F={f}  ({v}-{e}+{f}={})", v - e + f);
+        println!(
+            "    V-E-F      : V={v}  E={e}  F={f}  ({v}-{e}+{f}={})",
+            v - e + f
+        );
     }
     println!("    Components : {}", components.len());
     for (i, comp) in components.iter().enumerate() {

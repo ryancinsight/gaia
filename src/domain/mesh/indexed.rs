@@ -93,7 +93,11 @@ impl<T: Scalar> IndexedMesh<T> {
 
     /// Create an empty mesh with reserved capacity to prevent vector resizing.
     #[must_use]
-    pub fn with_capacity(vertex_capacity: usize, face_capacity: usize, cell_capacity: usize) -> Self {
+    pub fn with_capacity(
+        vertex_capacity: usize,
+        face_capacity: usize,
+        cell_capacity: usize,
+    ) -> Self {
         Self {
             vertices: VertexPool::with_capacity(
                 vertex_capacity,
@@ -271,16 +275,17 @@ impl<T: Scalar> IndexedMesh<T> {
     pub fn extract_boundary_mesh(&self) -> Self {
         let mut b_mesh = Self::new();
         let b_faces = self.boundary_faces();
-        let mut old_to_new_vid: std::collections::BTreeMap<VertexId, VertexId> = std::collections::BTreeMap::new();
-        
+        let mut old_to_new_vid: std::collections::BTreeMap<VertexId, VertexId> =
+            std::collections::BTreeMap::new();
+
         for &fid in &b_faces {
             let face = self.faces.get(fid);
             let mut new_vids = [VertexId::default(); 3];
             for k in 0..3 {
                 let old_vid = face.vertices[k];
-                new_vids[k] = *old_to_new_vid.entry(old_vid).or_insert_with(|| {
-                    b_mesh.add_vertex_pos(*self.vertices.position(old_vid))
-                });
+                new_vids[k] = *old_to_new_vid
+                    .entry(old_vid)
+                    .or_insert_with(|| b_mesh.add_vertex_pos(*self.vertices.position(old_vid)));
             }
             b_mesh.add_face(new_vids[0], new_vids[1], new_vids[2]);
         }
@@ -480,8 +485,10 @@ impl<T: Scalar> IndexedMesh<T> {
                 let j = (k + 1) % 3;
                 let mut va = v[k];
                 let mut vb = v[j];
-                if va > vb { std::mem::swap(&mut va, &mut vb); }
-                
+                if va > vb {
+                    std::mem::swap(&mut va, &mut vb);
+                }
+
                 let entry = edges.entry((va, vb)).or_insert([usize::MAX, usize::MAX]);
                 if entry[0] == usize::MAX {
                     entry[0] = fi;
@@ -546,11 +553,16 @@ impl<T: Scalar> IndexedMesh<T> {
                     let j = (k + 1) % 3;
                     let mut va = v[k];
                     let mut vb = v[j];
-                    if va > vb { std::mem::swap(&mut va, &mut vb); }
-                    
+                    if va > vb {
+                        std::mem::swap(&mut va, &mut vb);
+                    }
+
                     if let Some(&[f0, f1]) = edges.get(&(va, vb)) {
                         let nfi = if f0 == fi { f1 } else { f0 };
-                        if nfi != usize::MAX && orientation[nfi].is_none() && face_normals[nfi].is_some() {
+                        if nfi != usize::MAX
+                            && orientation[nfi].is_none()
+                            && face_normals[nfi].is_some()
+                        {
                             // Determine if neighbor's current winding correctly opposes ours
                             let nv = face_list[nfi].vertices;
                             let mut neighbor_is_reverse = false;
@@ -561,11 +573,15 @@ impl<T: Scalar> IndexedMesh<T> {
                                     break;
                                 }
                             }
-                            
+
                             // If the neighbor already opposes our edge, it shares our orientation state.
                             // If it aligns (flows identically), we must flip it to maintain manifold parity.
-                            let next_outward = if neighbor_is_reverse { is_outward } else { !is_outward };
-                            
+                            let next_outward = if neighbor_is_reverse {
+                                is_outward
+                            } else {
+                                !is_outward
+                            };
+
                             orientation[nfi] = Some(next_outward);
                             component_id[nfi] = current_component;
                             queue.push_back(nfi);
@@ -589,7 +605,12 @@ impl<T: Scalar> IndexedMesh<T> {
                 }
 
                 let corrected_face = if orientation[fi] == Some(false) {
-                    FaceData::new(face.vertices[0], face.vertices[2], face.vertices[1], face.region)
+                    FaceData::new(
+                        face.vertices[0],
+                        face.vertices[2],
+                        face.vertices[1],
+                        face.region,
+                    )
                 } else {
                     *face
                 };
@@ -672,12 +693,16 @@ impl<T: Scalar> IndexedMesh<T> {
                     .norm()
                     .to_f64()
                     .unwrap_or(0.0);
-                let probe_eps = (diag * 1.0e-6).max(T::tolerance().to_f64().unwrap_or(1.0e-9) * 10.0);
+                let probe_eps =
+                    (diag * 1.0e-6).max(T::tolerance().to_f64().unwrap_or(1.0e-9) * 10.0);
                 let inward = corrected_normal / normal_len;
                 let probe = crate::domain::core::scalar::Point3r::new(
-                    centroid.x.to_f64().unwrap_or_default() - inward.x.to_f64().unwrap_or_default() * probe_eps,
-                    centroid.y.to_f64().unwrap_or_default() - inward.y.to_f64().unwrap_or_default() * probe_eps,
-                    centroid.z.to_f64().unwrap_or_default() - inward.z.to_f64().unwrap_or_default() * probe_eps,
+                    centroid.x.to_f64().unwrap_or_default()
+                        - inward.x.to_f64().unwrap_or_default() * probe_eps,
+                    centroid.y.to_f64().unwrap_or_default()
+                        - inward.y.to_f64().unwrap_or_default() * probe_eps,
+                    centroid.z.to_f64().unwrap_or_default()
+                        - inward.z.to_f64().unwrap_or_default() * probe_eps,
                 );
                 let probe_normal = crate::domain::core::scalar::Vector3r::new(
                     inward.x.to_f64().unwrap_or_default(),
@@ -691,17 +716,22 @@ impl<T: Scalar> IndexedMesh<T> {
                         continue;
                     }
 
-                    let contains_probe = component_aabbs[other].contains_point(&nalgebra::Point3::new(
-                        <T as Scalar>::from_f64(probe.x),
-                        <T as Scalar>::from_f64(probe.y),
-                        <T as Scalar>::from_f64(probe.z),
-                    ));
+                    let contains_probe =
+                        component_aabbs[other].contains_point(&nalgebra::Point3::new(
+                            <T as Scalar>::from_f64(probe.x),
+                            <T as Scalar>::from_f64(probe.y),
+                            <T as Scalar>::from_f64(probe.z),
+                        ));
                     if !contains_probe {
                         continue;
                     }
 
                     if matches!(
-                        classify_fragment_prepared(&probe, &probe_normal, &prepared_components[other]),
+                        classify_fragment_prepared(
+                            &probe,
+                            &probe_normal,
+                            &prepared_components[other]
+                        ),
                         FragmentClass::Inside
                     ) {
                         nesting_depth += 1;
@@ -804,7 +834,8 @@ impl<T: Scalar> IndexedMesh<T> {
         // Single-pass over components: build a fresh mesh from kept faces only.
         let mut new_mesh = self.empty_clone();
         // Map old VertexId → new VertexId (None = not yet seen).
-        let mut vertex_remap: std::collections::HashMap<VertexId, VertexId> = std::collections::HashMap::new();
+        let mut vertex_remap: std::collections::HashMap<VertexId, VertexId> =
+            std::collections::HashMap::new();
         // Map old FaceId → new FaceId for attribute/label remapping.
         let mut face_remap: HashMap<FaceId, FaceId> = HashMap::new();
         let mut discarded = 0usize;
@@ -826,7 +857,7 @@ impl<T: Scalar> IndexedMesh<T> {
                 for (k, &vid) in fd.vertices.iter().enumerate() {
                     let idx = vid.as_usize();
                     let entry = vertex_remap.entry(VertexId(idx as u32));
-nv[k] = *entry.or_insert_with(|| {
+                    nv[k] = *entry.or_insert_with(|| {
                         new_mesh
                             .add_vertex(*self.vertices.position(vid), *self.vertices.normal(vid))
                     });
@@ -1067,7 +1098,10 @@ mod tests {
                 )
             }),
         );
-        assert!(vol_before < 0.0, "inward tet should have negative signed vol");
+        assert!(
+            vol_before < 0.0,
+            "inward tet should have negative signed vol"
+        );
 
         mesh.orient_outward();
 

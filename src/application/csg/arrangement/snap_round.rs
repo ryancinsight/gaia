@@ -141,7 +141,14 @@ fn update_best_split(
 ) {
     match best_split_for_face.get_mut(&face_index) {
         Some(best) => {
-            let best_key = (!best.0, best.1, best.2, best.5.raw(), best.3.raw(), best.4.raw());
+            let best_key = (
+                !best.0,
+                best.1,
+                best.2,
+                best.5.raw(),
+                best.3.raw(),
+                best.4.raw(),
+            );
             let cand_key = (
                 !candidate.0,
                 candidate.1,
@@ -304,7 +311,8 @@ pub(crate) fn snap_round_tjunctions(faces: &mut Vec<FaceData>, pool: &VertexPool
 
         #[cfg(test)]
         if trace_enabled() {
-            tracing::info!("[snap-round {}] {} bnd edges, {} bnd verts, {} splits",
+            tracing::info!(
+                "[snap-round {}] {} bnd edges, {} bnd verts, {} splits",
                 iter_idx,
                 boundary.len(),
                 bnd_verts.len(),
@@ -419,7 +427,11 @@ mod tests {
             "exact on-edge boundary vertices should trigger a split even without endpoint adjacency"
         );
         assert!(
-            faces.iter().filter(|face| face.vertices.contains(&m)).count() >= 2,
+            faces
+                .iter()
+                .filter(|face| face.vertices.contains(&m))
+                .count()
+                >= 2,
             "split faces should contain the exact T-junction vertex"
         );
     }

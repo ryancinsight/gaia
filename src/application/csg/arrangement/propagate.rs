@@ -287,10 +287,22 @@ pub fn propagate_seam_vertices(
         if fi < segs.len() {
             // Dedup: skip segments whose endpoints match an existing segment
             // (bitwise on f64 bits to avoid tolerance ambiguity).
-            let sb = (seg.start.x.to_bits(), seg.start.y.to_bits(), seg.start.z.to_bits());
-            let eb = (seg.end.x.to_bits(), seg.end.y.to_bits(), seg.end.z.to_bits());
+            let sb = (
+                seg.start.x.to_bits(),
+                seg.start.y.to_bits(),
+                seg.start.z.to_bits(),
+            );
+            let eb = (
+                seg.end.x.to_bits(),
+                seg.end.y.to_bits(),
+                seg.end.z.to_bits(),
+            );
             let exists = segs[fi].iter().any(|s| {
-                let ssb = (s.start.x.to_bits(), s.start.y.to_bits(), s.start.z.to_bits());
+                let ssb = (
+                    s.start.x.to_bits(),
+                    s.start.y.to_bits(),
+                    s.start.z.to_bits(),
+                );
                 let seb = (s.end.x.to_bits(), s.end.y.to_bits(), s.end.z.to_bits());
                 (ssb == sb && seb == eb) || (ssb == eb && seb == sb)
             });
@@ -727,7 +739,13 @@ mod tests {
 
         let injected = &segs_out[0];
         assert!(
-            contains_param_split(injected, Point3r::new(0.0, 0.0, 0.0), Point3r::new(8.0, 0.0, 0.0), 0.125, 1e-10),
+            contains_param_split(
+                injected,
+                Point3r::new(0.0, 0.0, 0.0),
+                Point3r::new(8.0, 0.0, 0.0),
+                0.125,
+                1e-10
+            ),
             "adaptive cap-seam injection should detect off-sample seam position on long rim edge"
         );
     }

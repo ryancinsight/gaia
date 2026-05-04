@@ -67,7 +67,8 @@ impl<T: Scalar> SdfMesher<T> {
                         let mut h_val = (ix.wrapping_mul(73856093)
                             ^ iy.wrapping_mul(19349663)
                             ^ iz.wrapping_mul(83492791)
-                            ^ seed.wrapping_mul(41293819)) as u32;
+                            ^ seed.wrapping_mul(41293819))
+                            as u32;
                         h_val ^= h_val >> 16;
                         h_val = h_val.wrapping_mul(0x85ebca6b);
                         h_val ^= h_val >> 13;
@@ -87,18 +88,20 @@ impl<T: Scalar> SdfMesher<T> {
                     let jz_b = hash_jitter(i as i32, j as i32, k as i32, 5) * jitter_mag;
 
                     // Lattice A (Cartesian) with jitter
-                    let p_a = min + Vector3::new(
-                        <T as Scalar>::from_f64(i as f64) * h + jx_a,
-                        <T as Scalar>::from_f64(j as f64) * h + jy_a,
-                        <T as Scalar>::from_f64(k as f64) * h + jz_a,
-                    );
-                    
+                    let p_a = min
+                        + Vector3::new(
+                            <T as Scalar>::from_f64(i as f64) * h + jx_a,
+                            <T as Scalar>::from_f64(j as f64) * h + jy_a,
+                            <T as Scalar>::from_f64(k as f64) * h + jz_a,
+                        );
+
                     // Lattice B (Body-centered offset) with jitter
-                    let p_b = min + Vector3::new(
-                        <T as Scalar>::from_f64(i as f64) * h + half_h + jx_b,
-                        <T as Scalar>::from_f64(j as f64) * h + half_h + jy_b,
-                        <T as Scalar>::from_f64(k as f64) * h + half_h + jz_b,
-                    );
+                    let p_b = min
+                        + Vector3::new(
+                            <T as Scalar>::from_f64(i as f64) * h + half_h + jx_b,
+                            <T as Scalar>::from_f64(j as f64) * h + half_h + jy_b,
+                            <T as Scalar>::from_f64(k as f64) * h + half_h + jz_b,
+                        );
 
                     for mut p in [p_a, p_b] {
                         let mut dist = sdf.eval(&p);
@@ -116,7 +119,8 @@ impl<T: Scalar> SdfMesher<T> {
                                     p -= grad * dist;
                                 }
                                 dist = sdf.eval(&p);
-                                if num_traits::Float::abs(dist) < <T as Scalar>::from_f64(1e-6) * h {
+                                if num_traits::Float::abs(dist) < <T as Scalar>::from_f64(1e-6) * h
+                                {
                                     break;
                                 }
                             }
@@ -135,8 +139,9 @@ impl<T: Scalar> SdfMesher<T> {
         let weld_tol_sq = weld_tol * weld_tol;
         let cell_s = weld_tol * <T as Scalar>::from_f64(2.0);
         let c_s_f64: f64 = num_traits::ToPrimitive::to_f64(&cell_s).unwrap();
-        
-        let mut grid: std::collections::HashMap<[isize; 3], Vec<usize>> = std::collections::HashMap::with_capacity(raw_points.len());
+
+        let mut grid: std::collections::HashMap<[isize; 3], Vec<usize>> =
+            std::collections::HashMap::with_capacity(raw_points.len());
         let mut unique_points = Vec::with_capacity(raw_points.len());
 
         for p in raw_points {
@@ -166,12 +171,13 @@ impl<T: Scalar> SdfMesher<T> {
             }
 
             if !duplicate {
-                grid.entry([cx, cy, cz]).or_default().push(unique_points.len());
+                grid.entry([cx, cy, cz])
+                    .or_default()
+                    .push(unique_points.len());
                 unique_points.push(p);
             }
         }
 
-        
         {
             use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
 
@@ -190,12 +196,14 @@ impl<T: Scalar> SdfMesher<T> {
                 ^ seed_component(max.z).rotate_left(37)
                 ^ seed_component(h).rotate_left(43);
             let mut rng = StdRng::seed_from_u64(seed);
-            
+
             // Spatial macro-block sorting restores O(1) BFS locality while retaining pseudo-random insertion
             // to definitively break incremental Delaunay collinear degeneracies.
-            let macro_h = num_traits::ToPrimitive::to_f64(&(<T as Scalar>::from_f64(5.0) * h)).unwrap();
-            let mut blocks: std::collections::HashMap<[isize; 3], Vec<Point3<T>>> = std::collections::HashMap::new();
-            
+            let macro_h =
+                num_traits::ToPrimitive::to_f64(&(<T as Scalar>::from_f64(5.0) * h)).unwrap();
+            let mut blocks: std::collections::HashMap<[isize; 3], Vec<Point3<T>>> =
+                std::collections::HashMap::new();
+
             for p in unique_points {
                 let px: f64 = num_traits::ToPrimitive::to_f64(&p.x).unwrap();
                 let py: f64 = num_traits::ToPrimitive::to_f64(&p.y).unwrap();
@@ -205,21 +213,21 @@ impl<T: Scalar> SdfMesher<T> {
                 let cz = (pz / macro_h).floor() as isize;
                 blocks.entry([cx, cy, cz]).or_default().push(p);
             }
-            
+
             let mut block_list: Vec<_> = blocks.into_values().collect();
-            
+
             // Randomize global block progression
             block_list.shuffle(&mut rng);
-            
+
             let mut sorted_points = Vec::with_capacity(total_points as usize);
             for mut block in block_list {
                 // Randomize local cell insertion
                 block.shuffle(&mut rng);
                 sorted_points.extend(block);
             }
-            
+
             unique_points = sorted_points;
-            
+
             // Symbolic Perturbation (Simulation of Simplicity workaround)
             // By scaling a microscopic noise vector to the grid insertion nodes, perfect co-spherical
             // and coplanar numeric conditions are broken deterministically. This resolves Bowyer-Watson's
@@ -230,13 +238,13 @@ impl<T: Scalar> SdfMesher<T> {
                 let j_x = <T as Scalar>::from_f64(rng.gen_range(-1.0..1.0)) * jitter_magnitude;
                 let j_y = <T as Scalar>::from_f64(rng.gen_range(-1.0..1.0)) * jitter_magnitude;
                 let j_z = <T as Scalar>::from_f64(rng.gen_range(-1.0..1.0)) * jitter_magnitude;
-                
+
                 p.x += j_x;
                 p.y += j_y;
                 p.z += j_z;
             }
         }
-        
+
         for p in unique_points {
             delaunay.insert_point(p);
         }
@@ -258,7 +266,7 @@ impl<T: Scalar> SdfMesher<T> {
             let half = <T as Scalar>::from_f64(0.5);
             let p_25 = <T as Scalar>::from_f64(0.25);
             let p_75 = <T as Scalar>::from_f64(0.75);
-            
+
             // Carving Filter: Dense 23-point topological simplex sampling
             // Non-convex domains (e.g. Y-junction bifurcations) can trap simplices near
             // the concave crease (crotch) where sparse samplings falsely evaluate as interior.
@@ -280,17 +288,23 @@ impl<T: Scalar> SdfMesher<T> {
                 p1 + (p3 - p1) * half,
                 p2 + (p3 - p2) * half,
                 // 12 Edge Quarters
-                p0 + (p1 - p0) * p_25, p0 + (p1 - p0) * p_75,
-                p0 + (p2 - p0) * p_25, p0 + (p2 - p0) * p_75,
-                p0 + (p3 - p0) * p_25, p0 + (p3 - p0) * p_75,
-                p1 + (p2 - p1) * p_25, p1 + (p2 - p1) * p_75,
-                p1 + (p3 - p1) * p_25, p1 + (p3 - p1) * p_75,
-                p2 + (p3 - p2) * p_25, p2 + (p3 - p2) * p_75,
+                p0 + (p1 - p0) * p_25,
+                p0 + (p1 - p0) * p_75,
+                p0 + (p2 - p0) * p_25,
+                p0 + (p2 - p0) * p_75,
+                p0 + (p3 - p0) * p_25,
+                p0 + (p3 - p0) * p_75,
+                p1 + (p2 - p1) * p_25,
+                p1 + (p2 - p1) * p_75,
+                p1 + (p3 - p1) * p_25,
+                p1 + (p3 - p1) * p_75,
+                p2 + (p3 - p2) * p_25,
+                p2 + (p3 - p2) * p_75,
             ];
 
             // Allow for convex geometric sagitta on tight fillets and smin distortions.
             // A discrete edge spanning a 3D triple-junction fillet bends outward mathematically.
-            // An optimal 0.25*h bound safely subsumes standard discrete geometric variance without 
+            // An optimal 0.25*h bound safely subsumes standard discrete geometric variance without
             // risk of bridging distinct macro-void boundaries (e.g. 1.0mm gaps = 4h).
             let tol = <T as Scalar>::from_f64(0.25) * h;
             for pt in &checks {
@@ -299,7 +313,7 @@ impl<T: Scalar> SdfMesher<T> {
                     break;
                 }
             }
-            
+
             if inside {
                 keep.push(*tet);
             }
@@ -341,10 +355,10 @@ impl<T: Scalar> SdfMesher<T> {
 
             // Generate the 4 faces (sorted to ensure consistent lookup)
             let mut face_fids = [FaceId::default(); 4];
-            
+
             let face_verts = [
                 [tet[0], tet[1], tet[2]],
-                [tet[0], tet[1], tet[3]], 
+                [tet[0], tet[1], tet[3]],
                 [tet[1], tet[2], tet[3]],
                 [tet[2], tet[0], tet[3]],
             ];
@@ -376,17 +390,18 @@ impl<T: Scalar> SdfMesher<T> {
 
         // ── Pre-Processing: Topological B-Rep Parity Orientation ───────────────
         // We evaluate topological winding physically relative to the interior parental
-        // volumetrics BEFORE Laplacian boundary relaxation drags coordinates. This shields 
+        // volumetrics BEFORE Laplacian boundary relaxation drags coordinates. This shields
         // the manifold topology graph completely from geometric inversions.
         let b_faces = mesh.boundary_faces();
-        
-        let mut face_to_cell: HashMap<FaceId, &crate::domain::topology::Cell> = HashMap::with_capacity(b_faces.len());
+
+        let mut face_to_cell: HashMap<FaceId, &crate::domain::topology::Cell> =
+            HashMap::with_capacity(b_faces.len());
         for cell in &mesh.cells {
             for &fv_idx in &cell.faces {
                 face_to_cell.insert(FaceId::from_usize(fv_idx), cell);
             }
         }
-        
+
         let third = <T as Scalar>::from_f64(3.0);
         for &fid in &b_faces {
             if let Some(cell) = face_to_cell.get(&fid) {
@@ -395,15 +410,16 @@ impl<T: Scalar> SdfMesher<T> {
                 let b = mesh.vertices.position(face_data.vertices[1]);
                 let c = mesh.vertices.position(face_data.vertices[2]);
                 let face_centroid = (a.coords + b.coords + c.coords) / third;
-                
+
                 let unorm = (b.coords - a.coords).cross(&(c.coords - a.coords));
-                
+
                 let mut cell_sum = Vector3::zeros();
                 for &vid in &cell.vertex_ids {
                     cell_sum += mesh.vertices.position(VertexId::from_usize(vid)).coords;
                 }
-                let cell_centroid = cell_sum / <T as Scalar>::from_f64(cell.vertex_ids.len() as f64);
-                
+                let cell_centroid =
+                    cell_sum / <T as Scalar>::from_f64(cell.vertex_ids.len() as f64);
+
                 let out_vec = face_centroid - cell_centroid;
                 if out_vec.dot(&unorm) < T::zero() {
                     mesh.faces.get_mut(fid).flip();
@@ -417,11 +433,13 @@ impl<T: Scalar> SdfMesher<T> {
         // homogenizes triangle aspect ratios, ensuring CFD smoothness and isotropic wall shear elements.
         let mut b_vertices = std::collections::HashSet::new();
         let mut b_adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(b_faces.len() * 3);
-        
+
         for fid in &b_faces {
             let face = mesh.faces.get(*fid);
             let v = face.vertices;
-            for &vid in &v { b_vertices.insert(vid); }
+            for &vid in &v {
+                b_vertices.insert(vid);
+            }
             b_adj.entry(v[0]).or_default().push(v[1]);
             b_adj.entry(v[0]).or_default().push(v[2]);
             b_adj.entry(v[1]).or_default().push(v[0]);
@@ -429,12 +447,12 @@ impl<T: Scalar> SdfMesher<T> {
             b_adj.entry(v[2]).or_default().push(v[0]);
             b_adj.entry(v[2]).or_default().push(v[1]);
         }
-        
+
         for neighbors in b_adj.values_mut() {
             neighbors.sort_unstable();
             neighbors.dedup();
         }
-        
+
         let relax_iters = 10;
         for _ in 0..relax_iters {
             let mut next_pos = Vec::with_capacity(b_vertices.len());
@@ -444,10 +462,10 @@ impl<T: Scalar> SdfMesher<T> {
                 for &n_vid in neighbors {
                     sum += mesh.vertices.position(n_vid).coords;
                 }
-                
+
                 let weight = <T as Scalar>::from_f64(neighbors.len() as f64);
                 let mut p = Point3::from(sum / weight);
-                
+
                 // Reproject strictly to the mathematical SDF manifold
                 let mut dist = sdf.eval(&p);
                 for _ in 0..5 {
@@ -462,7 +480,7 @@ impl<T: Scalar> SdfMesher<T> {
                 }
                 next_pos.push((vid, p));
             }
-            
+
             for (vid, p) in next_pos {
                 mesh.vertices.set_position(vid, p);
             }
@@ -474,7 +492,7 @@ impl<T: Scalar> SdfMesher<T> {
             mesh.vertex_count()
         );
         mesh.recompute_normals();
-        
+
         mesh
     }
 }

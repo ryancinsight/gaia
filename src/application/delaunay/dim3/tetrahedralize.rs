@@ -2,18 +2,18 @@
 //!
 //! # Theorem 2: Empty Circumsphere Criterion (Delaunay Condition)
 //!
-//! **Statement**: A tetrahedral mesh is strictly Delaunay if and only if no 
-//! vertex in the mesh lies strictly within the circumscribing sphere of any 
+//! **Statement**: A tetrahedral mesh is strictly Delaunay if and only if no
+//! vertex in the mesh lies strictly within the circumscribing sphere of any
 //! other tetrahedron in the mesh.
 //!
-//! **Proof sketch for Zero-Allocation Cavity Buffer**: By evaluating the empty circumsphere criterion 
-//! for each existing tetrahedron $T_i$, we construct the set $C$ of tetrahedra violating the invariant 
-//! with regarding to the new vertex $P$. The boundaries of $C$ form a simply-connected star-shaped 
-//! polyhedron. The construction of new tetrahedra connecting $P$ to the cavity boundary is independent 
-//! of the global mesh history, therefore the data structures tracking the cavity faces and the set of 
-//! surviving elements ($T \\setminus C$) can be transient and strictly localized. Because they represent 
-//! purely temporary geometric state, pre-allocating a persistent `HashMap` and `Vec`, and executing `.clear()` 
-//! between generic point insertions is mathematically identical and topologically isomorphic to 
+//! **Proof sketch for Zero-Allocation Cavity Buffer**: By evaluating the empty circumsphere criterion
+//! for each existing tetrahedron $T_i$, we construct the set $C$ of tetrahedra violating the invariant
+//! with regarding to the new vertex $P$. The boundaries of $C$ form a simply-connected star-shaped
+//! polyhedron. The construction of new tetrahedra connecting $P$ to the cavity boundary is independent
+//! of the global mesh history, therefore the data structures tracking the cavity faces and the set of
+//! surviving elements ($T \\setminus C$) can be transient and strictly localized. Because they represent
+//! purely temporary geometric state, pre-allocating a persistent `HashMap` and `Vec`, and executing `.clear()`
+//! between generic point insertions is mathematically identical and topologically isomorphic to
 //! fresh allocations, yielding guaranteed zero-allocation O(1) memory overhead during mesh generation.
 
 use nalgebra::{Point3, Vector3};
@@ -33,9 +33,15 @@ impl Face {
     /// Construct a normalized face. The vertices are rigorously sorted
     /// to guarantee equivalent faces hash identically, regardless of winding.
     pub fn new(mut v0: usize, mut v1: usize, mut v2: usize) -> Self {
-        if v0 > v1 { std::mem::swap(&mut v0, &mut v1); }
-        if v1 > v2 { std::mem::swap(&mut v1, &mut v2); }
-        if v0 > v1 { std::mem::swap(&mut v0, &mut v1); }
+        if v0 > v1 {
+            std::mem::swap(&mut v0, &mut v1);
+        }
+        if v1 > v2 {
+            std::mem::swap(&mut v1, &mut v2);
+        }
+        if v0 > v1 {
+            std::mem::swap(&mut v0, &mut v1);
+        }
         Self { v: [v0, v1, v2] }
     }
 }
@@ -52,19 +58,21 @@ impl<T: Scalar> Tetrahedron<T> {
     /// Rigorously construct a new tetrahedron and enforce positive geometric orientation.
     pub fn new(mut v: [usize; 4], points: &[Point3<T>]) -> Self {
         use crate::domain::geometry::predicates;
-        
-        let to_r = |pt: &Point3<T>| [
-            num_traits::ToPrimitive::to_f64(&pt.x).unwrap(),
-            num_traits::ToPrimitive::to_f64(&pt.y).unwrap(),
-            num_traits::ToPrimitive::to_f64(&pt.z).unwrap(),
-        ];
-        
+
+        let to_r = |pt: &Point3<T>| {
+            [
+                num_traits::ToPrimitive::to_f64(&pt.x).unwrap(),
+                num_traits::ToPrimitive::to_f64(&pt.y).unwrap(),
+                num_traits::ToPrimitive::to_f64(&pt.z).unwrap(),
+            ]
+        };
+
         let a = to_r(&points[v[0]]);
         let b = to_r(&points[v[1]]);
         let c = to_r(&points[v[2]]);
         let d = to_r(&points[v[3]]);
-        
-        // Shewchuk's exact `insphere` predicate analytically requires the 4 defining vertices 
+
+        // Shewchuk's exact `insphere` predicate analytically requires the 4 defining vertices
         // to be strictly positively oriented according to HIS convention (gp::orient3d > 0).
         // Since `gaia::predicates::orient_3d` negates `gp::orient3d` to maintain the right-hand rule,
         // a Shewchuk-positive orientation actually corresponds to `gaia::orient_3d.is_negative()`.
@@ -72,7 +80,7 @@ impl<T: Scalar> Tetrahedron<T> {
         if predicates::orient_3d(a, b, c, d).is_positive() {
             v.swap(2, 3);
         }
-        
+
         Self {
             v,
             _marker: std::marker::PhantomData,
@@ -83,23 +91,25 @@ impl<T: Scalar> Tetrahedron<T> {
     #[inline(always)]
     pub fn contains_in_circumsphere(&self, p: &Point3<T>, points: &[Point3<T>]) -> bool {
         use crate::domain::geometry::predicates;
-        
-        let to_r = |pt: &Point3<T>| [
-            num_traits::ToPrimitive::to_f64(&pt.x).unwrap(),
-            num_traits::ToPrimitive::to_f64(&pt.y).unwrap(),
-            num_traits::ToPrimitive::to_f64(&pt.z).unwrap(),
-        ];
-        
+
+        let to_r = |pt: &Point3<T>| {
+            [
+                num_traits::ToPrimitive::to_f64(&pt.x).unwrap(),
+                num_traits::ToPrimitive::to_f64(&pt.y).unwrap(),
+                num_traits::ToPrimitive::to_f64(&pt.z).unwrap(),
+            ]
+        };
+
         let a = to_r(&points[self.v[0]]);
         let b = to_r(&points[self.v[1]]);
         let c = to_r(&points[self.v[2]]);
         let d = to_r(&points[self.v[3]]);
         let e = to_r(p);
-        
+
         let orientation = predicates::insphere(a, b, c, d, e);
-        
+
         // Exact Delaunay property: Points strictly inside the circumsphere invalidate the tetrahedron.
-        // Points *exactly* on the circumsphere (Degenerate) are safely excluded to prevent 
+        // Points *exactly* on the circumsphere (Degenerate) are safely excluded to prevent
         // infinitely cascading cavity erosion across regular convex surfaces like cylinders.
         orientation.is_positive()
     }
@@ -116,7 +126,9 @@ impl<T: Scalar> Tetrahedron<T> {
 
     /// Check if this tetrahedron shares any vertices with the bounding super-tetrahedron.
     pub fn shares_vertex_with_super(&self, super_start_idx: usize) -> bool {
-        self.v.iter().any(|&idx| idx >= super_start_idx && idx < super_start_idx + 4)
+        self.v
+            .iter()
+            .any(|&idx| idx >= super_start_idx && idx < super_start_idx + 4)
     }
 
     // calculate_circumsphere has been structurally eliminated.
@@ -131,23 +143,23 @@ pub struct BowyerWatson3D<T: Scalar> {
     pub tetrahedra: Vec<Option<Tetrahedron<T>>>,
     /// Free-list of reused indices.
     free_list: Vec<usize>,
-    
+
     /// Adjacency mapping: A face maps to up to 2 tetrahedron pseudo-indices.
     /// Default empty slot is `usize::MAX`.
     face_tets: HashMap<Face, [usize; 2]>,
-    
+
     /// Seed index for adjacency BFS.
     last_inserted_tet: usize,
 
     // -- Zero-Allocation Cavity State Buffers --
     cavity_cache: HashMap<Face, usize>,
     cavity_faces: Vec<(Face, usize)>,
-    
+
     // -- BFS Queues --
     bad_tets: Vec<usize>,
     visited_tets: Vec<usize>,
     visited_flags: Vec<bool>,
-    
+
     super_idx: usize,
 }
 
@@ -173,7 +185,11 @@ impl<T: Scalar> BowyerWatson3D<T> {
 
     /// Initialize the state engine with pre-allocated storage based on an a-priori
     /// geometric point count heuristic.
-    pub fn with_capacity(min_bound: Point3<T>, max_bound: Point3<T>, point_capacity: usize) -> Self {
+    pub fn with_capacity(
+        min_bound: Point3<T>,
+        max_bound: Point3<T>,
+        point_capacity: usize,
+    ) -> Self {
         let mut engine = Self {
             vertices: Vec::with_capacity(point_capacity + 4),
             tetrahedra: Vec::with_capacity(point_capacity * 6),
@@ -192,7 +208,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
     }
 
     /// Construct a super-tetrahedron spanning the minimum bounding box.
-    /// A minimum multiplier of 5.0 ensures boundary cavity retriangulations 
+    /// A minimum multiplier of 5.0 ensures boundary cavity retriangulations
     /// do not hit the degenerate corners.
     fn inject_super_tetrahedron(&mut self, min: Point3<T>, max: Point3<T>) {
         let d = max - min;
@@ -200,16 +216,18 @@ impl<T: Scalar> BowyerWatson3D<T> {
         let center = min + d / <T as Scalar>::from_f64(2.0);
 
         let p0 = center + Vector3::new(T::zero(), d_max, -d_max / <T as Scalar>::from_f64(3.0));
-        let p1 = center + Vector3::new(
-            d_max * Float::sin(<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)),
-            -d_max / <T as Scalar>::from_f64(2.0),
-            -d_max / <T as Scalar>::from_f64(3.0),
-        );
-        let p2 = center + Vector3::new(
-            -d_max * Float::sin(<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)),
-            -d_max / <T as Scalar>::from_f64(2.0),
-            -d_max / <T as Scalar>::from_f64(3.0),
-        );
+        let p1 = center
+            + Vector3::new(
+                d_max * Float::sin(<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)),
+                -d_max / <T as Scalar>::from_f64(2.0),
+                -d_max / <T as Scalar>::from_f64(3.0),
+            );
+        let p2 = center
+            + Vector3::new(
+                -d_max * Float::sin(<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)),
+                -d_max / <T as Scalar>::from_f64(2.0),
+                -d_max / <T as Scalar>::from_f64(3.0),
+            );
         // The peak point goes upwards to enclose +Z, completing the regular tetrahedron mathematically
         let p3 = center + Vector3::new(T::zero(), T::zero(), d_max);
 
@@ -221,7 +239,12 @@ impl<T: Scalar> BowyerWatson3D<T> {
         self.vertices.push(p3);
 
         let tet = Tetrahedron::new(
-            [self.super_idx, self.super_idx + 1, self.super_idx + 2, self.super_idx + 3],
+            [
+                self.super_idx,
+                self.super_idx + 1,
+                self.super_idx + 2,
+                self.super_idx + 3,
+            ],
             &self.vertices,
         );
         self.add_tet(tet);
@@ -240,16 +263,19 @@ impl<T: Scalar> BowyerWatson3D<T> {
             }
             i
         };
-        
+
         for face in &self.tetrahedra[idx].as_ref().unwrap().faces() {
-            let entry = self.face_tets.entry(*face).or_insert([usize::MAX, usize::MAX]);
+            let entry = self
+                .face_tets
+                .entry(*face)
+                .or_insert([usize::MAX, usize::MAX]);
             if entry[0] == usize::MAX {
                 entry[0] = idx;
             } else {
                 entry[1] = idx;
             }
         }
-        
+
         self.last_inserted_tet = idx;
         idx
     }
@@ -258,7 +284,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
     fn remove_tet(&mut self, idx: usize) -> Tetrahedron<T> {
         let tet = self.tetrahedra[idx].take().unwrap();
         self.free_list.push(idx);
-        
+
         for face in &tet.faces() {
             if let Some(entry) = self.face_tets.get_mut(face) {
                 if entry[0] == idx {
@@ -266,7 +292,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
                 } else if entry[1] == idx {
                     entry[1] = usize::MAX;
                 }
-                
+
                 if entry[0] == usize::MAX && entry[1] == usize::MAX {
                     self.face_tets.remove(face);
                 } else if entry[0] == usize::MAX {
@@ -303,7 +329,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
         let mut search_visited = std::collections::HashSet::new();
         search_q.push(curr);
         search_visited.insert(curr);
-        
+
         while let Some(current) = search_q.pop() {
             if let Some(tet) = &self.tetrahedra[current] {
                 if tet.contains_in_circumsphere(&point, &self.vertices) {
@@ -315,13 +341,15 @@ impl<T: Scalar> BowyerWatson3D<T> {
                         let neighbor = if t0 == current { t1 } else { t0 };
                         if neighbor != usize::MAX && search_visited.insert(neighbor) {
                             search_q.push(neighbor);
-                            if search_visited.len() > 300 { break; } // Bound local BFS logic
+                            if search_visited.len() > 300 {
+                                break;
+                            } // Bound local BFS logic
                         }
                     }
                 }
             }
         }
-        
+
         // Fallback: Exact global search (triggers if point is exceptionally distant)
         if seed == usize::MAX {
             for (i, tet_opt) in self.tetrahedra.iter().enumerate() {
@@ -334,29 +362,31 @@ impl<T: Scalar> BowyerWatson3D<T> {
             }
         }
 
-        if seed == usize::MAX { return; }
+        if seed == usize::MAX {
+            return;
+        }
 
         // 2. Cavity BFS: Topological expansion bounding strictly internal voids
         self.bad_tets.push(seed);
         self.visited_flags[seed] = true;
         self.visited_tets.push(seed);
         let mut current_idx = 0;
-        
+
         while current_idx < self.bad_tets.len() {
             let curr = self.bad_tets[current_idx];
             current_idx += 1;
-            
+
             let face_list = self.tetrahedra[curr].as_ref().unwrap().faces();
-            
+
             for face in &face_list {
                 *self.cavity_cache.entry(*face).or_insert(0) += 1;
-                
+
                 if let Some(&[t0, t1]) = self.face_tets.get(face) {
                     let neighbor = if t0 == curr { t1 } else { t0 };
                     if neighbor != usize::MAX && !self.visited_flags[neighbor] {
                         self.visited_flags[neighbor] = true;
                         self.visited_tets.push(neighbor);
-                        
+
                         if let Some(n_tet) = &self.tetrahedra[neighbor] {
                             if n_tet.contains_in_circumsphere(&point, &self.vertices) {
                                 self.bad_tets.push(neighbor);
@@ -366,13 +396,13 @@ impl<T: Scalar> BowyerWatson3D<T> {
                 }
             }
         }
-        
+
         // Restore boolean flags to pristine zero-allocation state
         for &idx in &self.visited_tets {
             self.visited_flags[idx] = false;
         }
 
-        // 3. Extrude forming the new Delaunay boundary 
+        // 3. Extrude forming the new Delaunay boundary
         for (&face, &count) in &self.cavity_cache {
             if count == 1 {
                 self.cavity_faces.push((face, count));
@@ -388,23 +418,23 @@ impl<T: Scalar> BowyerWatson3D<T> {
 
         for i in 0..self.cavity_faces.len() {
             let (face, _) = self.cavity_faces[i];
-            let new_tet = Tetrahedron::new(
-                [face.v[0], face.v[1], face.v[2], p_idx],
-                &self.vertices,
-            );
+            let new_tet =
+                Tetrahedron::new([face.v[0], face.v[1], face.v[2], p_idx], &self.vertices);
             self.add_tet(new_tet);
         }
         self.cavity_faces.clear();
     }
 
     /// Terminate and consolidate the finalized unstructured scalar mesh.
-    /// 
+    ///
     /// Strips the 4 super-tetrahedron anchor vertices and remaps all retained
     /// tetrahedron indices into a contiguous vertex array. This prevents
     /// phantom super-vertices from contaminating downstream boundary extraction.
     pub fn finalize(self) -> (Vec<Point3<T>>, Vec<[usize; 4]>) {
         // Collect tets that do not reference any super-vertex.
-        let mut raw_tets: Vec<[usize; 4]> = self.tetrahedra.into_iter()
+        let mut raw_tets: Vec<[usize; 4]> = self
+            .tetrahedra
+            .into_iter()
             .flatten()
             .filter(|tet| !tet.shares_vertex_with_super(self.super_idx))
             .map(|t| t.v)

@@ -7,10 +7,10 @@
 //! Run with: cargo run -p gaia --example schematic_to_mesh_demo
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use gaia::application::channel::profile::ChannelProfile;
-    use gaia::infrastructure::io::scheme;
     use cfd_schematics::config::{ChannelTypeConfig, GeometryConfig};
     use cfd_schematics::geometry::generator::create_geometry;
+    use gaia::application::channel::profile::ChannelProfile;
+    use gaia::infrastructure::io::scheme;
 
     println!("🔌 Schematic to Mesh Integration Demo");
     println!("=====================================");

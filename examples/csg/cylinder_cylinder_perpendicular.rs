@@ -130,7 +130,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ── Union ─────────────────────────────────────────────────────────────────
     {
         let t0 = Instant::now();
-        let mut result = gaia::application::csg::boolean::indexed::csg_boolean(BooleanOp::Union, &cyl_a, &cyl_b)?;
+        let mut result = gaia::application::csg::boolean::indexed::csg_boolean(
+            BooleanOp::Union,
+            &cyl_a,
+            &cyl_b,
+        )?;
         let ms = t0.elapsed().as_millis();
         report(
             "Union (A ∪ B)",
@@ -152,7 +156,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ── Intersection (Steinmetz solid) ────────────────────────────────────────
     {
         let t0 = Instant::now();
-        let mut result = gaia::application::csg::boolean::indexed::csg_boolean(BooleanOp::Intersection, &cyl_a, &cyl_b)?;
+        let mut result = gaia::application::csg::boolean::indexed::csg_boolean(
+            BooleanOp::Intersection,
+            &cyl_a,
+            &cyl_b,
+        )?;
         let ms = t0.elapsed().as_millis();
         report(
             "Intersection (A ∩ B) — Steinmetz solid",
@@ -174,7 +182,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ── Difference ────────────────────────────────────────────────────────────
     {
         let t0 = Instant::now();
-        let mut result = gaia::application::csg::boolean::indexed::csg_boolean(BooleanOp::Difference, &cyl_a, &cyl_b)?;
+        let mut result = gaia::application::csg::boolean::indexed::csg_boolean(
+            BooleanOp::Difference,
+            &cyl_a,
+            &cyl_b,
+        )?;
         let ms = t0.elapsed().as_millis();
         report(
             "Difference (A \\ B)",
@@ -199,7 +211,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-fn report(label: &str, mesh: &mut IndexedMesh, expected: f64, tol: f64, ms: u128, expected_chi: i64, expected_comps: usize) {
+fn report(
+    label: &str,
+    mesh: &mut IndexedMesh,
+    expected: f64,
+    tol: f64,
+    ms: u128,
+    expected_chi: i64,
+    expected_comps: usize,
+) {
     let vol = mesh.signed_volume();
     let n = analyze_normals(mesh);
     let err = (vol - expected).abs() / expected.abs().max(1e-12);
@@ -232,11 +252,7 @@ fn report(label: &str, mesh: &mut IndexedMesh, expected: f64, tol: f64, ms: u128
     );
     println!(
         "    Components : {n_comps}  (expected {expected_comps})  [{}]",
-        if comps_ok {
-            "PASS"
-        } else {
-            "WARN"
-        }
+        if comps_ok { "PASS" } else { "WARN" }
     );
     println!(
         "    Normals    : outward={}, inward={} ({:.1}%), degen={}  [{}]",

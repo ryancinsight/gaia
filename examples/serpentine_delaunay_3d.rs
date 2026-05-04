@@ -26,11 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mesher = SdfMesher::new(cell_size);
 
     // Segment 1 (Forward flow)
-    let seg1 = CapsuleSdf::new(
-        Point3::new(0.0, 0.0, 0.0),
-        Point3::new(10.0, 0.0, 0.0),
-        1.0,
-    );
+    let seg1 = CapsuleSdf::new(Point3::new(0.0, 0.0, 0.0), Point3::new(10.0, 0.0, 0.0), 1.0);
 
     // Segment 2 (Transverse U-turn)
     let seg2 = CapsuleSdf::new(
@@ -40,11 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Segment 3 (Return flow)
-    let seg3 = CapsuleSdf::new(
-        Point3::new(10.0, 5.0, 0.0),
-        Point3::new(0.0, 5.0, 0.0),
-        1.0,
-    );
+    let seg3 = CapsuleSdf::new(Point3::new(10.0, 5.0, 0.0), Point3::new(0.0, 5.0, 0.0), 1.0);
 
     // Smooth union blending with radius k = 1.0 to guarantee C1 continuity and eliminate checkerboard pinches
     let u1 = SmoothUnionSdf::new(seg1, seg2, 1.0);

@@ -332,7 +332,11 @@ impl DelaunayTriangulation {
             let vid = PslgVertexId::from_usize(vid_idx);
             min_deg = min_deg.min(self.count_real_neighbours(vid));
         }
-        if min_deg == usize::MAX { 0 } else { min_deg }
+        if min_deg == usize::MAX {
+            0
+        } else {
+            min_deg
+        }
     }
 
     /// Count distinct real (non-super) neighbours of vertex `vid` using

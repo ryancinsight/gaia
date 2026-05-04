@@ -44,7 +44,11 @@ fn cocircular_4_points_on_unit_circle() {
         .collect();
     let dt = DelaunayTriangulation::from_points(&pts);
     assert_eq!(dt.vertex_count(), 4);
-    assert_eq!(dt.triangle_count(), 2, "4 co-circular points → exactly 2 triangles");
+    assert_eq!(
+        dt.triangle_count(),
+        2,
+        "4 co-circular points → exactly 2 triangles"
+    );
     assert!(dt.is_delaunay());
 }
 
@@ -62,7 +66,11 @@ fn cocircular_8_points_regular_octagon() {
     assert_eq!(dt.vertex_count(), 8);
     // Euler: T = 2V - 2 - h  (h = 0 for convex hull), so T = 2·8 - 2 = 14? No.
     // For a convex polygon with n vertices: T = n - 2.
-    assert_eq!(dt.triangle_count(), 6, "convex 8-gon → 6 interior triangles");
+    assert_eq!(
+        dt.triangle_count(),
+        6,
+        "convex 8-gon → 6 interior triangles"
+    );
     assert!(dt.is_delaunay());
 }
 
@@ -112,7 +120,11 @@ fn collinear_horizontal_5_points() {
     let dt = DelaunayTriangulation::from_points(&pts);
     assert_eq!(dt.vertex_count(), 5);
     // All collinear → no interior triangles (all degenerate or on convex hull).
-    assert_eq!(dt.triangle_count(), 0, "collinear points → 0 interior triangles");
+    assert_eq!(
+        dt.triangle_count(),
+        0,
+        "collinear points → 0 interior triangles"
+    );
 }
 
 /// **Failure mode**: collinear diagonal — tests orient2d with non-axis-aligned
@@ -122,7 +134,11 @@ fn collinear_diagonal_5_points() {
     let pts: Vec<(f64, f64)> = (0..5).map(|i| (f64::from(i), f64::from(i))).collect();
     let dt = DelaunayTriangulation::from_points(&pts);
     assert_eq!(dt.vertex_count(), 5);
-    assert_eq!(dt.triangle_count(), 0, "diagonal collinear → 0 interior triangles");
+    assert_eq!(
+        dt.triangle_count(),
+        0,
+        "diagonal collinear → 0 interior triangles"
+    );
 }
 
 /// **Failure mode**: near-collinear points with one barely-off-axis vertex.
@@ -499,19 +515,10 @@ fn cdt_hole_inside_domain() {
 
     // Verify no triangles exist inside the hole.
     for (_, tri) in dt.interior_triangles() {
-        let centroid_x: f64 = tri
-            .vertices
-            .iter()
-            .map(|v| dt.vertex(*v).x)
-            .sum::<f64>()
-            / 3.0;
-        let centroid_y: f64 = tri
-            .vertices
-            .iter()
-            .map(|v| dt.vertex(*v).y)
-            .sum::<f64>()
-            / 3.0;
-        let inside_hole = centroid_x > 1.1 && centroid_x < 2.9 && centroid_y > 1.1 && centroid_y < 2.9;
+        let centroid_x: f64 = tri.vertices.iter().map(|v| dt.vertex(*v).x).sum::<f64>() / 3.0;
+        let centroid_y: f64 = tri.vertices.iter().map(|v| dt.vertex(*v).y).sum::<f64>() / 3.0;
+        let inside_hole =
+            centroid_x > 1.1 && centroid_x < 2.9 && centroid_y > 1.1 && centroid_y < 2.9;
         assert!(
             !inside_hole,
             "triangle centroid ({centroid_x}, {centroid_y}) should not be inside hole"

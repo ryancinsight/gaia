@@ -63,7 +63,9 @@ impl MeshRepair {
         vertex_pool: &VertexPool,
         max_passes: usize,
     ) -> usize {
-        let mut boundary_edges = EdgeStore::from_face_store(face_store).boundary_edges().len();
+        let mut boundary_edges = EdgeStore::from_face_store(face_store)
+            .boundary_edges()
+            .len();
         let mut improved_passes = 0usize;
 
         for _ in 0..max_passes {
@@ -80,8 +82,9 @@ impl MeshRepair {
                 repaired_store.push(face);
             }
 
-            let next_boundary_edges =
-                EdgeStore::from_face_store(&repaired_store).boundary_edges().len();
+            let next_boundary_edges = EdgeStore::from_face_store(&repaired_store)
+                .boundary_edges()
+                .len();
             if next_boundary_edges >= boundary_edges {
                 break;
             }

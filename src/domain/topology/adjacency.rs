@@ -318,10 +318,7 @@ mod tests {
         let adj = adj_from(&fs);
         for i in 0..8 {
             let val = adj.vertex_valence(vid(i));
-            assert!(
-                val >= 3,
-                "cube vertex {i} has valence {val} (expected ≥ 3)"
-            );
+            assert!(val >= 3, "cube vertex {i} has valence {val} (expected ≥ 3)");
         }
     }
 
@@ -491,11 +488,7 @@ mod tests {
             sorted.sort_unstable();
             let before = sorted.len();
             sorted.dedup();
-            assert_eq!(
-                sorted.len(),
-                before,
-                "vertex {i} has duplicate neighbors"
-            );
+            assert_eq!(sorted.len(), before, "vertex {i} has duplicate neighbors");
         }
     }
 

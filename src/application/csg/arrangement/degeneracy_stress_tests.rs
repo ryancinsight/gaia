@@ -17,9 +17,7 @@
 mod tests {
     use crate::application::csg::boolean::{csg_boolean, BooleanOp};
     use crate::domain::core::scalar::Point3r;
-    use crate::domain::geometry::primitives::{
-        Cube, Cylinder, PrimitiveMesh, Torus, UvSphere,
-    };
+    use crate::domain::geometry::primitives::{Cube, Cylinder, PrimitiveMesh, Torus, UvSphere};
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -204,7 +202,10 @@ mod tests {
         .expect("cyl b");
 
         let result = csg_boolean(BooleanOp::Union, &cyl_a, &cyl_b);
-        assert!(result.is_ok(), "low-tessellation cylinder union must not panic");
+        assert!(
+            result.is_ok(),
+            "low-tessellation cylinder union must not panic"
+        );
         let mesh = result.unwrap();
         assert!(mesh.face_count() > 0, "result must have faces");
     }
@@ -254,7 +255,10 @@ mod tests {
         // All cubes overlap around x ∈ [0.6 - 1.0, -0.2 + 1.0] = [-0.4, 0.8]
         // Intersection width along X = 0.8 - (-0.4) = 1.2, Y and Z = 2.0
         // Volume ≈ 1.2 * 2.0 * 2.0 = 4.8, but exact depends on offset accumulation
-        assert!(v > 0.0, "5-cube intersection must have positive volume, got {v}");
+        assert!(
+            v > 0.0,
+            "5-cube intersection must have positive volume, got {v}"
+        );
     }
 
     // ── Mixed curvature (cube-sphere) ──────────────────────────────────────

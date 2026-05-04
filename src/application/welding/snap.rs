@@ -482,7 +482,10 @@ mod tests {
         let (i0, _) = g.insert_or_weld(original);
         let snapped = g.position(i0).unwrap();
         let (i1, is_new) = g.insert_or_weld(snapped);
-        assert!(!is_new, "re-inserting a snapped position must not create a new vertex");
+        assert!(
+            !is_new,
+            "re-inserting a snapped position must not create a new vertex"
+        );
         assert_eq!(i0, i1, "snap(snap(p)) must equal snap(p)");
     }
 
@@ -523,9 +526,9 @@ mod tests {
         let eps = 1e-3;
         let points = vec![
             pt(0.0, 0.0, 0.0),
-            pt(0.5e-3, 0.0, 0.0),  // within eps of point 0
-            pt(2.0e-3, 0.0, 0.0),  // new vertex
-            pt(2.3e-3, 0.0, 0.0),  // within eps of point 2
+            pt(0.5e-3, 0.0, 0.0), // within eps of point 0
+            pt(2.0e-3, 0.0, 0.0), // new vertex
+            pt(2.3e-3, 0.0, 0.0), // within eps of point 2
         ];
 
         // Forward order
@@ -534,11 +537,19 @@ mod tests {
 
         // Reverse order
         let mut g_rev = SnappingGrid::new(eps);
-        let ids_rev: Vec<u32> = points.iter().rev().map(|&p| g_rev.insert_or_weld(p).0).collect();
+        let ids_rev: Vec<u32> = points
+            .iter()
+            .rev()
+            .map(|&p| g_rev.insert_or_weld(p).0)
+            .collect();
         let ids_rev: Vec<u32> = ids_rev.into_iter().rev().collect();
 
         // Both orderings must produce the same number of unique vertices
-        assert_eq!(g_fwd.len(), g_rev.len(), "insertion order must not change vertex count");
+        assert_eq!(
+            g_fwd.len(),
+            g_rev.len(),
+            "insertion order must not change vertex count"
+        );
         // Points that welded forward should also weld in reverse
         assert_eq!(ids_fwd[0], ids_fwd[1], "forward: 0 and 1 must weld");
         assert_eq!(ids_rev[0], ids_rev[1], "reverse: 0 and 1 must weld");
@@ -557,7 +568,10 @@ mod tests {
         let (i0, _) = g.insert_or_weld(pt(half_eps - delta, 0.0, 0.0));
         let (i1, _) = g.insert_or_weld(pt(half_eps + delta, 0.0, 0.0));
         // Distance between them is 2*delta << eps, so they must weld
-        assert_eq!(i0, i1, "points straddling cell boundary must weld via 27-neighbor search");
+        assert_eq!(
+            i0, i1,
+            "points straddling cell boundary must weld via 27-neighbor search"
+        );
     }
 
     /// All points at origin must weld to a single vertex.
@@ -588,7 +602,10 @@ mod tests {
                 all_same = false;
             }
         }
-        assert!(all_same, "dense cluster within eps must all weld to one vertex");
+        assert!(
+            all_same,
+            "dense cluster within eps must all weld to one vertex"
+        );
     }
 
     /// Grid with points along all three axis-aligned diagonals must weld correctly.
@@ -613,10 +630,10 @@ mod tests {
         let eps = 1e-3;
         let mut g = SnappingGrid::new(eps);
         // Insert 3 points: two within eps of query, one outside
-        g.insert_or_weld(pt(0.0, 0.0, 0.0));       // idx 0
-        g.insert_or_weld(pt(5e-3, 0.0, 0.0));       // idx 1, far away
-        g.insert_or_weld(pt(0.5e-4, 0.0, 0.0));     // welds to idx 0
-        g.insert_or_weld(pt(10e-3, 0.0, 0.0));      // idx 2, far away
+        g.insert_or_weld(pt(0.0, 0.0, 0.0)); // idx 0
+        g.insert_or_weld(pt(5e-3, 0.0, 0.0)); // idx 1, far away
+        g.insert_or_weld(pt(0.5e-4, 0.0, 0.0)); // welds to idx 0
+        g.insert_or_weld(pt(10e-3, 0.0, 0.0)); // idx 2, far away
 
         let query = pt(0.0, 0.0, 0.0);
         let results = g.query_within_eps(&query);
@@ -676,7 +693,10 @@ mod tests {
         let (first_id, _) = g.insert_or_weld(points[0]);
         for &p in &points[1..] {
             let (id, _) = g.insert_or_weld(p);
-            assert_eq!(id, first_id, "all equidistant points within eps must weld to first");
+            assert_eq!(
+                id, first_id,
+                "all equidistant points within eps must weld to first"
+            );
         }
         assert_eq!(g.len(), 1, "four cocyclic points within eps → one vertex");
     }
@@ -728,7 +748,10 @@ mod tests {
                 }
             }
         }
-        assert_eq!(found_count, 27, "seed must be found from all 27 neighbor cell positions");
+        assert_eq!(
+            found_count, 27,
+            "seed must be found from all 27 neighbor cell positions"
+        );
     }
 
     /// Stress: 1000 random-ish points in a small volume should never create
@@ -749,14 +772,8 @@ mod tests {
         }
         // With eps=1e-3 and spacing 0.2*eps = 2e-4, multiple points per cell
         // will weld. We just verify no panic and reasonable vertex count.
-        assert!(
-            g.len() <= n,
-            "vertex count must not exceed insertion count"
-        );
-        assert!(
-            !g.is_empty(),
-            "at least one vertex must exist"
-        );
+        assert!(g.len() <= n, "vertex count must not exceed insertion count");
+        assert!(!g.is_empty(), "at least one vertex must exist");
     }
 
     /// GridCell::to_point round-trips correctly through from_point_round.

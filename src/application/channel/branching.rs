@@ -121,7 +121,11 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
             let slen = (sx * sx + sy * sy + sz * sz).sqrt();
             (sx / slen, sy / slen, sz / slen)
         };
-        let (fx, fy, fz) = (udy * ez - udz * ey, udz * ex - udx * ez, udx * ey - udy * ex);
+        let (fx, fy, fz) = (
+            udy * ez - udz * ey,
+            udz * ex - udx * ez,
+            udx * ey - udy * ex,
+        );
 
         let mut rings = Vec::with_capacity(n_steps);
         for i in 0..n_steps {
@@ -170,12 +174,16 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
         }
 
         // Outlet cap (ends at t=1, normal = dir)
-        let oc = mesh.add_vertex(Point3r::new(ox + dx, oy + dy, oz + dz), Vector3r::new(udx, udy, udz));
+        let oc = mesh.add_vertex(
+            Point3r::new(ox + dx, oy + dy, oz + dz),
+            Vector3r::new(udx, udy, udz),
+        );
         let outlet_region = RegionId::from_usize(2 + d_idx);
         let last = n_steps - 1;
         for ia in 0..n_ang {
             let ia1 = (ia + 1) % n_ang;
-            let fid = mesh.add_face_with_region(oc, rings[last][ia], rings[last][ia1], outlet_region);
+            let fid =
+                mesh.add_face_with_region(oc, rings[last][ia], rings[last][ia1], outlet_region);
             if !is_parent {
                 mesh.mark_boundary(fid, format!("outlet_{d_idx}"));
             }
@@ -233,7 +241,7 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
     }
 
     // 3. Exact evaluate Boolean Union across all branch bounds
-    use crate::application::csg::boolean::{BooleanOp, csg_boolean_nary};
+    use crate::application::csg::boolean::{csg_boolean_nary, BooleanOp};
     let union_mesh = csg_boolean_nary(BooleanOp::Union, &meshes)
         .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))?;
 

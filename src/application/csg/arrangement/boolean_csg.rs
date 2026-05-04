@@ -1,15 +1,13 @@
 //! Canonical mesh-arrangement CSG pipeline for binary and multi-mesh operations.
 use crate::application::csg::arrangement::coplanar_dispatch::dispatch_boolean_coplanar;
-use crate::application::csg::arrangement::fragment_refinement::{
-    append_corefined_fragments,
-};
-use crate::application::csg::corefine::build_seam_vertex_map;
+use crate::application::csg::arrangement::fragment_refinement::append_corefined_fragments;
 use crate::application::csg::arrangement::multi_mesh_resolution::resolve_multi_mesh_fragments;
-use crate::application::csg::boolean::containment::{containment, Containment};
 pub use crate::application::csg::arrangement::multi_mesh_resolution::BooleanFragmentRecord;
 use crate::application::csg::arrangement::propagate::propagate_seam_vertices_until_stable;
 use crate::application::csg::arrangement::result_finalization::finalize_boolean_faces;
+use crate::application::csg::boolean::containment::{containment, Containment};
 use crate::application::csg::broad_phase::triangle_aabb;
+use crate::application::csg::corefine::build_seam_vertex_map;
 use crate::application::csg::intersect::{intersect_triangles, IntersectionType, SnapSegment};
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::geometry::aabb::Aabb;
@@ -164,14 +162,17 @@ fn resolve_short_circuit_boolean(
                 current
             } else {
                 // Union / Intersection: balanced reduction tree (commutative & associative)
-                let mut level: Vec<Vec<FaceData>> =
-                    meshes.to_vec();
+                let mut level: Vec<Vec<FaceData>> = meshes.to_vec();
                 while level.len() > 1 {
                     let mut next_level = Vec::with_capacity(level.len().div_ceil(2));
                     let mut i = 0;
                     while i + 1 < level.len() {
                         let merged = crate::application::csg::coplanar::boolean_coplanar(
-                            op, &level[i], &level[i + 1], pool, &basis,
+                            op,
+                            &level[i],
+                            &level[i + 1],
+                            pool,
+                            &basis,
                         );
                         next_level.push(merged);
                         i += 2;
@@ -320,7 +321,8 @@ fn execute_arrangement_pass(
     }
 
     // ── Phase 2c: Coplanar Dispatches ───────────────────────────────────────────────
-    let coplanar_phase = dispatch_boolean_coplanar(op, n_meshes, meshes, &coplanar_pairs, pool, &mut segs);
+    let coplanar_phase =
+        dispatch_boolean_coplanar(op, n_meshes, meshes, &coplanar_pairs, pool, &mut segs);
 
     // Coplanar-cap resolution can inject new seam segments onto rim triangles
     // after the initial propagation pass. Propagate once more so adjacent barrel

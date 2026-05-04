@@ -84,8 +84,8 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
 use crate::application::delaunay::{Cdt, Pslg};
 use crate::domain::core::constants::{
-    COREFINE_EDGE_EPS, COREFINE_WELD_TOL_SQ, DEGENERATE_NORMAL_REL_SQ,
-    DEGENERATE_SEGMENT_REL_SQ, MAX_STEINER_PER_FACE, SLIVER_AREA2D_REL,
+    COREFINE_EDGE_EPS, COREFINE_WELD_TOL_SQ, DEGENERATE_NORMAL_REL_SQ, DEGENERATE_SEGMENT_REL_SQ,
+    MAX_STEINER_PER_FACE, SLIVER_AREA2D_REL,
 };
 
 /// Distance tolerance squared for edge Steiner projection.
@@ -127,7 +127,11 @@ fn canonical_segment_key(seg: &SnapSegment) -> (PointBits3, PointBits3) {
 /// Canonical undirected edge key: `(min(u,v), max(u,v))`.
 #[inline]
 fn canonical_edge_key(u: VertexId, v: VertexId) -> (VertexId, VertexId) {
-    if u <= v { (u, v) } else { (v, u) }
+    if u <= v {
+        (u, v)
+    } else {
+        (v, u)
+    }
 }
 
 /// Global map of pre-registered Steiner vertices on each mesh edge.
@@ -190,9 +194,7 @@ pub fn build_seam_vertex_map(
             continue;
         }
         let face_n_unit = face_n / face_n.norm();
-        let max_edge_sq = edge1_sq
-            .max(edge2_sq)
-            .max((pts[2] - pts[1]).norm_squared());
+        let max_edge_sq = edge1_sq.max(edge2_sq).max((pts[2] - pts[1]).norm_squared());
 
         for seg in face_segs {
             for &p3d in &[seg.start, seg.end] {
@@ -237,9 +239,7 @@ pub fn build_seam_vertex_map(
     // Sort each edge's Steiners by t-parameter for consistent boundary
     // polygon construction.
     for steiners in map.values_mut() {
-        steiners.sort_by(|a, b| {
-            a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal)
-        });
+        steiners.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
         steiners.dedup_by_key(|entry| entry.1);
     }
 
@@ -377,7 +377,9 @@ pub fn corefine_face(
                             break;
                         }
                     }
-                    if let Some(v) = best { v } else {
+                    if let Some(v) = best {
+                        v
+                    } else {
                         // Fallback: insert and add (shouldn't happen
                         // if build_seam_vertex_map was complete).
                         let v = pool.insert_or_weld(p3d, face_n_unit);
@@ -595,8 +597,7 @@ pub fn corefine_face(
     // The previous linear-scan `iter().find()` was O(n) per lookup, making
     // PSLG registration O(n²) in the number of Steiner vertices per face.
     let register_cap = boundary_vids.len() + interior_vids.len();
-    let mut vid_to_pslg: HashMap<VertexId, PslgVertexId> =
-        HashMap::with_capacity(register_cap);
+    let mut vid_to_pslg: HashMap<VertexId, PslgVertexId> = HashMap::with_capacity(register_cap);
     let mut pslg_to_vid: Vec<VertexId> = Vec::with_capacity(register_cap);
     let mut pslg = Pslg::new();
 

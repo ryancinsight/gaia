@@ -146,10 +146,7 @@ fn edge_crossings_interval(
 
     // Deduplicate by 1-D projection (vertex-on-plane may appear from two edges).
     // Scale-relative: use projection span for dedup tolerance.
-    let proj_span = projs
-        .iter()
-        .copied()
-        .fold(Real::NEG_INFINITY, Real::max)
+    let proj_span = projs.iter().copied().fold(Real::NEG_INFINITY, Real::max)
         - projs.iter().copied().fold(Real::INFINITY, Real::min);
     let dedup_tol = INTERVAL_OVERLAP_REL * proj_span.abs().max(1e-30);
     crossings.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap_or(std::cmp::Ordering::Equal));

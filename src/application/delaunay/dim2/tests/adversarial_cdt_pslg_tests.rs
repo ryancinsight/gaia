@@ -73,7 +73,11 @@ fn long_constraint_through_random_cloud() {
     let n = 40;
     for i in 0..n {
         let px = 1.0 + f64::from(i) * 8.0 / f64::from(n);
-        let py = if i % 2 == 0 { 1.2 + f64::from(i) * 0.02 } else { 3.5 + f64::from(i) * 0.02 };
+        let py = if i % 2 == 0 {
+            1.2 + f64::from(i) * 0.02
+        } else {
+            3.5 + f64::from(i) * 0.02
+        };
         pslg.add_vertex(px, py);
     }
 
@@ -255,18 +259,8 @@ fn concentric_square_with_hole() {
         // But no triangle should be entirely inside the hole.
         if all_inner {
             // Check that the centroid is NOT inside the hole.
-            let cx: f64 = tri
-                .vertices
-                .iter()
-                .map(|v| dt.vertex(*v).x)
-                .sum::<f64>()
-                / 3.0;
-            let cy: f64 = tri
-                .vertices
-                .iter()
-                .map(|v| dt.vertex(*v).y)
-                .sum::<f64>()
-                / 3.0;
+            let cx: f64 = tri.vertices.iter().map(|v| dt.vertex(*v).x).sum::<f64>() / 3.0;
+            let cy: f64 = tri.vertices.iter().map(|v| dt.vertex(*v).y).sum::<f64>() / 3.0;
             assert!(
                 !(3.0..=7.0).contains(&cx) || !(3.0..=7.0).contains(&cy),
                 "Found a triangle centroid inside the hole: ({cx}, {cy})"
@@ -326,12 +320,7 @@ fn multiple_adjacent_small_holes() {
     let gap_tris = dt
         .interior_triangles()
         .filter(|(_, tri)| {
-            let cx: f64 = tri
-                .vertices
-                .iter()
-                .map(|v| dt.vertex(*v).x)
-                .sum::<f64>()
-                / 3.0;
+            let cx: f64 = tri.vertices.iter().map(|v| dt.vertex(*v).x).sum::<f64>() / 3.0;
             cx > 6.0 && cx < 8.0
         })
         .count();
@@ -520,12 +509,7 @@ fn ruppert_disconnected_regions() {
 #[test]
 fn insert_on_exact_edge() {
     // Build a square DT, then insert a point exactly on one of the DT edges.
-    let mut pts = vec![
-        (0.0, 0.0),
-        (2.0, 0.0),
-        (2.0, 2.0),
-        (0.0, 2.0),
-    ];
+    let mut pts = vec![(0.0, 0.0), (2.0, 0.0), (2.0, 2.0), (0.0, 2.0)];
     // Midpoint of the bottom edge (0,0)→(2,0).
     pts.push((1.0, 0.0));
 

@@ -7,7 +7,9 @@
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
 use crate::application::delaunay::dim2::triangulation::adjacency::Adjacency;
 use crate::application::delaunay::dim2::triangulation::bowyer_watson::DelaunayTriangulation;
-use crate::application::delaunay::dim2::triangulation::triangle::{Triangle, TriangleId, GHOST_TRIANGLE};
+use crate::application::delaunay::dim2::triangulation::triangle::{
+    Triangle, TriangleId, GHOST_TRIANGLE,
+};
 
 // ── link / link_one ───────────────────────────────────────────────────────
 

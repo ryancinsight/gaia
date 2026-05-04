@@ -1,7 +1,7 @@
 #![cfg(feature = "cfdrs-integration")]
 
-use gaia::application::pipeline::{BlueprintMeshPipeline, PipelineConfig};
 use cfd_schematics::interface::presets::{symmetric_bifurcation, symmetric_trifurcation};
+use gaia::application::pipeline::{BlueprintMeshPipeline, PipelineConfig};
 
 #[test]
 fn test_mesh_volume() {

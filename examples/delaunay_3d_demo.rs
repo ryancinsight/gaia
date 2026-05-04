@@ -26,7 +26,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mesher: SdfMesher<f64> = SdfMesher::new(cell_size);
 
     let center: Point3<f64> = Point3::origin();
-    let sphere = SphereSdf { center, radius: 5.0 };
+    let sphere = SphereSdf {
+        center,
+        radius: 5.0,
+    };
 
     let mesh = mesher.build_volume(&sphere);
 

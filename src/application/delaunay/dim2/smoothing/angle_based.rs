@@ -39,7 +39,9 @@
 
 use crate::application::delaunay::dim2::constraint::enforce::Cdt;
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
-use crate::application::delaunay::dim2::smoothing::laplacian::{build_frozen_set, one_ring_neighbors};
+use crate::application::delaunay::dim2::smoothing::laplacian::{
+    build_frozen_set, one_ring_neighbors,
+};
 use crate::domain::core::scalar::Real;
 
 // ── Public API ────────────────────────────────────────────────────────────────

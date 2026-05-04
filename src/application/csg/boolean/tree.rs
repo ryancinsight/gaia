@@ -137,7 +137,8 @@ impl CsgNode {
 fn transform_mesh(mesh: IndexedMesh, iso: &Isometry3<Real>) -> IndexedMesh {
     use crate::domain::core::index::VertexId;
     let mut new_mesh = IndexedMesh::new();
-    let mut remap: std::collections::HashMap<VertexId, VertexId> = std::collections::HashMap::with_capacity(mesh.vertices.len());
+    let mut remap: std::collections::HashMap<VertexId, VertexId> =
+        std::collections::HashMap::with_capacity(mesh.vertices.len());
 
     for face in mesh.faces.iter() {
         let mut new_verts = [VertexId::default(); 3];

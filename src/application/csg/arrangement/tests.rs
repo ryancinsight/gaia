@@ -466,8 +466,15 @@ fn parallel_cylinder_union_is_watertight() {
             .sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
         for (a, b, _z) in &boundary_positions {
             let mid_y = f64::midpoint(a.y, b.y);
-            tracing::info!("  yÃ¢â€°Ë†{:.4}  ({:.4},{:.4},{:.4}) Ã¢â€ â€™ ({:.4},{:.4},{:.4})",
-                mid_y, a.x, a.y, a.z, b.x, b.y, b.z
+            tracing::info!(
+                "  yÃ¢â€°Ë†{:.4}  ({:.4},{:.4},{:.4}) Ã¢â€ â€™ ({:.4},{:.4},{:.4})",
+                mid_y,
+                a.x,
+                a.y,
+                a.z,
+                b.x,
+                b.y,
+                b.z
             );
         }
     }
@@ -479,7 +486,8 @@ fn parallel_cylinder_union_is_watertight() {
             if edge.valence() > 2 {
                 let pa = *result.vertices.position(edge.vertices.0);
                 let pb = *result.vertices.position(edge.vertices.1);
-                tracing::info!("NM_EDGE val={}: ({:.6},{:.6},{:.6})->({:.6},{:.6},{:.6})",
+                tracing::info!(
+                    "NM_EDGE val={}: ({:.6},{:.6},{:.6})->({:.6},{:.6},{:.6})",
                     edge.valence(),
                     pa.x,
                     pa.y,
@@ -594,12 +602,19 @@ fn asymmetric_cylinder_union_is_watertight() {
                 boundary_positions.push((pa, pb));
             }
         }
-        tracing::info!("=== Asymmetric boundary edges ({}) ===",
+        tracing::info!(
+            "=== Asymmetric boundary edges ({}) ===",
             boundary_positions.len()
         );
         for (a, b) in &boundary_positions {
-            tracing::info!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
-                a.x, a.y, a.z, b.x, b.y, b.z
+            tracing::info!(
+                "  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
+                a.x,
+                a.y,
+                a.z,
+                b.x,
+                b.y,
+                b.z
             );
         }
     }
@@ -702,8 +717,7 @@ fn l_shape_compound_union_is_watertight() {
                 report.non_manifold_edge_count
             );
         }
-        Err(_e) => {
-        }
+        Err(_e) => {}
     }
 }
 
@@ -787,12 +801,19 @@ fn v_shape_right_branch_is_watertight() {
                 ));
             }
         }
-        tracing::info!("=== right_branch boundary edges ({}) ===",
+        tracing::info!(
+            "=== right_branch boundary edges ({}) ===",
             boundary_positions.len()
         );
         for (a, b) in &boundary_positions {
-            tracing::info!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
-                a.x, a.y, a.z, b.x, b.y, b.z
+            tracing::info!(
+                "  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
+                a.x,
+                a.y,
+                a.z,
+                b.x,
+                b.y,
+                b.z
             );
         }
     }
@@ -911,12 +932,19 @@ fn elbow_cylinder_union_is_watertight() {
                 ));
             }
         }
-        tracing::info!("=== Elbow+Arm boundary edges ({}) ===",
+        tracing::info!(
+            "=== Elbow+Arm boundary edges ({}) ===",
             boundary_positions.len()
         );
         for (a, b) in &boundary_positions {
-            tracing::info!("  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
-                a.x, a.y, a.z, b.x, b.y, b.z
+            tracing::info!(
+                "  ({:.6},{:.6},{:.6}) Ã¢â€ â€™ ({:.6},{:.6},{:.6})",
+                a.x,
+                a.y,
+                a.z,
+                b.x,
+                b.y,
+                b.z
             );
         }
     }

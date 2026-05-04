@@ -132,7 +132,8 @@ pub(crate) fn fill_boundary_loops(faces: &mut Vec<FaceData>, pool: &VertexPool) 
 
         #[cfg(test)]
         if trace_enabled() {
-            tracing::info!("[stitch {}] {} bnd edges, {} loops, {} fill tris",
+            tracing::info!(
+                "[stitch {}] {} bnd edges, {} loops, {} fill tris",
                 iter_idx,
                 boundary.len(),
                 loops.len(),
@@ -528,9 +529,7 @@ pub(crate) fn ear_clip_fill(
                 let pb = pool.position(vb);
                 let pc = pool.position(vc);
                 let cross = (pb - pa).cross(&(pc - pa));
-                if cross.norm_squared() > 1e-30
-                    && !would_create_nm(va, vb, vc, valence)
-                {
+                if cross.norm_squared() > 1e-30 && !would_create_nm(va, vb, vc, valence) {
                     if cross.dot(&normal) >= 0.0 {
                         out.push(FaceData::untagged(va, vb, vc));
                     } else {

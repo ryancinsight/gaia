@@ -45,8 +45,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
     // Build Delaunay triangulation directly from points
-    let dt =
-        gaia::application::delaunay::dim2::triangulation::DelaunayTriangulation::from_points(&points);
+    let dt = gaia::application::delaunay::dim2::triangulation::DelaunayTriangulation::from_points(
+        &points,
+    );
 
     println!("   Vertices : {}", dt.vertex_count());
     println!("   Triangles: {}", dt.triangle_count());

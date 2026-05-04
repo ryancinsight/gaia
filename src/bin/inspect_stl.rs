@@ -78,8 +78,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  STL Inspector: {path}");
     println!("═══════════════════════════════════════════════");
 
-    let mut pool =
-        gaia::infrastructure::storage::vertex_pool::VertexPool::default_millifluidic();
+    let mut pool = gaia::infrastructure::storage::vertex_pool::VertexPool::default_millifluidic();
     let mut faces = gaia::infrastructure::storage::face_store::FaceStore::new();
     let region = gaia::domain::core::index::RegionId::from_usize(0);
 

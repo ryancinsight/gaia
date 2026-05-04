@@ -346,8 +346,7 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
         }
 
         #[cfg(test)]
-        if trace_enabled() {
-        }
+        if trace_enabled() {}
 
         let loops = trace_loops(&boundary_edges);
 
@@ -463,8 +462,16 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
             for (a, b) in &remain {
                 let pa = pool.position(*a);
                 let pb = pool.position(*b);
-                tracing::info!("  {:?}->{:?}  ({:.9},{:.9},{:.9})->({:.9},{:.9},{:.9})",
-                    a, b, pa.x, pa.y, pa.z, pb.x, pb.y, pb.z
+                tracing::info!(
+                    "  {:?}->{:?}  ({:.9},{:.9},{:.9})->({:.9},{:.9},{:.9})",
+                    a,
+                    b,
+                    pa.x,
+                    pa.y,
+                    pa.z,
+                    pb.x,
+                    pb.y,
+                    pb.z
                 );
             }
         }
@@ -504,7 +511,8 @@ mod tests {
     /// edges from adjacent faces). The face list must remain non-empty.
     #[test]
     fn patch_single_triangle_survives() {
-        let (pool, v) = pool_with_positions(&[p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), p(0.0, 1.0, 0.0)]);
+        let (pool, v) =
+            pool_with_positions(&[p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), p(0.0, 1.0, 0.0)]);
         let mut faces = vec![FaceData::untagged(v[0], v[1], v[2])];
         patch_small_boundary_holes(&mut faces, &pool);
         assert!(!faces.is_empty(), "single triangle must not be deleted");
@@ -547,14 +555,11 @@ mod tests {
     /// coincident vertices should be cleaned out.
     #[test]
     fn patch_removes_degenerate_faces() {
-        let (pool, v) = pool_with_positions(&[
-            p(0.0, 0.0, 0.0),
-            p(1.0, 0.0, 0.0),
-            p(0.0, 1.0, 0.0),
-        ]);
+        let (pool, v) =
+            pool_with_positions(&[p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), p(0.0, 1.0, 0.0)]);
         let mut faces = vec![
-            FaceData::untagged(v[0], v[1], v[2]),       // good triangle
-            FaceData::untagged(v[0], v[0], v[1]),       // degenerate: v0 == v0
+            FaceData::untagged(v[0], v[1], v[2]), // good triangle
+            FaceData::untagged(v[0], v[0], v[1]), // degenerate: v0 == v0
         ];
         patch_small_boundary_holes(&mut faces, &pool);
         // Degenerate face should have been removed in Step 1
@@ -611,7 +616,11 @@ mod tests {
         ];
         patch_small_boundary_holes(&mut faces, &pool);
         // The sliver should be removed (smaller area on same directed edge)
-        assert_eq!(faces.len(), 1, "non-manifold repair must keep only one face per half-edge");
+        assert_eq!(
+            faces.len(),
+            1,
+            "non-manifold repair must keep only one face per half-edge"
+        );
         // The surviving face should be the big one
         let surviving = &faces[0];
         assert!(

@@ -40,8 +40,8 @@ use nalgebra::Point2;
 use crate::application::delaunay::dim2::pslg::graph::Pslg;
 use crate::application::delaunay::dim2::pslg::graph::PslgValidationError;
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
-use crate::application::delaunay::dim2::triangulation::bowyer_watson::DelaunayTriangulation;
 use crate::application::delaunay::dim2::triangulation::adjacency::Adjacency;
+use crate::application::delaunay::dim2::triangulation::bowyer_watson::DelaunayTriangulation;
 use crate::application::delaunay::dim2::triangulation::triangle::{TriangleId, GHOST_TRIANGLE};
 
 /// Constrained Delaunay Triangulation.
@@ -786,15 +786,8 @@ impl Cdt {
                     continue;
                 }
                 // nbr is alive — patch its adjacency back to GHOST.
-                if let Some(back_edge) =
-                    Adjacency::find_edge(self.dt.triangles_slice(), nbr, tid)
-                {
-                    Adjacency::link_one(
-                        self.dt.triangles_mut(),
-                        nbr,
-                        back_edge,
-                        GHOST_TRIANGLE,
-                    );
+                if let Some(back_edge) = Adjacency::find_edge(self.dt.triangles_slice(), nbr, tid) {
+                    Adjacency::link_one(self.dt.triangles_mut(), nbr, back_edge, GHOST_TRIANGLE);
                 }
             }
         }

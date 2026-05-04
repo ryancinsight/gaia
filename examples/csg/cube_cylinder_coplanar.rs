@@ -156,7 +156,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-fn report(label: &str, mesh: &mut IndexedMesh, expected: f64, tol: f64, ms: u128, expected_chi: i64) {
+fn report(
+    label: &str,
+    mesh: &mut IndexedMesh,
+    expected: f64,
+    tol: f64,
+    ms: u128,
+    expected_chi: i64,
+) {
     let vol = mesh.signed_volume();
     let n = analyze_normals(mesh);
     let err = (vol - expected).abs() / expected.abs().max(1e-12);

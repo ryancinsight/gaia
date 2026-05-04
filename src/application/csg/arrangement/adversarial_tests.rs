@@ -1129,8 +1129,8 @@ mod tests {
         }
         .build()
         .expect("inner");
-        let result = csg_boolean(BooleanOp::Difference, &outer, &inner)
-            .expect("difference must succeed");
+        let result =
+            csg_boolean(BooleanOp::Difference, &outer, &inner).expect("difference must succeed");
         let vol = signed_volume(&result);
         let expected = 64.0 - 8.0;
         let rel_err = (vol - expected).abs() / expected;
@@ -1324,8 +1324,7 @@ mod tests {
         }
         .build()
         .expect("tall");
-        let result =
-            csg_boolean(BooleanOp::Difference, &big, &tall).expect("protruding diff");
+        let result = csg_boolean(BooleanOp::Difference, &big, &tall).expect("protruding diff");
         let vol = signed_volume(&result);
         // big=64, intersection of tall with big = [1,3]×[1,3]×[0,4] = 2*2*4=16
         let expected = 64.0 - 16.0;
@@ -1563,10 +1562,7 @@ mod tests {
             vol > 0.5 && vol < 2.5,
             "sphere-sphere intersection volume should be near 1.3, got {vol:.4}"
         );
-        assert!(
-            !result.faces.is_empty(),
-            "intersection must produce faces"
-        );
+        assert!(!result.faces.is_empty(), "intersection must produce faces");
     }
 
     /// Cube minus sphere — curved cavity inside flat faces.
@@ -1707,12 +1703,11 @@ mod tests {
         .expect("cube3");
 
         // Step 1: union c1 + c2
-        let r12 = csg_boolean(BooleanOp::Union, &c1, &c2)
-            .expect("union c1+c2 should succeed");
+        let r12 = csg_boolean(BooleanOp::Union, &c1, &c2).expect("union c1+c2 should succeed");
 
         // Step 2: union (c1+c2) + c3
-        let result = csg_boolean(BooleanOp::Union, &r12, &c3)
-            .expect("triple cube union should succeed");
+        let result =
+            csg_boolean(BooleanOp::Union, &r12, &c3).expect("triple cube union should succeed");
 
         let vol = signed_volume(&result);
         // Each cube is 1.0³ = 1.0; overlaps reduce total volume.
@@ -1927,10 +1922,16 @@ mod tests {
         if let Ok(ab_mesh) = ab {
             let result = csg_boolean(BooleanOp::Union, &ab_mesh, &sq_c);
             if let Ok(mesh) = result {
-                assert!(!mesh.faces.is_empty(), "3-way coplanar union must produce faces");
+                assert!(
+                    !mesh.faces.is_empty(),
+                    "3-way coplanar union must produce faces"
+                );
                 let vol = signed_volume(&mesh);
                 // Thin box: volume ≈ area × 0.002
-                assert!(vol > 0.0, "coplanar union volume must be positive, got {vol:.6}");
+                assert!(
+                    vol > 0.0,
+                    "coplanar union volume must be positive, got {vol:.6}"
+                );
             }
         }
     }
@@ -2188,14 +2189,9 @@ mod tests {
             meshes.push(m);
         }
 
-        let mut result =
-            csg_boolean_nary(BooleanOp::Union, &meshes).expect("120° cylinder union");
+        let mut result = csg_boolean_nary(BooleanOp::Union, &meshes).expect("120° cylinder union");
         result.rebuild_edges();
-        let report = check_watertight(
-            &result.vertices,
-            &result.faces,
-            result.edges_ref().unwrap(),
-        );
+        let report = check_watertight(&result.vertices, &result.faces, result.edges_ref().unwrap());
         assert!(
             report.is_watertight,
             "120° cylinder union must be watertight"
@@ -2252,11 +2248,7 @@ mod tests {
         let mut result =
             csg_boolean_nary(BooleanOp::Union, &meshes).expect("cross-4 cylinder union");
         result.rebuild_edges();
-        let report = check_watertight(
-            &result.vertices,
-            &result.faces,
-            result.edges_ref().unwrap(),
-        );
+        let report = check_watertight(&result.vertices, &result.faces, result.edges_ref().unwrap());
         assert!(
             report.is_watertight,
             "cross-4 cylinder union must be watertight"
@@ -2322,11 +2314,7 @@ mod tests {
         let mut result =
             csg_boolean_nary(BooleanOp::Union, &meshes).expect("star-5 cylinder union");
         result.rebuild_edges();
-        let report = check_watertight(
-            &result.vertices,
-            &result.faces,
-            result.edges_ref().unwrap(),
-        );
+        let report = check_watertight(&result.vertices, &result.faces, result.edges_ref().unwrap());
         assert!(
             report.is_watertight,
             "star-5 cylinder union must be watertight"

@@ -37,7 +37,8 @@ pub fn to_indexed_mesh(dt: &DelaunayTriangulation) -> IndexedMesh<f64> {
 
     // Map from PslgVertexId → VertexId in the IndexedMesh.
     let n = dt.vertices().len();
-    let mut id_map: std::collections::HashMap<usize, VertexId> = std::collections::HashMap::with_capacity(n);
+    let mut id_map: std::collections::HashMap<usize, VertexId> =
+        std::collections::HashMap::with_capacity(n);
 
     // Only insert vertices referenced by interior triangles.
     for (_, tri) in dt.interior_triangles() {
@@ -69,7 +70,8 @@ pub fn to_indexed_mesh_at_z(dt: &DelaunayTriangulation, z: Real) -> IndexedMesh<
     let normal = Vector3::new(0.0, 0.0, 1.0);
 
     let n = dt.vertices().len();
-    let mut id_map: std::collections::HashMap<usize, VertexId> = std::collections::HashMap::with_capacity(n);
+    let mut id_map: std::collections::HashMap<usize, VertexId> =
+        std::collections::HashMap::with_capacity(n);
 
     for (_, tri) in dt.interior_triangles() {
         for &vid in &tri.vertices {

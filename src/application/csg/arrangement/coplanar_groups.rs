@@ -144,8 +144,8 @@ pub(crate) fn process_coplanar_groups(
         let group_faces_a: Vec<FaceData> = a_idxs.iter().map(|&i| faces_a[i]).collect();
         let group_faces_b: Vec<FaceData> = b_idxs.iter().map(|&i| faces_b[i]).collect();
 
-        let basis =
-            match basis_from_group(*key, &group_index.rep_a, faces_a, &group_faces_a, pool) {
+        let basis = match basis_from_group(*key, &group_index.rep_a, faces_a, &group_faces_a, pool)
+        {
             Some(b) => b,
             None => continue, // fallback to Phase 3/4
         };

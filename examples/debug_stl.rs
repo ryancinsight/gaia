@@ -3,7 +3,9 @@ use std::fs::File;
 use std::path::Path;
 
 fn main() {
-    let solid_path = Path::new("crates/gaia/outputs/schematic_to_3d/mirrored_bifurcation/mirrored_bifurcation_solid.stl");
+    let solid_path = Path::new(
+        "crates/gaia/outputs/schematic_to_3d/mirrored_bifurcation/mirrored_bifurcation_solid.stl",
+    );
     let chan_path = Path::new("crates/gaia/outputs/schematic_to_3d/mirrored_bifurcation/mirrored_bifurcation_channels.stl");
 
     let solid = read_stl(File::open(solid_path).unwrap()).unwrap();

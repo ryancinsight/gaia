@@ -43,12 +43,11 @@ pub fn csg_boolean(
     let is_coplanar = crate::application::csg::coplanar::detect_flat_plane(&faces_a, &combined)
         .is_some()
         && crate::application::csg::coplanar::detect_flat_plane(&faces_b, &combined).is_some();
-    let result_faces =
-        crate::application::csg::arrangement::boolean_csg::csg_boolean_unfinalized(
-            op,
-            &[faces_a, faces_b],
-            &mut combined,
-        )?;
+    let result_faces = crate::application::csg::arrangement::boolean_csg::csg_boolean_unfinalized(
+        op,
+        &[faces_a, faces_b],
+        &mut combined,
+    )?;
     postprocess_boolean_mesh(result_faces, &combined, is_coplanar)
 }
 
@@ -307,10 +306,13 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
         let f = mesh.faces.len();
         for face in mesh.faces.iter() {
             let vs = &face.vertices;
-            refs.insert(vs[0]); refs.insert(vs[1]); refs.insert(vs[2]);
+            refs.insert(vs[0]);
+            refs.insert(vs[1]);
+            refs.insert(vs[2]);
             for k in 0..3 {
-                let a = vs[k]; let b = vs[(k+1)%3];
-                let key = if a < b { (a,b) } else { (b,a) };
+                let a = vs[k];
+                let b = vs[(k + 1) % 3];
+                let key = if a < b { (a, b) } else { (b, a) };
                 edges.insert(key);
             }
         }
@@ -384,11 +386,12 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
 
             // Phase 3: Iterative boundary stitch.
             if !report.is_watertight && report.boundary_edge_count > 0 {
-                let improved = crate::application::watertight::repair::MeshRepair::iterative_boundary_stitch(
-                    &mut mesh.faces,
-                    &mesh.vertices,
-                    3,
-                );
+                let improved =
+                    crate::application::watertight::repair::MeshRepair::iterative_boundary_stitch(
+                        &mut mesh.faces,
+                        &mesh.vertices,
+                        3,
+                    );
                 if improved > 0 {
                     mesh.rebuild_edges();
                     report = crate::application::watertight::check::check_watertight(
@@ -416,11 +419,11 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                     // Seal boundary loops with Euler guard.
                     if !mesh.is_watertight() {
                         let chi_pre = euler_chi(mesh);
-                        let snapshot: Vec<FaceData> =
-                            mesh.faces.iter().copied().collect();
-                        let es = crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(
-                            &mesh.faces,
-                        );
+                        let snapshot: Vec<FaceData> = mesh.faces.iter().copied().collect();
+                        let es =
+                            crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(
+                                &mesh.faces,
+                            );
                         let sealed = crate::application::watertight::seal::seal_boundary_loops(
                             &mut mesh.vertices,
                             &mut mesh.faces,
@@ -450,11 +453,11 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                     // Post-merge seal with Euler guard.
                     if !mesh.is_watertight() {
                         let chi_pre = euler_chi(mesh);
-                        let snapshot: Vec<FaceData> =
-                            mesh.faces.iter().copied().collect();
-                        let es = crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(
-                            &mesh.faces,
-                        );
+                        let snapshot: Vec<FaceData> = mesh.faces.iter().copied().collect();
+                        let es =
+                            crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(
+                                &mesh.faces,
+                            );
                         let sealed = crate::application::watertight::seal::seal_boundary_loops(
                             &mut mesh.vertices,
                             &mut mesh.faces,
@@ -696,9 +699,15 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
                         continue;
                     }
                     let mut key = f.vertices;
-                    if key[0] > key[1] { key.swap(0, 1); }
-                    if key[1] > key[2] { key.swap(1, 2); }
-                    if key[0] > key[1] { key.swap(0, 1); }
+                    if key[0] > key[1] {
+                        key.swap(0, 1);
+                    }
+                    if key[1] > key[2] {
+                        key.swap(1, 2);
+                    }
+                    if key[0] > key[1] {
+                        key.swap(0, 1);
+                    }
                     if !seen.insert(key) {
                         removed += 1;
                         continue;
@@ -718,7 +727,8 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
     // ── Main loop: handle sliver collapses (Case 2) one at a time ──
     loop {
         // Build an edge-use count: how many faces reference each undirected edge.
-        let mut edge_use: hashbrown::HashMap<(VertexId, VertexId), usize> = hashbrown::HashMap::new();
+        let mut edge_use: hashbrown::HashMap<(VertexId, VertexId), usize> =
+            hashbrown::HashMap::new();
         for face in mesh.faces.iter() {
             let v = face.vertices;
             for &(a, b) in &[(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
@@ -825,10 +835,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
                     }
                 }
                 // Skip faces that become degenerate (two identical verts).
-                if verts[0] == verts[1]
-                    || verts[1] == verts[2]
-                    || verts[2] == verts[0]
-                {
+                if verts[0] == verts[1] || verts[1] == verts[2] || verts[2] == verts[0] {
                     continue;
                 }
                 let mut key = verts;
@@ -1166,8 +1173,7 @@ fn split_figure8_pinch_vertices(mesh: &mut IndexedMesh) -> usize {
 
         // Build per-face link edge info: for face [v, a, b], link edge = {a, b}.
         let n = face_indices.len();
-        let mut face_link_edges: Vec<(usize, VertexId, VertexId)> =
-            Vec::with_capacity(n);
+        let mut face_link_edges: Vec<(usize, VertexId, VertexId)> = Vec::with_capacity(n);
 
         for &fi in face_indices {
             let face = mesh.faces.get(FaceId::from_usize(fi));
@@ -1344,10 +1350,8 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
         {
             let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
                 hashbrown::HashMap::new();
-            let bv_pos: Vec<nalgebra::Point3<f64>> = bv
-                .iter()
-                .map(|&v| *mesh.vertices.position(v))
-                .collect();
+            let bv_pos: Vec<nalgebra::Point3<f64>> =
+                bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
             for i in 0..bv.len() {
                 let p = &bv_pos[i];
                 let cx = (p.x * inv_tol).floor() as i64;
@@ -1378,10 +1382,9 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
                                     }
                                     let pj = &bv_pos[j];
                                     let d = (pi - pj).norm();
-                                    if d < tol
-                                        && (best.is_none() || d < best.unwrap().2) {
-                                            best = Some((bv[i], bv[j], d));
-                                        }
+                                    if d < tol && (best.is_none() || d < best.unwrap().2) {
+                                        best = Some((bv[i], bv[j], d));
+                                    }
                                 }
                             }
                         }
@@ -1429,10 +1432,10 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
                                     }
                                     let ip = mesh.vertices.position(ivid);
                                     let d = (bp - ip).norm();
-                                    if d < per_vertex_tol
-                                        && (best.is_none() || d < best.unwrap().2) {
-                                            best = Some((ivid, bvid, d));
-                                        }
+                                    if d < per_vertex_tol && (best.is_none() || d < best.unwrap().2)
+                                    {
+                                        best = Some((ivid, bvid, d));
+                                    }
                                 }
                             }
                         }
@@ -1456,8 +1459,7 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
         // Compute χ using referenced vertices only.
         fn quick_euler_referenced(mesh: &IndexedMesh) -> i64 {
             let mut referenced: hashbrown::HashSet<VertexId> = hashbrown::HashSet::new();
-            let mut edge_set: hashbrown::HashSet<(VertexId, VertexId)> =
-                hashbrown::HashSet::new();
+            let mut edge_set: hashbrown::HashSet<(VertexId, VertexId)> = hashbrown::HashSet::new();
             let f = mesh.faces.len();
             for face in mesh.faces.iter() {
                 let vs = &face.vertices;
@@ -1504,7 +1506,11 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
                 mesh.faces.push(face_data);
             }
             mesh.rebuild_edges();
-            let pair_key = if keep < remove { (keep, remove) } else { (remove, keep) };
+            let pair_key = if keep < remove {
+                (keep, remove)
+            } else {
+                (remove, keep)
+            };
             skip_pairs.insert(pair_key);
             continue; // Try next pair instead of breaking.
         }
@@ -1514,9 +1520,8 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
         mesh.rebuild_edges();
 
         if !mesh.is_watertight() {
-            let es = crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(
-                &mesh.faces,
-            );
+            let es =
+                crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
             crate::application::watertight::seal::seal_boundary_loops(
                 &mut mesh.vertices,
                 &mut mesh.faces,
@@ -1524,7 +1529,7 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
                 crate::domain::core::index::RegionId::INVALID,
             );
             collapse_degenerate_faces(mesh);
-                mesh.rebuild_edges();
+            mesh.rebuild_edges();
         }
 
         if mesh.is_watertight() {
@@ -1586,7 +1591,9 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
                 cnt += 1;
             }
         }
-        if cnt == 0 { return; }
+        if cnt == 0 {
+            return;
+        }
         sum / cnt as f64
     };
     let eps = (mean_edge * 1e-4).max(1e-15);
@@ -1603,8 +1610,7 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     }
 
     // Build spatial hash: cell → list of vertex indices.
-    let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
-        hashbrown::HashMap::new();
+    let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> = hashbrown::HashMap::new();
     let positions: Vec<nalgebra::Point3<f64>> = (0..n)
         .map(|i| *mesh.vertices.position(VertexId(i as u32)))
         .collect();
@@ -1635,8 +1641,7 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
                                 let ci = find(&mut parent, i as u32);
                                 let cj = find(&mut parent, j as u32);
                                 if ci != cj {
-                                    let (lo, hi) =
-                                        if ci < cj { (ci, cj) } else { (cj, ci) };
+                                    let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
                                     parent[hi as usize] = lo;
                                 }
                             }
@@ -1729,7 +1734,8 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
     let face_list: Vec<FaceData> = mesh.faces.iter().copied().collect();
 
     // Build undirected edge → face index map.
-    let mut edge_faces: hashbrown::HashMap<(VertexId, VertexId), Vec<usize>> = hashbrown::HashMap::new();
+    let mut edge_faces: hashbrown::HashMap<(VertexId, VertexId), Vec<usize>> =
+        hashbrown::HashMap::new();
     for (fi, face) in face_list.iter().enumerate() {
         let v = face.vertices;
         for &(a, b) in &[(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
@@ -1776,7 +1782,10 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
                 let better = match best_pair {
                     None => true,
                     Some((_, _, best_dot)) => {
-                        dot > best_dot || (dot == best_dot && fi_fwd.min(fi_rev) < best_pair.unwrap().0.min(best_pair.unwrap().1))
+                        dot > best_dot
+                            || (dot == best_dot
+                                && fi_fwd.min(fi_rev)
+                                    < best_pair.unwrap().0.min(best_pair.unwrap().1))
                     }
                 };
                 if better {
@@ -1786,7 +1795,9 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
         }
 
         // Mark all faces on this edge except the best pair for removal.
-        let (keep_a, keep_b) = if let Some((a, b, _)) = best_pair { (a, b) } else {
+        let (keep_a, keep_b) = if let Some((a, b, _)) = best_pair {
+            (a, b)
+        } else {
             // No consistent pair found — keep the first two by index
             // (deterministic fallback).
             let mut sorted = fis.clone();
@@ -1804,9 +1815,8 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
         return;
     }
 
-    let mut clean_faces: Vec<FaceData> = Vec::with_capacity(
-        face_list.len() - faces_to_remove.len(),
-    );
+    let mut clean_faces: Vec<FaceData> =
+        Vec::with_capacity(face_list.len() - faces_to_remove.len());
     for (fi, face) in face_list.iter().enumerate() {
         if !faces_to_remove.contains(&fi) {
             clean_faces.push(*face);
@@ -1819,10 +1829,7 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
 }
 
 /// Compute the unit normal of a face, or `None` if degenerate.
-fn face_normal_of(
-    face: &FaceData,
-    vertices: &VertexPool,
-) -> Option<nalgebra::Vector3<f64>> {
+fn face_normal_of(face: &FaceData, vertices: &VertexPool) -> Option<nalgebra::Vector3<f64>> {
     crate::domain::geometry::normal::triangle_normal(
         vertices.position(face.vertices[0]),
         vertices.position(face.vertices[1]),
@@ -1868,7 +1875,8 @@ fn remove_fin_faces(mesh: &mut IndexedMesh) {
         .collect();
 
     // Build undirected edge → face adjacency.
-    let mut edge_adj: hashbrown::HashMap<(VertexId, VertexId), Vec<usize>> = hashbrown::HashMap::new();
+    let mut edge_adj: hashbrown::HashMap<(VertexId, VertexId), Vec<usize>> =
+        hashbrown::HashMap::new();
     for (fi, face) in face_list.iter().enumerate() {
         let v = face.vertices;
         for &(a, b) in &[(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
@@ -1921,8 +1929,7 @@ fn remove_fin_faces(mesh: &mut IndexedMesh) {
     }
 
     // Remove fin faces.
-    let mut clean_faces: Vec<FaceData> =
-        Vec::with_capacity(n_faces - fin_faces.len());
+    let mut clean_faces: Vec<FaceData> = Vec::with_capacity(n_faces - fin_faces.len());
     for (fi, face) in face_list.iter().enumerate() {
         if !fin_faces.contains(&fi) {
             clean_faces.push(*face);
@@ -1934,7 +1941,6 @@ fn remove_fin_faces(mesh: &mut IndexedMesh) {
     }
     mesh.rebuild_edges();
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -2109,7 +2115,12 @@ mod tests {
         let segments = 32;
         let mut meshes = vec![planar_trunk(radius, height, extension, segments)];
         for angle_deg in [60.0_f64, 20.0, -20.0, -60.0] {
-            meshes.push(planar_branch(angle_deg.to_radians(), radius, height, segments));
+            meshes.push(planar_branch(
+                angle_deg.to_radians(),
+                radius,
+                height,
+                segments,
+            ));
         }
         meshes
     }
@@ -2121,7 +2132,12 @@ mod tests {
         let segments = 32;
         let mut meshes = vec![planar_trunk(radius, height, extension, segments)];
         for angle_deg in [45.0_f64, 90.0, -45.0] {
-            meshes.push(planar_branch(angle_deg.to_radians(), radius, height, segments));
+            meshes.push(planar_branch(
+                angle_deg.to_radians(),
+                radius,
+                height,
+                segments,
+            ));
         }
         meshes
     }
@@ -2133,7 +2149,12 @@ mod tests {
         let segments = 32;
         let mut meshes = vec![planar_trunk(radius, height, extension, segments)];
         for angle_deg in [60.0_f64, 30.0, 0.0, -30.0, -60.0] {
-            meshes.push(planar_branch(angle_deg.to_radians(), radius, height, segments));
+            meshes.push(planar_branch(
+                angle_deg.to_radians(),
+                radius,
+                height,
+                segments,
+            ));
         }
         meshes
     }
@@ -2253,8 +2274,7 @@ mod tests {
         assert!(
             report.is_watertight,
             "symmetric cylinder intersection must be watertight: boundary={}, non_manifold={}",
-            report.boundary_edge_count,
-            report.non_manifold_edge_count
+            report.boundary_edge_count, report.non_manifold_edge_count
         );
         assert_eq!(
             component_count(&mut result),
@@ -2277,8 +2297,8 @@ mod tests {
 
     #[test]
     fn indexed_nary_quadfurcation_union_is_watertight_without_component_dropping() {
-        let mut result =
-            csg_boolean_nary(BooleanOp::Union, &quadfurcation_meshes()).expect("quadfurcation union");
+        let mut result = csg_boolean_nary(BooleanOp::Union, &quadfurcation_meshes())
+            .expect("quadfurcation union");
         assert_eq!(
             component_count(&mut result),
             1,
@@ -2301,8 +2321,8 @@ mod tests {
 
     #[test]
     fn indexed_nary_pentafurcation_union_is_watertight_without_component_dropping() {
-        let mut result =
-            csg_boolean_nary(BooleanOp::Union, &pentafurcation_meshes()).expect("pentafurcation union");
+        let mut result = csg_boolean_nary(BooleanOp::Union, &pentafurcation_meshes())
+            .expect("pentafurcation union");
         assert_eq!(
             component_count(&mut result),
             1,
@@ -2419,15 +2439,19 @@ mod tests {
         let branches = csg_boolean(BooleanOp::Union, &branch_up, &branch_dn).unwrap();
         let mut result = csg_boolean(BooleanOp::Difference, &trunk, &branches).unwrap();
         let normals_before = analyze_normals(&result);
-        tracing::info!("before orient_outward: outward={}, inward={}, degen={}",
+        tracing::info!(
+            "before orient_outward: outward={}, inward={}, degen={}",
             normals_before.outward_faces,
             normals_before.inward_faces,
             normals_before.degenerate_faces,
         );
         result.orient_outward();
         let normals_after = analyze_normals(&result);
-        tracing::info!("after  orient_outward: outward={}, inward={}, degen={}",
-            normals_after.outward_faces, normals_after.inward_faces, normals_after.degenerate_faces,
+        tracing::info!(
+            "after  orient_outward: outward={}, inward={}, degen={}",
+            normals_after.outward_faces,
+            normals_after.inward_faces,
+            normals_after.degenerate_faces,
         );
         assert_eq!(
             normals_after.inward_faces, 0,
@@ -2679,7 +2703,12 @@ mod tests {
         let segments = 32;
         let mut meshes = vec![planar_trunk(radius, height, extension, segments)];
         for angle_deg in [60.0_f64, 90.0, -60.0] {
-            meshes.push(planar_branch(angle_deg.to_radians(), radius, height, segments));
+            meshes.push(planar_branch(
+                angle_deg.to_radians(),
+                radius,
+                height,
+                segments,
+            ));
         }
         meshes
     }
@@ -2710,25 +2739,19 @@ mod tests {
     /// manifold mesh.  ∎
     #[test]
     fn trifurcation_60deg_union_euler_characteristic_is_2() {
-        let mut result =
-            csg_boolean_nary(BooleanOp::Union, &trifurcation_60deg_meshes())
-                .expect("trifurcation 60° union");
+        let mut result = csg_boolean_nary(BooleanOp::Union, &trifurcation_60deg_meshes())
+            .expect("trifurcation 60° union");
         assert_eq!(
             component_count(&mut result),
             1,
             "trifurcation 60° union must be a single connected component",
         );
         result.rebuild_edges();
-        let report = check_watertight(
-            &result.vertices,
-            &result.faces,
-            result.edges_ref().unwrap(),
-        );
+        let report = check_watertight(&result.vertices, &result.faces, result.edges_ref().unwrap());
         assert!(
             report.is_watertight,
             "trifurcation 60° union must be watertight: {} boundary, {} non-manifold",
-            report.boundary_edge_count,
-            report.non_manifold_edge_count,
+            report.boundary_edge_count, report.non_manifold_edge_count,
         );
         assert_eq!(
             report.euler_characteristic,
@@ -2765,17 +2788,18 @@ mod tests {
         let segments = 32;
         let mut meshes = vec![planar_trunk(radius, height, extension, segments)];
         for angle_deg in [40.0_f64, 90.0, -40.0] {
-            meshes.push(planar_branch(angle_deg.to_radians(), radius, height, segments));
+            meshes.push(planar_branch(
+                angle_deg.to_radians(),
+                radius,
+                height,
+                segments,
+            ));
         }
         let mut result =
             csg_boolean_nary(BooleanOp::Union, &meshes).expect("trifurcation 40° union");
         assert_eq!(component_count(&mut result), 1);
         result.rebuild_edges();
-        let report = check_watertight(
-            &result.vertices,
-            &result.faces,
-            result.edges_ref().unwrap(),
-        );
+        let report = check_watertight(&result.vertices, &result.faces, result.edges_ref().unwrap());
         assert!(report.is_watertight);
         assert_eq!(
             report.euler_characteristic,
@@ -2800,16 +2824,11 @@ mod tests {
     /// without the multi-valued half-edge detection.
     #[test]
     fn pentafurcation_union_euler_characteristic_is_2() {
-        let mut result =
-            csg_boolean_nary(BooleanOp::Union, &pentafurcation_meshes())
-                .expect("pentafurcation union");
+        let mut result = csg_boolean_nary(BooleanOp::Union, &pentafurcation_meshes())
+            .expect("pentafurcation union");
         assert_eq!(component_count(&mut result), 1);
         result.rebuild_edges();
-        let report = check_watertight(
-            &result.vertices,
-            &result.faces,
-            result.edges_ref().unwrap(),
-        );
+        let report = check_watertight(&result.vertices, &result.faces, result.edges_ref().unwrap());
         assert!(report.is_watertight);
         assert_eq!(
             report.euler_characteristic,
@@ -2822,16 +2841,11 @@ mod tests {
     /// Quadfurcation dense angles — explicit χ check (extends existing watertight test).
     #[test]
     fn quadfurcation_union_euler_characteristic_is_2() {
-        let mut result =
-            csg_boolean_nary(BooleanOp::Union, &quadfurcation_meshes())
-                .expect("quadfurcation union");
+        let mut result = csg_boolean_nary(BooleanOp::Union, &quadfurcation_meshes())
+            .expect("quadfurcation union");
         assert_eq!(component_count(&mut result), 1);
         result.rebuild_edges();
-        let report = check_watertight(
-            &result.vertices,
-            &result.faces,
-            result.edges_ref().unwrap(),
-        );
+        let report = check_watertight(&result.vertices, &result.faces, result.edges_ref().unwrap());
         assert!(report.is_watertight);
         assert_eq!(
             report.euler_characteristic,

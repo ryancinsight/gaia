@@ -59,8 +59,8 @@ use super::fragment_analysis::is_degenerate_sliver_with_normal;
 use super::tiebreaker::FragmentClass;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Point3r;
-use crate::domain::topology::predicates::{orient3d, Sign};
 use crate::domain::geometry::aabb::Aabb;
+use crate::domain::topology::predicates::{orient3d, Sign};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -240,8 +240,10 @@ fn fragment_survives_against_operand(
     class: FragmentClass,
 ) -> bool {
     match op {
-        BooleanOp::Union => matches!(class, FragmentClass::Outside)
-            || matches!(class, FragmentClass::CoplanarSame) && frag_mesh_idx < other_idx,
+        BooleanOp::Union => {
+            matches!(class, FragmentClass::Outside)
+                || matches!(class, FragmentClass::CoplanarSame) && frag_mesh_idx < other_idx
+        }
         BooleanOp::Intersection => {
             matches!(class, FragmentClass::Inside | FragmentClass::CoplanarSame)
         }
@@ -251,7 +253,10 @@ fn fragment_survives_against_operand(
             }
 
             if other_idx == 0 {
-                return matches!(class, FragmentClass::Inside | FragmentClass::CoplanarOpposite);
+                return matches!(
+                    class,
+                    FragmentClass::Inside | FragmentClass::CoplanarOpposite
+                );
             }
 
             matches!(class, FragmentClass::Outside)

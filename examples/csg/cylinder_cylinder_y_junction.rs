@@ -173,8 +173,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  Quarter-Steinmetz (B ∩ C at 90°): V = 4r³/3 = {v_quarter_steinmetz:.4} mm³");
 
         let t0 = Instant::now();
-        let mut result =
-            gaia::application::csg::boolean::indexed::csg_boolean(BooleanOp::Intersection, &branch_up_45, &branch_dn_45)?;
+        let mut result = gaia::application::csg::boolean::indexed::csg_boolean(
+            BooleanOp::Intersection,
+            &branch_up_45,
+            &branch_dn_45,
+        )?;
         let ms = t0.elapsed().as_millis();
 
         report(

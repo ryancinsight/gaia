@@ -4,12 +4,12 @@
 
 use std::collections::{HashMap, HashSet};
 
-use gaia::application::pipeline::{BlueprintMeshPipeline, PipelineConfig, TopologyClass};
-use gaia::domain::mesh::IndexedMesh;
 use cfd_schematics::interface::presets::{
     asymmetric_bifurcation_serpentine_rect, bifurcation_rect, serpentine_chain, serpentine_rect,
     symmetric_bifurcation, symmetric_trifurcation, trifurcation_rect, venturi_chain, venturi_rect,
 };
+use gaia::application::pipeline::{BlueprintMeshPipeline, PipelineConfig, TopologyClass};
+use gaia::domain::mesh::IndexedMesh;
 
 fn default_cfg() -> PipelineConfig {
     PipelineConfig::default()

@@ -135,7 +135,11 @@ mod tests {
         let last_row = (n_lat - 2) * n_lon;
         for j in 0..n_lon {
             let j_next = (j + 1) % n_lon;
-            faces.push(FaceData::untagged(vids[last_row + j], south, vids[last_row + j_next]));
+            faces.push(FaceData::untagged(
+                vids[last_row + j],
+                south,
+                vids[last_row + j_next],
+            ));
         }
         (pool, faces)
     }
@@ -230,10 +234,10 @@ mod tests {
         let max_error = 2.0 * log2_n * error_budget;
 
         let test_points = [
-            Point3r::new(0.5, 0.0, 0.0),  // inside
-            Point3r::new(3.0, 0.0, 0.0),  // outside
-            Point3r::new(0.0, 0.0, 3.0),  // outside along z
-            Point3r::new(0.3, 0.3, 0.3),  // inside corner direction
+            Point3r::new(0.5, 0.0, 0.0), // inside
+            Point3r::new(3.0, 0.0, 0.0), // outside
+            Point3r::new(0.0, 0.0, 3.0), // outside along z
+            Point3r::new(0.3, 0.3, 0.3), // inside corner direction
         ];
 
         for q in &test_points {
@@ -325,10 +329,10 @@ mod tests {
         let (pool, faces) = unit_cube_mesh();
         let prepared = prepare_classification_faces(&faces, &pool);
         let test_points = [
-            Point3r::new(0.0, 0.0, 0.0),  // interior centre
-            Point3r::new(5.0, 0.0, 0.0),  // exterior far
-            Point3r::new(0.2, 0.1, 0.3),  // interior off-centre
-            Point3r::new(2.0, 2.0, 2.0),  // exterior corner direction
+            Point3r::new(0.0, 0.0, 0.0), // interior centre
+            Point3r::new(5.0, 0.0, 0.0), // exterior far
+            Point3r::new(0.2, 0.1, 0.3), // interior off-centre
+            Point3r::new(2.0, 2.0, 2.0), // exterior corner direction
         ];
         for q in &test_points {
             let standard = gwn_prepared(q, &prepared);
@@ -427,10 +431,7 @@ mod tests {
         let n = Vector3r::new(0.0, 0.0, 1.0);
         let cls = classify_fragment(&c, &n, &faces, &pool);
         assert!(
-            matches!(
-                cls,
-                FragmentClass::CoplanarSame | FragmentClass::Outside
-            ),
+            matches!(cls, FragmentClass::CoplanarSame | FragmentClass::Outside),
             "1 km scale: on-face point should be CoplanarSame/Outside, got {cls:?}"
         );
     }
@@ -444,10 +445,7 @@ mod tests {
         let n = Vector3r::new(0.0, 0.0, 1.0);
         let cls = classify_fragment(&c, &n, &faces, &pool);
         assert!(
-            matches!(
-                cls,
-                FragmentClass::CoplanarSame | FragmentClass::Outside
-            ),
+            matches!(cls, FragmentClass::CoplanarSame | FragmentClass::Outside),
             "1 µm scale: on-face point should be CoplanarSame/Outside, got {cls:?}"
         );
     }
@@ -531,7 +529,10 @@ mod tests {
         let faces = vec![FaceData::untagged(v0, v1, v2)];
         let q = Point3r::new(0.5, 0.5, 0.1);
         let wn = gwn::<f64>(&q, &faces, &pool);
-        assert!(wn.is_finite(), "sliver triangle GWN must be finite, got {wn}");
+        assert!(
+            wn.is_finite(),
+            "sliver triangle GWN must be finite, got {wn}"
+        );
         assert!(
             wn.abs() < 0.6,
             "sliver triangle (open) |wn| should be < 0.6, got {wn:.6}"

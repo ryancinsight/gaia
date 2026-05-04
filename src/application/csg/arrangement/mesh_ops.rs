@@ -168,6 +168,9 @@ mod tests {
             FaceData::untagged(v0, v1, v2), // collinear → zero area
         ];
         apply_vertex_merge(&mut faces, &merge, &pool);
-        assert!(faces.is_empty(), "collinear zero-area face should be culled");
+        assert!(
+            faces.is_empty(),
+            "collinear zero-area face should be culled"
+        );
     }
 }

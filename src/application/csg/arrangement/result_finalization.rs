@@ -26,8 +26,11 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 pub(crate) fn finalize_boolean_faces(result_faces: &mut Vec<FaceData>, pool: &mut VertexPool) {
     let mut preview = reconstruct_mesh(result_faces, pool);
     preview.rebuild_edges();
-    let preview_report =
-        check_watertight(&preview.vertices, &preview.faces, preview.edges_ref().unwrap());
+    let preview_report = check_watertight(
+        &preview.vertices,
+        &preview.faces,
+        preview.edges_ref().unwrap(),
+    );
     if preview_report.is_watertight {
         refine_high_curvature_faces(result_faces, pool);
         return;
@@ -42,8 +45,11 @@ pub(crate) fn finalize_boolean_faces(result_faces: &mut Vec<FaceData>, pool: &mu
     // valence defects, so we guard with a second watertight check.
     let mut post_check = reconstruct_mesh(result_faces, pool);
     post_check.rebuild_edges();
-    let post_report =
-        check_watertight(&post_check.vertices, &post_check.faces, post_check.edges_ref().unwrap());
+    let post_report = check_watertight(
+        &post_check.vertices,
+        &post_check.faces,
+        post_check.edges_ref().unwrap(),
+    );
     if post_report.is_watertight {
         refine_high_curvature_faces(result_faces, pool);
     }

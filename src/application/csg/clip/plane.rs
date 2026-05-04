@@ -117,8 +117,7 @@ impl PlaneEquation {
     #[inline]
     #[must_use]
     pub fn signed_distance_unnorm(&self, point: &Point3r) -> f64 {
-        self.normal[0] * point.x + self.normal[1] * point.y + self.normal[2] * point.z
-            - self.offset
+        self.normal[0] * point.x + self.normal[1] * point.y + self.normal[2] * point.z - self.offset
     }
 
     /// Compute the plane–edge intersection along `s → e`.
@@ -281,8 +280,7 @@ pub fn refine_faces_with_plane(
     plane: &PlaneEquation,
 ) -> (Vec<FaceData>, Vec<FaceData>) {
     // Phase 1: batch-classify all unique vertices.
-    let mut vertex_signs: HashMap<VertexId, Orientation> =
-        HashMap::with_capacity(faces.len() * 2);
+    let mut vertex_signs: HashMap<VertexId, Orientation> = HashMap::with_capacity(faces.len() * 2);
     for face in faces {
         for &vid in &face.vertices {
             vertex_signs
@@ -375,7 +373,10 @@ fn split_straddling_face(
 }
 
 /// Fan-triangulate a convex polygon given as vertex IDs.
-fn fan_triangulate_vids(vids: &[VertexId], region: crate::domain::core::index::RegionId) -> Vec<FaceData> {
+fn fan_triangulate_vids(
+    vids: &[VertexId],
+    region: crate::domain::core::index::RegionId,
+) -> Vec<FaceData> {
     if vids.len() < 3 {
         return Vec::new();
     }
@@ -419,11 +420,8 @@ mod tests {
 
     #[test]
     fn plane_classify_above_below_on() {
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         assert_eq!(plane.classify(&p(0.5, 0.5, 1.0)), Orientation::Positive);
         assert_eq!(plane.classify(&p(0.5, 0.5, -1.0)), Orientation::Negative);
         assert_eq!(plane.classify(&p(0.5, 0.5, 0.0)), Orientation::Degenerate);
@@ -439,11 +437,8 @@ mod tests {
         let face = FaceData::new(va, vb, vc, RegionId::INVALID);
 
         let p1 = PlaneEquation::from_face(&face, &pool);
-        let p2 = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let p2 =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
 
         let q = p(0.3, 0.2, 0.7);
         assert_eq!(p1.classify(&q), p2.classify(&q));
@@ -451,11 +446,8 @@ mod tests {
 
     #[test]
     fn plane_intersect_edge_midpoint() {
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let s = p(0.0, 0.0, 1.0);
         let e = p(0.0, 0.0, -1.0);
         let cut = plane.intersect_edge(&s, &e);
@@ -466,11 +458,8 @@ mod tests {
 
     #[test]
     fn plane_intersect_edge_quarter() {
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 1.0),
-            &p(1.0, 0.0, 1.0),
-            &p(0.0, 1.0, 1.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 1.0), &p(1.0, 0.0, 1.0), &p(0.0, 1.0, 1.0));
         let s = p(0.0, 0.0, 0.0);
         let e = p(0.0, 0.0, 4.0);
         let cut = plane.intersect_edge(&s, &e);
@@ -482,24 +471,17 @@ mod tests {
     #[test]
     fn classify_face_above_plane() {
         let (face, pool) = face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, 2.0), p(0.0, 1.0, 3.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (class, _) = classify_face(&face, &pool, &plane);
         assert_eq!(class, FacePlaneClass::Inside);
     }
 
     #[test]
     fn classify_face_below_plane() {
-        let (face, pool) =
-            face_from_pts(p(0.0, 0.0, -1.0), p(1.0, 0.0, -2.0), p(0.0, 1.0, -3.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let (face, pool) = face_from_pts(p(0.0, 0.0, -1.0), p(1.0, 0.0, -2.0), p(0.0, 1.0, -3.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (class, _) = classify_face(&face, &pool, &plane);
         assert_eq!(class, FacePlaneClass::Outside);
     }
@@ -507,11 +489,8 @@ mod tests {
     #[test]
     fn classify_face_straddling() {
         let (face, pool) = face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, -1.0), p(0.0, 1.0, 0.5));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (class, _) = classify_face(&face, &pool, &plane);
         assert_eq!(class, FacePlaneClass::Straddling);
     }
@@ -519,11 +498,8 @@ mod tests {
     #[test]
     fn classify_face_coplanar() {
         let (face, pool) = face_from_pts(p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), p(0.0, 1.0, 0.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (class, _) = classify_face(&face, &pool, &plane);
         assert_eq!(class, FacePlaneClass::Coplanar);
     }
@@ -532,13 +508,9 @@ mod tests {
 
     #[test]
     fn clip_fully_inside_keeps_face() {
-        let (face, mut pool) =
-            face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, 2.0), p(0.0, 1.0, 3.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let (face, mut pool) = face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, 2.0), p(0.0, 1.0, 3.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let result = clip_face_by_plane(&face, &mut pool, &plane);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0], face);
@@ -548,24 +520,17 @@ mod tests {
     fn clip_fully_outside_removes_face() {
         let (face, mut pool) =
             face_from_pts(p(0.0, 0.0, -1.0), p(1.0, 0.0, -2.0), p(0.0, 1.0, -3.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let result = clip_face_by_plane(&face, &mut pool, &plane);
         assert!(result.is_empty());
     }
 
     #[test]
     fn clip_straddling_produces_subtriangles() {
-        let (face, mut pool) =
-            face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, -1.0), p(0.0, 1.0, 1.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let (face, mut pool) = face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, -1.0), p(0.0, 1.0, 1.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let result = clip_face_by_plane(&face, &mut pool, &plane);
         assert!(
             !result.is_empty(),
@@ -577,13 +542,9 @@ mod tests {
 
     #[test]
     fn clip_coplanar_keeps_face() {
-        let (face, mut pool) =
-            face_from_pts(p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), p(0.0, 1.0, 0.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let (face, mut pool) = face_from_pts(p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), p(0.0, 1.0, 0.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let result = clip_face_by_plane(&face, &mut pool, &plane);
         assert_eq!(result.len(), 1);
     }
@@ -592,13 +553,9 @@ mod tests {
     fn clip_one_vertex_on_plane_two_above() {
         // v0 on plane, v1 and v2 above → fully inside (Degenerate counts as
         // inside).
-        let (face, mut pool) =
-            face_from_pts(p(0.5, 0.5, 0.0), p(1.0, 0.0, 1.0), p(0.0, 1.0, 1.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let (face, mut pool) = face_from_pts(p(0.5, 0.5, 0.0), p(1.0, 0.0, 1.0), p(0.0, 1.0, 1.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let result = clip_face_by_plane(&face, &mut pool, &plane);
         assert_eq!(result.len(), 1);
     }
@@ -608,11 +565,8 @@ mod tests {
     #[test]
     fn refine_empty_mesh() {
         let mut pool = csg_pool();
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (ins, outs) = refine_faces_with_plane(&[], &mut pool, &plane);
         assert!(ins.is_empty());
         assert!(outs.is_empty());
@@ -620,13 +574,9 @@ mod tests {
 
     #[test]
     fn refine_all_above() {
-        let (face, mut pool) =
-            face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, 2.0), p(0.0, 1.0, 3.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let (face, mut pool) = face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, 2.0), p(0.0, 1.0, 3.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (ins, outs) = refine_faces_with_plane(&[face], &mut pool, &plane);
         assert_eq!(ins.len(), 1);
         assert!(outs.is_empty());
@@ -634,13 +584,9 @@ mod tests {
 
     #[test]
     fn refine_straddling_triangle_splits_both_sides() {
-        let (face, mut pool) =
-            face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, -1.0), p(0.0, 1.0, 1.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let (face, mut pool) = face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, -1.0), p(0.0, 1.0, 1.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (ins, outs) = refine_faces_with_plane(&[face], &mut pool, &plane);
         assert!(!ins.is_empty(), "should have inside sub-faces");
         assert!(!outs.is_empty(), "should have outside sub-faces");
@@ -659,11 +605,8 @@ mod tests {
         let region = RegionId::new(42);
         let face = FaceData::new(va, vb, vc, region);
 
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (ins, outs) = refine_faces_with_plane(&[face], &mut pool, &plane);
         for f in ins.iter().chain(outs.iter()) {
             assert_eq!(f.region, region, "sub-faces must inherit parent region");
@@ -692,11 +635,8 @@ mod tests {
             FaceData::untagged(v1, v4, v2), // all above
         ];
 
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (ins, outs) = refine_faces_with_plane(&faces, &mut pool, &plane);
         // 2 fully-inside + 2 straddling (each producing 2 inside sub-faces)
         assert!(ins.len() >= 4);
@@ -707,13 +647,9 @@ mod tests {
     fn refine_vertex_on_plane_goes_to_both_halves() {
         // v0 on plane, v1 above, v2 below → straddling.
         // The on-plane vertex appears in both halves.
-        let (face, mut pool) =
-            face_from_pts(p(0.5, 0.5, 0.0), p(1.0, 0.0, 1.0), p(0.0, 1.0, -1.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 0.0),
-        );
+        let (face, mut pool) = face_from_pts(p(0.5, 0.5, 0.0), p(1.0, 0.0, 1.0), p(0.0, 1.0, -1.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
         let (ins, outs) = refine_faces_with_plane(&[face], &mut pool, &plane);
         assert_eq!(ins.len(), 1);
         assert_eq!(outs.len(), 1);
@@ -726,13 +662,9 @@ mod tests {
     #[test]
     fn refine_tilted_plane_xy() {
         // Plane at 45° through x-axis: n = (0, -1/√2, 1/√2), d = 0
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(0.0, 1.0, 1.0),
-        );
-        let (face, mut pool) =
-            face_from_pts(p(0.0, 0.0, 2.0), p(1.0, 2.0, 0.0), p(0.0, 2.0, 0.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 1.0));
+        let (face, mut pool) = face_from_pts(p(0.0, 0.0, 2.0), p(1.0, 2.0, 0.0), p(0.0, 2.0, 0.0));
         let (ins, outs) = refine_faces_with_plane(&[face], &mut pool, &plane);
         let total = ins.len() + outs.len();
         assert!(total >= 2, "tilted plane should split the face");
@@ -743,11 +675,8 @@ mod tests {
         let build = || {
             let (face, mut pool) =
                 face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, -1.0), p(0.0, 1.0, 0.5));
-            let plane = PlaneEquation::from_points(
-                &p(0.0, 0.0, 0.0),
-                &p(1.0, 0.0, 0.0),
-                &p(0.0, 1.0, 0.0),
-            );
+            let plane =
+                PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(0.0, 1.0, 0.0));
             refine_faces_with_plane(&[face], &mut pool, &plane)
         };
         let (ins1, outs1) = build();
@@ -759,13 +688,9 @@ mod tests {
     #[test]
     fn clip_face_degenerate_plane_no_panic() {
         // Degenerate plane (collinear points) → normal = 0.
-        let (face, mut pool) =
-            face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, 1.0), p(0.0, 1.0, 1.0));
-        let plane = PlaneEquation::from_points(
-            &p(0.0, 0.0, 0.0),
-            &p(1.0, 0.0, 0.0),
-            &p(2.0, 0.0, 0.0),
-        );
+        let (face, mut pool) = face_from_pts(p(0.0, 0.0, 1.0), p(1.0, 0.0, 1.0), p(0.0, 1.0, 1.0));
+        let plane =
+            PlaneEquation::from_points(&p(0.0, 0.0, 0.0), &p(1.0, 0.0, 0.0), &p(2.0, 0.0, 0.0));
         // All orient_3d calls return Degenerate for a degenerate plane.
         let result = clip_face_by_plane(&face, &mut pool, &plane);
         // Should not panic; face treated as coplanar (all Degenerate).

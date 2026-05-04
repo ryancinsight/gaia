@@ -209,7 +209,9 @@ mod tests {
     #[test]
     fn query_finds_all_overlapping() {
         let aabbs: Vec<Aabb> = (0..10)
-            .flat_map(|ix| (0..10).map(move |iy| unit_aabb(f64::from(ix) * 2.0, f64::from(iy) * 2.0, 0.0)))
+            .flat_map(|ix| {
+                (0..10).map(move |iy| unit_aabb(f64::from(ix) * 2.0, f64::from(iy) * 2.0, 0.0))
+            })
             .collect();
 
         // ix ∈ {0,1}, iy ∈ {0,1} → indices 0, 1, 10, 11.

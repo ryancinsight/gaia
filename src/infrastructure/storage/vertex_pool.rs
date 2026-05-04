@@ -408,7 +408,7 @@ impl<T: Scalar> VertexPool<T> {
 
     /// Update the exact position of a previously inserted vertex.
     ///
-    /// Exclusively intended for post-processing topological relaxation (e.g., Laplacian 
+    /// Exclusively intended for post-processing topological relaxation (e.g., Laplacian
     /// surface smoothing) where the spatial hash coherence is no longer required.
     pub fn set_position(&mut self, id: VertexId, new_pos: Point3<T>) {
         self.vertices[id.as_usize()].position = new_pos;

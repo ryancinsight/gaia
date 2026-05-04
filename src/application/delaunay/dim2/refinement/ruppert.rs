@@ -359,11 +359,7 @@ impl RuppertRefiner {
     /// # Complexity
     ///
     /// $O(\deg(p)) \approx O(6)$ instead of $O(T)$ per insertion.
-    fn append_bad_triangles_ring(
-        &self,
-        queue: &mut BinaryHeap<BadTriangle>,
-        vid: PslgVertexId,
-    ) {
+    fn append_bad_triangles_ring(&self, queue: &mut BinaryHeap<BadTriangle>, vid: PslgVertexId) {
         let dt = self.cdt.triangulation();
         for tid in dt.triangles_around_vertex(vid) {
             let tri = dt.triangle(tid);

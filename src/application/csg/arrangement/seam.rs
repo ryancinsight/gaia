@@ -264,7 +264,8 @@ pub(crate) fn stitch_boundary_seams(faces: &mut Vec<FaceData>, pool: &VertexPool
 
         #[cfg(test)]
         if trace_enabled() {
-            tracing::info!("[stitch-p1 {}] {} bnd, {} short (< {:.6}), {} merges",
+            tracing::info!(
+                "[stitch-p1 {}] {} bnd, {} short (< {:.6}), {} merges",
                 iter_idx,
                 boundary_edges.len(),
                 edge_info.iter().filter(|e| e.0 < threshold_sq).count(),
@@ -321,7 +322,8 @@ pub(crate) fn stitch_boundary_seams(faces: &mut Vec<FaceData>, pool: &VertexPool
 
         #[cfg(test)]
         if trace_enabled() {
-            tracing::info!("[stitch-p2 {}] {} bnd edges, {} bnd verts, tol={:.6}, {} merges",
+            tracing::info!(
+                "[stitch-p2 {}] {} bnd edges, {} bnd verts, tol={:.6}, {} merges",
                 iter_idx,
                 boundary_edges.len(),
                 bnd_verts.len(),
@@ -406,7 +408,8 @@ pub(crate) fn stitch_boundary_seams_conservative(faces: &mut Vec<FaceData>, pool
 
         #[cfg(test)]
         if trace_enabled() {
-            tracing::info!("[stitch-cons {}] {} bnd, {} short (< {:.6}), {} merges",
+            tracing::info!(
+                "[stitch-cons {}] {} bnd, {} short (< {:.6}), {} merges",
                 iter_idx,
                 boundary_edges.len(),
                 edge_info.iter().filter(|e| e.0 < threshold_sq).count(),
@@ -564,7 +567,11 @@ mod tests {
         ];
         let before = faces.len();
         stitch_boundary_seams(&mut faces, &pool);
-        assert_eq!(faces.len(), before, "closed mesh must not change under stitch");
+        assert_eq!(
+            faces.len(),
+            before,
+            "closed mesh must not change under stitch"
+        );
     }
 
     /// Conservative stitch on empty faces must not panic.

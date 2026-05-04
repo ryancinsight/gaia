@@ -143,8 +143,8 @@ impl WallClearanceConstraint {
 
 #[cfg(test)]
 mod tests {
-    use cfd_schematics::NetworkBlueprint;
     use cfd_schematics::interface::presets::{serpentine_chain, venturi_chain};
+    use cfd_schematics::NetworkBlueprint;
 
     use super::*;
 

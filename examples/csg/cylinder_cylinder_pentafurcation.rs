@@ -86,7 +86,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         let t0 = Instant::now();
-        let mut accumulated = gaia::application::csg::boolean::indexed::csg_boolean_nary(op, &meshes)?;
+        let mut accumulated =
+            gaia::application::csg::boolean::indexed::csg_boolean_nary(op, &meshes)?;
         let ms = t0.elapsed().as_millis();
 
         report(
@@ -181,8 +182,13 @@ fn report(label: &str, mesh: &mut IndexedMesh, v_naive: f64, ms: u128, expected_
     let comps_ok = n_comps == 1;
     let norm_ok = n.inward_faces == 0;
     let degen_ok = n.degenerate_faces == 0;
-    let any_issue = !wt.is_watertight || !chi_ok || !comps_ok || !norm_ok || !degen_ok
-        || !positive || !below_naive;
+    let any_issue = !wt.is_watertight
+        || !chi_ok
+        || !comps_ok
+        || !norm_ok
+        || !degen_ok
+        || !positive
+        || !below_naive;
     let genus = (2 - expected_chi) / 2;
 
     println!("  ── {label} ──");
@@ -204,7 +210,11 @@ fn report(label: &str, mesh: &mut IndexedMesh, v_naive: f64, ms: u128, expected_
     );
     println!(
         "    Components : {n_comps}  [{}]",
-        if comps_ok { "PASS" } else { "WARN phantom islands" }
+        if comps_ok {
+            "PASS"
+        } else {
+            "WARN phantom islands"
+        }
     );
     println!(
         "    Normals    : outward={}, inward={} ({:.1}%), degen={}  [{}]",
@@ -241,13 +251,15 @@ fn report(label: &str, mesh: &mut IndexedMesh, v_naive: f64, ms: u128, expected_
         if !comps_ok {
             println!(
                 "       - {} connected component(s): {} phantom island(s) present",
-                n_comps, n_comps.saturating_sub(1)
+                n_comps,
+                n_comps.saturating_sub(1)
             );
         }
         if !norm_ok {
             println!(
                 "       - {}/{} face(s) with inward normals: winding order errors",
-                n.inward_faces, mesh.face_count()
+                n.inward_faces,
+                mesh.face_count()
             );
         }
         if !degen_ok {

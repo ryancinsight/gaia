@@ -197,11 +197,8 @@ fn run_sharp() -> Result<(), Box<dyn std::error::Error>> {
 
     // Union
     let t1 = Instant::now();
-    let mut result = gaia::application::csg::boolean::indexed::csg_boolean(
-        BooleanOp::Union,
-        &stem,
-        &arm,
-    )?;
+    let mut result =
+        gaia::application::csg::boolean::indexed::csg_boolean(BooleanOp::Union, &stem, &arm)?;
     let union_ms = t1.elapsed().as_millis();
     report(
         "Union (stem ∪ arm) — sharp corner",

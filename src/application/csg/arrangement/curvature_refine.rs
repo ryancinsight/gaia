@@ -215,10 +215,7 @@ pub(crate) fn refine_high_curvature_faces(faces: &mut Vec<FaceData>, pool: &mut 
 /// - Meyer et al., "Discrete Differential-Geometry Operators for Triangulated
 ///   2-Manifolds", VisMath 2003.
 /// - Wardetzky et al., "Discrete Laplace operators: No free lunch", SGP 2007.
-fn vertex_curvature_from_soup(
-    faces: &[FaceData],
-    pool: &VertexPool,
-) -> HashMap<VertexId, Real> {
+fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<VertexId, Real> {
     // Phase 1: accumulate cotangent-weighted Laplacian contributions and areas.
     //
     // For each face [v0, v1, v2], each edge (vi, vj) has the opposite angle at vk.
@@ -386,10 +383,7 @@ mod tests {
 
     /// Insert a vertex into the pool and return its ID.
     fn insert(pool: &mut VertexPool, x: Real, y: Real, z: Real) -> VertexId {
-        pool.insert_or_weld(
-            Point3r::new(x, y, z),
-            Vector3r::new(0.0, 0.0, 1.0),
-        )
+        pool.insert_or_weld(Point3r::new(x, y, z), Vector3r::new(0.0, 0.0, 1.0))
     }
 
     /// Flat triangle should NOT be refined (zero curvature).
@@ -451,7 +445,10 @@ mod tests {
 
         // All three faces share the centroid vertex.
         let all_verts: Vec<VertexId> = faces.iter().flat_map(|f| f.vertices).collect();
-        let centroid_count = all_verts.iter().filter(|&&v| v != v0 && v != v1 && v != v2).count();
+        let centroid_count = all_verts
+            .iter()
+            .filter(|&&v| v != v0 && v != v1 && v != v2)
+            .count();
         assert_eq!(centroid_count, 3, "centroid appears in all 3 sub-faces");
     }
 
@@ -513,8 +510,8 @@ mod tests {
     /// resolution.
     #[test]
     fn cotangent_curvature_sphere_approximation() {
-        use crate::domain::geometry::primitives::{PrimitiveMesh, UvSphere};
         use crate::domain::core::scalar::Point3r;
+        use crate::domain::geometry::primitives::{PrimitiveMesh, UvSphere};
         let sphere = UvSphere {
             radius: 1.0,
             center: Point3r::origin(),
@@ -523,10 +520,7 @@ mod tests {
         };
         let mesh = sphere.build().expect("UvSphere::build failed");
 
-        let faces: Vec<FaceData> = mesh
-            .faces
-            .iter().copied()
-            .collect();
+        let faces: Vec<FaceData> = mesh.faces.iter().copied().collect();
 
         let curvature = vertex_curvature_from_soup(&faces, &mesh.vertices);
 
@@ -565,25 +559,25 @@ mod tests {
 
         // Two triangles sharing edge [v0, v1]:
         // Face 0: [v0, v1, v2]  Face 1: [v1, v0, v3]
-        let mut faces = vec![
-            FaceData::new(v0, v1, v2, r),
-            FaceData::new(v1, v0, v3, r),
-        ];
+        let mut faces = vec![FaceData::new(v0, v1, v2, r), FaceData::new(v1, v0, v3, r)];
 
         apply_centroid_splits(&mut faces, &mut pool, &[0, 1]);
         assert_eq!(faces.len(), 6, "2 faces → 6 faces after splitting both");
 
         // Shared edge [v0, v1] must appear exactly twice: once in each
         // centroid-split fan — no extra vertices are on that edge.
-        let edge_count = faces.iter().filter(|f| {
-            let vs = f.vertices;
-            (vs[0] == v0 && vs[1] == v1)
-                || (vs[1] == v0 && vs[2] == v1)
-                || (vs[2] == v0 && vs[0] == v1)
-                || (vs[0] == v1 && vs[1] == v0)
-                || (vs[1] == v1 && vs[2] == v0)
-                || (vs[2] == v1 && vs[0] == v0)
-        }).count();
+        let edge_count = faces
+            .iter()
+            .filter(|f| {
+                let vs = f.vertices;
+                (vs[0] == v0 && vs[1] == v1)
+                    || (vs[1] == v0 && vs[2] == v1)
+                    || (vs[2] == v0 && vs[0] == v1)
+                    || (vs[0] == v1 && vs[1] == v0)
+                    || (vs[1] == v1 && vs[2] == v0)
+                    || (vs[2] == v1 && vs[0] == v0)
+            })
+            .count();
         assert_eq!(
             edge_count, 2,
             "shared edge should appear in exactly 2 sub-faces"
@@ -601,11 +595,7 @@ mod tests {
         let mut faces = vec![FaceData::new(v0, v1, v2, Default::default())];
         let before = faces.len();
         refine_high_curvature_faces(&mut faces, &mut pool);
-        assert_eq!(
-            faces.len(),
-            before,
-            "degenerate face should not be split"
-        );
+        assert_eq!(faces.len(), before, "degenerate face should not be split");
     }
 
     /// Cotangent weight clamping prevents infinite curvature on near-degenerate

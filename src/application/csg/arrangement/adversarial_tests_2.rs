@@ -21,7 +21,7 @@
 mod tests {
     use crate::application::csg::boolean::{csg_boolean, csg_boolean_nary, BooleanOp};
     use crate::application::csg::detect_self_intersect::detect_self_intersections;
-    
+
     use crate::domain::core::scalar::Point3r;
     use crate::domain::geometry::primitives::{Cube, Cylinder, PrimitiveMesh, Torus, UvSphere};
     use crate::domain::mesh::IndexedMesh;
@@ -280,8 +280,7 @@ mod tests {
 
         // Rotate cube B by 2° around the Z axis — creates a thin wedge overlap.
         let raw_b = unit_cube();
-        let rotation =
-            UnitQuaternion::<f64>::from_axis_angle(&Vector3::z_axis(), angle_rad);
+        let rotation = UnitQuaternion::<f64>::from_axis_angle(&Vector3::z_axis(), angle_rad);
         let cube_b = CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw_b))),
             iso: Isometry3::from_parts(Translation3::new(0.0, 0.0, 0.0), rotation),
@@ -448,8 +447,7 @@ mod tests {
                 let vol_direct = signed_volume(d);
                 // Scale volume back: V_scaled / 100³ = V_original
                 let vol_scaled_back = signed_volume(s) / (100.0_f64).powi(3);
-                let err = (vol_direct - vol_scaled_back).abs()
-                    / vol_direct.max(1e-15);
+                let err = (vol_direct - vol_scaled_back).abs() / vol_direct.max(1e-15);
                 assert!(
                     err < 0.10,
                     "scale-invariant volume: direct={vol_direct:.4}, \
@@ -577,10 +575,7 @@ mod tests {
         ];
 
         let pairs = detect_self_intersections(&faces, &pool);
-        assert!(
-            !pairs.is_empty(),
-            "bowtie crossing must be detected"
-        );
+        assert!(!pairs.is_empty(), "bowtie crossing must be detected");
     }
 
     // ── 9. N-ary intersection of multiple cubes ───────────────────────────

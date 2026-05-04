@@ -281,13 +281,11 @@ fn vert_to_tri_invariant_holds() {
     let hints = dt.vert_to_tri_slice();
     for vid_idx in 0..dt.vertex_count() {
         let tid = hints[vid_idx];
-        assert_ne!(
-            tid, GHOST_TRIANGLE,
-            "vertex {vid_idx} has GHOST hint"
-        );
+        assert_ne!(tid, GHOST_TRIANGLE, "vertex {vid_idx} has GHOST hint");
         let tri = dt.triangle(tid);
         assert!(tri.alive, "vertex {vid_idx} hints to dead triangle");
-        let vid = crate::application::delaunay::dim2::pslg::vertex::PslgVertexId::from_usize(vid_idx);
+        let vid =
+            crate::application::delaunay::dim2::pslg::vertex::PslgVertexId::from_usize(vid_idx);
         assert!(
             tri.contains_vertex(vid),
             "vertex {vid_idx} not in triangle {tid:?}"
@@ -458,7 +456,10 @@ fn convex_hull_square_with_interior() {
 fn min_connectivity_square() {
     let dt = DelaunayTriangulation::from_points(&[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]);
     let kappa = dt.min_vertex_connectivity();
-    assert!(kappa >= 2, "Square should have min connectivity ≥ 2, got {kappa}");
+    assert!(
+        kappa >= 2,
+        "Square should have min connectivity ≥ 2, got {kappa}"
+    );
 }
 
 #[test]
@@ -506,8 +507,8 @@ fn min_connectivity_large_random() {
 /// Test that quality metrics work correctly at micro-scale (1e-6 range).
 #[test]
 fn quality_micro_scale() {
-    use crate::application::delaunay::dim2::refinement::quality::TriangleQuality;
     use crate::application::delaunay::dim2::pslg::vertex::PslgVertex;
+    use crate::application::delaunay::dim2::refinement::quality::TriangleQuality;
 
     // Equilateral triangle at micro-scale.
     let s = 1e-6;
@@ -521,14 +522,18 @@ fn quality_micro_scale() {
         "Micro-scale equilateral ratio {} should be < 0.6",
         q.radius_edge_ratio
     );
-    assert!(q.radius_edge_ratio > 0.5, "Ratio too small: {}", q.radius_edge_ratio);
+    assert!(
+        q.radius_edge_ratio > 0.5,
+        "Ratio too small: {}",
+        q.radius_edge_ratio
+    );
 }
 
 /// Degenerate sliver triangle should have very high ratio.
 #[test]
 fn quality_sliver_degenerate() {
-    use crate::application::delaunay::dim2::refinement::quality::TriangleQuality;
     use crate::application::delaunay::dim2::pslg::vertex::PslgVertex;
+    use crate::application::delaunay::dim2::refinement::quality::TriangleQuality;
 
     let a = PslgVertex::new(0.0, 0.0);
     let b = PslgVertex::new(10.0, 0.0);

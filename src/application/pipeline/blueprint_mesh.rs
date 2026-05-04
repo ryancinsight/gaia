@@ -813,7 +813,10 @@ fn synthesize_complex_layout(
     let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n_nodes];
     let mut in_degree: Vec<usize> = vec![0; n_nodes];
     for ch in &bp.channels {
-        if let (Some(&u), Some(&v)) = (node_index.get(ch.from.as_str()), node_index.get(ch.to.as_str())) {
+        if let (Some(&u), Some(&v)) = (
+            node_index.get(ch.from.as_str()),
+            node_index.get(ch.to.as_str()),
+        ) {
             adj[u].push(v);
             in_degree[v] += 1;
         }
@@ -1129,9 +1132,8 @@ fn repair_pipeline_mesh(mesh: &mut IndexedMesh, require_watertight: bool) -> Mes
     }
 
     if !mesh.is_watertight() {
-        let edge_store = crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(
-            &mesh.faces,
-        );
+        let edge_store =
+            crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
         let added = crate::application::watertight::seal::seal_boundary_loops(
             &mut mesh.vertices,
             &mut mesh.faces,
@@ -1146,11 +1148,12 @@ fn repair_pipeline_mesh(mesh: &mut IndexedMesh, require_watertight: bool) -> Mes
     }
 
     if !mesh.is_watertight() {
-        let improved = crate::application::watertight::repair::MeshRepair::iterative_boundary_stitch(
-            &mut mesh.faces,
-            &mesh.vertices,
-            3,
-        );
+        let improved =
+            crate::application::watertight::repair::MeshRepair::iterative_boundary_stitch(
+                &mut mesh.faces,
+                &mesh.vertices,
+                3,
+            );
         if improved > 0 {
             mesh.rebuild_edges();
             mesh.orient_outward();
@@ -1647,25 +1650,22 @@ fn build_complex_fluid_mesh(
     let mut chain_meshes: Vec<IndexedMesh> = Vec::with_capacity(oriented_chains.len());
     for chain_segs in &oriented_chains {
         if chain_segs.len() == 1 {
-            let mesh = build_segment_mesh_with_policy(&chain_segs[0], config, false).map_err(|error| {
-                MeshError::ChannelError {
-                    message: format!("complex chain segment mesh failed: {error}"),
-                }
-            })?;
+            let mesh =
+                build_segment_mesh_with_policy(&chain_segs[0], config, false).map_err(|error| {
+                    MeshError::ChannelError {
+                        message: format!("complex chain segment mesh failed: {error}"),
+                    }
+                })?;
             chain_meshes.push(mesh);
         } else {
-            let mesh = build_polyline_mesh_with_policy(
-                chain_segs,
-                0.0,
-                config,
-                false,
-            )
-            .map_err(|error| MeshError::ChannelError {
-                message: format!(
-                    "complex chain polyline mesh failed for {} segments: {error}",
-                    chain_segs.len()
-                ),
-            })?;
+            let mesh = build_polyline_mesh_with_policy(chain_segs, 0.0, config, false).map_err(
+                |error| MeshError::ChannelError {
+                    message: format!(
+                        "complex chain polyline mesh failed for {} segments: {error}",
+                        chain_segs.len()
+                    ),
+                },
+            )?;
             chain_meshes.push(mesh);
         }
     }
@@ -1921,7 +1921,11 @@ mod tests {
         bp.add_node(NodeSpec::new_at("j1", NodeKind::Junction, (30.0, 42.735)));
         bp.add_node(NodeSpec::new_at("j2", NodeKind::Junction, (60.0, 42.735)));
         bp.add_node(NodeSpec::new_at("j3", NodeKind::Junction, (90.0, 42.735)));
-        bp.add_node(NodeSpec::new_at("outlet", NodeKind::Outlet, (120.0, 42.735)));
+        bp.add_node(NodeSpec::new_at(
+            "outlet",
+            NodeKind::Outlet,
+            (120.0, 42.735),
+        ));
         // 5 channels: creates a Complex topology (degree > 3 at some node)
         for i in 1..=5_usize {
             let from = if i == 1 { "inlet" } else { "j1" };

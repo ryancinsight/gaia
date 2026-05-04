@@ -15,7 +15,7 @@ use crate::domain::core::scalar::Real;
 
 /// Compute the exact p-th percentile (0.0 = min, 1.0 = max) from a slice of values.
 ///
-/// This avoids the histogram bin-midpoint approximation error by returning to the exact 
+/// This avoids the histogram bin-midpoint approximation error by returning to the exact
 /// domain array and explicitly sorting. Non-finite values (NaN, ±∞) are ignored.
 ///
 /// ## Complexity

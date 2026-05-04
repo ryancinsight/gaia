@@ -218,12 +218,9 @@ pub(crate) fn gwn_bounded_prepared(query: &Point3r, faces: &[PreparedFace]) -> f
     let mut solid_angle_sum = 0.0_f64;
     let max_omega = 2.0 * std::f64::consts::PI - GWN_SOLID_ANGLE_CLIP;
     for face in faces {
-        let va =
-            nalgebra::Vector3::new(face.a.x - query.x, face.a.y - query.y, face.a.z - query.z);
-        let vb =
-            nalgebra::Vector3::new(face.b.x - query.x, face.b.y - query.y, face.b.z - query.z);
-        let vc =
-            nalgebra::Vector3::new(face.c.x - query.x, face.c.y - query.y, face.c.z - query.z);
+        let va = nalgebra::Vector3::new(face.a.x - query.x, face.a.y - query.y, face.a.z - query.z);
+        let vb = nalgebra::Vector3::new(face.b.x - query.x, face.b.y - query.y, face.b.z - query.z);
+        let vc = nalgebra::Vector3::new(face.c.x - query.x, face.c.y - query.y, face.c.z - query.z);
 
         if va.norm_squared() < f64::MIN_POSITIVE
             || vb.norm_squared() < f64::MIN_POSITIVE
@@ -274,7 +271,7 @@ pub(crate) fn gwn_gradient_prepared(query: &Point3r, faces: &[PreparedFace]) -> 
         let la = va.norm();
         let lb = vb.norm();
         let lc = vc.norm();
-        
+
         // Numerator and Denominator
         let num = va.dot(&vb.cross(&vc));
         let den = la * lb * lc + va.dot(&vb) * lc + vb.dot(&vc) * la + vc.dot(&va) * lb;
@@ -337,13 +334,9 @@ pub(crate) fn gwn_gradient_prepared(query: &Point3r, faces: &[PreparedFace]) -> 
 /// Feng et al. (2024), *Winding Number Normal Consistency*, adapted for
 /// post-CSG normal validation using exact analytical solid angle gradients. ∎
 #[must_use]
-pub fn wnnc_score(
-    point: &Point3r,
-    normal: &Vector3r,
-    faces: &[PreparedFace],
-) -> f64 {
+pub fn wnnc_score(point: &Point3r, normal: &Vector3r, faces: &[PreparedFace]) -> f64 {
     let grad = gwn_gradient_prepared(point, faces);
-    
+
     let grad_norm_sq = grad.norm_squared();
     let normal_norm_sq = normal.norm_squared();
     if grad_norm_sq < 1e-60 || normal_norm_sq < 1e-60 {
@@ -475,7 +468,10 @@ mod tests {
             wn.is_finite(),
             "GWN on degenerate face must be finite, got {wn}"
         );
-        assert!((-1.0..=1.0).contains(&wn), "GWN must be in [-1,1], got {wn}");
+        assert!(
+            (-1.0..=1.0).contains(&wn),
+            "GWN must be in [-1,1], got {wn}"
+        );
     }
 
     /// GWN of far-exterior points is always ≈ 0 for a closed manifold.
