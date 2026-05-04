@@ -57,10 +57,7 @@ impl<I: std::hash::Hash + Eq + Copy> AttributeStore<I> {
     }
 
     /// Iterate over all `(element_id, value)` pairs in a channel.
-    pub fn iter_channel(
-        &self,
-        channel: &str,
-    ) -> Option<impl Iterator<Item = (I, f64)> + '_> {
+    pub fn iter_channel(&self, channel: &str) -> Option<impl Iterator<Item = (I, f64)> + '_> {
         self.channels
             .get(channel)
             .map(|entries| entries.iter().map(|(id, value)| (*id, *value)))
