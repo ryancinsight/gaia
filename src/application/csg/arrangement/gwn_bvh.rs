@@ -125,7 +125,7 @@ fn build_recursive(
     reordered: &mut Vec<PreparedFace>,
 ) -> u32 {
     let node_idx = nodes.len() as u32;
-    // Push placeholder; we'll fill it after we know children indices.
+    // Reserve the node slot, then patch its child range after partitioning.
     nodes.push(GwnBvhNode {
         center: [0.0; 3],
         circumradius_sq: 0.0,
