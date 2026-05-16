@@ -331,9 +331,7 @@ pub fn corefine_face(
                 let flip = va_id > vb_id;
                 for &(t_canon, vid) in steiners {
                     let t_local = if flip { 1.0 - t_canon } else { t_canon };
-                    if !edge_steiners[ei].iter().any(|&(_, v)| v == vid) {
-                        edge_steiners[ei].push((t_local, vid));
-                    }
+                    edge_steiners[ei].push((t_local, vid));
                 }
             }
         }
@@ -383,16 +381,12 @@ pub fn corefine_face(
                         // Fallback: insert and add (shouldn't happen
                         // if build_seam_vertex_map was complete).
                         let v = pool.insert_or_weld(p3d, face_n_unit);
-                        if !edge_steiners[ei].iter().any(|&(_, sv)| sv == v) {
-                            edge_steiners[ei].push((t, v));
-                        }
+                        edge_steiners[ei].push((t, v));
                         v
                     }
                 } else {
                     let v = pool.insert_or_weld(p3d, face_n_unit);
-                    if !edge_steiners[ei].iter().any(|&(_, sv)| sv == v) {
-                        edge_steiners[ei].push((t, v));
-                    }
+                    edge_steiners[ei].push((t, v));
                     v
                 };
                 seg_vids[si][ep] = Some(vid);
@@ -506,6 +500,13 @@ pub fn corefine_face(
         }
     }
 
+    // ── Dedup edge steiners before length checks ───────────────────────────────
+    // Deferring deduplication avoids O(N^2) linear scan overhead on highly refined edges.
+    for es in &mut edge_steiners {
+        es.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        es.dedup_by_key(|&mut (_, vid)| vid);
+    }
+
     // ── Step 3: Early exit ────────────────────────────────────────────────────
     if edge_steiners.iter().all(std::vec::Vec::is_empty) && interior_vids.is_empty() {
         return vec![*face];
@@ -536,9 +537,6 @@ pub fn corefine_face(
     }
 
     // ── Step 4: Build ordered boundary polygon ────────────────────────────────
-    for es in &mut edge_steiners {
-        es.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
-    }
     // Compute exact capacity: 3 corners + sum of Steiners per edge.
     let steiner_count: usize = edge_steiners.iter().map(|e| e.len()).sum();
     let mut boundary_vids: Vec<VertexId> = Vec::with_capacity(3 + steiner_count);
