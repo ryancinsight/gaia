@@ -820,7 +820,6 @@ dependencies = [
  "num-traits",
  "proptest",
  "rand 0.8.5",
- "rayon",
  "serde",
  "serde_json",
  "slotmap",

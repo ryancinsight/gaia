@@ -15,7 +15,6 @@ autoexamples = false
 [features]
 default = []
 millifluidic = []
-parallel = ["dep:rayon"]
 cfdrs-integration = ["dep:cfd-schematics"]
 
 stl-io = []
@@ -46,9 +45,6 @@ serde_json = "1.0"
 
 # Hashing
 hashbrown = "0.15"
-
-# Parallelism (optional)
-rayon = { version = "1.8", optional = true }
 
 # 3MF export (optional)
 zip = { version = "2.0", optional = true, default-features = false, features = ["deflate"] }
