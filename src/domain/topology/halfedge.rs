@@ -294,9 +294,7 @@ impl FaceData {
         Self {
             half_edge,
             patch: None,
-            // SAFETY: Vector3::z() = (0, 0, 1) has norm = 1.0 exactly;
-            // new_unchecked is correct and avoids a redundant sqrt.
-            normal: unsafe { UnitVector3::new_unchecked(Vector3::z()) },
+            normal: UnitVector3::new_unchecked(Vector3::z()),
         }
     }
 }
