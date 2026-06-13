@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::io::Write;
 
 use crate::domain::core::error::{MeshError, MeshResult};
-use crate::domain::core::scalar::Real;
 use crate::domain::mesh::{HalfEdgeMesh, IndexedMesh};
 use crate::infrastructure::permission::GhostToken;
 use crate::infrastructure::storage::face_store::FaceStore;

@@ -118,7 +118,7 @@ impl PatchType {
 /// - `name` is non-empty.
 /// - All faces assigned to this patch must be boundary faces (i.e. their
 ///   bounding half-edges have `face == None` on the exterior side).
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct BoundaryPatch {
     /// Human-readable name (e.g. `"inlet"`, `"wall_top"`).
     pub name: String,
@@ -283,12 +283,20 @@ impl FaceData {
     }
 
     /// Create face data with a unit-z normal; call `recompute_normal` after vertices are set.
+    ///
+    /// # Safety note
+    ///
+    /// `UnitVector3::new_unchecked` is used with `Vector3::z()` which is
+    /// guaranteed to be unit-length by construction (norm = 1.0 exactly in
+    /// IEEE 754). This avoids a redundant normalisation sqrt.
     #[must_use]
     pub fn with_half_edge(half_edge: HalfEdgeKey) -> Self {
         Self {
             half_edge,
             patch: None,
-            normal: UnitVector3::new_unchecked(Vector3::z()),
+            // SAFETY: Vector3::z() = (0, 0, 1) has norm = 1.0 exactly;
+            // new_unchecked is correct and avoids a redundant sqrt.
+            normal: unsafe { UnitVector3::new_unchecked(Vector3::z()) },
         }
     }
 }
@@ -319,5 +327,20 @@ mod tests {
         assert_eq!(v.position.x, 1.0);
         assert_eq!(v.position.y, 2.0);
         assert_eq!(v.position.z, 3.0);
+    }
+
+    #[test]
+    fn boundary_patch_equality_and_hash() {
+        let p1 = BoundaryPatch::new("wall", PatchType::Wall);
+        let p2 = BoundaryPatch::new("wall", PatchType::Wall);
+        let p3 = BoundaryPatch::new("wall", PatchType::Inlet);
+        assert_eq!(p1, p2);
+        assert_ne!(p1, p3);
+
+        // BoundaryPatch can be used as a HashMap key.
+        use std::collections::HashMap;
+        let mut map: HashMap<BoundaryPatch, usize> = HashMap::new();
+        map.insert(p1.clone(), 1);
+        assert_eq!(map[&p2], 1);
     }
 }

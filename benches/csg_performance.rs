@@ -11,6 +11,11 @@ use gaia::domain::geometry::primitives::{Cube, Cylinder, PrimitiveMesh, UvSphere
 use gaia::infrastructure::storage::face_store::FaceData;
 use gaia::infrastructure::storage::vertex_pool::VertexPool;
 
+#[cfg(feature = "mnemosyne-alloc")]
+#[global_allocator]
+static ALLOCATOR: mnemosyne::Mnemosyne = mnemosyne::Mnemosyne;
+
+
 fn unit_cube_faces() -> (VertexPool, Vec<FaceData>) {
     let mut pool = VertexPool::default_millifluidic();
     let n = nalgebra::Vector3::zeros();

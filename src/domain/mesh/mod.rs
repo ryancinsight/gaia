@@ -8,4 +8,9 @@
 
 #[allow(missing_docs)]
 pub mod indexed;
+#[allow(missing_docs)]
+pub mod halfedge;
+
 pub use indexed::{IndexedMesh, MeshBuilder};
+pub use halfedge::{HalfEdgeMesh, with_mesh};
+

@@ -8,23 +8,27 @@
 //! Each key is an 8-byte generational index; stale keys (after element
 //! deletion) return `None` rather than silently aliasing a new element.
 //!
-//! ```text
-//! SlotMap<VertexKey, GhostCell<'id, VertexData>>
-//!   ├── VertexKey(gen=1, idx=0)  →  { pos: (0,0,0) }
-//!   └── VertexKey(gen=2, idx=2)  →  { pos: (0,1,0) }   (slot recycled once)
-//! ```
-//!
 //! ## Legacy: u32 newtype indices (`*Id` types)
 //!
-//! Used by [`crate::infrastructure::storage::VertexPool`], [`crate::infrastructure::storage::FaceStore`], and
-//! [`crate::infrastructure::storage::EdgeStore`] — all of which are contiguous `Vec`-backed
-//! stores indexed by a plain `u32`.  These are the types used by
-//! [`crate::domain::mesh::IndexedMesh`].
+//! Used by [`crate::infrastructure::storage::VertexPool`],
+//! [`crate::infrastructure::storage::FaceStore`], and
+//! [`crate::infrastructure::storage::EdgeStore`] — all of which are contiguous
+//! `Vec`-backed stores indexed by a plain `u32`.
+//!
+//! All `*Id` types are `#[repr(transparent)]` over `u32`, guaranteeing that
+//! `bytemuck` transmutation and FFI use are sound.
 //!
 //! # Key Invariant
+//!
 //! `*Key` values are only valid within the `HalfEdgeMesh<'id>` that created
 //! them.  Mixing keys from different meshes is a logic error (returns `None`,
 //! never undefined behaviour).
+//!
+//! # Narrowing casts
+//!
+//! `from_usize` casts `usize → u32` with a saturating `as u32` — valid for
+//! meshes with < 4Gi elements.  When element counts may exceed `u32::MAX` use
+//! `TryFrom<usize>` which returns `Err` instead of wrapping.
 
 use slotmap::new_key_type;
 use std::fmt;
@@ -72,6 +76,7 @@ new_key_type! {
 /// A plain `u32` index into a contiguous vertex array.  Use [`VertexKey`] for
 /// the new [`crate::domain::mesh::HalfEdgeMesh`]-based API.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[repr(transparent)]
 pub struct VertexId(pub u32);
 
 impl VertexId {
@@ -116,6 +121,7 @@ impl fmt::Display for VertexId {
 
 /// Strongly-typed face index for [`crate::infrastructure::storage::FaceStore`].
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[repr(transparent)]
 pub struct FaceId(pub u32);
 
 impl FaceId {
@@ -151,6 +157,7 @@ impl fmt::Display for FaceId {
 /// Indexes the flattened edge list in `EdgeStore`; distinct from
 /// [`HalfEdgeKey`] which indexes the directed half-edges of `HalfEdgeMesh`.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct EdgeId(pub u32);
 
 impl EdgeId {
@@ -183,6 +190,7 @@ impl fmt::Display for EdgeId {
 
 /// Strongly-typed region index for [`crate::infrastructure::storage::FaceStore`].
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct RegionId(pub u32);
 
 impl RegionId {
@@ -221,11 +229,6 @@ impl fmt::Display for RegionId {
     }
 }
 
-// ── Legacy alias for HalfEdgeId ───────────────────────────────────────────────
-
-/// Legacy alias for directed half-edge within a half-edge mesh.
-/// In the new `HalfEdgeMesh` system this maps to [`HalfEdgeKey`].
-pub type HalfEdgeId = HalfEdgeKey;
 
 #[cfg(test)]
 mod tests {

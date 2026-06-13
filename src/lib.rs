@@ -134,11 +134,21 @@ pub mod application;
 pub mod domain;
 pub mod infrastructure;
 
+/// Unified error type for all gaia operations.
+pub use domain::core::error::{Error, ErrorContext, NurbsKind, Result};
+
 /// Canonical watertight-first indexed surface mesh.
 pub use domain::mesh::IndexedMesh;
 
 /// Ergonomic builder for `IndexedMesh`.
 pub use domain::mesh::MeshBuilder;
+
+/// Branded half-edge surface mesh.
+pub use domain::mesh::HalfEdgeMesh;
+
+/// Canonical entry point for branded mesh operations.
+pub use domain::mesh::with_mesh;
+
 
 // ── Convenience re-exports ────────────────────────────────────────────────────
 

@@ -7,6 +7,8 @@ pub mod error;
 pub mod index;
 pub mod scalar;
 
-pub use error::{MeshError, MeshResult};
-pub use index::{EdgeId, FaceId, HalfEdgeId, RegionId, VertexId};
+pub use error::{require, Error, ErrorContext, MeshError, MeshResult, NurbsKind, Result};
+pub use index::{
+    EdgeId, FaceId, FaceKey, HalfEdgeKey, PatchKey, RegionId, RegionKey, VertexId, VertexKey,
+};
 pub use scalar::{Real, Scalar};
