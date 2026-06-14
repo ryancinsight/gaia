@@ -38,8 +38,6 @@
 //! `face_vertex_alignment_mean` near 1.0 means stored vertex normals agree with
 //! computed face normals (good for smooth-shaded rendering and CFD post-processing).
 
-use std::collections::VecDeque;
-
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Real, Vector3r};
 use crate::domain::geometry::normal::triangle_normal;
@@ -136,7 +134,9 @@ impl NormalAnalysis {
 #[must_use]
 pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
     // ── Step 1: collect face normals and detect degenerates ──────────────────
-    let face_list: Vec<_> = mesh.faces.iter().collect();
+    // Access the face store as a contiguous slice — FaceData is Copy, avoiding
+    // an intermediate Vec<&FaceData> allocation.
+    let face_list = mesh.faces.as_slice();
     let n_faces = face_list.len();
 
     if n_faces == 0 {
@@ -151,7 +151,7 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
 
     // Per-face computed normals (None = degenerate).
     let mut face_normals: Vec<Option<Vector3r>> = Vec::with_capacity(n_faces);
-    for face in &face_list {
+    for face in face_list {
         let a = mesh.vertices.position(face.vertices[0]);
         let b = mesh.vertices.position(face.vertices[1]);
         let c = mesh.vertices.position(face.vertices[2]);
@@ -182,40 +182,51 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
     // None = unvisited.
     let mut orientation: Vec<Option<bool>> = vec![None; n_faces];
 
-    // Seed-selection helper: find the non-degenerate face with the vertex
-    // carrying the highest X coordinate.  Any consistent axis works; +X is
-    // canonical.  The outward normal of such a face MUST have nx > 0.
-    let find_seed = |orientation: &[Option<bool>]| -> Option<usize> {
+    // Cursor-based seed selection: advance monotonically through unvisited,
+    // non-degenerate faces so that total seed-search cost is O(F) across all
+    // connected components, not O(F × number-of-components).
+    //
+    // Within each component we still pick the extremal (+X) face as seed by
+    // scanning only the as-yet-unvisited range starting from `seed_cursor`.
+    let mut seed_cursor = 0usize;
+
+    // Outer loop handles disconnected patches (multiple connected components).
+    loop {
+        // Advance cursor to the next unvisited, non-degenerate face.
+        while seed_cursor < n_faces
+            && (orientation[seed_cursor].is_some() || face_normals[seed_cursor].is_none())
+        {
+            seed_cursor += 1;
+        }
+        if seed_cursor >= n_faces {
+            break;
+        }
+
+        // Among all unvisited non-degenerate faces find the one with the
+        // vertex carrying the highest X coordinate — the extremal seed for
+        // this component.  O(unvisited faces) per outer-loop iteration,
+        // O(F) total.
         let mut best_x = f64::NEG_INFINITY;
-        let mut best_fi: Option<usize> = None;
-        for (fi, face) in face_list.iter().enumerate() {
+        let mut seed_fi = seed_cursor;
+        for fi in seed_cursor..n_faces {
             if orientation[fi].is_some() || face_normals[fi].is_none() {
-                continue; // already visited or degenerate
+                continue;
             }
-            for &vid in &face.vertices {
+            for &vid in &face_list[fi].vertices {
                 let px = mesh.vertices.position(vid).x;
                 if px > best_x {
                     best_x = px;
-                    best_fi = Some(fi);
+                    seed_fi = fi;
                 }
             }
         }
-        best_fi
-    };
-
-    // Outer loop handles disconnected patches (multiple connected components).
-    #[allow(clippy::while_let_loop)]
-    loop {
-        let Some(seed_fi) = find_seed(&orientation) else {
-            break;
-        };
 
         // Orient seed: outward if face normal has positive X component.
-        let seed_normal = face_normals[seed_fi].unwrap(); // guaranteed non-None by find_seed
+        let seed_normal = face_normals[seed_fi].unwrap(); // guaranteed non-None
         let seed_is_outward = seed_normal.x >= 0.0;
         orientation[seed_fi] = Some(seed_is_outward);
 
-        let mut queue: VecDeque<usize> = VecDeque::new();
+        let mut queue: std::collections::VecDeque<usize> = std::collections::VecDeque::new();
         queue.push_back(seed_fi);
 
         while let Some(fi) = queue.pop_front() {

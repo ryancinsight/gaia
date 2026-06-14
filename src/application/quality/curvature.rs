@@ -40,9 +40,8 @@
 //!
 //! O(F) where F = face count; each face contributes 3 cotangent weights.
 
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Vector3r};
 use crate::domain::mesh::IndexedMesh;
-use nalgebra::Vector3;
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -61,7 +60,7 @@ pub fn vertex_mean_curvature(mesh: &IndexedMesh) -> Vec<Real> {
     }
 
     // Accumulate cotangent-weighted Laplacian vectors and barycentric areas.
-    let mut laplacian: Vec<Vector3<Real>> = vec![Vector3::zeros(); n];
+    let mut laplacian: Vec<Vector3r> = vec![Vector3r::zeros(); n];
     let mut area: Vec<Real> = vec![0.0; n];
 
     for face in mesh.faces.iter() {
@@ -74,9 +73,9 @@ pub fn vertex_mean_curvature(mesh: &IndexedMesh) -> Vec<Real> {
         let pb = mesh.vertices.position(face.vertices[1]);
         let pc = mesh.vertices.position(face.vertices[2]);
 
-        let va = Vector3::new(pa.x, pa.y, pa.z);
-        let vb = Vector3::new(pb.x, pb.y, pb.z);
-        let vc = Vector3::new(pc.x, pc.y, pc.z);
+        let va = pa.coords;
+        let vb = pb.coords;
+        let vc = pc.coords;
 
         // Cotangent at each vertex: cot(θ) = dot(e1, e2) / |e1 × e2|
         let cross_a = (vb - va).cross(&(vc - va));

@@ -125,12 +125,15 @@ pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
     }
 
     // Build face → (owner, optional neighbour) map.
-    let mut face_owner:    std::collections::HashMap<FaceId, CellId> = std::collections::HashMap::new();
-    let mut face_neighbour: std::collections::HashMap<FaceId, CellId> = std::collections::HashMap::new();
+    // hashbrown::HashMap is used for lower per-lookup overhead vs std HashMap.
+    let mut face_owner: hashbrown::HashMap<FaceId, CellId> =
+        hashbrown::HashMap::with_capacity(mesh.face_count());
+    let mut face_neighbour: hashbrown::HashMap<FaceId, CellId> =
+        hashbrown::HashMap::with_capacity(mesh.face_count() / 2);
 
     for (cell_id, cell) in mesh.cells_iter_enumerated() {
         for &fi in &cell.faces {
-            if let std::collections::hash_map::Entry::Vacant(e) = face_owner.entry(fi) {
+            if let hashbrown::hash_map::Entry::Vacant(e) = face_owner.entry(fi) {
                 e.insert(cell_id);
             } else {
                 face_neighbour.insert(fi, cell_id);
@@ -177,11 +180,12 @@ pub fn cell_centroid(cell_id: CellId, mesh: &IndexedMesh) -> Point3<Real> {
 
     let mut sum = nalgebra::Vector3::<Real>::zeros();
     let mut count = 0usize;
-    let mut seen: Vec<_> = Vec::new();
+    // hashbrown::HashSet gives O(1) amortised membership test vs O(n) Vec::contains.
+    let mut seen: hashbrown::HashSet<_> =
+        hashbrown::HashSet::with_capacity(cell.faces.len() * 3);
     for &fi in &cell.faces {
         for &vi in &mesh.faces.get(fi).vertices {
-            if !seen.contains(&vi) {
-                seen.push(vi);
+            if seen.insert(vi) {
                 sum += mesh.vertices.position(vi).coords;
                 count += 1;
             }

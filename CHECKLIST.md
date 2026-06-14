@@ -68,3 +68,8 @@
     - [x] Replace Gaia CSG fragment classification's parallel unsafe pointer offset with `map_collect_index`.
     - [x] Verify producer: `cargo fmt --check`, `cargo clippy -p moirai-parallel --all-targets -- -D warnings`, `cargo test -p moirai-parallel`, and warning-clean `cargo doc -p moirai-parallel --no-deps`.
     - [x] Verify consumer: `cargo fmt --check`, `cargo clippy --all-targets --features parallel -- -D warnings`, `cargo nextest run --features parallel`, warning-clean `cargo doc --no-deps --features parallel`, and `cargo bench --bench csg_performance --features parallel -- --warm-up-time 1 --measurement-time 2 --sample-size 10`.
+
+- [x] **Phase 10: CSG Fragment Classification Cleanup (Sprint 7)**
+    - [x] Consolidate sequential and Moirai-backed parallel fragment filtering behind one canonical helper.
+    - [x] Pre-size valid-fragment and kept-face buffers from exact upper bounds.
+    - [x] Verify with focused fragment-classification tests plus format, clippy, nextest, rustdoc, and short CSG benchmark gates.

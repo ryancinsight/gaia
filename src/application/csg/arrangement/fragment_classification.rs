@@ -20,6 +20,59 @@ fn fragment_component_roots(frags: &[FragRecord]) -> Vec<usize> {
     component_roots_by_source(frags, |frag| frag.face.vertices, |frag| frag.from_a)
 }
 
+struct CoplanarPlaneInfo {
+    a: Point3r,
+    b: Point3r,
+    c: Point3r,
+    valid_plane: bool,
+}
+
+struct ValidFrag {
+    frag_idx: usize,
+    p0: Point3r,
+    p1: Point3r,
+    p2: Point3r,
+    comp_root: usize,
+}
+
+fn valid_fragment(
+    frag_idx: usize,
+    frag: &FragRecord,
+    pool: &VertexPool,
+    coplanar_plane_infos: &[CoplanarPlaneInfo],
+    component_roots: &[usize],
+) -> Option<ValidFrag> {
+    let p0 = *pool.position(frag.face.vertices[0]);
+    let p1 = *pool.position(frag.face.vertices[1]);
+    let p2 = *pool.position(frag.face.vertices[2]);
+
+    for cp in coplanar_plane_infos {
+        if !cp.valid_plane {
+            continue;
+        }
+        if orient3d(&cp.a, &cp.b, &cp.c, &p0) == Sign::Zero
+            && orient3d(&cp.a, &cp.b, &cp.c, &p1) == Sign::Zero
+            && orient3d(&cp.a, &cp.b, &cp.c, &p2) == Sign::Zero
+        {
+            return None;
+        }
+    }
+
+    let tri = [p0, p1, p2];
+    let n = tri_normal(&tri);
+    if is_degenerate_sliver_with_normal(&tri, &n) {
+        return None;
+    }
+
+    Some(ValidFrag {
+        frag_idx,
+        p0,
+        p1,
+        p2,
+        comp_root: component_roots[frag_idx],
+    })
+}
+
 /// Classify co-refined fragments and return kept (optionally flipped) faces.
 pub(crate) fn classify_kept_fragments(
     op: BooleanOp,
@@ -30,12 +83,6 @@ pub(crate) fn classify_kept_fragments(
     coplanar_groups: &[(usize, FaceData)],
 ) -> Vec<FaceData> {
     // Pre-compute coplanar plane data for coplanar-fragment exclusion below.
-    struct CoplanarPlaneInfo {
-        a: Point3r,
-        b: Point3r,
-        c: Point3r,
-        valid_plane: bool,
-    }
     let coplanar_plane_infos: Vec<CoplanarPlaneInfo> = coplanar_groups
         .iter()
         .map(|(_, rep_face)| {
@@ -55,102 +102,40 @@ pub(crate) fn classify_kept_fragments(
     let prepared_a = prepare_classification_faces(faces_a, pool);
     let prepared_b = prepare_classification_faces(faces_b, pool);
 
-    struct ValidFrag {
-        frag_idx: usize,
-        p0: Point3r,
-        p1: Point3r,
-        p2: Point3r,
-        comp_root: usize,
-    }
-
     // Phase 1: Filter out sliver and coplanar fragments, performing lookups and checks exactly once.
     #[cfg(feature = "parallel")]
     let valid_frags: Vec<ValidFrag> = {
         use moirai::ParallelSlice;
-        frags
-            .par()
-            .map_collect_index(|frag_idx, frag| {
-                let p0 = *pool.position(frag.face.vertices[0]);
-                let p1 = *pool.position(frag.face.vertices[1]);
-                let p2 = *pool.position(frag.face.vertices[2]);
-
-                let mut on_any_coplanar_plane = false;
-                for cp in &coplanar_plane_infos {
-                    if !cp.valid_plane {
-                        continue;
-                    }
-                    if orient3d(&cp.a, &cp.b, &cp.c, &p0) == Sign::Zero
-                        && orient3d(&cp.a, &cp.b, &cp.c, &p1) == Sign::Zero
-                        && orient3d(&cp.a, &cp.b, &cp.c, &p2) == Sign::Zero
-                    {
-                        on_any_coplanar_plane = true;
-                        break;
-                    }
-                }
-                if on_any_coplanar_plane {
-                    return None;
-                }
-
-                let tri = [p0, p1, p2];
-                let n = tri_normal(&tri);
-                if is_degenerate_sliver_with_normal(&tri, &n) {
-                    return None;
-                }
-
-                Some(ValidFrag {
-                    frag_idx,
-                    p0,
-                    p1,
-                    p2,
-                    comp_root: component_roots[frag_idx],
-                })
-            })
-            .into_iter()
-            .flatten()
-            .collect()
+        let maybe_valid = frags.par().map_collect_index(|frag_idx, frag| {
+            valid_fragment(
+                frag_idx,
+                frag,
+                pool,
+                &coplanar_plane_infos,
+                &component_roots,
+            )
+        });
+        let mut valid = Vec::with_capacity(maybe_valid.len());
+        valid.extend(maybe_valid.into_iter().flatten());
+        valid
     };
 
     #[cfg(not(feature = "parallel"))]
-    let valid_frags: Vec<ValidFrag> = frags
-        .iter()
-        .enumerate()
-        .filter_map(|(frag_idx, frag)| {
-            let p0 = *pool.position(frag.face.vertices[0]);
-            let p1 = *pool.position(frag.face.vertices[1]);
-            let p2 = *pool.position(frag.face.vertices[2]);
-
-            let mut on_any_coplanar_plane = false;
-            for cp in &coplanar_plane_infos {
-                if !cp.valid_plane {
-                    continue;
-                }
-                if orient3d(&cp.a, &cp.b, &cp.c, &p0) == Sign::Zero
-                    && orient3d(&cp.a, &cp.b, &cp.c, &p1) == Sign::Zero
-                    && orient3d(&cp.a, &cp.b, &cp.c, &p2) == Sign::Zero
-                {
-                    on_any_coplanar_plane = true;
-                    break;
-                }
-            }
-            if on_any_coplanar_plane {
-                return None;
-            }
-
-            let tri = [p0, p1, p2];
-            let n = tri_normal(&tri);
-            if is_degenerate_sliver_with_normal(&tri, &n) {
-                return None;
-            }
-
-            Some(ValidFrag {
+    let valid_frags: Vec<ValidFrag> = {
+        let mut valid = Vec::with_capacity(frags.len());
+        for (frag_idx, frag) in frags.iter().enumerate() {
+            if let Some(vf) = valid_fragment(
                 frag_idx,
-                p0,
-                p1,
-                p2,
-                comp_root: component_roots[frag_idx],
-            })
-        })
-        .collect();
+                frag,
+                pool,
+                &coplanar_plane_infos,
+                &component_roots,
+            ) {
+                valid.push(vf);
+            }
+        }
+        valid
+    };
 
     // Phase 2: Choose one valid representative fragment for each unique connected component root.
     let mut representatives = vec![None; frags.len()];
@@ -189,7 +174,7 @@ pub(crate) fn classify_kept_fragments(
     }
 
     // Phase 4: Construct the final list of kept/flipped faces based on cached classifications.
-    let mut kept_faces = Vec::new();
+    let mut kept_faces = Vec::with_capacity(valid_frags.len());
     for vf in &valid_frags {
         let class_val = class_cache[vf.comp_root].unwrap_or(FragmentClass::Outside);
         let frag = &frags[vf.frag_idx];

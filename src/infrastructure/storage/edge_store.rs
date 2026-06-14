@@ -111,9 +111,12 @@ impl EdgeStore {
             self.edges[edge_id.as_usize()].faces.push(face);
         } else {
             let edge_id = EdgeId::from_usize(self.edges.len());
+            // Pre-allocate capacity 2: manifold edges have exactly 2 adjacent faces.
+            let mut faces = Vec::with_capacity(2);
+            faces.push(face);
             self.edges.push(EdgeData {
                 vertices: key,
-                faces: vec![face],
+                faces,
             });
             self.edge_map.insert(key, edge_id);
         }
