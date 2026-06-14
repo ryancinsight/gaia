@@ -34,9 +34,9 @@ use crate::domain::mesh::IndexedMesh;
 pub struct Pyramid {
     /// Centre of the base polygon.
     pub base_center: Point3r,
-    /// Circumradius of the base polygon [mm].
+    /// Circumradius of the base polygon (mm).
     pub base_radius: f64,
-    /// Pyramid height [mm].
+    /// Pyramid height (mm).
     pub height: f64,
     /// Number of sides of the base polygon (≥ 3).
     pub sides: usize,

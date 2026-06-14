@@ -5,7 +5,7 @@
 //! is considered **inside** iff
 //! `orient_3d(pa, pb, pc, P) ≥ 0` (i.e. `Positive` or `Degenerate`).
 //!
-//! Using exact [`orient_3d`] for the inside/outside decision means that no
+//! Using exact `orient_3d` for the inside/outside decision means that no
 //! false clipping occurs due to floating-point cancellation exactly at the
 //! boundary.  The intersection-point computation itself uses ordinary `f64`
 //! arithmetic, which is acceptable because position errors do not affect the
@@ -92,7 +92,7 @@ pub fn clip_polygon_to_halfplane(
         orient_3d(arr(pa), arr(pb), arr(pc), arr(p)) != Orientation::Negative
     };
 
-    // Plane-edge intersection parameter t ∈ [0,1] along S→E.
+    // Plane-edge intersection parameter t ∈ `[0,1]` along S→E.
     let clip_point = |s: &Point3r, e: &Point3r| -> Point3r {
         let ds = plane_normal.dot(&(s - pa));
         let de = plane_normal.dot(&(e - pa));

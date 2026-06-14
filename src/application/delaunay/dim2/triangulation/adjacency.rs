@@ -77,8 +77,8 @@ impl Adjacency {
     /// **Statement**: In a valid triangulation stored with per-triangle
     /// adjacency arrays, the adjacency relation is an involution:
     /// for every alive triangle $t$ and edge index $i$ where
-    /// $t.\text{adj}[i] \ne \text{GHOST}$, there exists a unique $j$
-    /// such that $t.\text{adj}[i].\text{adj}[j] = t$.
+    /// `$t.\text{adj}[i] \ne \text{GHOST}$`, there exists a unique `j`
+    /// such that `$t.\text{adj}[i].\text{adj}[j] = t$`.
     ///
     /// **Proof**: Each interior edge is shared by exactly 2 triangles
     /// in a simplicial complex. The `link()` operation always writes

@@ -28,7 +28,7 @@ use crate::domain::mesh::IndexedMesh;
 /// - `signed_volume ≈ 4π r³ / 3`  (error < 1% for segments ≥ 32)
 #[derive(Clone, Debug)]
 pub struct UvSphere {
-    /// Sphere radius [mm].
+    /// Sphere radius (mm).
     pub radius: f64,
     /// Centre position.
     pub center: Point3r,

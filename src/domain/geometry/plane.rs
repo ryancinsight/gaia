@@ -113,7 +113,7 @@ impl Plane {
             return None;
         }
         let t = da / denom;
-        // Clamp to [0,1] to avoid extrapolation from accumulated FP error
+        // Clamp to `[0,1]` to avoid extrapolation from accumulated FP error
         Some(t.max(0.0).min(1.0))
     }
 }

@@ -29,7 +29,7 @@ use crate::domain::mesh::IndexedMesh;
 /// - `signed_volume = (8/3) r³ > 0`
 #[derive(Clone, Debug)]
 pub struct Tetrahedron {
-    /// Circumsphere radius [mm].
+    /// Circumsphere radius (mm).
     pub radius: f64,
 }
 

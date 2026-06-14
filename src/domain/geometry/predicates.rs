@@ -1,7 +1,7 @@
 //! # Exact Geometric Predicates
 //!
 //! Thin wrappers around [Shewchuk's adaptive-precision arithmetic][shewchuk]
-//! as provided by the [`geometry-predicates`] crate.  All functions in this
+//! as provided by the `geometry-predicates` crate.  All functions in this
 //! module run in **exact arithmetic** — they never return a wrong sign due to
 //! floating-point rounding, even for nearly-degenerate configurations.
 //!

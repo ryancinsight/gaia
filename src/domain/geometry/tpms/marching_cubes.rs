@@ -368,7 +368,7 @@ pub const EDGES: [[usize; 2]; 12] = [
 
 /// Marching cubes extraction parameters.
 pub struct McParams {
-    /// Clip-sphere radius [mm].  Triangles whose centroid exceeds this are discarded.
+    /// Clip-sphere radius (mm).  Triangles whose centroid exceeds this are discarded.
     pub radius: f64,
     /// Marching grid voxels per axis (the domain is `[-radius, radius]³`).
     pub resolution: usize,

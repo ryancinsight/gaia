@@ -55,8 +55,7 @@
 //! ## Integration with `HalfEdgeMesh<'id>`
 //!
 //! [`SnappingGrid`] is **mesh-agnostic**: it stores positions and returns
-//! opaque `u32` indices.  The `HalfEdgeMesh`-aware entry point is
-//! [`SnappingGrid::insert_or_weld_he`], which maps indices to [`VertexKey`]s.
+//! opaque `u32` indices. Callers map those indices into their own mesh storage.
 
 use hashbrown::HashMap;
 

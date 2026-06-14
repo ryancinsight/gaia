@@ -42,7 +42,7 @@ use crate::domain::mesh::IndexedMesh;
 /// - Outward normals on lower lobe point downward (−Y component > 0 outward)
 #[derive(Clone, Debug)]
 pub struct BiconcaveDisk {
-    /// Disk diameter [mm]. Default ≈ 8 µm = 8e-3 mm for human RBC.
+    /// Disk diameter (mm). Default ≈ 8 µm = 8e-3 mm for human RBC.
     pub diameter: f64,
     /// Centre of the disk.
     pub center: Point3r,
@@ -132,7 +132,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
     let c1 = bd.c1;
     let c2 = bd.c2;
 
-    // Evans-Fung height at normalised radius rho in [0,1].
+    // Evans-Fung height at normalised radius rho in `[0,1]`.
     // Returns 0 at the rim (rho=1) by construction.
     let ef_height = |rho: f64| -> f64 {
         let rho2 = rho * rho;

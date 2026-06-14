@@ -29,7 +29,7 @@ use crate::domain::mesh::IndexedMesh;
 /// - `signed_volume = (5√2 / 3) · a³` where `a` = edge length
 #[derive(Clone, Debug)]
 pub struct Cuboctahedron {
-    /// Circumsphere radius [mm].
+    /// Circumsphere radius (mm).
     pub radius: f64,
     /// Centre position.
     pub center: Point3r,

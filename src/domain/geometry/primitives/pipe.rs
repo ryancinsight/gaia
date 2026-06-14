@@ -24,7 +24,7 @@ use crate::domain::mesh::IndexedMesh;
 /// ## Topology
 ///
 /// The bore creates a topological genus-1 handle, so `V − E + F = 0` (like
-/// [`Torus`]).  [`check_watertight`][crate::application::watertight::check::check_watertight]
+/// `Torus`).  [`check_watertight`][crate::application::watertight::check::check_watertight]
 /// reports `euler_characteristic = 0` and `is_watertight = true`.
 ///
 /// ## Uses
@@ -40,11 +40,11 @@ use crate::domain::mesh::IndexedMesh;
 pub struct Pipe {
     /// Base annulus centre (bottom face of pipe).
     pub base_center: Point3r,
-    /// Bore (inner) radius [mm].
+    /// Bore (inner) radius (mm).
     pub inner_radius: f64,
-    /// Outer wall radius [mm]. Must be > `inner_radius`.
+    /// Outer wall radius (mm). Must be > `inner_radius`.
     pub outer_radius: f64,
-    /// Height [mm] (extends along +Y from `base_center`).
+    /// Height (mm) (extends along +Y from `base_center`).
     pub height: f64,
     /// Number of angular subdivisions (≥ 3).
     pub segments: usize,

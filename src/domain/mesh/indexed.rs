@@ -410,7 +410,7 @@ impl<T: Scalar> IndexedMesh<T> {
     ///
     /// Uses a manifold BFS flood from the extremal face to determine globally
     /// consistent outward orientation, then flips any inward-facing face's
-    /// winding in-place (`v1 ↔ v2`). Finally calls [`recompute_normals`] to
+    /// winding in-place (`v1 ↔ v2`). Finally calls [`Self::recompute_normals`] to
     /// synchronise vertex normals with the repaired geometry.
     ///
     /// ## Theorem basis

@@ -18,7 +18,7 @@ use crate::domain::mesh::IndexedMesh;
 /// | Condition | Equivalent shape |
 /// |-----------|-----------------|
 /// | `top_radius == bottom_radius` | Cylinder |
-/// | `top_radius = 0` | Invalid — use [`Cone`] instead |
+/// | `top_radius = 0` | Invalid — use `Cone` instead |
 ///
 /// ## Lateral normal formula
 ///
@@ -39,11 +39,11 @@ use crate::domain::mesh::IndexedMesh;
 pub struct Frustum {
     /// Base circle centre.
     pub base_center: Point3r,
-    /// Bottom circle radius [mm] (at `y = base_center.y`).
+    /// Bottom circle radius (mm) (at `y = base_center.y`).
     pub bottom_radius: f64,
-    /// Top circle radius [mm] (at `y = base_center.y + height`). Must be > 0.
+    /// Top circle radius (mm) (at `y = base_center.y + height`). Must be > 0.
     pub top_radius: f64,
-    /// Height [mm] (extends along +Y from `base_center`).
+    /// Height (mm) (extends along +Y from `base_center`).
     pub height: f64,
     /// Number of angular subdivisions (≥ 3).
     pub segments: usize,

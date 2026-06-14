@@ -50,17 +50,17 @@
 //!
 //! | Module | Contents |
 //! |--------|---------|
-//! | [`mesh`] | `HalfEdgeMesh`, `IndexedMesh`, `MeshBuilder` |
-//! | [`topology`] | Half-edge structures, boundary patches, element types |
-//! | [`geometry`] | Exact predicates, AABB, plane, NURBS, builders |
-//! | [`welding`] | 26-neighbor `SnappingGrid`, `SpatialHashGrid`, `MeshWelder` |
-//! | [`storage`] | `VertexPool`, `FaceStore`, `EdgeStore`, `SlotPool` |
-//! | [`watertight`] | Manifold check, Euler characteristic, repair |
-//! | [`quality`] | Triangle quality metrics and validation reports |
-//! | [`permission`] | `GhostToken`, `GhostCell`, `PermissionedArena` |
+//! | `domain::mesh` | `HalfEdgeMesh`, `IndexedMesh`, `MeshBuilder` |
+//! | `domain::topology` | Half-edge structures, boundary patches, element types |
+//! | `domain::geometry` | Exact predicates, AABB, plane, NURBS, builders |
+//! | `application::welding` | 26-neighbor `SnappingGrid`, `SpatialHashGrid`, `MeshWelder` |
+//! | `infrastructure::storage` | `VertexPool`, `FaceStore`, `EdgeStore`, `SlotPool` |
+//! | `application::watertight` | Manifold check, Euler characteristic, repair |
+//! | `application::quality` | Triangle quality metrics and validation reports |
+//! | `infrastructure::permission` | `GhostToken`, `GhostCell`, `PermissionedArena` |
 //! | [`core`] | Scalar types, indices (`VertexKey`, `VertexId`, …), errors |
-//! | [`io`] | STL and VTK mesh I/O |
-//! | [`csg`] | BSP-tree + BVH boolean operations |
+//! | `infrastructure::io` | STL and VTK mesh I/O |
+//! | `application::csg` | BSP-tree + BVH boolean operations |
 //!
 //! ## Invariants
 //!

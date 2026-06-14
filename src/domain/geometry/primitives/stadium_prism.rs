@@ -47,11 +47,11 @@ use crate::domain::mesh::IndexedMesh;
 pub struct StadiumPrism {
     /// Centre of the base face.
     pub base_center: Point3r,
-    /// Total width of the stadium cross-section [mm] (= 2 · `corner_radius`).
+    /// Total width of the stadium cross-section (mm) (= 2 · `corner_radius`).
     pub width: f64,
-    /// Extrusion height along +Y [mm].
+    /// Extrusion height along +Y (mm).
     pub height: f64,
-    /// Radius of the semicircular ends [mm]. Must be ≤ width / 2.
+    /// Radius of the semicircular ends (mm). Must be ≤ width / 2.
     pub corner_radius: f64,
     /// Angular segments per *semicircle* end (≥ 1).
     pub corner_segments: usize,

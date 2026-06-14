@@ -15,10 +15,10 @@
 pub struct SbsWellPlate96;
 
 impl SbsWellPlate96 {
-    /// Block length along X [mm].  Channels route from `x = 0` to `x = WIDTH_MM`.
+    /// Block length along X (mm).  Channels route from `x = 0` to `x = WIDTH_MM`.
     pub const WIDTH_MM: f64 = 127.76;
 
-    /// Block width along Y [mm].  Channel centerline at `y = DEPTH_MM / 2`.
+    /// Block width along Y (mm).  Channel centerline at `y = DEPTH_MM / 2`.
     pub const DEPTH_MM: f64 = 85.47;
 
     /// Standard center Y for all channels: `DEPTH_MM / 2 = 42.735 mm`.

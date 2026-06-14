@@ -1,7 +1,7 @@
 //! Fragment classification for CSG mesh arrangement.
 //!
-//! This module composes the GWN computation ([`super::gwn`]) and tiebreaker
-//! predicates ([`super::tiebreaker`]) into the public classification API.
+//! This module composes the `gwn` computation and `tiebreaker` predicates into
+//! the public classification API.
 //!
 //! ## `classify_fragment` Decision Flow
 //!

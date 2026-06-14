@@ -26,11 +26,11 @@ use crate::domain::mesh::IndexedMesh;
 pub struct Cube {
     /// Corner closest to (−∞, −∞, −∞).
     pub origin: Point3r,
-    /// Extent along +X [mm].
+    /// Extent along +X (mm).
     pub width: f64,
-    /// Extent along +Y [mm].
+    /// Extent along +Y (mm).
     pub height: f64,
-    /// Extent along +Z [mm].
+    /// Extent along +Z (mm).
     pub depth: f64,
 }
 

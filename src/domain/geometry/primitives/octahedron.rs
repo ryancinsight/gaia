@@ -35,7 +35,7 @@ use crate::domain::mesh::IndexedMesh;
 /// - `signed_volume > 0` (outward CCW winding)
 #[derive(Clone, Debug)]
 pub struct Octahedron {
-    /// Circumsphere radius [mm].
+    /// Circumsphere radius (mm).
     pub radius: f64,
     /// Centre position.
     pub center: Point3r,

@@ -40,13 +40,13 @@ use crate::domain::mesh::IndexedMesh;
 pub struct RoundedCube {
     /// Corner of the bounding box (minimum x, y, z).
     pub origin: Point3r,
-    /// Extent along +X [mm].
+    /// Extent along +X (mm).
     pub width: f64,
-    /// Extent along +Y [mm].
+    /// Extent along +Y (mm).
     pub height: f64,
-    /// Extent along +Z [mm].
+    /// Extent along +Z (mm).
     pub depth: f64,
-    /// Fillet radius [mm]. Must be ≤ `min(w, h, d) / 2`.
+    /// Fillet radius (mm). Must be ≤ `min(w, h, d) / 2`.
     pub corner_radius: f64,
     /// Angular segments per quarter-turn of the fillets (≥ 1).
     pub corner_segments: usize,
@@ -312,7 +312,7 @@ fn build(rc: &RoundedCube) -> Result<IndexedMesh, PrimitiveError> {
                 let ccz = if sz > 0.0 { z1 } else { z0 };
 
                 // The octant spans φ from 0 (at axis +sx·X) to π/2 (at axis ±Y/±Z boundary).
-                // We parametrize: u ∈ [0,1] along X-arc, v ∈ [0,1] along YZ-arc.
+                // We parametrize: u ∈ `[0,1]` along X-arc, v ∈ `[0,1]` along YZ-arc.
                 // Point on octant: n = (sx·cos(u·π/2), sy·sin(u·π/2)·cos(v·π/2), sz·sin(u·π/2)·sin(v·π/2))
                 // but the triple (cos u, sin u cos v, sin u sin v) is a sphere octant in the +++ octant,
                 // remapped by (sx, sy, sz).

@@ -97,12 +97,12 @@ use crate::domain::mesh::IndexedMesh;
 /// in +X and reverses direction in Z.
 #[derive(Clone, Debug)]
 pub struct SerpentineTube {
-    /// Tube cross-section radius [mm].  Must be `< bend_radius`.
+    /// Tube cross-section radius (mm).  Must be `< bend_radius`.
     pub tube_radius: f64,
-    /// Centreline bend radius of each U-turn [mm].
+    /// Centreline bend radius of each U-turn (mm).
     /// The leg-to-leg centre pitch equals `2 · bend_radius`.
     pub bend_radius: f64,
-    /// Length of each straight leg [mm].
+    /// Length of each straight leg (mm).
     pub straight_length: f64,
     /// Number of straight legs (≥ 2).  `n_passes − 1` U-turn bends connect them.
     pub n_passes: usize,

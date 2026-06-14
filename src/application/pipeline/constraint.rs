@@ -5,11 +5,11 @@ use thiserror::Error;
 
 use super::well_plate::SbsWellPlate96;
 
-/// Required hydraulic diameter for inlet and outlet channels [m].
+/// Required hydraulic diameter for inlet and outlet channels (m).
 pub const REQUIRED_HYD_DIAM_M: f64 = 4.0e-3;
-/// Allowed tolerance around the required diameter [m].
+/// Allowed tolerance around the required diameter (m).
 pub const HYD_DIAM_TOLERANCE_M: f64 = 0.1e-3;
-/// Default wall clearance [mm].
+/// Default wall clearance (mm).
 pub const DEFAULT_WALL_CLEARANCE: f64 = 5.0;
 
 /// Error returned when a channel's hydraulic diameter does not meet the 4 mm spec.
@@ -97,19 +97,19 @@ impl InletOutletConstraint {
      {clearance:.1} mm wall clearance on plate {plate_w:.2} × {plate_d:.2} mm"
 )]
 pub struct WallClearanceViolation {
-    /// Start X of the violating segment [mm].
+    /// Start X of the violating segment (mm).
     pub x0: f64,
-    /// Start Y of the violating segment [mm].
+    /// Start Y of the violating segment (mm).
     pub y0: f64,
-    /// End X of the violating segment [mm].
+    /// End X of the violating segment (mm).
     pub x1: f64,
-    /// End Y of the violating segment [mm].
+    /// End Y of the violating segment (mm).
     pub y1: f64,
-    /// Required clearance [mm].
+    /// Required clearance (mm).
     pub clearance: f64,
-    /// Plate width [mm].
+    /// Plate width (mm).
     pub plate_w: f64,
-    /// Plate depth [mm].
+    /// Plate depth (mm).
     pub plate_d: f64,
 }
 

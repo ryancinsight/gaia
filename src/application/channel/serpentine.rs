@@ -17,11 +17,11 @@ use crate::domain::mesh::IndexedMesh;
 /// All length/geometry parameters are in metres.
 #[derive(Clone, Debug)]
 pub struct SerpentineMeshBuilder<T: Copy + RealField> {
-    /// Channel diameter (or hydraulic diameter) [m].
+    /// Channel diameter (or hydraulic diameter) (m).
     pub diameter: T,
-    /// Amplitude of the sinusoidal path [m].
+    /// Amplitude of the sinusoidal path (m).
     pub amplitude: T,
-    /// Wavelength (period) of the channel [m].
+    /// Wavelength (period) of the channel (m).
     pub wavelength: T,
     /// Number of full periods.
     pub num_periods: usize,

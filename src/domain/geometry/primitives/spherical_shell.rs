@@ -27,7 +27,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// The through-bore (the polar hole connecting outer and inner surfaces)
 /// creates a genus-1 handle, so `V − E + F = 0`  (χ = 0), identical to
-/// [`Torus`] and [`Pipe`].
+/// `Torus` and [`Pipe`].
 ///
 /// ## Output
 ///
@@ -39,9 +39,9 @@ use crate::domain::mesh::IndexedMesh;
 pub struct SphericalShell {
     /// Centre of the shell.
     pub center: Point3r,
-    /// Outer sphere radius [mm].
+    /// Outer sphere radius (mm).
     pub outer_radius: f64,
-    /// Inner sphere (cavity) radius [mm]. Must be < `outer_radius`.
+    /// Inner sphere (cavity) radius (mm). Must be < `outer_radius`.
     pub inner_radius: f64,
     /// Angular subdivisions around the equator (≥ 3).
     pub segments: usize,

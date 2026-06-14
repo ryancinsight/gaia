@@ -101,9 +101,9 @@ pub trait Tpms: Send + Sync {
 /// Build parameters for sphere-clipped TPMS primitives.
 #[derive(Clone, Debug)]
 pub struct TpmsParams {
-    /// Clip-sphere radius [mm].  The TPMS surface is extracted inside this sphere.
+    /// Clip-sphere radius (mm).  The TPMS surface is extracted inside this sphere.
     pub radius: f64,
-    /// TPMS unit-cell period [mm].  `k = 2π / period`.
+    /// TPMS unit-cell period (mm).  `k = 2π / period`.
     pub period: f64,
     /// Number of voxels per axis.  Higher values yield denser, more accurate meshes.
     pub resolution: usize,

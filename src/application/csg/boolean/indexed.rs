@@ -100,8 +100,8 @@ pub fn csg_boolean(
 ///
 /// ## Phase 3 — Postprocessing
 ///
-/// The selected faces are reconstructed into an [`IndexedMesh`] via
-/// [`postprocess_boolean_mesh`], which applies:
+/// The selected faces are reconstructed into an [`IndexedMesh`] by the
+/// postprocessing stage, which applies:
 ///
 /// - Normal recomputation from face geometry.
 /// - Orientation repair (BFS + `orient_outward`).

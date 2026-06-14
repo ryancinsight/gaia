@@ -33,9 +33,9 @@ use crate::domain::mesh::IndexedMesh;
 /// ```
 #[derive(Clone, Debug)]
 pub struct SchwarzDSphere {
-    /// Clip-sphere radius [mm].
+    /// Clip-sphere radius (mm).
     pub radius: f64,
-    /// D-surface unit-cell period [mm].
+    /// D-surface unit-cell period (mm).
     pub period: f64,
     /// Voxels per axis.
     pub resolution: usize,

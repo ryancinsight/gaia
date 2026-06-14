@@ -1,6 +1,6 @@
 //! `OpenFOAM` polyMesh writer.
 //!
-//! Converts an [`IndexedMesh`] or [`HalfEdgeMesh`] into an `OpenFOAM`
+//! Converts an [`IndexedMesh`] or [`crate::domain::mesh::HalfEdgeMesh`] into an `OpenFOAM`
 //! `constant/polyMesh` directory that can be used directly with
 //! `simpleFoam`, `icoFoam`, or `snappyHexMesh`.
 //!

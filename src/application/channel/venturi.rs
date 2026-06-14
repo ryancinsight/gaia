@@ -29,19 +29,19 @@ impl std::error::Error for BuildError {}
 #[derive(Clone, Debug)]
 pub struct VenturiMeshBuilder<T: Copy + RealField> {
     // --- geometry parameters ---
-    /// Inlet diameter [m].
+    /// Inlet diameter (m).
     pub d_inlet: T,
-    /// Throat diameter [m].
+    /// Throat diameter (m).
     pub d_throat: T,
-    /// Inlet section length [m].
+    /// Inlet section length (m).
     pub l_inlet: T,
-    /// Convergent section length [m].
+    /// Convergent section length (m).
     pub l_convergent: T,
-    /// Throat section length [m].
+    /// Throat section length (m).
     pub l_throat: T,
-    /// Divergent section length [m].
+    /// Divergent section length (m).
     pub l_divergent: T,
-    /// Outlet section length [m].
+    /// Outlet section length (m).
     pub l_outlet: T,
 
     // --- mesh resolution ---

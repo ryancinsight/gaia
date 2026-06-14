@@ -34,9 +34,9 @@ use crate::domain::mesh::IndexedMesh;
 /// ```
 #[derive(Clone, Debug)]
 pub struct FischerKochCySphere {
-    /// Clip-sphere radius [mm].
+    /// Clip-sphere radius (mm).
     pub radius: f64,
-    /// Unit-cell period [mm].
+    /// Unit-cell period (mm).
     pub period: f64,
     /// Voxels per axis.
     pub resolution: usize,

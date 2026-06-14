@@ -23,8 +23,8 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Uses
 ///
-/// - Base mesh for [`GeodesicSphere`] subdivision
-/// - More isotropic sphere approximation than [`UvSphere`] (no polar crowding)
+/// - Base mesh for `GeodesicSphere` subdivision
+/// - More isotropic sphere approximation than `UvSphere` (no polar crowding)
 /// - CSG robustness testing with 5-valent vertices
 ///
 /// ## Output
@@ -33,7 +33,7 @@ use crate::domain::mesh::IndexedMesh;
 /// - `signed_volume = (5(3+√5)/12) · a³`  where `a = 4R / √(10+2√5)`
 #[derive(Clone, Debug)]
 pub struct Icosahedron {
-    /// Circumsphere radius [mm].
+    /// Circumsphere radius (mm).
     pub radius: f64,
     /// Centre position.
     pub center: Point3r,

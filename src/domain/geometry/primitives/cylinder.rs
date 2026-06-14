@@ -23,14 +23,14 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// - `signed_volume ≈ π r² h` (error < 0.5% for segments ≥ 32)
 /// - All three parts carry `RegionId(1)`
-///   (use [`CylinderRegions`] variant for named wall/inlet/outlet regions)
+///   (use `CylinderRegions` variant for named wall/inlet/outlet regions)
 #[derive(Clone, Debug)]
 pub struct Cylinder {
     /// Base circle centre.
     pub base_center: Point3r,
-    /// Cylinder radius [mm].
+    /// Cylinder radius (mm).
     pub radius: f64,
-    /// Cylinder height [mm] (extends along +Y from `base_center`).
+    /// Cylinder height (mm) (extends along +Y from `base_center`).
     pub height: f64,
     /// Number of angular subdivisions (≥ 3).
     pub segments: usize,

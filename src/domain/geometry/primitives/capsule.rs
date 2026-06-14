@@ -34,9 +34,9 @@ use crate::domain::mesh::IndexedMesh;
 /// - All faces tagged `RegionId(1)`
 #[derive(Clone, Debug)]
 pub struct Capsule {
-    /// Hemisphere and cylinder radius [mm].
+    /// Hemisphere and cylinder radius (mm).
     pub radius: f64,
-    /// Length of the cylindrical midsection [mm]. May be 0 (sphere).
+    /// Length of the cylindrical midsection (mm). May be 0 (sphere).
     pub cylinder_height: f64,
     /// Centre of the capsule.
     pub center: Point3r,

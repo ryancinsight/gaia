@@ -43,9 +43,9 @@ pub struct PipelineConfig {
     pub bifurcation_half_angle_rad: f64,
     /// Half-angle (rad) between trifurcation outer daughter tubes. Default: π/4.
     pub trifurcation_half_angle_rad: f64,
-    /// Chip thickness — the Z dimension of the substrate [mm]. Default: 2.0.
+    /// Chip thickness — the Z dimension of the substrate (mm). Default: 2.0.
     pub chip_height_mm: f64,
-    /// Minimum clearance from block edges for channel segments [mm]. Default: 5.0.
+    /// Minimum clearance from block edges for channel segments (mm). Default: 5.0.
     pub wall_clearance_mm: f64,
     /// Whether to build the chip body mesh (substrate minus channel void). Default: true.
     pub include_chip_body: bool,
@@ -82,13 +82,13 @@ impl Default for PipelineConfig {
 /// comparing the pipeline's physical layout against the source blueprint.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct SegmentCenterline {
-    /// X start [mm]
+    /// X start (mm)
     pub x0: f64,
-    /// Y start [mm]
+    /// Y start (mm)
     pub y0: f64,
-    /// X end [mm]
+    /// X end (mm)
     pub x1: f64,
-    /// Y end [mm]
+    /// Y end (mm)
     pub y1: f64,
     /// Source blueprint channel identifier when this segment maps to one.
     pub source_channel_id: Option<String>,
@@ -98,7 +98,7 @@ pub struct SegmentCenterline {
     pub to_node_id: Option<String>,
     /// Whether this segment was synthesized as a routing connector rather than a direct blueprint channel mapping.
     pub is_synthetic_connector: bool,
-    /// Effective tube diameter [mm]
+    /// Effective tube diameter (mm)
     pub diameter_mm: f64,
 }
 
@@ -111,9 +111,9 @@ pub struct ChannelVolumeTrace {
     pub from_node_id: String,
     /// Downstream blueprint node identifier.
     pub to_node_id: String,
-    /// Schematic centerline length [mm].
+    /// Schematic centerline length (mm).
     pub schematic_centerline_length_mm: f64,
-    /// Meshed centerline length traced through synthesized layout segments [mm].
+    /// Meshed centerline length traced through synthesized layout segments (mm).
     pub meshed_centerline_length_mm: f64,
     /// True schematic cross-sectional area [mm^2].
     pub cross_section_area_mm2: f64,
@@ -1213,7 +1213,7 @@ fn build_venturi_chain_mesh(
 
     let n_seg = layout.len();
 
-    // Helper: extract numeric radius [mm] from cross-section spec.
+    // Helper: extract numeric radius (mm) from cross-section spec.
     fn segment_radius_mm(seg: &SegmentLayout) -> f64 {
         match seg.cross_section {
             cfd_schematics::CrossSectionSpec::Circular { diameter_m } => diameter_m / 2.0 * 1000.0,
@@ -1510,7 +1510,7 @@ fn cross_section_radius_mm(cs: &CrossSectionSpec) -> Real {
     }
 }
 
-/// Effective outer diameter [mm] of a cross-section.
+/// Effective outer diameter (mm) of a cross-section.
 ///
 /// Used for clearance calculations (e.g. row pitch and arm offsets) where a
 /// single linear measure of the tube size is needed.

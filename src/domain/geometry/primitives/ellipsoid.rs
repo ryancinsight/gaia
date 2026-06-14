@@ -28,7 +28,7 @@ use crate::domain::mesh::IndexedMesh;
 /// ```
 ///
 /// This differs from the position-vector normal when `a ≠ b ≠ c`, making
-/// the `Ellipsoid` non-interchangeable with a scaled [`UvSphere`].
+/// the `Ellipsoid` non-interchangeable with a scaled `UvSphere`.
 ///
 /// ## Output
 ///
@@ -43,11 +43,11 @@ use crate::domain::mesh::IndexedMesh;
 /// non-spherical SDT fibre inclusions.
 #[derive(Clone, Debug)]
 pub struct Ellipsoid {
-    /// Semi-axis along X [mm].
+    /// Semi-axis along X (mm).
     pub semi_x: f64,
-    /// Semi-axis along Y [mm].
+    /// Semi-axis along Y (mm).
     pub semi_y: f64,
-    /// Semi-axis along Z [mm].
+    /// Semi-axis along Z (mm).
     pub semi_z: f64,
     /// Centre position.
     pub center: Point3r,

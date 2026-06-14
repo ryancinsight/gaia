@@ -96,7 +96,7 @@ pub struct LinearSweep {
     /// from −Y.  The polygon is automatically closed (last vertex connects
     /// back to the first).
     pub profile: Vec<Point2>,
-    /// Extrusion length along +Y [mm].
+    /// Extrusion length along +Y (mm).
     pub height: f64,
 }
 

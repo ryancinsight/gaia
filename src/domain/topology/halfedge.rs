@@ -1,6 +1,6 @@
 //! # Half-Edge Topology Kernel
 //!
-//! The half-edge data structure is the topological backbone of [`crate::domain::mesh::Mesh`].
+//! The half-edge data structure is the topological backbone of `HalfEdgeMesh`.
 //! Every undirected edge in the mesh is represented as a pair of directed
 //! *half-edges*, one per adjacent face. This gives O(1) local traversal for
 //! all CFD stencil operations: face-to-face adjacency, vertex one-ring

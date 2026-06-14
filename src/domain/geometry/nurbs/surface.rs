@@ -2,7 +2,7 @@
 //!
 //! `BSplineSurface` is the non-rational case (all weights == 1).
 //! `NurbsSurface` is the rational case with per-control-point positive weights.
-//! Both are parameterised over a rectangular domain [u0,u1] x [v0,v1].
+//! Both are parameterised over a rectangular domain `[u0,u1]` x `[v0,v1]`.
 
 use super::basis::{eval_basis, eval_basis_and_deriv};
 use super::knot::KnotVector;

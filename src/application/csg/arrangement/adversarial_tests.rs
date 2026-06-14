@@ -1373,7 +1373,7 @@ mod tests {
     // These document known limitations and edge cases for coplanar face
     // configurations that are historically problematic in CSG engines.
 
-    /// Two cubes sharing an entire face (A at [0,1]³, B at [1,2]×[0,1]²).
+    /// Two cubes sharing an entire face (A at `[0,1]`³, B at [1,2]×`[0,1]`²).
     /// Difference A \ B should equal A (B is adjacent, not overlapping).
     ///
     /// # Theorem — Face-Adjacent Difference Invariant
@@ -1455,7 +1455,7 @@ mod tests {
         match csg_boolean_nary(BooleanOp::Union, &[a.clone(), b.clone(), c.clone()]) {
             Ok(result) => {
                 let vol = signed_volume(&result);
-                // 3 unit cubes with 0.5 offsets: bounding box = [0,1.5]×[0,1.5]×[0,1]
+                // 3 unit cubes with 0.5 offsets: bounding box = [0,1.5]×[0,1.5]×`[0,1]`
                 // Volume should be between 1.0 (single cube) and 3.0 (no overlap).
                 assert!(
                     vol > 0.9 && vol < 3.1,

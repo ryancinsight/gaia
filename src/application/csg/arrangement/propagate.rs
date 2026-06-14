@@ -672,7 +672,7 @@ mod tests {
     // ── inject_cap_seam_into_barrels tests ────────────────────────────────────
 
     /// Build a single barrel rim face: v0=(0,0,0), v1=(1,0,0) on plane z=0,
-    /// v2=(0.5,0,−1) off-plane.  Rim edge is [v0,v1] along X.
+    /// v2=(0.5,0,−1) off-plane.  Rim edge is `[v0,v1]` along X.
     fn single_rim_face(pool: &mut VertexPool) -> (Vec<FaceData>, Point3r, Vector3r) {
         let nz = Vector3r::new(0.0, 0.0, 1.0);
         let v0 = pool.insert_or_weld(Point3r::new(0.0, 0.0, 0.0), nz);

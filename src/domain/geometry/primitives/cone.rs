@@ -32,9 +32,9 @@ use crate::domain::mesh::IndexedMesh;
 pub struct Cone {
     /// Base circle centre.
     pub base_center: Point3r,
-    /// Base circle radius [mm].
+    /// Base circle radius (mm).
     pub radius: f64,
-    /// Height from base to apex [mm] (extends along +Y).
+    /// Height from base to apex (mm) (extends along +Y).
     pub height: f64,
     /// Number of angular subdivisions (≥ 3).
     pub segments: usize,

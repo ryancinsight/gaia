@@ -27,11 +27,11 @@ use cfd_schematics::geometry::types::{InterchangeShellCuboid, TpmsSurfaceKind};
 /// Configuration for the `ShellMeshPipeline`.
 #[derive(Debug, Clone)]
 pub struct ShellPipelineConfig {
-    /// Desired 3-D height of the fluid cavity (Z-axis) [mm].  Typical: 1–2 mm.
+    /// Desired 3-D height of the fluid cavity (Z-axis) (mm).  Typical: 1–2 mm.
     pub cavity_height_mm: f64,
-    /// Desired 3-D height of the physical chip body (Z-axis) [mm].  Must be > cavity_height.
+    /// Desired 3-D height of the physical chip body (Z-axis) (mm).  Must be > cavity_height.
     pub chip_height_mm: f64,
-    /// Z-coordinate for the mid-plane of the cavity [mm].
+    /// Z-coordinate for the mid-plane of the cavity (mm).
     pub z_mid_mm: f64,
 }
 

@@ -32,9 +32,9 @@ use crate::domain::mesh::IndexedMesh;
 pub struct Antiprism {
     /// Centre of the bottom polygon.
     pub base_center: Point3r,
-    /// Circumradius of both polygons [mm].
+    /// Circumradius of both polygons (mm).
     pub base_radius: f64,
-    /// Height of the antiprism [mm].
+    /// Height of the antiprism (mm).
     pub height: f64,
     /// Number of sides on each face (≥ 3).
     pub sides: usize,

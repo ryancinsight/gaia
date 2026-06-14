@@ -6,8 +6,8 @@
 //! ## Primary API
 //!
 //! - **[`SnappingGrid`]** — unified 26-neighbor grid for coordinate snapping
-//!   AND vertex deduplication in one structure.  Integrates with
-//!   `HalfEdgeMesh<'id>` via [`SnappingGrid::insert_or_weld_he`].
+//!   AND vertex deduplication in one structure.  The grid is mesh-agnostic and
+//!   returns stable welded indices for callers to map into their mesh storage.
 //!
 //! ## Additional API
 //!

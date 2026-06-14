@@ -210,7 +210,7 @@ impl<T: Scalar> VertexPool<T> {
     /// adjacent faces, preventing T-junction seam gaps in the CSG result.
     ///
     /// **Warning:** This uses absolute tolerances and is only correct for meshes
-    /// at millimetre-scale. For scale-invariant CSG, use [`for_csg_with_scale`].
+    /// at millimetre-scale. For scale-invariant CSG, use [`Self::for_csg_with_scale`].
     #[must_use]
     pub fn for_csg() -> Self {
         Self::with_tolerance(<T as Scalar>::from_f64(1e-4), <T as Scalar>::from_f64(1e-4))
@@ -221,7 +221,7 @@ impl<T: Scalar> VertexPool<T> {
     /// Tolerance is set to `characteristic_length * 1e-4`, providing four
     /// decades of separation between weld radius and mesh extent. This
     /// eliminates the scale-dependent vertex collapse that occurs with
-    /// the absolute tolerance in [`for_csg`], while remaining generous
+    /// the absolute tolerance in [`Self::for_csg`], while remaining generous
     /// enough to weld Steiner points with floating-point drift from
     /// triangle-triangle intersection near mesh corners.
     ///

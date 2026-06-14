@@ -23,7 +23,8 @@ impl<T: Scalar> Aabb<T> {
         Self { min, max }
     }
 
-    /// Create an inverted (empty) AABB — grows to contain the first [`expand`]ed point.
+    /// Create an inverted (empty) AABB; grows to contain the first point
+    /// passed to [`Self::expand`].
     #[must_use]
     pub fn empty() -> Self {
         Self {

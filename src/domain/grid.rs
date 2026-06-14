@@ -1,6 +1,6 @@
 //! Structured grid builder.
 //!
-//! Generates a regular Cartesian grid over the unit cube [0,1]³,
+//! Generates a regular Cartesian grid over the unit cube `[0,1]`³,
 //! subdivided into nx×ny×nz hexahedra (each decomposed to 5 tetrahedra).
 //!
 //! This module is a **volume/FEM tool** — it intentionally uses `Mesh<T>` for

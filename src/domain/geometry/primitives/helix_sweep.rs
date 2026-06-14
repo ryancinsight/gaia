@@ -45,11 +45,11 @@ use crate::domain::mesh::IndexedMesh;
 ///   `arc_length = turns·√((2πR)² + pitch²)` (Pappus theorem)
 #[derive(Clone, Debug)]
 pub struct HelixSweep {
-    /// Helix (coil) centreline radius [mm].
+    /// Helix (coil) centreline radius (mm).
     pub coil_radius: f64,
-    /// Tube cross-section radius [mm].
+    /// Tube cross-section radius (mm).
     pub tube_radius: f64,
-    /// Axial rise per full turn [mm].
+    /// Axial rise per full turn (mm).
     pub pitch: f64,
     /// Number of complete turns (> 0).
     pub turns: f64,

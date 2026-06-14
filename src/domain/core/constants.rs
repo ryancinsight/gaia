@@ -72,7 +72,7 @@ pub const DEFAULT_CHANNEL_RADIUS: Real = 0.5e-3 as Real;
 /// When both `|num|` and `|den|` are below this threshold the face contributes
 /// a near-zero solid angle and is skipped to avoid `atan2(0, 0) = NaN`.
 ///
-/// For `f32` meshes use [`GWN_DENOMINATOR_GUARD_F32`] instead; this constant
+/// For `f32` meshes use `GWN_DENOMINATOR_GUARD_F32` instead; this constant
 /// is only safe for `f64` arithmetic.
 pub const GWN_DENOMINATOR_GUARD: Real = 1e-30;
 
@@ -105,7 +105,7 @@ pub const GWN_OUTSIDE_THRESHOLD: Real = 0.35;
 ///
 /// # Theorem — Scale Invariance
 ///
-/// The signed distance `d = cp · n / ‖n‖` has unit [length].  The face
+/// The signed distance `d = cp · n / ‖n‖` has unit (length).  The face
 /// characteristic scale is `√(area) ≈ √(‖n‖/2)` where `n = ab × ac`.
 /// A fragment is coplanar when `|d| < TIEBREAK_SIGN_REL_TOL × √(area)`.
 ///

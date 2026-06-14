@@ -42,9 +42,9 @@ use crate::domain::mesh::IndexedMesh;
 /// ```
 #[derive(Clone, Debug)]
 pub struct Torus {
-    /// Distance from the centre of the tube to the centre of the torus [mm].
+    /// Distance from the centre of the tube to the centre of the torus (mm).
     pub major_radius: f64,
-    /// Radius of the tube cross-section [mm].
+    /// Radius of the tube cross-section (mm).
     pub minor_radius: f64,
     /// Number of divisions around the ring (≥ 3).
     pub major_segments: usize,

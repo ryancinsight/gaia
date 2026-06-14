@@ -31,7 +31,7 @@ use std::collections::HashMap;
 pub struct TpmsBoxParams {
     /// AABB bounds: `[x_min, y_min, z_min, x_max, y_max, z_max]` in mm.
     pub bounds: [f64; 6],
-    /// TPMS unit-cell period [mm].  `k = 2π / period`.
+    /// TPMS unit-cell period (mm).  `k = 2π / period`.
     pub period: f64,
     /// Voxels per axis.  Higher → denser, more accurate.
     pub resolution: usize,
@@ -293,7 +293,7 @@ fn validate_box_bounds(bounds: &[f64; 6], resolution: usize) -> Result<(), Primi
 ///
 /// This is the adaptive counterpart of [`build_tpms_box`].  Instead of a
 /// single global period, the caller provides a closure `period_fn(x, y, z)`
-/// that returns the local period [mm] at each world coordinate.
+/// that returns the local period (mm) at each world coordinate.
 ///
 /// This enables graded pore structures for size-based cell separation:
 /// fine period at the periphery (small pores → block RBCs) and coarse

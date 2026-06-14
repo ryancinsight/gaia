@@ -50,11 +50,11 @@ use crate::domain::mesh::IndexedMesh;
 /// - `signed_volume ≈ π r_tube² · R_bend · bend_angle` (Pappus theorem)
 #[derive(Clone, Debug)]
 pub struct Elbow {
-    /// Tube (cross-section) radius [mm].
+    /// Tube (cross-section) radius (mm).
     pub tube_radius: f64,
-    /// Bend centreline radius [mm]. Must be > `tube_radius`.
+    /// Bend centreline radius (mm). Must be > `tube_radius`.
     pub bend_radius: f64,
-    /// Total sweep angle [rad]. Must be in `(0, 2π]`.
+    /// Total sweep angle (rad). Must be in `(0, 2π]`.
     pub bend_angle: f64,
     /// Angular divisions around the tube cross-section (≥ 3).
     pub tube_segments: usize,

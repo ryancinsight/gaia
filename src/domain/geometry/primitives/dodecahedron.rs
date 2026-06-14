@@ -30,7 +30,7 @@ use crate::domain::mesh::IndexedMesh;
 /// - `signed_volume = (1/4)(15 + 7√5) a³` where `a` = edge length
 #[derive(Clone, Debug)]
 pub struct Dodecahedron {
-    /// Circumsphere radius [mm].
+    /// Circumsphere radius (mm).
     pub radius: f64,
     /// Centre position.
     pub center: Point3r,

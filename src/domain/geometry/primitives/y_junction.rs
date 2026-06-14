@@ -54,13 +54,13 @@ use super::{PrimitiveMesh, PrimitiveError};
 /// symmetric outlet branches.
 #[derive(Clone, Debug)]
 pub struct YJunction {
-    /// Cross-section (tube) radius [mm]. All three arms share this radius.
+    /// Cross-section (tube) radius (mm). All three arms share this radius.
     pub tube_radius: f64,
-    /// Length of the inlet arm [mm].
+    /// Length of the inlet arm (mm).
     pub inlet_length: f64,
-    /// Length of each outlet branch [mm].
+    /// Length of each outlet branch (mm).
     pub branch_length: f64,
-    /// Half-angle between +Y axis and each branch centreline [rad].
+    /// Half-angle between +Y axis and each branch centreline (rad).
     /// Must be in `(0, π/2)`.
     pub branch_half_angle: f64,
     /// Number of vertices around the tube cross-section (≥ 4, **even**).

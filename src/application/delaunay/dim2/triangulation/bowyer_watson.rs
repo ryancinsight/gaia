@@ -743,7 +743,7 @@ impl DelaunayTriangulation {
     /// # Invariant — Vertex-to-Triangle Validity
     ///
     /// **Statement**: After every insertion, for every inserted real vertex
-    /// $v_i$ with $i < n$, $\text{vert\_to\_tri}[i]$ refers to an alive
+    /// `$v_i$` with `$i < n$`, `$\text{vert\_to\_tri}[i]$` refers to an alive
     /// triangle whose vertex list contains $v_i$.
     ///
     /// **Proof**: Each of `insert_in_triangle`, `insert_on_edge`, and

@@ -33,9 +33,9 @@ use crate::domain::mesh::IndexedMesh;
 /// ```
 #[derive(Clone, Debug)]
 pub struct GyroidSphere {
-    /// Clip-sphere radius [mm].
+    /// Clip-sphere radius (mm).
     pub radius: f64,
-    /// Gyroid unit-cell period [mm].
+    /// Gyroid unit-cell period (mm).
     pub period: f64,
     /// Voxels per axis.
     pub resolution: usize,

@@ -23,7 +23,7 @@
 //! The safety bound `max_steps = 3 * T` is retained as a hard cap.
 //!
 //! For the hot path (per-vertex insertion), use
-//! [`DelaunayTriangulation::locate_point`] which amortises allocation via an
+//! `DelaunayTriangulation::locate_point` which amortises allocation via an
 //! epoch-stamped buffer.
 //!
 //! # Algorithm

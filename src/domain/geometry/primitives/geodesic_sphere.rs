@@ -36,7 +36,7 @@ use crate::domain::mesh::IndexedMesh;
 /// [`UvSphere`]: super::sphere::UvSphere
 #[derive(Clone, Debug)]
 pub struct GeodesicSphere {
-    /// Circumsphere radius [mm].
+    /// Circumsphere radius (mm).
     pub radius: f64,
     /// Centre position.
     pub center: Point3r,

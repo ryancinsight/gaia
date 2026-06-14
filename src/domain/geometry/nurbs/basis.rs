@@ -37,7 +37,7 @@ use crate::domain::core::scalar::Real;
 
 /// Evaluate the `p+1` non-zero B-spline basis functions at parameter `t`.
 ///
-/// Returns a fixed-size array — use [`eval_basis_alloc`] if `p` is not
+/// Returns a fixed-size array. Use `eval_basis_alloc` if `p` is not
 /// known at compile time.
 ///
 /// # Arguments

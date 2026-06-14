@@ -5,7 +5,7 @@
 //!
 //! ## Algorithm
 //!
-//! A flat-arena SAH-BVH ([`super::bvh::BvhTree`]) is built over the triangles
+//! A flat-arena SAH-BVH ([`crate::infrastructure::spatial::bvh::BvhTree`]) is built over the triangles
 //! of the smaller mesh. The larger mesh is queried against that BVH, yielding
 //! `O((n + m) log(min(n,m)))` total work — a significant improvement over the
 //! `O(n·m)` exhaustive approach for meshes with > ~100 triangles.
@@ -62,7 +62,7 @@ pub struct CandidatePair {
 
 /// Compute the axis-aligned bounding box of a triangle.
 ///
-/// The box is grown by [`AABB_EPSILON`] on each side to guard against
+/// The box is grown by `AABB_EPSILON` on each side to guard against
 /// floating-point rounding when comparing AABBs of nearly-touching triangles.
 #[must_use]
 pub fn triangle_aabb(face: &FaceData, pool: &VertexPool) -> Aabb {
