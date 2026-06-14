@@ -65,6 +65,7 @@ pub struct CandidatePair {
 /// The box is grown by `AABB_EPSILON` on each side to guard against
 /// floating-point rounding when comparing AABBs of nearly-touching triangles.
 #[must_use]
+#[inline]
 pub fn triangle_aabb(face: &FaceData, pool: &VertexPool) -> Aabb {
     let a = *pool.position(face.vertices[0]);
     let b = *pool.position(face.vertices[1]);

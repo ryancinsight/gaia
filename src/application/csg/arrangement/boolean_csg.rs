@@ -6,7 +6,6 @@ pub use crate::application::csg::arrangement::multi_mesh_resolution::BooleanFrag
 use crate::application::csg::arrangement::propagate::propagate_seam_vertices_until_stable;
 use crate::application::csg::arrangement::result_finalization::finalize_boolean_faces;
 use crate::application::csg::boolean::containment::{containment, Containment};
-use crate::application::csg::broad_phase::triangle_aabb;
 use crate::application::csg::corefine::build_seam_vertex_map;
 use crate::application::csg::intersect::{intersect_triangles, IntersectionType, SnapSegment};
 use crate::domain::core::error::{MeshError, MeshResult};
@@ -245,14 +244,26 @@ fn execute_arrangement_pass(
 ) -> MeshResult<Vec<FaceData>> {
     let n_meshes = meshes.len();
 
-    // ── Pre-compute global Mesh AABBs ──────────────────────────────────────────────
+    // ── Pre-compute global Mesh AABBs and face AABBs in a single pass ─────────────
     let mut mesh_aabbs: Vec<Aabb> = Vec::with_capacity(n_meshes);
+    let mut aabbs: Vec<Vec<Aabb>> = Vec::with_capacity(n_meshes);
     for m in meshes {
         let mut bb = Aabb::empty();
+        let mut face_aabbs = Vec::with_capacity(m.len());
         for f in m {
-            bb.expand(pool.position(f.vertices[0]));
-            bb.expand(pool.position(f.vertices[1]));
-            bb.expand(pool.position(f.vertices[2]));
+            let a = pool.position(f.vertices[0]);
+            let b = pool.position(f.vertices[1]);
+            let c = pool.position(f.vertices[2]);
+
+            bb.expand(a);
+            bb.expand(b);
+            bb.expand(c);
+
+            let mut aabb = Aabb::empty();
+            aabb.expand(a);
+            aabb.expand(b);
+            aabb.expand(c);
+            face_aabbs.push(aabb);
         }
         // Expand AABB relative to its diagonal to defeat floating-point
         // precision misses on snapped vertices.  Scale-correct: see
@@ -262,12 +273,7 @@ fn execute_arrangement_pass(
         bb.min -= crate::domain::core::scalar::Vector3r::new(eps, eps, eps);
         bb.max += crate::domain::core::scalar::Vector3r::new(eps, eps, eps);
         mesh_aabbs.push(bb);
-    }
-
-    // ── Phase 1: generalized Boolean broad phase ─────────────────────────────────────────
-    let mut aabbs: Vec<Vec<Aabb>> = Vec::with_capacity(n_meshes);
-    for m in meshes {
-        aabbs.push(m.iter().map(|f| triangle_aabb(f, pool)).collect());
+        aabbs.push(face_aabbs);
     }
 
     let mut pairs = Vec::new();
