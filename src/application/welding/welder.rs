@@ -2,7 +2,7 @@
 //!
 //! Merges coincident vertices while strictly preserving 2-manifold properties.
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 
 use crate::application::welding::spatial_hash::SpatialHashGrid;
 use crate::domain::core::index::VertexId;
@@ -59,11 +59,15 @@ impl MeshWelder {
             };
         }
 
-        // 1. Build initial vertex-to-face adjacency: HashSet for O(1) membership.
-        let mut v_faces: Vec<HashSet<u32>> = vec![HashSet::new(); n];
+        // 1. Build initial vertex-to-face adjacency.
+        //
+        // Mesh vertex valence is normally small, so Vec-backed adjacency avoids
+        // one hash table per active vertex while keeping membership checks over
+        // cache-local face ids.
+        let mut v_faces: Vec<Vec<u32>> = vec![Vec::new(); n];
         for (f_id, face) in face_store.iter_enumerated() {
             for v in face.vertices {
-                v_faces[v.raw() as usize].insert(f_id.0);
+                push_unique_face(&mut v_faces[v.raw() as usize], f_id.0);
             }
         }
 
@@ -141,8 +145,7 @@ impl MeshWelder {
                                 }
                             }
                         }
-                        // O(1) insert — HashSet prevents duplicates automatically.
-                        v_faces[i as usize].insert(f_id);
+                        push_unique_face(&mut v_faces[i as usize], f_id);
                     }
                 }
             }
@@ -190,14 +193,15 @@ impl MeshWelder {
         &self,
         dst: u32,
         src: u32,
-        dst_faces: &HashSet<u32>,
-        src_faces: &HashSet<u32>,
+        dst_faces: &[u32],
+        src_faces: &[u32],
         cur_face_verts: &HashMap<u32, [u32; 3]>,
     ) -> bool {
         // Condition 1: Shared Face Check (Degenerate Prevention)
-        // O(min(|dst|, |src|)) with HashSet intersection.
-        for f_id in src_faces {
-            if dst_faces.contains(f_id) {
+        // O(|dst| * |src|), but valence is small and Vec adjacency avoids a
+        // per-vertex hash table allocation.
+        for &f_id in src_faces {
+            if dst_faces.contains(&f_id) {
                 return false;
             }
         }
@@ -235,6 +239,13 @@ impl MeshWelder {
         }
 
         true
+    }
+}
+
+#[inline]
+fn push_unique_face(faces: &mut Vec<u32>, face_id: u32) {
+    if !faces.contains(&face_id) {
+        faces.push(face_id);
     }
 }
 
