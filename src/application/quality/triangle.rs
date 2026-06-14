@@ -17,28 +17,39 @@ use crate::domain::core::scalar::{Point3r, Real};
 /// Returns `[angle_at_a, angle_at_b, angle_at_c]`.
 ///
 /// Uses clamped `acos` to guard against floating-point values outside `[-1, 1]`
-/// produced by near-degenerate triangles.
+/// produced by roundoff. Degenerate triangles return `[NaN; 3]` because at
+/// least one angle is undefined.
 ///
 /// # Theorem — Interior Angle Sum
 ///
 /// For a non-degenerate Euclidean triangle, the three interior angles sum to
-/// exactly π radians.  The clamped-dot / `acos` computation satisfies this
-/// theorem to floating-point precision because the three edge unit-vectors
-/// satisfy `ab + bc + ca = 0` by construction.
+/// exactly π radians.  The implementation derives all three angles from the
+/// same three edge vectors, so the computed values share one geometric source
+/// of truth; tests assert the π-sum and equilateral angle contracts within a
+/// bounded floating-point tolerance.
 #[inline]
 pub(crate) fn triangle_angles(a: &Point3r, b: &Point3r, c: &Point3r) -> [Real; 3] {
-    // Unit-vectors along each directed edge from each vertex.
-    let ab = (b - a).normalize();
-    let ac = (c - a).normalize();
-    let ba = (a - b).normalize();
-    let bc = (c - b).normalize();
-    let ca = (a - c).normalize();
-    let cb = (b - c).normalize();
+    let ab = b - a;
+    let ac = c - a;
+    let bc = c - b;
+
+    let lab = ab.norm();
+    let lac = ac.norm();
+    let lbc = bc.norm();
+
+    if lab <= Real::EPSILON || lac <= Real::EPSILON || lbc <= Real::EPSILON {
+        return [Real::NAN; 3];
+    }
+
+    #[inline]
+    fn angle(dot: Real, lhs_len: Real, rhs_len: Real) -> Real {
+        (dot / (lhs_len * rhs_len)).clamp(-1.0, 1.0).acos()
+    }
 
     [
-        ab.dot(&ac).clamp(-1.0, 1.0).acos(), // angle at A
-        ba.dot(&bc).clamp(-1.0, 1.0).acos(), // angle at B
-        ca.dot(&cb).clamp(-1.0, 1.0).acos(), // angle at C
+        angle(ab.dot(&ac), lab, lac),       // angle at A
+        angle((-ab).dot(&bc), lab, lbc),    // angle at B
+        angle((-ac).dot(&(-bc)), lac, lbc), // angle at C
     ]
 }
 
@@ -87,7 +98,7 @@ pub fn max_angle(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
 ///
 /// Range: 0 (equilateral) → 1 (degenerate).
 ///
-/// Computed from a **single** call to [`triangle_angles`] — min and max are
+/// Computed from a single `triangle_angles` call — min and max are
 /// both extracted from the same `[Real; 3]` array, avoiding the prior 2×
 /// angle computation overhead.
 #[inline]
@@ -134,7 +145,11 @@ mod tests {
         (
             Point3r::new(0.0, 0.0, 0.0),
             Point3r::new(1.0, 0.0, 0.0),
-            Point3r::new(0.5, s * 0.5 * std::f64::consts::FRAC_1_SQRT_2 * 2.0_f64.sqrt(), 0.0),
+            Point3r::new(
+                0.5,
+                s * 0.5 * std::f64::consts::FRAC_1_SQRT_2 * 2.0_f64.sqrt(),
+                0.0,
+            ),
         )
     }
 
@@ -215,5 +230,16 @@ mod tests {
         let b = Point3r::new(1.0, 0.0, 0.0);
         let c = Point3r::new(2.0, 0.0, 0.0); // collinear
         assert!(aspect_ratio(&a, &b, &c).is_infinite());
+    }
+
+    /// Degenerate angle geometry returns NaN because collinear duplicate points
+    /// do not define all three interior angles.
+    #[test]
+    fn degenerate_triangle_angles_are_nan() {
+        let a = Point3r::new(0.0, 0.0, 0.0);
+        let b = Point3r::new(0.0, 0.0, 0.0);
+        let c = Point3r::new(1.0, 0.0, 0.0);
+        let angles = triangle_angles(&a, &b, &c);
+        assert!(angles.iter().all(|angle| angle.is_nan()));
     }
 }

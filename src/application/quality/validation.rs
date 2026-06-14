@@ -114,8 +114,7 @@ impl MeshValidator {
             let ideal = constants::PI / 3.0;
             let max_a = angles.iter().copied().fold(Real::NEG_INFINITY, Real::max);
             let ma = angles.iter().copied().fold(Real::INFINITY, Real::min);
-            let sk = ((max_a - ideal) / (constants::PI - ideal))
-                .max((ideal - ma) / ideal);
+            let sk = ((max_a - ideal) / (constants::PI - ideal)).max((ideal - ma) / ideal);
 
             aspect_ratios.push(ar);
             min_angles.push(ma);

@@ -73,3 +73,9 @@
     - [x] Consolidate sequential and Moirai-backed parallel fragment filtering behind one canonical helper.
     - [x] Pre-size valid-fragment and kept-face buffers from exact upper bounds.
     - [x] Verify with focused fragment-classification tests plus format, clippy, nextest, rustdoc, and short CSG benchmark gates.
+
+- [x] **Phase 11: Quality Metric Angle SSOT (Sprint 8)**
+    - [x] Review local quality/welding optimization commit before push; no content diff remains unstaged.
+    - [x] Tighten `triangle_angles` to derive all angles from three edge vectors and three norms instead of six normalized directed edges.
+    - [x] Document degenerate angle behavior and add a value-semantic NaN regression test.
+    - [x] Restore `MeshWelder` vertex adjacency to Vec-backed low-valence storage with a single push-unique helper to avoid per-vertex hash table allocation.
