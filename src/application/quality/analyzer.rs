@@ -14,7 +14,6 @@ use crate::application::quality::histograms::Histogram;
 use crate::application::quality::report::FullQualityReport;
 use crate::application::quality::triangle;
 use crate::application::quality::validation::{MeshValidator, QualityThresholds};
-use crate::domain::core::scalar::Point3r;
 use crate::domain::mesh::IndexedMesh;
 
 // ── Trait ─────────────────────────────────────────────────────────────────────
@@ -57,15 +56,12 @@ impl QualityAnalyzer for StandardQualityAnalyzer {
         let mut bad_aspect_count = 0usize;
 
         for face in mesh.faces.iter() {
-            let pa = mesh.vertices.position(face.vertices[0]);
-            let pb = mesh.vertices.position(face.vertices[1]);
-            let pc = mesh.vertices.position(face.vertices[2]);
-            let a = Point3r::new(pa.x, pa.y, pa.z);
-            let b = Point3r::new(pb.x, pb.y, pb.z);
-            let c = Point3r::new(pc.x, pc.y, pc.z);
+            let a = mesh.vertices.position(face.vertices[0]);
+            let b = mesh.vertices.position(face.vertices[1]);
+            let c = mesh.vertices.position(face.vertices[2]);
 
-            let ar = triangle::aspect_ratio(&a, &b, &c);
-            let ma = triangle::min_angle(&a, &b, &c);
+            let ar = triangle::aspect_ratio(a, b, c);
+            let ma = triangle::min_angle(a, b, c);
             let el_ab = (b - a).norm();
             let el_bc = (c - b).norm();
             let el_ca = (a - c).norm();
