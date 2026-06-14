@@ -12,6 +12,7 @@ use crate::infrastructure::storage::face_store::FaceStore;
 ///
 /// For each manifold edge shared by two faces, the edge should appear as
 /// `(a, b)` in one face and `(b, a)` in the other.
+#[inline]
 pub fn check_orientation(face_store: &FaceStore, edge_store: &EdgeStore) -> MeshResult<()> {
     for edge in edge_store.iter() {
         if edge.faces.len() != 2 {
@@ -40,6 +41,7 @@ pub fn check_orientation(face_store: &FaceStore, edge_store: &EdgeStore) -> Mesh
 }
 
 /// Determine if edge `(a, b)` appears as `a→b` (true) or `b→a` (false) in the face.
+#[inline]
 fn directed_edge_order(
     verts: [crate::domain::core::index::VertexId; 3],
     a: crate::domain::core::index::VertexId,

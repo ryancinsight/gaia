@@ -218,6 +218,41 @@ impl SnappingGrid {
         self.positions.get(idx as usize).copied()
     }
 
+    // ── Private helpers ───────────────────────────────────────────────────
+
+    /// Search all 27 cells around `home` for the nearest vertex within `eps_sq`.
+    ///
+    /// Returns `Some((index, dist_sq))` for the closest vertex within `ε²`, or
+    /// `None` if no vertex qualifies.
+    ///
+    /// Extracted from `insert_or_weld` and `query_nearest` to satisfy SSOT:
+    /// both previously contained an identical loop body.
+    #[inline]
+    fn find_nearest_in_27(
+        buckets: &HashMap<GridCell, Vec<u32>>,
+        positions: &[Point3r],
+        home: GridCell,
+        query: &Point3r,
+        eps_sq: Real,
+    ) -> Option<(u32, Real)> {
+        let mut best: Option<(u32, Real)> = None;
+        for cell in home.neighborhood_27() {
+            if let Some(indices) = buckets.get(&cell) {
+                for &idx in indices {
+                    let dist_sq = (positions[idx as usize] - query).norm_squared();
+                    if dist_sq <= eps_sq {
+                        match best {
+                            None => best = Some((idx, dist_sq)),
+                            Some((_, d)) if dist_sq < d => best = Some((idx, dist_sq)),
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        best
+    }
+
     // ── Core operation ────────────────────────────────────────────────────
 
     /// Insert `point` into the grid, or weld it to an existing vertex.
@@ -232,28 +267,14 @@ impl SnappingGrid {
     /// # Returns
     /// A `(index, is_new)` pair.  `is_new` is `true` when a fresh vertex was
     /// added, `false` when an existing vertex was reused.
+    #[inline]
     pub fn insert_or_weld(&mut self, point: Point3r) -> (u32, bool) {
         let home = GridCell::from_point_round(&point, self.inv_eps);
         let eps_sq = self.eps * self.eps;
 
-        // Search all 27 cells for the nearest existing vertex
-        let mut best: Option<(u32, Real)> = None;
-        for cell in home.neighborhood_27() {
-            if let Some(indices) = self.buckets.get(&cell) {
-                for &idx in indices {
-                    let dist_sq = (self.positions[idx as usize] - point).norm_squared();
-                    if dist_sq <= eps_sq {
-                        match best {
-                            None => best = Some((idx, dist_sq)),
-                            Some((_, d)) if dist_sq < d => best = Some((idx, dist_sq)),
-                            _ => {}
-                        }
-                    }
-                }
-            }
-        }
-
-        if let Some((idx, _)) = best {
+        if let Some((idx, _)) =
+            Self::find_nearest_in_27(&self.buckets, &self.positions, home, &point, eps_sq)
+        {
             return (idx, false);
         }
 
@@ -271,28 +292,13 @@ impl SnappingGrid {
     /// Query the nearest vertex within ε of `point` without inserting.
     ///
     /// Returns `None` if no vertex is within ε.
+    #[inline]
     #[must_use]
     pub fn query_nearest(&self, point: &Point3r) -> Option<u32> {
         let home = GridCell::from_point_round(point, self.inv_eps);
         let eps_sq = self.eps * self.eps;
-        let mut best: Option<(u32, Real)> = None;
-
-        for cell in home.neighborhood_27() {
-            if let Some(indices) = self.buckets.get(&cell) {
-                for &idx in indices {
-                    let dist_sq = (self.positions[idx as usize] - point).norm_squared();
-                    if dist_sq <= eps_sq {
-                        match best {
-                            None => best = Some((idx, dist_sq)),
-                            Some((_, d)) if dist_sq < d => best = Some((idx, dist_sq)),
-                            _ => {}
-                        }
-                    }
-                }
-            }
-        }
-
-        best.map(|(idx, _)| idx)
+        Self::find_nearest_in_27(&self.buckets, &self.positions, home, point, eps_sq)
+            .map(|(idx, _)| idx)
     }
 
     /// Query all vertices within ε of `point` without inserting.

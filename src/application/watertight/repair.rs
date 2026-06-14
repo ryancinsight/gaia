@@ -15,6 +15,7 @@ impl MeshRepair {
     /// Fix inconsistent winding orientations.
     ///
     /// Returns the number of faces flipped.
+    #[inline]
     pub fn fix_orientations(face_store: &mut FaceStore, edge_store: &EdgeStore) -> usize {
         orientation::fix_orientation(face_store, edge_store)
     }

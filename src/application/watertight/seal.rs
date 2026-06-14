@@ -24,7 +24,6 @@ pub fn seal_boundary_loops(
     }
 
     // Collect boundary edges as directed pairs
-    // Collect boundary edges as directed pairs
     let mut boundary_pairs: Vec<(VertexId, VertexId)> = Vec::new();
     for &eid in &boundary {
         let edge = edge_store.get(eid);

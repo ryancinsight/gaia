@@ -2,12 +2,12 @@
 
 use crate::application::quality::metrics::QualityMetric;
 use crate::application::quality::triangle;
+use crate::application::quality::triangle::triangle_angles;
 use crate::domain::core::constants;
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::scalar::{Point3r, Real, Scalar};
 use crate::infrastructure::storage::face_store::FaceStore;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
-use nalgebra::Point3;
 
 /// Quality thresholds for mesh validation.
 #[derive(Clone, Debug)]
@@ -57,6 +57,21 @@ pub struct MeshValidator {
     thresholds: QualityThresholds,
 }
 
+/// Convert a generic `Point3<T>` position to the `f64` working precision
+/// required by the quality triangle functions.
+///
+/// Hoisted from the per-face closure in `MeshValidator::validate` to eliminate
+/// closure re-creation overhead on every loop iteration.
+#[inline]
+fn point_to_p3r<T: Scalar>(p: &nalgebra::Point3<T>) -> Point3r {
+    use num_traits::ToPrimitive as TP;
+    Point3r::new(
+        TP::to_f64(&p.x).unwrap_or(0.0),
+        TP::to_f64(&p.y).unwrap_or(0.0),
+        TP::to_f64(&p.z).unwrap_or(0.0),
+    )
+}
+
 impl MeshValidator {
     /// Create with default thresholds.
     #[must_use]
@@ -86,22 +101,21 @@ impl MeshValidator {
         let mut failing = 0usize;
 
         for (_, face) in face_store.iter_enumerated() {
-            let to_p3r = |p: &Point3<T>| -> Point3r {
-                use num_traits::ToPrimitive as TP;
-                Point3r::new(
-                    TP::to_f64(&p.x).unwrap_or(0.0),
-                    TP::to_f64(&p.y).unwrap_or(0.0),
-                    TP::to_f64(&p.z).unwrap_or(0.0),
-                )
-            };
-            let a = to_p3r(vertex_pool.position(face.vertices[0]));
-            let b = to_p3r(vertex_pool.position(face.vertices[1]));
-            let c = to_p3r(vertex_pool.position(face.vertices[2]));
+            let a = point_to_p3r(vertex_pool.position(face.vertices[0]));
+            let b = point_to_p3r(vertex_pool.position(face.vertices[1]));
+            let c = point_to_p3r(vertex_pool.position(face.vertices[2]));
 
             let ar = triangle::aspect_ratio(&a, &b, &c);
-            let ma = triangle::min_angle(&a, &b, &c);
-            let sk = triangle::equiangle_skewness(&a, &b, &c);
             let er = triangle::edge_length_ratio(&a, &b, &c);
+            // Compute all three angles once, derive min, max, and skewness from
+            // that single result — avoids 2x redundant normalize passes that
+            // would occur by calling min_angle + equiangle_skewness separately.
+            let angles = triangle_angles(&a, &b, &c);
+            let ideal = constants::PI / 3.0;
+            let max_a = angles.iter().copied().fold(Real::NEG_INFINITY, Real::max);
+            let ma = angles.iter().copied().fold(Real::INFINITY, Real::min);
+            let sk = ((max_a - ideal) / (constants::PI - ideal))
+                .max((ideal - ma) / ideal);
 
             aspect_ratios.push(ar);
             min_angles.push(ma);

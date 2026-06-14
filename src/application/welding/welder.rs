@@ -2,7 +2,7 @@
 //!
 //! Merges coincident vertices while strictly preserving 2-manifold properties.
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 
 use crate::application::welding::spatial_hash::SpatialHashGrid;
 use crate::domain::core::index::VertexId;
@@ -59,11 +59,11 @@ impl MeshWelder {
             };
         }
 
-        // 1. Build initial vertex-to-face adjacency graph for active vertices
-        let mut v_faces: Vec<Vec<u32>> = vec![Vec::new(); n];
+        // 1. Build initial vertex-to-face adjacency: HashSet for O(1) membership.
+        let mut v_faces: Vec<HashSet<u32>> = vec![HashSet::new(); n];
         for (f_id, face) in face_store.iter_enumerated() {
             for v in face.vertices {
-                v_faces[v.raw() as usize].push(f_id.0);
+                v_faces[v.raw() as usize].insert(f_id.0);
             }
         }
 
@@ -141,10 +141,8 @@ impl MeshWelder {
                                 }
                             }
                         }
-                        // Add face to i's list if not present
-                        if !v_faces[i as usize].contains(&f_id) {
-                            v_faces[i as usize].push(f_id);
-                        }
+                        // O(1) insert — HashSet prevents duplicates automatically.
+                        v_faces[i as usize].insert(f_id);
                     }
                 }
             }
@@ -192,19 +190,20 @@ impl MeshWelder {
         &self,
         dst: u32,
         src: u32,
-        dst_faces: &[u32],
-        src_faces: &[u32],
+        dst_faces: &HashSet<u32>,
+        src_faces: &HashSet<u32>,
         cur_face_verts: &HashMap<u32, [u32; 3]>,
     ) -> bool {
         // Condition 1: Shared Face Check (Degenerate Prevention)
-        for &f_id in src_faces {
-            if dst_faces.contains(&f_id) {
+        // O(min(|dst|, |src|)) with HashSet intersection.
+        for f_id in src_faces {
+            if dst_faces.contains(f_id) {
                 return false;
             }
         }
 
         // Condition 2: Non-Manifold Edge Prevention
-        let mut dst_neighbors = HashMap::new();
+        let mut dst_neighbors: HashMap<u32, u32> = HashMap::new();
         for &f_id in dst_faces {
             if let Some(verts) = cur_face_verts.get(&f_id) {
                 for &v in verts {
@@ -215,7 +214,7 @@ impl MeshWelder {
             }
         }
 
-        let mut src_neighbors = HashMap::new();
+        let mut src_neighbors: HashMap<u32, u32> = HashMap::new();
         for &f_id in src_faces {
             if let Some(verts) = cur_face_verts.get(&f_id) {
                 for &v in verts {
