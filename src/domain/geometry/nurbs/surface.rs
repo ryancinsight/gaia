@@ -4,7 +4,7 @@
 //! `NurbsSurface` is the rational case with per-control-point positive weights.
 //! Both are parameterised over a rectangular domain `[u0,u1]` x `[v0,v1]`.
 
-use super::basis::{eval_basis, eval_basis_and_deriv};
+use super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::knot::KnotVector;
 use crate::domain::core::scalar::Real;
 use nalgebra::{Point3, UnitVector3, Vector3};
@@ -274,8 +274,24 @@ impl BSplineSurface {
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
         let sv = self.knots_v.find_span(v, n_v);
-        let bu = eval_basis(su, u, self.degree_u, &self.knots_u);
-        let bv = eval_basis(sv, v, self.degree_v, &self.knots_v);
+        let mut bu_buf = [0.0 as Real; 9];
+        let mut bv_buf = [0.0 as Real; 9];
+        let mut bu_vec;
+        let mut bv_vec;
+        let bu = if self.degree_u <= 8 {
+            &mut bu_buf[..=self.degree_u]
+        } else {
+            bu_vec = vec![0.0 as Real; self.degree_u + 1];
+            &mut bu_vec[..]
+        };
+        let bv = if self.degree_v <= 8 {
+            &mut bv_buf[..=self.degree_v]
+        } else {
+            bv_vec = vec![0.0 as Real; self.degree_v + 1];
+            &mut bv_vec[..]
+        };
+        eval_basis_to_slice(su, u, self.degree_u, &self.knots_u, bu);
+        eval_basis_to_slice(sv, v, self.degree_v, &self.knots_v, bv);
 
         let pu = self.degree_u;
         let pv = self.degree_v;
@@ -296,8 +312,36 @@ impl BSplineSurface {
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
         let sv = self.knots_v.find_span(v, n_v);
-        let (bu, dbu) = eval_basis_and_deriv(su, u, self.degree_u, &self.knots_u);
-        let (bv, dbv) = eval_basis_and_deriv(sv, v, self.degree_v, &self.knots_v);
+        let mut bu_buf = [0.0 as Real; 9];
+        let mut dbu_buf = [0.0 as Real; 9];
+        let mut bv_buf = [0.0 as Real; 9];
+        let mut dbv_buf = [0.0 as Real; 9];
+        let mut bu_vec;
+        let mut dbu_vec;
+        let mut bv_vec;
+        let mut dbv_vec;
+        let (bu, dbu) = if self.degree_u <= 8 {
+            (
+                &mut bu_buf[..=self.degree_u],
+                &mut dbu_buf[..=self.degree_u],
+            )
+        } else {
+            bu_vec = vec![0.0 as Real; self.degree_u + 1];
+            dbu_vec = vec![0.0 as Real; self.degree_u + 1];
+            (&mut bu_vec[..], &mut dbu_vec[..])
+        };
+        let (bv, dbv) = if self.degree_v <= 8 {
+            (
+                &mut bv_buf[..=self.degree_v],
+                &mut dbv_buf[..=self.degree_v],
+            )
+        } else {
+            bv_vec = vec![0.0 as Real; self.degree_v + 1];
+            dbv_vec = vec![0.0 as Real; self.degree_v + 1];
+            (&mut bv_vec[..], &mut dbv_vec[..])
+        };
+        eval_basis_and_deriv_to_slice(su, u, self.degree_u, &self.knots_u, bu, dbu);
+        eval_basis_and_deriv_to_slice(sv, v, self.degree_v, &self.knots_v, bv, dbv);
 
         let pu = self.degree_u;
         let pv = self.degree_v;
@@ -427,8 +471,36 @@ impl NurbsSurface {
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
         let sv = self.knots_v.find_span(v, n_v);
-        let (bu, dbu) = eval_basis_and_deriv(su, u, self.degree_u, &self.knots_u);
-        let (bv, dbv) = eval_basis_and_deriv(sv, v, self.degree_v, &self.knots_v);
+        let mut bu_buf = [0.0 as Real; 9];
+        let mut dbu_buf = [0.0 as Real; 9];
+        let mut bv_buf = [0.0 as Real; 9];
+        let mut dbv_buf = [0.0 as Real; 9];
+        let mut bu_vec;
+        let mut dbu_vec;
+        let mut bv_vec;
+        let mut dbv_vec;
+        let (bu, dbu) = if self.degree_u <= 8 {
+            (
+                &mut bu_buf[..=self.degree_u],
+                &mut dbu_buf[..=self.degree_u],
+            )
+        } else {
+            bu_vec = vec![0.0 as Real; self.degree_u + 1];
+            dbu_vec = vec![0.0 as Real; self.degree_u + 1];
+            (&mut bu_vec[..], &mut dbu_vec[..])
+        };
+        let (bv, dbv) = if self.degree_v <= 8 {
+            (
+                &mut bv_buf[..=self.degree_v],
+                &mut dbv_buf[..=self.degree_v],
+            )
+        } else {
+            bv_vec = vec![0.0 as Real; self.degree_v + 1];
+            dbv_vec = vec![0.0 as Real; self.degree_v + 1];
+            (&mut bv_vec[..], &mut dbv_vec[..])
+        };
+        eval_basis_and_deriv_to_slice(su, u, self.degree_u, &self.knots_u, bu, dbu);
+        eval_basis_and_deriv_to_slice(sv, v, self.degree_v, &self.knots_v, bv, dbv);
 
         let pu = self.degree_u;
         let pv = self.degree_v;
@@ -497,8 +569,24 @@ impl NurbsSurface {
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
         let sv = self.knots_v.find_span(v, n_v);
-        let bu = eval_basis(su, u, self.degree_u, &self.knots_u);
-        let bv = eval_basis(sv, v, self.degree_v, &self.knots_v);
+        let mut bu_buf = [0.0 as Real; 9];
+        let mut bv_buf = [0.0 as Real; 9];
+        let mut bu_vec;
+        let mut bv_vec;
+        let bu = if self.degree_u <= 8 {
+            &mut bu_buf[..=self.degree_u]
+        } else {
+            bu_vec = vec![0.0 as Real; self.degree_u + 1];
+            &mut bu_vec[..]
+        };
+        let bv = if self.degree_v <= 8 {
+            &mut bv_buf[..=self.degree_v]
+        } else {
+            bv_vec = vec![0.0 as Real; self.degree_v + 1];
+            &mut bv_vec[..]
+        };
+        eval_basis_to_slice(su, u, self.degree_u, &self.knots_u, bu);
+        eval_basis_to_slice(sv, v, self.degree_v, &self.knots_v, bv);
 
         let pu = self.degree_u;
         let pv = self.degree_v;

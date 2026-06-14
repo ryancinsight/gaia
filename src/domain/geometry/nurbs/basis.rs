@@ -35,56 +35,162 @@
 use super::knot::KnotVector;
 use crate::domain::core::scalar::Real;
 
-/// Evaluate the `p+1` non-zero B-spline basis functions at parameter `t`.
-///
-/// Returns a fixed-size array. Use `eval_basis_alloc` if `p` is not
-/// known at compile time.
-///
-/// # Arguments
-/// - `span`  — knot span index from [`KnotVector::find_span`].
-/// - `t`     — parameter value.
-/// - `p`     — degree.
-/// - `knots` — the knot vector.
-///
-/// # Returns
-/// `N[0..=p]` where `N[j] = N_{span-p+j, p}(t)`.
-#[must_use]
-pub fn eval_basis(span: usize, t: Real, p: usize, knots: &KnotVector) -> Vec<Real> {
-    let mut n = vec![0.0 as Real; p + 1];
-    let mut left = vec![0.0 as Real; p + 1];
-    let mut right = vec![0.0 as Real; p + 1];
+const STACK_DEGREE_LIMIT: usize = 8;
+const STACK_WORK_LEN: usize = STACK_DEGREE_LIMIT + 1;
 
-    n[0] = 1.0;
+#[inline]
+fn assert_output_len(name: &str, len: usize, required: usize) {
+    assert!(
+        len >= required,
+        "invariant: {name} length must be at least degree + 1; got {len}, required {required}"
+    );
+}
+
+#[inline]
+fn safe_div(num: Real, denom: Real) -> Real {
+    if denom.abs() < 1e-15 {
+        0.0
+    } else {
+        num / denom
+    }
+}
+
+fn fill_basis(
+    span: usize,
+    t: Real,
+    p: usize,
+    knots: &KnotVector,
+    out: &mut [Real],
+    left: &mut [Real],
+    right: &mut [Real],
+) {
+    debug_assert!(out.len() > p);
+    debug_assert!(left.len() > p);
+    debug_assert!(right.len() > p);
+
+    out[0] = 1.0;
     for j in 1..=p {
         left[j] = t - knots.get(span + 1 - j);
         right[j] = knots.get(span + j) - t;
-        let mut saved = 0.0 as Real;
+        let mut saved = 0.0;
         for r in 0..j {
-            let denom = right[r + 1] + left[j - r];
-            let temp = if denom.abs() < 1e-15 {
-                0.0
-            } else {
-                n[r] / denom
-            };
-            n[r] = saved + right[r + 1] * temp;
+            let temp = safe_div(out[r], right[r + 1] + left[j - r]);
+            out[r] = saved + right[r + 1] * temp;
             saved = left[j - r] * temp;
         }
-        n[j] = saved;
+        out[j] = saved;
     }
+}
+
+/// Evaluate the `p+1` non-zero B-spline basis functions into `out`.
+///
+/// The caller owns the output storage, so degree-8-or-smaller callers can use
+/// stack buffers and execute without heap allocation. Higher degrees allocate
+/// only the internal Cox-de Boor work buffers.
+///
+/// # Panics
+///
+/// Panics if `out.len() < p + 1`, or if `span`, `p`, and `knots` do not
+/// describe a valid active knot span.
+pub fn eval_basis_to_slice(span: usize, t: Real, p: usize, knots: &KnotVector, out: &mut [Real]) {
+    let required = p + 1;
+    assert_output_len("basis output", out.len(), required);
+
+    if p <= STACK_DEGREE_LIMIT {
+        let mut left = [0.0; STACK_WORK_LEN];
+        let mut right = [0.0; STACK_WORK_LEN];
+        fill_basis(
+            span,
+            t,
+            p,
+            knots,
+            out,
+            &mut left[..required],
+            &mut right[..required],
+        );
+    } else {
+        let mut left = vec![0.0; required];
+        let mut right = vec![0.0; required];
+        fill_basis(span, t, p, knots, out, &mut left, &mut right);
+    }
+}
+
+/// Evaluate the `p+1` non-zero B-spline basis functions at parameter `t`.
+///
+/// Returns a heap-allocated vector. Use [`eval_basis_to_slice`] to avoid allocation.
+#[must_use]
+pub fn eval_basis(span: usize, t: Real, p: usize, knots: &KnotVector) -> Vec<Real> {
+    let mut n = vec![0.0 as Real; p + 1];
+    eval_basis_to_slice(span, t, p, knots, &mut n);
     n
+}
+
+/// Evaluate all non-zero basis functions and their first derivatives into slices.
+///
+/// Derivatives use the standard degree-lowered recurrence:
+///
+/// ```text
+/// dN_{i,p}/dt = p * (N_{i,p-1}/(ξ_{i+p} - ξ_i)
+///                 - N_{i+1,p-1}/(ξ_{i+p+1} - ξ_{i+1}))
+/// ```
+///
+/// The caller owns both output slices, so degree-8-or-smaller callers can keep
+/// all outputs and lower-degree work storage on the stack.
+///
+/// # Panics
+///
+/// Panics if either output slice has length `< p + 1`, or if `span`, `p`, and
+/// `knots` do not describe a valid active knot span.
+pub fn eval_basis_and_deriv_to_slice(
+    span: usize,
+    t: Real,
+    p: usize,
+    knots: &KnotVector,
+    out_n: &mut [Real],
+    out_dn: &mut [Real],
+) {
+    let required = p + 1;
+    assert_output_len("basis output", out_n.len(), required);
+    assert_output_len("basis derivative output", out_dn.len(), required);
+
+    eval_basis_to_slice(span, t, p, knots, out_n);
+
+    if p == 0 {
+        out_dn[0] = 0.0;
+        return;
+    }
+
+    let mut lower_stack = [0.0; STACK_WORK_LEN];
+    let mut lower_heap;
+    let lower = if p <= STACK_DEGREE_LIMIT {
+        &mut lower_stack[..p]
+    } else {
+        lower_heap = vec![0.0; p];
+        &mut lower_heap
+    };
+    eval_basis_to_slice(span, t, p - 1, knots, lower);
+
+    let pp = p as Real;
+    for j in 0..=p {
+        let i = span - p + j;
+        let left = if j == 0 {
+            0.0
+        } else {
+            safe_div(lower[j - 1], knots.get(i + p) - knots.get(i))
+        };
+        let right = if j == p {
+            0.0
+        } else {
+            safe_div(lower[j], knots.get(i + p + 1) - knots.get(i + 1))
+        };
+        out_dn[j] = pp * (left - right);
+    }
 }
 
 /// Evaluate all non-zero basis functions **and their first derivatives**.
 ///
-/// Returns `(N, dN)` where:
-/// - `N[j] = N_{span-p+j, p}(t)`
-/// - `dN[j] = N'_{span-p+j, p}(t)`
-///
-/// Uses the recurrence:
-/// ```text
-/// N'_{i,p}(t) = p * (N_{i,p-1}(t)     / (ξᵢ₊ₚ   − ξᵢ)
-///                  − N_{i+1,p-1}(t)   / (ξᵢ₊ₚ₊₁ − ξᵢ₊₁))
-/// ```
+/// Returns a pair of heap-allocated vectors. Use
+/// [`eval_basis_and_deriv_to_slice`] to avoid allocation.
 #[must_use]
 pub fn eval_basis_and_deriv(
     span: usize,
@@ -92,67 +198,9 @@ pub fn eval_basis_and_deriv(
     p: usize,
     knots: &KnotVector,
 ) -> (Vec<Real>, Vec<Real>) {
-    // ndu[i][j]: N_{span-p+j, i}(t) triangular table
-    let mut ndu = vec![vec![0.0 as Real; p + 1]; p + 1];
-    let mut left = vec![0.0 as Real; p + 1];
-    let mut right = vec![0.0 as Real; p + 1];
-
-    ndu[0][0] = 1.0;
-    for j in 1..=p {
-        left[j] = t - knots.get(span + 1 - j);
-        right[j] = knots.get(span + j) - t;
-        let mut saved = 0.0 as Real;
-        for r in 0..j {
-            ndu[j][r] = right[r + 1] + left[j - r];
-            let temp = if ndu[j][r].abs() < 1e-15 {
-                0.0
-            } else {
-                ndu[r][j - 1] / ndu[j][r]
-            };
-            ndu[r][j] = saved + right[r + 1] * temp;
-            saved = left[j - r] * temp;
-        }
-        ndu[j][j] = saved;
-    }
-
-    let n: Vec<Real> = ndu[p].clone();
-
-    // Compute first-order derivatives
+    let mut n = vec![0.0 as Real; p + 1];
     let mut dn = vec![0.0 as Real; p + 1];
-    let mut a = vec![vec![0.0 as Real; p + 1]; 2];
-    a[0][0] = 1.0;
-    for j in 0..=p {
-        let mut s1 = 0usize;
-        let mut s2 = 1usize;
-        let r = (span as isize - p as isize + j as isize) as usize;
-        for k in 1..=1usize {
-            let mut d = 0.0 as Real;
-            let rk = r as isize - k as isize;
-            let pk = p as isize - k as isize;
-            if r >= k {
-                a[s2][0] = a[s1][0] / ndu[pk as usize + 1][r - k];
-                d = a[s2][0] * ndu[r - k][pk as usize];
-            }
-            let j1 = if rk >= -1 { 1 } else { (-rk) as usize };
-            let j2 = if (r as isize - 1) <= pk { k - 1 } else { p - r };
-            for i in j1..=j2 {
-                a[s2][i] = (a[s1][i] - a[s1][i - 1]) / ndu[pk as usize + 1][r + i - k];
-                d += a[s2][i] * ndu[r + i - k][pk as usize];
-            }
-            if r <= p - k {
-                a[s2][k] = -a[s1][k - 1] / ndu[pk as usize + 1][r];
-                d += a[s2][k] * ndu[r][pk as usize];
-            }
-            dn[j] = d;
-            std::mem::swap(&mut s1, &mut s2);
-        }
-    }
-    // Multiply by p
-    let pp = p as Real;
-    for d in &mut dn {
-        *d *= pp;
-    }
-
+    eval_basis_and_deriv_to_slice(span, t, p, knots, &mut n, &mut dn);
     (n, dn)
 }
 
@@ -198,5 +246,69 @@ mod tests {
         // Both basis functions should be 0.5 at t=0.5
         assert!((n[0] - 0.5).abs() < 1e-14);
         assert!((n[1] - 0.5).abs() < 1e-14);
+    }
+
+    #[test]
+    fn slice_basis_matches_allocating_basis_for_stack_degree() {
+        let kv = KnotVector::clamped_uniform(5, 3);
+        let t = 0.375;
+        let span = kv.find_span(t, 5);
+        let expected = eval_basis(span, t, 3, &kv);
+        let mut actual = [0.0; 4];
+
+        eval_basis_to_slice(span, t, 3, &kv, &mut actual);
+
+        assert_eq!(actual.as_slice(), expected.as_slice());
+    }
+
+    #[test]
+    fn slice_basis_matches_allocating_basis_for_heap_degree() {
+        let kv = KnotVector::clamped_uniform(9, 9);
+        let t = 0.5;
+        let span = kv.find_span(t, 9);
+        let expected = eval_basis(span, t, 9, &kv);
+        let mut actual = vec![0.0; 10];
+
+        eval_basis_to_slice(span, t, 9, &kv, &mut actual);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn derivative_slice_matches_allocating_wrapper() {
+        let kv = KnotVector::clamped_uniform(6, 3);
+        let t = 0.42;
+        let span = kv.find_span(t, 6);
+        let (expected_n, expected_dn) = eval_basis_and_deriv(span, t, 3, &kv);
+        let mut actual_n = [0.0; 4];
+        let mut actual_dn = [0.0; 4];
+
+        eval_basis_and_deriv_to_slice(span, t, 3, &kv, &mut actual_n, &mut actual_dn);
+
+        assert_eq!(actual_n.as_slice(), expected_n.as_slice());
+        assert_eq!(actual_dn.as_slice(), expected_dn.as_slice());
+    }
+
+    #[test]
+    fn derivatives_match_central_difference_inside_span() {
+        let kv = KnotVector::clamped_uniform(6, 3);
+        let t = 0.42;
+        let h = 1.0e-6;
+        let span = kv.find_span(t, 6);
+        assert_eq!(span, kv.find_span(t - h, 6));
+        assert_eq!(span, kv.find_span(t + h, 6));
+
+        let (_, dn) = eval_basis_and_deriv(span, t, 3, &kv);
+        let lo = eval_basis(span, t - h, 3, &kv);
+        let hi = eval_basis(span, t + h, 3, &kv);
+
+        for j in 0..=3 {
+            let finite_difference = (hi[j] - lo[j]) / (2.0 * h);
+            assert!(
+                (dn[j] - finite_difference).abs() < 1.0e-9,
+                "basis derivative mismatch at j={j}: analytic={}, finite_difference={finite_difference}",
+                dn[j]
+            );
+        }
     }
 }

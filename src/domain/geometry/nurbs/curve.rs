@@ -63,7 +63,7 @@
 
 use thiserror::Error as ThisError;
 
-use super::basis::{eval_basis, eval_basis_and_deriv};
+use super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::knot::{KnotError, KnotVector};
 use crate::domain::core::scalar::Real;
 use nalgebra::SVector;
@@ -209,7 +209,8 @@ impl<const D: usize> BSplineCurve<D> {
 
     /// Evaluate the curve at parameter `t`.
     ///
-    /// Uses de Boor's algorithm via [`eval_basis`] — O(p²) per evaluation.
+    /// Uses de Boor's algorithm via [`super::basis::eval_basis_to_slice`] —
+    /// O(p²) per evaluation.
     ///
     /// # Panics
     /// Panics if `t` is outside the knot domain.
@@ -217,7 +218,15 @@ impl<const D: usize> BSplineCurve<D> {
     pub fn point(&self, t: Real) -> SVector<Real, D> {
         let n = self.control_points.len() - 1;
         let span = self.knots.find_span(t, n);
-        let basis = eval_basis(span, t, self.degree, &self.knots);
+        let mut basis_buf = [0.0 as Real; 9];
+        let mut basis_vec;
+        let basis = if self.degree <= 8 {
+            &mut basis_buf[..=self.degree]
+        } else {
+            basis_vec = vec![0.0 as Real; self.degree + 1];
+            &mut basis_vec[..]
+        };
+        eval_basis_to_slice(span, t, self.degree, &self.knots, basis);
         let p = self.degree;
         let mut result = SVector::<Real, D>::zeros();
         for (j, &b) in basis.iter().enumerate() {
@@ -236,7 +245,21 @@ impl<const D: usize> BSplineCurve<D> {
     pub fn point_and_tangent(&self, t: Real) -> (SVector<Real, D>, SVector<Real, D>) {
         let n = self.control_points.len() - 1;
         let span = self.knots.find_span(t, n);
-        let (basis, dbasis) = eval_basis_and_deriv(span, t, self.degree, &self.knots);
+        let mut basis_buf = [0.0 as Real; 9];
+        let mut dbasis_buf = [0.0 as Real; 9];
+        let mut basis_vec;
+        let mut dbasis_vec;
+        let (basis, dbasis) = if self.degree <= 8 {
+            (
+                &mut basis_buf[..=self.degree],
+                &mut dbasis_buf[..=self.degree],
+            )
+        } else {
+            basis_vec = vec![0.0 as Real; self.degree + 1];
+            dbasis_vec = vec![0.0 as Real; self.degree + 1];
+            (&mut basis_vec[..], &mut dbasis_vec[..])
+        };
+        eval_basis_and_deriv_to_slice(span, t, self.degree, &self.knots, basis, dbasis);
         let p = self.degree;
         let mut pt = SVector::<Real, D>::zeros();
         let mut tan = SVector::<Real, D>::zeros();
@@ -395,7 +418,15 @@ impl<const D: usize> NurbsCurve<D> {
     pub fn point(&self, t: Real) -> SVector<Real, D> {
         let n = self.control_points.len() - 1;
         let span = self.knots.find_span(t, n);
-        let basis = eval_basis(span, t, self.degree, &self.knots);
+        let mut basis_buf = [0.0 as Real; 9];
+        let mut basis_vec;
+        let basis = if self.degree <= 8 {
+            &mut basis_buf[..=self.degree]
+        } else {
+            basis_vec = vec![0.0 as Real; self.degree + 1];
+            &mut basis_vec[..]
+        };
+        eval_basis_to_slice(span, t, self.degree, &self.knots, basis);
         let p = self.degree;
 
         let mut num = SVector::<Real, D>::zeros();
@@ -427,7 +458,21 @@ impl<const D: usize> NurbsCurve<D> {
     pub fn point_and_tangent(&self, t: Real) -> (SVector<Real, D>, SVector<Real, D>) {
         let n = self.control_points.len() - 1;
         let span = self.knots.find_span(t, n);
-        let (basis, dbasis) = eval_basis_and_deriv(span, t, self.degree, &self.knots);
+        let mut basis_buf = [0.0 as Real; 9];
+        let mut dbasis_buf = [0.0 as Real; 9];
+        let mut basis_vec;
+        let mut dbasis_vec;
+        let (basis, dbasis) = if self.degree <= 8 {
+            (
+                &mut basis_buf[..=self.degree],
+                &mut dbasis_buf[..=self.degree],
+            )
+        } else {
+            basis_vec = vec![0.0 as Real; self.degree + 1];
+            dbasis_vec = vec![0.0 as Real; self.degree + 1];
+            (&mut basis_vec[..], &mut dbasis_vec[..])
+        };
+        eval_basis_and_deriv_to_slice(span, t, self.degree, &self.knots, basis, dbasis);
         let p = self.degree;
 
         let mut a = SVector::<Real, D>::zeros(); // Σ N·w·P

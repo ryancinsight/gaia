@@ -57,3 +57,8 @@
     - [x] Re-run `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo nextest run`, `cargo test --doc`, and short `csg_performance` benchmark gate.
     - [x] Benchmark rerun shows no repeatable regression: six cases no-change, `csg_union_cube_cube` improved versus the immediate baseline.
 
+- [x] **Phase 8: NURBS Basis Allocation Gate (Sprint 5)**
+    - [x] Review uncommitted NURBS basis diff and surrounding curve/surface call sites.
+    - [x] Verify allocation-avoiding slice basis APIs are canonical and call sites are clippy-clean.
+    - [x] Add and verify value-semantic basis tests: stack-degree slice equivalence, heap-degree slice equivalence, derivative wrapper equivalence, and central-difference derivative check.
+    - [x] Verify `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo nextest run`, `cargo test --doc`, `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps`, and short `csg_performance` benchmark gate.
