@@ -69,9 +69,7 @@ pub(crate) fn classify_kept_fragments(
         use moirai::ParallelSlice;
         frags
             .par()
-            .map_collect(|frag| {
-                let frag_idx =
-                    unsafe { std::ptr::from_ref(frag).offset_from(frags.as_ptr()) } as usize;
+            .map_collect_index(|frag_idx, frag| {
                 let p0 = *pool.position(frag.face.vertices[0]);
                 let p1 = *pool.position(frag.face.vertices[1]);
                 let p2 = *pool.position(frag.face.vertices[2]);

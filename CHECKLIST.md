@@ -62,3 +62,9 @@
     - [x] Verify allocation-avoiding slice basis APIs are canonical and call sites are clippy-clean.
     - [x] Add and verify value-semantic basis tests: stack-degree slice equivalence, heap-degree slice equivalence, derivative wrapper equivalence, and central-difference derivative check.
     - [x] Verify `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo nextest run`, `cargo test --doc`, `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps`, and short `csg_performance` benchmark gate.
+
+- [x] **Phase 9: Atlas Moirai Integration (Sprint 6)**
+    - [x] Add `moirai::ParallelSlice::map_collect_index` upstream so consumers can collect indexed slice maps without pointer-derived indices.
+    - [x] Replace Gaia CSG fragment classification's parallel unsafe pointer offset with `map_collect_index`.
+    - [x] Verify producer: `cargo fmt --check`, `cargo clippy -p moirai-parallel --all-targets -- -D warnings`, `cargo test -p moirai-parallel`, and warning-clean `cargo doc -p moirai-parallel --no-deps`.
+    - [x] Verify consumer: `cargo fmt --check`, `cargo clippy --all-targets --features parallel -- -D warnings`, `cargo nextest run --features parallel`, warning-clean `cargo doc --no-deps --features parallel`, and `cargo bench --bench csg_performance --features parallel -- --warm-up-time 1 --measurement-time 2 --sample-size 10`.
