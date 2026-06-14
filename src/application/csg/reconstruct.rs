@@ -38,7 +38,7 @@
 //! most once (amortised O(1) per HashMap insert).  Total work is proportional
 //! to the output face count, independent of pool size.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::Real;
@@ -73,9 +73,9 @@ pub fn reconstruct_mesh(faces: &[FaceData], pool: &VertexPool) -> IndexedMesh {
     // Floor at 1e-4 (the default IndexedMesh tolerance).
     let tol = adaptive_reconstruct_tolerance(faces, pool);
     let mut mesh = IndexedMesh::with_tolerance(tol, tol);
-    // HashMap<old VertexId, new VertexId> — capacity-hinted at face count * 3/2
-    // (upper bound on unique vertices for maximally shared topology).
-    // This is O(face_count) rather than the old O(pool_len) Vec<Option<_>>.
+    // hashbrown::HashMap<old VertexId, new VertexId> — capacity-hinted at
+    // face count * 3/2 (upper bound on unique vertices for maximally shared
+    // topology).  O(face_count) allocation rather than O(pool_len).
     let mut id_map: HashMap<VertexId, VertexId> =
         HashMap::with_capacity(faces.len().saturating_mul(3).saturating_add(1) / 2);
     let mut degenerate_count: usize = 0;
