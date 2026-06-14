@@ -94,8 +94,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ── Build substrate block ─────────────────────────────────────────────────
     let (bw, bd) = interchange.box_dims;
-    let bw = bw as f64;
-    let bd = bd as f64;
     let _half_h = substrate_height / 2.0;
 
     // Offset slightly so that the X=0 and X=100 boundaries of the substrate

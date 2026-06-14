@@ -8,7 +8,6 @@
 //! never pulled into this enum. Application code converts its own errors
 //! into `gaia::Error::InvalidInput` or returns its own `Result` type.
 
-
 use thiserror::Error as ThisError;
 
 use crate::domain::core::index::{EdgeId, FaceId, VertexId};

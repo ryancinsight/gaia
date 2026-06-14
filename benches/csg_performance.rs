@@ -15,7 +15,6 @@ use gaia::infrastructure::storage::vertex_pool::VertexPool;
 #[global_allocator]
 static ALLOCATOR: mnemosyne::Mnemosyne = mnemosyne::Mnemosyne;
 
-
 fn unit_cube_faces() -> (VertexPool, Vec<FaceData>) {
     let mut pool = VertexPool::default_millifluidic();
     let n = nalgebra::Vector3::zeros();
@@ -170,9 +169,9 @@ fn bench_detect_self_intersect_flat(c: &mut Criterion) {
     let n = nalgebra::Vector3::zeros();
     let ns = 10_usize;
     let mut verts = vec![vec![gaia::domain::core::index::VertexId::new(0); ns + 1]; ns + 1];
-    for i in 0..=ns {
-        for j in 0..=ns {
-            verts[i][j] = pool.insert_or_weld(Point3r::new(i as f64, j as f64, 0.0), n);
+    for (i, row) in verts.iter_mut().enumerate().take(ns + 1) {
+        for (j, vertex) in row.iter_mut().enumerate().take(ns + 1) {
+            *vertex = pool.insert_or_weld(Point3r::new(i as f64, j as f64, 0.0), n);
         }
     }
     let mut faces = Vec::new();

@@ -18,9 +18,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Create a simple schematic (single straight channel)
     println!("1. Generating schematic...");
     let box_dims = (100.0, 50.0);
-    let mut config = GeometryConfig::default();
-    config.channel_width = 1.0; // 1mm width
-    config.channel_height = 0.5; // 0.5mm height
+    let config = GeometryConfig {
+        channel_width: 1.0,  // 1mm width
+        channel_height: 0.5, // 0.5mm height
+        ..GeometryConfig::default()
+    };
 
     let system = create_geometry(
         box_dims,
@@ -137,7 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 RegionId::new(0),
             );
             println!("      Generated {} faces with variable sweep.", faces.len());
-            assert!(faces.len() > 0);
+            assert!(!faces.is_empty());
 
             // Check bounding box widths if it's the Frustum
             if channel_def.id.contains("99") {
@@ -156,7 +158,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 RegionId::new(0),
             );
             println!("      Generated {} faces with standard sweep.", faces.len());
-            assert!(faces.len() > 0);
+            assert!(!faces.is_empty());
         }
     }
 

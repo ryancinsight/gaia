@@ -17,5 +17,3 @@ pub use boolean::{csg_boolean, csg_boolean_nary, BooleanOp, CsgNode};
 pub use boolean_solid::BooleanSolid;
 pub use detect_self_intersect::detect_self_intersections;
 pub use intersect::IntersectionType;
-
-

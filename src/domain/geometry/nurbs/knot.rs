@@ -183,37 +183,28 @@ impl KnotVector {
     }
 }
 
+use thiserror::Error as ThisError;
+
 /// Error produced when constructing an invalid [`KnotVector`].
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ThisError)]
 pub enum KnotError {
     /// Empty knot vector.
+    #[error("knot vector is empty")]
     Empty,
     /// Knot at `index+1` is less than knot at `index`.
+    #[error("knot vector is decreasing at index {index}")]
     Decreasing {
         /// Index of the first offending pair.
         index: usize,
     },
     /// The number of knots is inconsistent with degree and control-point count.
+    #[error("knot vector has {got} entries; expected {expected}")]
     WrongLength {
         /// Number of knots provided.
         got: usize,
         /// Number of knots expected.
         expected: usize,
     },
-}
-
-impl std::fmt::Display for KnotError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            KnotError::Empty => write!(f, "knot vector is empty"),
-            KnotError::Decreasing { index } => {
-                write!(f, "knot vector is decreasing at index {index}")
-            }
-            KnotError::WrongLength { got, expected } => {
-                write!(f, "knot vector has {got} entries; expected {expected}")
-            }
-        }
-    }
 }
 
 #[cfg(test)]

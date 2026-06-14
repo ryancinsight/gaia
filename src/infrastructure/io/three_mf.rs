@@ -51,11 +51,8 @@ fn build_model_xml(mesh: &IndexedMesh) -> String {
     xml.push_str("      <vertices>\n");
 
     let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, usize> = HashMap::new();
-    let mut idx = 0usize;
-
-    for (vid, vdata) in mesh.vertices.iter() {
+    for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
         id_to_idx.insert(vid, idx);
-        idx += 1;
         let p = &vdata.position;
         xml.push_str(&format!(
             "        <vertex x=\"{}\" y=\"{}\" z=\"{}\" />\n",

@@ -86,11 +86,15 @@ impl VertexId {
     pub fn new(raw: u32) -> Self {
         VertexId(raw)
     }
-    /// Create from a `usize` index (panics on overflow in debug builds).
+    /// Create from a `usize` index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n` exceeds `u32::MAX`.
     #[inline]
     #[must_use]
     pub fn from_usize(n: usize) -> Self {
-        VertexId(n as u32)
+        Self::try_from(n).expect("Index exceeds u32::MAX")
     }
     /// Return the raw `u32` index.
     #[inline]
@@ -106,10 +110,12 @@ impl VertexId {
     }
 }
 
-impl From<usize> for VertexId {
+impl TryFrom<usize> for VertexId {
+    type Error = std::num::TryFromIntError;
+
     #[inline]
-    fn from(n: usize) -> Self {
-        VertexId(n as u32)
+    fn try_from(n: usize) -> Result<Self, Self::Error> {
+        u32::try_from(n).map(Self)
     }
 }
 
@@ -126,10 +132,14 @@ pub struct FaceId(pub u32);
 
 impl FaceId {
     /// Create from a `usize` index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n` exceeds `u32::MAX`.
     #[inline]
     #[must_use]
     pub fn from_usize(n: usize) -> Self {
-        FaceId(n as u32)
+        Self::try_from(n).expect("Index exceeds u32::MAX")
     }
     /// Return as `usize`.
     #[inline]
@@ -139,10 +149,12 @@ impl FaceId {
     }
 }
 
-impl From<usize> for FaceId {
+impl TryFrom<usize> for FaceId {
+    type Error = std::num::TryFromIntError;
+
     #[inline]
-    fn from(n: usize) -> Self {
-        FaceId(n as u32)
+    fn try_from(n: usize) -> Result<Self, Self::Error> {
+        u32::try_from(n).map(Self)
     }
 }
 
@@ -162,10 +174,14 @@ pub struct EdgeId(pub u32);
 
 impl EdgeId {
     /// Create from a `usize` index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n` exceeds `u32::MAX`.
     #[inline]
     #[must_use]
     pub fn from_usize(n: usize) -> Self {
-        EdgeId(n as u32)
+        Self::try_from(n).expect("Index exceeds u32::MAX")
     }
     /// Return as `usize`.
     #[inline]
@@ -175,10 +191,12 @@ impl EdgeId {
     }
 }
 
-impl From<usize> for EdgeId {
+impl TryFrom<usize> for EdgeId {
+    type Error = std::num::TryFromIntError;
+
     #[inline]
-    fn from(n: usize) -> Self {
-        EdgeId(n as u32)
+    fn try_from(n: usize) -> Result<Self, Self::Error> {
+        u32::try_from(n).map(Self)
     }
 }
 
@@ -203,10 +221,14 @@ impl RegionId {
         RegionId(raw)
     }
     /// Create from a `usize` index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n` exceeds `u32::MAX`.
     #[inline]
     #[must_use]
     pub fn from_usize(n: usize) -> Self {
-        RegionId(n as u32)
+        Self::try_from(n).expect("Index exceeds u32::MAX")
     }
     /// Return as `usize`.
     #[inline]
@@ -216,10 +238,12 @@ impl RegionId {
     }
 }
 
-impl From<usize> for RegionId {
+impl TryFrom<usize> for RegionId {
+    type Error = std::num::TryFromIntError;
+
     #[inline]
-    fn from(n: usize) -> Self {
-        RegionId(n as u32)
+    fn try_from(n: usize) -> Result<Self, Self::Error> {
+        u32::try_from(n).map(Self)
     }
 }
 
@@ -228,7 +252,6 @@ impl fmt::Display for RegionId {
         write!(f, "{}", self.0)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

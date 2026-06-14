@@ -88,21 +88,18 @@ fn invalid_operands_reproduce_failure_markers() {
         BooleanOp::Intersection,
         BooleanOp::Difference,
     ] {
-        match csg_boolean(op, &inward_cube, &open_sphere, &mut pool) {
-            Ok(result) => {
-                let summary = summarize_faces(&pool, &result);
-                let has_failure_marker = !is_watertight(summary) || summary.volume <= 0.0;
-                assert!(
-                    has_failure_marker,
-                    "expected failure markers for {:?}, got volume={} boundary={} non_manifold={} orientation_ok={}",
-                    op,
-                    summary.volume,
-                    summary.boundary_edges,
-                    summary.non_manifold_edges,
-                    summary.orientation_ok
-                );
-            }
-            Err(_) => {}
+        if let Ok(result) = csg_boolean(op, &inward_cube, &open_sphere, &mut pool) {
+            let summary = summarize_faces(&pool, &result);
+            let has_failure_marker = !is_watertight(summary) || summary.volume <= 0.0;
+            assert!(
+                has_failure_marker,
+                "expected failure markers for {:?}, got volume={} boundary={} non_manifold={} orientation_ok={}",
+                op,
+                summary.volume,
+                summary.boundary_edges,
+                summary.non_manifold_edges,
+                summary.orientation_ok
+            );
         }
     }
 }

@@ -124,7 +124,6 @@
 #![allow(clippy::len_without_is_empty)]
 #![allow(clippy::new_ret_no_self)]
 #![allow(clippy::unused_self)]
-#![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::manual_clamp)]
 #![allow(clippy::duplicated_attributes)]
 #![allow(clippy::same_item_push)]
@@ -148,7 +147,6 @@ pub use domain::mesh::HalfEdgeMesh;
 
 /// Canonical entry point for branded mesh operations.
 pub use domain::mesh::with_mesh;
-
 
 // ── Convenience re-exports ────────────────────────────────────────────────────
 

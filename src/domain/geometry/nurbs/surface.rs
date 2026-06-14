@@ -132,21 +132,26 @@ impl WeightGrid {
     }
 }
 
+use thiserror::Error as ThisError;
+
 // ---------------------------------------------------------------------------
 // SurfaceError
 // ---------------------------------------------------------------------------
 
 /// Error returned when constructing a B-spline or NURBS surface.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ThisError)]
 pub enum SurfaceError {
     /// Control grid is empty.
+    #[error("control grid is empty")]
     EmptyControlGrid,
     /// Degree in the named direction is zero.
+    #[error("degree in {direction} direction must be >= 1")]
     ZeroDegree {
         /// Direction character: `'u'` or `'v'`.
         direction: char,
     },
     /// Knot count does not satisfy `n + p + 2`.
+    #[error("knot-{direction}: expected {expected} knots, got {got}")]
     KnotCountMismatch {
         /// Direction character: `'u'` or `'v'`.
         direction: char,
@@ -156,31 +161,9 @@ pub enum SurfaceError {
         expected: usize,
     },
     /// Weight grid dimensions differ from the control grid.
+    #[error("weight grid dimensions differ from control grid")]
     WeightGridMismatch,
 }
-
-impl std::fmt::Display for SurfaceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SurfaceError::EmptyControlGrid => write!(f, "control grid is empty"),
-            SurfaceError::ZeroDegree { direction } => {
-                write!(f, "degree in {direction} direction must be >= 1")
-            }
-            SurfaceError::KnotCountMismatch {
-                direction,
-                got,
-                expected,
-            } => {
-                write!(f, "knot-{direction}: expected {expected} knots, got {got}")
-            }
-            SurfaceError::WeightGridMismatch => {
-                write!(f, "weight grid dimensions differ from control grid")
-            }
-        }
-    }
-}
-
-impl std::error::Error for SurfaceError {}
 
 // ---------------------------------------------------------------------------
 // BSplineSurface
@@ -207,6 +190,42 @@ pub struct BSplineSurface {
     pub degree_v: usize,
 }
 
+fn validate_surface_dims(
+    control_grid: &ControlGrid,
+    knots_u: &KnotVector,
+    knots_v: &KnotVector,
+    degree_u: usize,
+    degree_v: usize,
+) -> Result<(), SurfaceError> {
+    if control_grid.n_rows() == 0 || control_grid.n_cols() == 0 {
+        return Err(SurfaceError::EmptyControlGrid);
+    }
+    if degree_u == 0 {
+        return Err(SurfaceError::ZeroDegree { direction: 'u' });
+    }
+    if degree_v == 0 {
+        return Err(SurfaceError::ZeroDegree { direction: 'v' });
+    }
+
+    let exp_u = control_grid.n_cols() + degree_u + 1;
+    if knots_u.len() != exp_u {
+        return Err(SurfaceError::KnotCountMismatch {
+            direction: 'u',
+            got: knots_u.len(),
+            expected: exp_u,
+        });
+    }
+    let exp_v = control_grid.n_rows() + degree_v + 1;
+    if knots_v.len() != exp_v {
+        return Err(SurfaceError::KnotCountMismatch {
+            direction: 'v',
+            got: knots_v.len(),
+            expected: exp_v,
+        });
+    }
+    Ok(())
+}
+
 impl BSplineSurface {
     /// Create a B-spline surface, validating knot / control-point consistency.
     pub fn new(
@@ -216,34 +235,7 @@ impl BSplineSurface {
         degree_u: usize,
         degree_v: usize,
     ) -> Result<Self, SurfaceError> {
-        if control_grid.n_rows() == 0 || control_grid.n_cols() == 0 {
-            return Err(SurfaceError::EmptyControlGrid);
-        }
-        if degree_u == 0 {
-            return Err(SurfaceError::ZeroDegree { direction: 'u' });
-        }
-        if degree_v == 0 {
-            return Err(SurfaceError::ZeroDegree { direction: 'v' });
-        }
-
-        // n + p + 2  where  n_u = n_cols - 1,  n_v = n_rows - 1
-        // (u varies along columns, v varies along rows)
-        let exp_u = control_grid.n_cols() + degree_u + 1;
-        if knots_u.len() != exp_u {
-            return Err(SurfaceError::KnotCountMismatch {
-                direction: 'u',
-                got: knots_u.len(),
-                expected: exp_u,
-            });
-        }
-        let exp_v = control_grid.n_rows() + degree_v + 1;
-        if knots_v.len() != exp_v {
-            return Err(SurfaceError::KnotCountMismatch {
-                direction: 'v',
-                got: knots_v.len(),
-                expected: exp_v,
-            });
-        }
+        validate_surface_dims(&control_grid, &knots_u, &knots_v, degree_u, degree_v)?;
         Ok(Self {
             control_grid,
             knots_u,
@@ -370,14 +362,7 @@ impl NurbsSurface {
         degree_u: usize,
         degree_v: usize,
     ) -> Result<Self, SurfaceError> {
-        // Delegate structural checks to BSplineSurface constructor
-        let _test = BSplineSurface::new(
-            control_grid.clone(),
-            knots_u.clone(),
-            knots_v.clone(),
-            degree_u,
-            degree_v,
-        )?;
+        validate_surface_dims(&control_grid, &knots_u, &knots_v, degree_u, degree_v)?;
         if weights.n_rows() != control_grid.n_rows() || weights.n_cols() != control_grid.n_cols() {
             return Err(SurfaceError::WeightGridMismatch);
         }

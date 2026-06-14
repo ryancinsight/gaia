@@ -345,9 +345,6 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
             break;
         }
 
-        #[cfg(test)]
-        if trace_enabled() {}
-
         let loops = trace_loops(&boundary_edges);
 
         // -- (d) Step 6: collapse collinear degenerate loops. -----------------

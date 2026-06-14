@@ -64,7 +64,7 @@ rand = "0.8"
 
 # Concurrency and Allocator Integrations
 mnemosyne = { version = "0.2.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
-moirai = { version = "0.2.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false }
+moirai = { version = "0.2.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
 approx = "0.5"
@@ -72,7 +72,7 @@ proptest = "1.4"
 criterion = "0.5"
 nalgebra = { version = "0.33", features = ["serde-serialize"] }
 mnemosyne = { version = "0.2.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
-moirai = { version = "0.2.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false }
+moirai = { version = "0.2.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 

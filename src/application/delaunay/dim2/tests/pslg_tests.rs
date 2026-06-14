@@ -9,9 +9,11 @@ use crate::application::delaunay::dim2::pslg::vertex::{PslgVertex, PslgVertexId,
 
 #[test]
 fn vertex_creation() {
-    let v = PslgVertex::new(3.14, 2.72);
-    assert!((v.x - 3.14).abs() < 1e-15);
-    assert!((v.y - 2.72).abs() < 1e-15);
+    const X: f64 = 3.125;
+    const Y: f64 = 2.75;
+    let v = PslgVertex::new(X, Y);
+    assert!((v.x - X).abs() < 1e-15);
+    assert!((v.y - Y).abs() < 1e-15);
 }
 
 #[test]

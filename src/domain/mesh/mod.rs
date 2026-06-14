@@ -7,10 +7,9 @@
 //!   `AttributeStore`, `Vec<Cell>`, and `GhostCell` topology.
 
 #[allow(missing_docs)]
-pub mod indexed;
-#[allow(missing_docs)]
 pub mod halfedge;
+#[allow(missing_docs)]
+pub mod indexed;
 
+pub use halfedge::{with_mesh, HalfEdgeMesh};
 pub use indexed::{IndexedMesh, MeshBuilder};
-pub use halfedge::{HalfEdgeMesh, with_mesh};
-

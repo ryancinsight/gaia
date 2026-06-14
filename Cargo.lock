@@ -1419,6 +1419,7 @@ version = "0.2.0"
 dependencies = [
  "moirai-core",
  "moirai-executor",
+ "moirai-parallel",
  "moirai-scheduler",
  "moirai-sync",
  "moirai-transport",
@@ -1458,6 +1459,14 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "windows 0.58.0",
+]
+
+[[package]]
+name = "moirai-parallel"
+version = "0.2.0"
+dependencies = [
+ "melinoe",
+ "moirai-executor",
 ]
 
 [[package]]
@@ -2300,7 +2309,7 @@ dependencies = [
 
 [[package]]
 name = "themis"
-version = "0.9.8"
+version = "0.9.9"
 dependencies = [
  "melinoe",
 ]
@@ -3126,10 +3135,6 @@ version = "0.2.0"
 
 [[patch.unused]]
 name = "moirai-metrics"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "moirai-parallel"
 version = "0.2.0"
 
 [[patch.unused]]

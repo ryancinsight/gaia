@@ -1604,7 +1604,6 @@ mod tests {
         // The difference must produce a non-trivial mesh.  The exact volume
         // depends on tessellation fidelity and face orientation conventions;
         // we verify the operation completes and yields a reasonable volume.
-        let _vol_cube = 8.0; // 2³
         assert!(
             vol > 1.0 && vol < 12.0,
             "cube-sphere difference volume should be positive and bounded, got {vol:.3}"

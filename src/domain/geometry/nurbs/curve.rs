@@ -61,6 +61,8 @@
 //! assert!((scale - 1.0).abs() < 1e-10, "point should be on unit circle");
 //! ```
 
+use thiserror::Error as ThisError;
+
 use super::basis::{eval_basis, eval_basis_and_deriv};
 use super::knot::{KnotError, KnotVector};
 use crate::domain::core::scalar::Real;
@@ -69,13 +71,16 @@ use nalgebra::SVector;
 // ── Errors ────────────────────────────────────────────────────────────────────
 
 /// Error returned when constructing a B-spline or NURBS curve fails.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ThisError)]
 pub enum CurveError {
     /// Knot vector is invalid.
-    Knot(KnotError),
+    #[error("knot error: {0}")]
+    Knot(#[from] KnotError),
     /// Vector of control points is empty.
+    #[error("no control points")]
     NoControlPoints,
     /// Number of knots is inconsistent with degree and control-point count.
+    #[error("expected {expected} knots (n+p+2), got {got}")]
     KnotCountMismatch {
         /// Number of knots provided.
         got: usize,
@@ -83,8 +88,10 @@ pub enum CurveError {
         expected: usize,
     },
     /// Degree is zero — undefined for B-splines.
+    #[error("degree must be ≥ 1")]
     ZeroDegree,
     /// Weights vector length does not match control-point count.
+    #[error("weights length {weights} != control points {control_points}")]
     WeightsMismatch {
         /// Number of weights provided.
         weights: usize,
@@ -92,52 +99,11 @@ pub enum CurveError {
         control_points: usize,
     },
     /// A weight is ≤ 0, which makes the NURBS curve ill-defined.
+    #[error("weight[{index}] ≤ 0")]
     NonPositiveWeight {
         /// Index of the offending weight.
         index: usize,
     },
-}
-
-impl std::fmt::Display for CurveError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CurveError::Knot(e) => write!(f, "knot error: {e}"),
-            CurveError::NoControlPoints => write!(f, "no control points"),
-            CurveError::KnotCountMismatch { got, expected } => {
-                write!(f, "expected {expected} knots (n+p+2), got {got}")
-            }
-            CurveError::ZeroDegree => write!(f, "degree must be ≥ 1"),
-            CurveError::WeightsMismatch {
-                weights,
-                control_points,
-            } => {
-                write!(
-                    f,
-                    "weights length {weights} != control points {control_points}"
-                )
-            }
-            CurveError::NonPositiveWeight { index } => {
-                write!(f, "weight[{index}] ≤ 0")
-            }
-        }
-    }
-}
-
-impl std::error::Error for CurveError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            CurveError::Knot(e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
-impl std::error::Error for KnotError {}
-
-impl From<KnotError> for CurveError {
-    fn from(e: KnotError) -> Self {
-        CurveError::Knot(e)
-    }
 }
 
 // ── BSplineCurve ──────────────────────────────────────────────────────────────

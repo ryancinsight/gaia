@@ -48,3 +48,10 @@
     - [x] Write two new tests: `empty_clone_preserves_custom_tolerance` and `retain_largest_component_preserves_tolerance`.
     - [x] Test suite 421 passes (2 pre-existing v-shape failures persist unaffected).
 
+- [x] **Phase 7: Clippy, CSG Test Hierarchy, and Benchmark Gate (Sprint 4)**
+    - [x] Extract `application::csg::boolean::indexed` inline tests into `indexed_tests.rs`; runtime module reduced to 1,813 lines.
+    - [x] Resolve all-target clippy debt without lint suppression: half-edge traversal, 3MF indexing, RegionId defaults, regression-test matches, example config initialization, and NURBS error SSOT.
+    - [x] Verify `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo nextest run`, and `cargo test --doc`.
+    - [x] Run `cargo bench --bench csg_performance -- --warm-up-time 1 --measurement-time 2 --sample-size 10`; GWN paths improved versus stored baseline, classify prepared showed no statistically significant change.
+    - [ ] Residual doc debt: `cargo doc --no-deps` completes but emits pre-existing rustdoc link warnings; next increment should make docs warning-clean.
+

@@ -246,8 +246,8 @@ mod tests {
         for m in &meshes[1..] {
             acc = match csg_boolean(BooleanOp::Intersection, &acc, m) {
                 Ok(r) => r,
-                Err(_) => {
-                    panic!("5-cube n-ary intersection must not fail");
+                Err(err) => {
+                    panic!("5-cube n-ary intersection must not fail: {err}");
                 }
             };
         }

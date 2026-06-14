@@ -52,20 +52,75 @@ pub(crate) fn classify_kept_fragments(
         .collect();
 
     let component_roots = fragment_component_roots(frags);
-    let mut class_cache: Vec<Option<FragmentClass>> = vec![None; frags.len()];
     let prepared_a = prepare_classification_faces(faces_a, pool);
     let prepared_b = prepare_classification_faces(faces_b, pool);
-    let mut kept_faces: Vec<FaceData> = Vec::new();
 
-    for (frag_index, frag) in frags.iter().enumerate() {
-        let p0 = *pool.position(frag.face.vertices[0]);
-        let p1 = *pool.position(frag.face.vertices[1]);
-        let p2 = *pool.position(frag.face.vertices[2]);
-        let tri = [p0, p1, p2];
+    struct ValidFrag {
+        frag_idx: usize,
+        p0: Point3r,
+        p1: Point3r,
+        p2: Point3r,
+        comp_root: usize,
+    }
 
-        // Exclude fragments fully lying on a coplanar plane; they are handled by
-        // Phase 2c coplanar boolean output.
-        {
+    // Phase 1: Filter out sliver and coplanar fragments, performing lookups and checks exactly once.
+    #[cfg(feature = "parallel")]
+    let valid_frags: Vec<ValidFrag> = {
+        use moirai::ParallelSlice;
+        frags
+            .par()
+            .map_collect(|frag| {
+                let frag_idx =
+                    unsafe { std::ptr::from_ref(frag).offset_from(frags.as_ptr()) } as usize;
+                let p0 = *pool.position(frag.face.vertices[0]);
+                let p1 = *pool.position(frag.face.vertices[1]);
+                let p2 = *pool.position(frag.face.vertices[2]);
+
+                let mut on_any_coplanar_plane = false;
+                for cp in &coplanar_plane_infos {
+                    if !cp.valid_plane {
+                        continue;
+                    }
+                    if orient3d(&cp.a, &cp.b, &cp.c, &p0) == Sign::Zero
+                        && orient3d(&cp.a, &cp.b, &cp.c, &p1) == Sign::Zero
+                        && orient3d(&cp.a, &cp.b, &cp.c, &p2) == Sign::Zero
+                    {
+                        on_any_coplanar_plane = true;
+                        break;
+                    }
+                }
+                if on_any_coplanar_plane {
+                    return None;
+                }
+
+                let tri = [p0, p1, p2];
+                let n = tri_normal(&tri);
+                if is_degenerate_sliver_with_normal(&tri, &n) {
+                    return None;
+                }
+
+                Some(ValidFrag {
+                    frag_idx,
+                    p0,
+                    p1,
+                    p2,
+                    comp_root: component_roots[frag_idx],
+                })
+            })
+            .into_iter()
+            .flatten()
+            .collect()
+    };
+
+    #[cfg(not(feature = "parallel"))]
+    let valid_frags: Vec<ValidFrag> = frags
+        .iter()
+        .enumerate()
+        .filter_map(|(frag_idx, frag)| {
+            let p0 = *pool.position(frag.face.vertices[0]);
+            let p1 = *pool.position(frag.face.vertices[1]);
+            let p2 = *pool.position(frag.face.vertices[2]);
+
             let mut on_any_coplanar_plane = false;
             for cp in &coplanar_plane_infos {
                 if !cp.valid_plane {
@@ -80,81 +135,89 @@ pub(crate) fn classify_kept_fragments(
                 }
             }
             if on_any_coplanar_plane {
-                continue;
+                return None;
             }
-        }
 
-        let n = tri_normal(&tri);
-        let nlen = n.norm();
-        // Scale-relative: compare normal magnitude against edge lengths.
-        let e1 = (p1 - p0).norm();
-        let e2 = (p2 - p0).norm();
-        let edge_product = e1 * e2;
-        let face_normal = if nlen > 1e-10 * edge_product {
-            n / nlen
-        } else {
-            Vector3r::zeros()
-        };
-        let c = centroid(&tri);
-
-        // Skip near-degenerate seam slivers.
-        //
-        // # Theorem — Threshold Correctness
-        //
-        // `SLIVER_AREA_RATIO_SQ = 1e-14` skips faces whose altitude-to-longest-edge
-        // ratio is below `sqrt(1e-14) = 1e-7`.  The minimum valid millifluidic ratio
-        // is ≥ 50 µm / 4 mm × 0.5 correction ≈ 6.25e-3, safely above the threshold.
-        // Numerically degenerate slivers from near-parallel face intersections have
-        // ratios ~1e-10 to 1e-15, correctly below the threshold. ∎
-        {
+            let tri = [p0, p1, p2];
+            let n = tri_normal(&tri);
             if is_degenerate_sliver_with_normal(&tri, &n) {
-                continue;
+                return None;
             }
-        }
 
-        let mut eval_class = |is_a: bool| -> FragmentClass {
-            let comp_root = component_roots[frag_index];
-            if let Some(val) = class_cache[comp_root] {
-                return val;
-            }
-            let val = if is_a {
+            Some(ValidFrag {
+                frag_idx,
+                p0,
+                p1,
+                p2,
+                comp_root: component_roots[frag_idx],
+            })
+        })
+        .collect();
+
+    // Phase 2: Choose one valid representative fragment for each unique connected component root.
+    let mut representatives = vec![None; frags.len()];
+    for (vf_idx, vf) in valid_frags.iter().enumerate() {
+        if representatives[vf.comp_root].is_none() {
+            representatives[vf.comp_root] = Some(vf_idx);
+        }
+    }
+
+    // Phase 3: Classify each unique component root exactly once using its representative.
+    let mut class_cache = vec![None; frags.len()];
+    for root in 0..frags.len() {
+        if let Some(vf_idx) = representatives[root] {
+            let vf = &valid_frags[vf_idx];
+            let frag = &frags[vf.frag_idx];
+            let tri = [vf.p0, vf.p1, vf.p2];
+            let c = centroid(&tri);
+            let n = tri_normal(&tri);
+            let nlen = n.norm();
+            let e1 = (vf.p1 - vf.p0).norm();
+            let e2 = (vf.p2 - vf.p0).norm();
+            let edge_product = e1 * e2;
+            let face_normal = if nlen > 1e-10 * edge_product {
+                n / nlen
+            } else {
+                Vector3r::zeros()
+            };
+
+            let val = if frag.from_a {
                 classify_fragment_prepared(&c, &face_normal, &prepared_b)
             } else {
                 classify_fragment_prepared(&c, &face_normal, &prepared_a)
             };
-            class_cache[comp_root] = Some(val);
-            val
-        };
+            class_cache[root] = Some(val);
+        }
+    }
+
+    // Phase 4: Construct the final list of kept/flipped faces based on cached classifications.
+    let mut kept_faces = Vec::new();
+    for vf in &valid_frags {
+        let class_val = class_cache[vf.comp_root].unwrap_or(FragmentClass::Outside);
+        let frag = &frags[vf.frag_idx];
 
         let (keep, flip) = if frag.from_a {
-            let class_b = eval_class(true);
             match op {
                 BooleanOp::Union => (
-                    class_b == FragmentClass::Outside || class_b == FragmentClass::CoplanarSame,
+                    class_val == FragmentClass::Outside || class_val == FragmentClass::CoplanarSame,
                     false,
                 ),
                 BooleanOp::Intersection => (
-                    class_b == FragmentClass::Inside || class_b == FragmentClass::CoplanarSame,
+                    class_val == FragmentClass::Inside || class_val == FragmentClass::CoplanarSame,
                     false,
                 ),
-                BooleanOp::Difference => (class_b == FragmentClass::Outside, false),
+                BooleanOp::Difference => (class_val == FragmentClass::Outside, false),
             }
         } else {
-            let class_a = eval_class(false);
             match op {
-                BooleanOp::Union => (class_a == FragmentClass::Outside, false),
-                // Binary intersection can place one source fragment centroid in
-                // the coplanar boundary band even when the opposite-source
-                // companion fragment does not survive with identical topology.
-                // Keeping `CoplanarSame` here prevents seam-adjacent barrel
-                // strips from being dropped; exact duplicate faces are removed
-                // later by the canonical finalization pass.
+                BooleanOp::Union => (class_val == FragmentClass::Outside, false),
                 BooleanOp::Intersection => (
-                    class_a == FragmentClass::Inside || class_a == FragmentClass::CoplanarSame,
+                    class_val == FragmentClass::Inside || class_val == FragmentClass::CoplanarSame,
                     false,
                 ),
                 BooleanOp::Difference => (
-                    class_a == FragmentClass::Inside || class_a == FragmentClass::CoplanarOpposite,
+                    class_val == FragmentClass::Inside
+                        || class_val == FragmentClass::CoplanarOpposite,
                     true,
                 ),
             }

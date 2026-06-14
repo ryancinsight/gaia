@@ -374,6 +374,7 @@ fn apply_centroid_splits(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::core::index::RegionId;
     use crate::domain::core::scalar::Point3r;
 
     /// Build a minimal VertexPool with tolerance-based welding.
@@ -393,7 +394,7 @@ mod tests {
         let v0 = insert(&mut pool, 0.0, 0.0, 0.0);
         let v1 = insert(&mut pool, 1.0, 0.0, 0.0);
         let v2 = insert(&mut pool, 0.5, 1.0, 0.0);
-        let mut faces = vec![FaceData::new(v0, v1, v2, Default::default())];
+        let mut faces = vec![FaceData::new(v0, v1, v2, RegionId::default())];
         let before = faces.len();
         refine_high_curvature_faces(&mut faces, &mut pool);
         assert_eq!(faces.len(), before, "flat triangle should not be split");
@@ -411,7 +412,7 @@ mod tests {
         // Apex (high above centre → sharp curvature)
         let apex = insert(&mut pool, 0.0, 0.0, 3.0);
 
-        let r = Default::default();
+        let r = RegionId::default();
         let mut faces = vec![
             FaceData::new(b0, b1, apex, r),
             FaceData::new(b1, b2, apex, r),
@@ -437,7 +438,7 @@ mod tests {
         let v0 = insert(&mut pool, 0.0, 0.0, 0.0);
         let v1 = insert(&mut pool, 1.0, 0.0, 0.0);
         let v2 = insert(&mut pool, 0.5, 1.0, 0.0);
-        let r = Default::default();
+        let r = RegionId::default();
         let mut faces = vec![FaceData::new(v0, v1, v2, r)];
 
         apply_centroid_splits(&mut faces, &mut pool, &[0]);
@@ -468,7 +469,7 @@ mod tests {
             insert(&mut pool, 1.0, 1.0, 1.0), // 6
             insert(&mut pool, 0.0, 1.0, 1.0), // 7
         ];
-        let r = Default::default();
+        let r = RegionId::default();
         let faces = vec![
             // bottom z=0
             FaceData::new(c[0], c[2], c[1], r),
@@ -555,7 +556,7 @@ mod tests {
         let v1 = insert(&mut pool, 1.0, 0.0, 0.0);
         let v2 = insert(&mut pool, 0.5, 1.0, 0.0);
         let v3 = insert(&mut pool, 0.5, -1.0, 0.0);
-        let r = Default::default();
+        let r = RegionId::default();
 
         // Two triangles sharing edge [v0, v1]:
         // Face 0: [v0, v1, v2]  Face 1: [v1, v0, v3]
@@ -592,7 +593,7 @@ mod tests {
         let v1 = insert(&mut pool, 1.0, 0.0, 0.0);
         // v2 is ON edge [v0, v1] → zero-area degenerate triangle.
         let v2 = insert(&mut pool, 0.5, 0.0, 0.0);
-        let mut faces = vec![FaceData::new(v0, v1, v2, Default::default())];
+        let mut faces = vec![FaceData::new(v0, v1, v2, RegionId::default())];
         let before = faces.len();
         refine_high_curvature_faces(&mut faces, &mut pool);
         assert_eq!(faces.len(), before, "degenerate face should not be split");
@@ -610,7 +611,7 @@ mod tests {
         // Need ≥ 3 faces per vertex for curvature estimation.
         let v3 = insert(&mut pool, 5.0, -0.001, 0.0);
         let v4 = insert(&mut pool, 5.0, 0.0, 0.001);
-        let r = Default::default();
+        let r = RegionId::default();
         let faces = vec![
             FaceData::new(v0, v1, v2, r),
             FaceData::new(v0, v1, v3, r),

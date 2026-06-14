@@ -524,7 +524,7 @@ mod tests {
     #[test]
     fn insertion_order_determinism() {
         let eps = 1e-3;
-        let points = vec![
+        let points = [
             pt(0.0, 0.0, 0.0),
             pt(0.5e-3, 0.0, 0.0), // within eps of point 0
             pt(2.0e-3, 0.0, 0.0), // new vertex

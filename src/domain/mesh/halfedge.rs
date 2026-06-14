@@ -116,7 +116,9 @@ impl<'id> HalfEdgeMesh<'id> {
     #[inline]
     #[must_use]
     pub fn vertex_pos(&self, vk: VertexKey, token: &GhostToken<'id>) -> Option<Point3r> {
-        self.vertices.get(vk).map(|cell| cell.borrow(token).position)
+        self.vertices
+            .get(vk)
+            .map(|cell| cell.borrow(token).position)
     }
 
     /// Trace the face's half-edge loop to collect its bounding vertex keys.
@@ -130,11 +132,8 @@ impl<'id> HalfEdgeMesh<'id> {
         };
         let mut vertices = Vec::new();
         let mut current_he = start_he;
-        loop {
-            let he_data = match self.half_edges.get(current_he) {
-                Some(cell) => cell.borrow(token),
-                None => break,
-            };
+        while let Some(cell) = self.half_edges.get(current_he) {
+            let he_data = cell.borrow(token);
             vertices.push(he_data.vertex);
             current_he = he_data.next;
             if current_he == start_he {
@@ -181,13 +180,13 @@ impl<'id> HalfEdgeMesh<'id> {
     }
 }
 
-impl<'id> Default for HalfEdgeMesh<'id> {
+impl Default for HalfEdgeMesh<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'id> std::fmt::Debug for HalfEdgeMesh<'id> {
+impl std::fmt::Debug for HalfEdgeMesh<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("HalfEdgeMesh")
             .field("vertices_count", &self.vertices.len())
