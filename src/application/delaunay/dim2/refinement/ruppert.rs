@@ -55,7 +55,7 @@ use crate::application::delaunay::dim2::triangulation::triangle::{Triangle, Tria
 use crate::domain::core::scalar::Real;
 
 /// A bad triangle entry in the priority queue.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct BadTriangle {
     tid: TriangleId,
     ratio: Real,
@@ -63,7 +63,7 @@ struct BadTriangle {
 
 impl PartialEq for BadTriangle {
     fn eq(&self, other: &Self) -> bool {
-        self.ratio == other.ratio
+        self.cmp(other) == Ordering::Equal
     }
 }
 
@@ -78,9 +78,7 @@ impl PartialOrd for BadTriangle {
 impl Ord for BadTriangle {
     fn cmp(&self, other: &Self) -> Ordering {
         // Max-heap: worst quality first.
-        self.ratio
-            .partial_cmp(&other.ratio)
-            .unwrap_or(Ordering::Equal)
+        self.ratio.total_cmp(&other.ratio)
     }
 }
 
@@ -592,5 +590,30 @@ mod tests {
             tri_count >= 1,
             "CDT must contain triangles after anisotropic refinement"
         );
+    }
+
+    #[test]
+    fn bad_triangle_ordering_is_total() {
+        let nan_a = BadTriangle {
+            tid: TriangleId::new(0),
+            ratio: Real::NAN,
+        };
+        let nan_b = BadTriangle {
+            tid: TriangleId::new(1),
+            ratio: Real::NAN,
+        };
+        assert_eq!(nan_a.cmp(&nan_b), Ordering::Equal);
+        assert_eq!(nan_a, nan_b);
+
+        let negative_zero = BadTriangle {
+            tid: TriangleId::new(2),
+            ratio: -0.0,
+        };
+        let positive_zero = BadTriangle {
+            tid: TriangleId::new(3),
+            ratio: 0.0,
+        };
+        assert_eq!(negative_zero.cmp(&positive_zero), Ordering::Less);
+        assert_ne!(negative_zero, positive_zero);
     }
 }

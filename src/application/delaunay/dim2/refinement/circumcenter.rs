@@ -79,7 +79,7 @@ pub fn off_center(
     let (shortest, shortest_sq) = edges
         .iter()
         .min_by(|(_, d1), (_, d2)| d1.total_cmp(d2))
-        .unwrap();
+        .expect("invariant: static array of 3 elements is never empty");
 
     let shortest_len = shortest_sq.sqrt();
     let mid_x = (shortest.0.x + shortest.1.x) * 0.5;

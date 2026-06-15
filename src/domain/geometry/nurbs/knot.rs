@@ -113,7 +113,16 @@ impl KnotVector {
     /// The parameter domain: `[knots[0], knots[last]]`.
     #[must_use]
     pub fn domain(&self) -> (Real, Real) {
-        (*self.knots.first().unwrap(), *self.knots.last().unwrap())
+        (
+            *self
+                .knots
+                .first()
+                .expect("invariant: KnotVector is non-empty by construction"),
+            *self
+                .knots
+                .last()
+                .expect("invariant: KnotVector is non-empty by construction"),
+        )
     }
 
     /// Find the knot span index `i` such that `ξᵢ ≤ ξ < ξᵢ₊₁`.

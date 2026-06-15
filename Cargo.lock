@@ -3118,10 +3118,6 @@ dependencies = [
 ]
 
 [[patch.unused]]
-name = "mnemosyne-heap"
-version = "0.1.0"
-
-[[patch.unused]]
 name = "moirai-async"
 version = "0.2.0"
 
@@ -3144,3 +3140,7 @@ version = "0.2.0"
 [[patch.unused]]
 name = "moirai-tls"
 version = "0.2.0"
+
+[[patch.unused]]
+name = "mnemosyne-heap"
+version = "0.1.0"
