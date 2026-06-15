@@ -6,6 +6,8 @@ use nalgebra::{Point3, Vector3};
 /// Compute the face normal of a triangle (CCW winding → outward).
 ///
 /// Returns `None` if the triangle is degenerate.
+#[inline]
+#[must_use]
 pub fn triangle_normal<T: Scalar>(
     a: &Point3<T>,
     b: &Point3<T>,
@@ -22,16 +24,37 @@ pub fn triangle_normal<T: Scalar>(
 }
 
 /// Area-weighted normal of a triangle (magnitude = 2 × area).
+///
+/// Cheaper than `triangle_normal` when the caller only needs the direction sign,
+/// not the unit normal.
+#[inline]
+#[must_use]
 pub fn triangle_area_normal<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> Vector3<T> {
     let ab = b - a;
     let ac = c - a;
     ab.cross(&ac)
 }
 
+/// Centroid (arithmetic mean) of a triangle.
+///
+/// Canonical SSOT implementation — used by CSG classify, GWN, and channel builders.
+/// Avoids the O(1) `to_f64()` cast chain found in duplicate implementations.
+#[inline]
+#[must_use]
+pub fn triangle_centroid<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> Point3<T> {
+    let third = <T as Scalar>::from_f64(1.0 / 3.0);
+    Point3::new(
+        (a.x + b.x + c.x) * third,
+        (a.y + b.y + c.y) * third,
+        (a.z + b.z + c.z) * third,
+    )
+}
+
 /// Newell's method for computing the normal of a polygon with ≥3 vertices.
 ///
 /// Robust for non-planar polygons and concave cases.
 /// Returns `None` if the polygon is degenerate.
+#[inline]
 pub fn newell_normal<T: Scalar>(vertices: &[Point3<T>]) -> Option<Vector3<T>> {
     if vertices.len() < 3 {
         return None;
@@ -55,6 +78,7 @@ pub fn newell_normal<T: Scalar>(vertices: &[Point3<T>]) -> Option<Vector3<T>> {
 /// Compute vertex normal by averaging adjacent face normals.
 ///
 /// Returns normalised average, or `None` if all normals cancel.
+#[inline]
 pub fn average_normal<'a, T: Scalar + 'a>(
     face_normals: impl Iterator<Item = &'a Vector3<T>>,
 ) -> Option<Vector3<T>> {
@@ -77,6 +101,7 @@ pub fn average_normal<'a, T: Scalar + 'a>(
 /// Angle-weighted vertex normal: weight each face normal by the interior angle.
 ///
 /// `faces`: iterator of `(face_normal, angle_at_vertex)` pairs.
+#[inline]
 pub fn angle_weighted_normal<T: Scalar>(
     faces: impl Iterator<Item = (Vector3<T>, T)>,
 ) -> Option<Vector3<T>> {

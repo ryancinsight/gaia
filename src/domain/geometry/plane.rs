@@ -28,12 +28,14 @@ pub struct Plane {
 
 impl Plane {
     /// Create a plane from a normal and signed distance.
+    #[inline]
     #[must_use]
     pub fn new(normal: Vector3r, w: Real) -> Self {
         Self { normal, w }
     }
 
     /// Create a plane from a normal and a point on the plane.
+    #[inline]
     #[must_use]
     pub fn from_normal_and_point(normal: Vector3r, point: &Point3r) -> Self {
         let n = normal.normalize();
@@ -42,6 +44,7 @@ impl Plane {
     }
 
     /// Create a plane from three non-collinear points (CCW winding → outward normal).
+    #[inline]
     #[must_use]
     pub fn from_three_points(a: &Point3r, b: &Point3r, c: &Point3r) -> Option<Self> {
         let ab = b - a;
@@ -87,6 +90,7 @@ impl Plane {
     }
 
     /// Flip the plane (reverse normal and w).
+    #[inline]
     #[must_use]
     pub fn flip(&self) -> Self {
         Self {
@@ -98,12 +102,14 @@ impl Plane {
     /// Compute the intersection parameter `t` along the line segment `a → b`.
     ///
     /// Returns `None` if the segment is parallel to the plane.
+    #[inline]
     #[must_use]
     pub fn intersect_segment(&self, a: &Point3r, b: &Point3r) -> Option<Real> {
         self.intersect_segment_with_eps(a, b, TOLERANCE)
     }
 
     /// Compute the intersection parameter with a custom epsilon.
+    #[inline]
     #[must_use]
     pub fn intersect_segment_with_eps(&self, a: &Point3r, b: &Point3r, eps: Real) -> Option<Real> {
         let da = self.signed_distance(a);
@@ -119,6 +125,7 @@ impl Plane {
 }
 
 impl PartialEq for Plane {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         (self.normal - other.normal).norm() < TOLERANCE && (self.w - other.w).abs() < TOLERANCE
     }

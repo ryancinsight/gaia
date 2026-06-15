@@ -18,6 +18,7 @@ pub struct FaceData {
 
 impl FaceData {
     /// Create a new face.
+    #[inline]
     #[must_use]
     pub const fn new(v0: VertexId, v1: VertexId, v2: VertexId, region: RegionId) -> Self {
         Self {
@@ -27,6 +28,7 @@ impl FaceData {
     }
 
     /// Create a face with no region tag.
+    #[inline]
     #[must_use]
     pub const fn untagged(v0: VertexId, v1: VertexId, v2: VertexId) -> Self {
         Self {
@@ -36,11 +38,13 @@ impl FaceData {
     }
 
     /// Flip the winding order (swap v1 ↔ v2).
+    #[inline]
     pub fn flip(&mut self) {
         self.vertices.swap(1, 2);
     }
 
     /// Return a flipped copy.
+    #[inline]
     #[must_use]
     pub const fn flipped(&self) -> Self {
         Self {
@@ -52,6 +56,7 @@ impl FaceData {
     /// The three edges as ordered vertex-ID pairs `(smaller, larger)`.
     ///
     /// Canonical ordering ensures edge identity regardless of face winding.
+    #[inline]
     #[must_use]
     pub fn edges_canonical(&self) -> [(VertexId, VertexId); 3] {
         let [a, b, c] = self.vertices;
@@ -63,6 +68,7 @@ impl FaceData {
     }
 
     /// The three directed edges (preserving winding).
+    #[inline]
     #[must_use]
     pub fn edges_directed(&self) -> [(VertexId, VertexId); 3] {
         let [a, b, c] = self.vertices;
@@ -70,12 +76,14 @@ impl FaceData {
     }
 
     /// Check if this face contains a specific vertex.
+    #[inline]
     #[must_use]
     pub fn contains_vertex(&self, v: VertexId) -> bool {
         self.vertices.contains(&v)
     }
 
     /// The vertex opposite to a given edge.
+    #[inline]
     #[must_use]
     pub fn opposite_vertex(&self, edge: (VertexId, VertexId)) -> Option<VertexId> {
         self.vertices
@@ -132,6 +140,7 @@ impl FaceStore {
     }
 
     /// Add a face, returning its ID.
+    #[inline]
     pub fn push(&mut self, face: FaceData) -> FaceId {
         let id = FaceId::from_usize(self.faces.len());
         self.faces.push(face);
@@ -139,16 +148,19 @@ impl FaceStore {
     }
 
     /// Remove the last face.
+    #[inline]
     pub fn pop(&mut self) -> Option<FaceData> {
         self.faces.pop()
     }
 
     /// Add a triangle from three vertex IDs (untagged).
+    #[inline]
     pub fn add_triangle(&mut self, v0: VertexId, v1: VertexId, v2: VertexId) -> FaceId {
         self.push(FaceData::untagged(v0, v1, v2))
     }
 
     /// Add a triangle with a region tag.
+    #[inline]
     pub fn add_triangle_with_region(
         &mut self,
         v0: VertexId,
@@ -173,16 +185,19 @@ impl FaceStore {
     }
 
     /// Iterate all faces.
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &FaceData> {
         self.faces.iter()
     }
 
     /// Mutable iterate.
+    #[inline]
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut FaceData> {
         self.faces.iter_mut()
     }
 
     /// Iterate with IDs.
+    #[inline]
     pub fn iter_enumerated(&self) -> impl Iterator<Item = (FaceId, &FaceData)> {
         self.faces
             .iter()
@@ -191,6 +206,7 @@ impl FaceStore {
     }
 
     /// Mutable iterate with IDs.
+    #[inline]
     pub fn iter_mut_enumerated(&mut self) -> impl Iterator<Item = (FaceId, &mut FaceData)> {
         self.faces
             .iter_mut()

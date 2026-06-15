@@ -95,12 +95,23 @@ impl EdgeStore {
     }
 
     /// Build from a face store directly.
+    ///
+    /// Drives the inner registration loop without an intermediate `Vec` allocation.
     #[must_use]
     pub fn from_face_store(
         face_store: &crate::infrastructure::storage::face_store::FaceStore,
     ) -> Self {
-        let pairs: Vec<_> = face_store.iter_enumerated().collect();
-        Self::from_faces(&pairs)
+        let cap = face_store.len().saturating_mul(3) / 2;
+        let mut store = Self {
+            edges: Vec::with_capacity(cap),
+            edge_map: HashMap::with_capacity(cap),
+        };
+        for (face_id, face) in face_store.iter_enumerated() {
+            for (a, b) in face.edges_canonical() {
+                store.register_edge(a, b, face_id);
+            }
+        }
+        store
     }
 
     /// Register an edge between `a` and `b` as belonging to `face`.
@@ -144,6 +155,7 @@ impl EdgeStore {
     }
 
     /// Look up an edge by its canonical vertex pair.
+    #[inline]
     #[must_use]
     pub fn find_edge(&self, a: VertexId, b: VertexId) -> Option<EdgeId> {
         let key = if a.0 <= b.0 { (a, b) } else { (b, a) };
@@ -151,11 +163,13 @@ impl EdgeStore {
     }
 
     /// Iterate over all edges.
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &EdgeData> {
         self.edges.iter()
     }
 
     /// Iterate with IDs.
+    #[inline]
     pub fn iter_enumerated(&self) -> impl Iterator<Item = (EdgeId, &EdgeData)> {
         self.edges
             .iter()
