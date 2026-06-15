@@ -106,11 +106,14 @@ impl LaplacianSmoother {
         let num_real = dt.num_real_vertices;
         let _ = dt;
 
+        // Allocate new_positions once before the loop; reset to None each iteration
+        // to avoid per-iteration heap allocation (Jacobi update buffer).
+        let n_verts = cdt.triangulation().vertices().len();
+        let mut new_positions: Vec<Option<(Real, Real)>> = vec![None; n_verts];
+
         for _ in 0..self.max_iter {
-            // Collect all updated positions before applying them (Jacobi update).
-            // This prevents the order of iteration from affecting the result.
-            let mut new_positions: Vec<Option<(Real, Real)>> =
-                vec![None; cdt.triangulation().vertices().len()];
+            // Reset before each Jacobi pass; `fill` is memset-equivalent.
+            new_positions.fill(None);
 
             let dt = cdt.triangulation();
             for raw in 0..num_real {

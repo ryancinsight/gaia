@@ -186,6 +186,7 @@ pub fn retriangulate_cavity(
 }
 
 /// Check if point `p` lies strictly inside triangle `(a, b, c)` (CCW).
+#[inline]
 fn point_in_triangle(
     a: &Point2<Real>,
     b: &Point2<Real>,

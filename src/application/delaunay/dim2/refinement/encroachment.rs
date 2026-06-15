@@ -129,6 +129,19 @@ pub fn encroaching_vertex(
     None
 }
 
+/// Core diametral-circle test: returns `true` if point `(px, py)` lies strictly
+/// inside the circle with centre `(cx, cy)` and squared radius `rsq`.
+///
+/// Uses a scale-relative tolerance: $\varepsilon = \max(r^2, 1) \cdot 10^{-14}$
+/// so that the threshold adapts to the coordinate magnitude.
+#[inline]
+fn in_diametral_circle(px: Real, py: Real, cx: Real, cy: Real, rsq: Real) -> bool {
+    let dx = px - cx;
+    let dy = py - cy;
+    let tol = rsq.max(1.0) * 1e-14;
+    dx * dx + dy * dy < rsq - tol
+}
+
 /// Test whether vertex `v` lies strictly inside the diametral circle
 /// centred at `(cx, cy)` with squared radius `rsq`.
 ///
@@ -137,11 +150,7 @@ pub fn encroaching_vertex(
 /// coordinate magnitude.
 #[inline]
 fn vertex_in_diametral(v: &PslgVertex, cx: Real, cy: Real, rsq: Real) -> bool {
-    let dx = v.x - cx;
-    let dy = v.y - cy;
-    let dsq = dx * dx + dy * dy;
-    let tol = rsq.max(1.0) * 1e-14;
-    dsq < rsq - tol
+    in_diametral_circle(v.x, v.y, cx, cy, rsq)
 }
 
 /// Check if a point `(px, py)` encroaches the segment between vertices
@@ -154,10 +163,5 @@ pub fn point_encroaches_segment(va: &PslgVertex, vb: &PslgVertex, px: Real, py: 
     let cx = (va.x + vb.x) * 0.5;
     let cy = (va.y + vb.y) * 0.5;
     let rsq = va.dist_sq(vb) * 0.25;
-
-    let dx = px - cx;
-    let dy = py - cy;
-    let dsq = dx * dx + dy * dy;
-    let tol = rsq.max(1.0) * 1e-14;
-    dsq < rsq - tol
+    in_diametral_circle(px, py, cx, cy, rsq)
 }

@@ -336,7 +336,7 @@ impl DelaunayTriangulation {
     ///
     /// Splits `tid` into 3 sub-triangles and restores Delaunay via edge flips.
     fn insert_in_triangle(&mut self, vid: PslgVertexId, tid: TriangleId) {
-        let old = self.triangles[tid.idx()].clone();
+        let old = self.triangles[tid.idx()];
         let [v0, v1, v2] = old.vertices;
         let [a0, a1, a2] = old.adj;
 
@@ -390,8 +390,8 @@ impl DelaunayTriangulation {
             return;
         }
 
-        let old_t = self.triangles[tid.idx()].clone();
-        let old_n = self.triangles[nbr_tid.idx()].clone();
+        let old_t = self.triangles[tid.idx()];
+        let old_n = self.triangles[nbr_tid.idx()];
 
         // Vertices of tid: v_opp is opposite the shared edge.
         let v_opp_t = old_t.vertices[edge];
@@ -470,7 +470,7 @@ impl DelaunayTriangulation {
 
     /// Handle the special case where the edge is on the hull boundary.
     fn insert_on_hull_edge(&mut self, vid: PslgVertexId, tid: TriangleId, edge: usize) {
-        let old = self.triangles[tid.idx()].clone();
+        let old = self.triangles[tid.idx()];
         let v_opp = old.vertices[edge];
         let (va, vb) = old.edge_vertices(edge);
 
@@ -655,6 +655,7 @@ impl DelaunayTriangulation {
     }
 
     /// Check if a triangle is incident to a super-triangle vertex.
+    #[inline]
     fn is_super_triangle(&self, tri: &Triangle) -> bool {
         tri.vertices.iter().any(|v| self.super_verts.contains(v))
     }
@@ -799,7 +800,7 @@ impl DelaunayTriangulation {
         let mut write = 0;
         for read in 0..n {
             if self.triangles[read].alive {
-                self.triangles[write] = self.triangles[read].clone();
+                self.triangles[write] = self.triangles[read];
                 for a in &mut self.triangles[write].adj {
                     if *a != GHOST_TRIANGLE {
                         *a = remap[a.idx()];

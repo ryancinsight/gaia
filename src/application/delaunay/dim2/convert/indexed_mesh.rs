@@ -23,6 +23,8 @@ use hashbrown::HashMap;
 /// included.  The triangulation's 2-D vertices are embedded at `z = 0`
 /// with normals `(0, 0, 1)`.
 ///
+/// This is a convenience wrapper around [`to_indexed_mesh_at_z`] with `z = 0`.
+///
 /// # Arguments
 ///
 /// - `dt`: the Delaunay triangulation (or CDT) to convert
@@ -32,38 +34,23 @@ use hashbrown::HashMap;
 /// A new `IndexedMesh<f64>` containing the triangulation.
 #[must_use]
 pub fn to_indexed_mesh(dt: &DelaunayTriangulation) -> IndexedMesh<f64> {
-    let mut mesh = IndexedMesh::<f64>::new();
-
-    let normal = Vector3::new(0.0, 0.0, 1.0);
-
-    // Map from PslgVertexId → VertexId in the IndexedMesh.
-    let n = dt.vertices().len();
-    let mut id_map: HashMap<usize, VertexId> = HashMap::with_capacity(n);
-
-    // Only insert vertices referenced by interior triangles.
-    for (_, tri) in dt.interior_triangles() {
-        for &vid in &tri.vertices {
-            id_map.entry(vid.idx()).or_insert_with(|| {
-                let v = dt.vertex(vid);
-                let pos = Point3::new(v.x, v.y, 0.0);
-                mesh.add_vertex(pos, normal)
-            });
-        }
-    }
-
-    // Insert faces.
-    for (_, tri) in dt.interior_triangles() {
-        let v0 = id_map[&tri.vertices[0].idx()];
-        let v1 = id_map[&tri.vertices[1].idx()];
-        let v2 = id_map[&tri.vertices[2].idx()];
-        mesh.add_face(v0, v1, v2);
-    }
-
-    mesh
+    to_indexed_mesh_at_z(dt, 0.0)
 }
 
-/// Convert a `DelaunayTriangulation` into an `IndexedMesh<f64>` with a
-/// prescribed z-coordinate for the embedding plane.
+/// Convert a `DelaunayTriangulation` into an `IndexedMesh<f64>` embedded in
+/// the plane at height `z`.
+///
+/// Only interior triangles (not touching super-triangle vertices) are
+/// included.  All vertices receive a `(0, 0, 1)` normal.
+///
+/// # Arguments
+///
+/// - `dt`: the Delaunay triangulation (or CDT) to convert
+/// - `z`: the z-coordinate of the embedding plane
+///
+/// # Returns
+///
+/// A new `IndexedMesh<f64>` containing the triangulation.
 #[must_use]
 pub fn to_indexed_mesh_at_z(dt: &DelaunayTriangulation, z: Real) -> IndexedMesh<f64> {
     let mut mesh = IndexedMesh::<f64>::new();
@@ -72,6 +59,7 @@ pub fn to_indexed_mesh_at_z(dt: &DelaunayTriangulation, z: Real) -> IndexedMesh<
     let n = dt.vertices().len();
     let mut id_map: HashMap<usize, VertexId> = HashMap::with_capacity(n);
 
+    // Only insert vertices referenced by interior triangles.
     for (_, tri) in dt.interior_triangles() {
         for &vid in &tri.vertices {
             id_map.entry(vid.idx()).or_insert_with(|| {
@@ -82,6 +70,7 @@ pub fn to_indexed_mesh_at_z(dt: &DelaunayTriangulation, z: Real) -> IndexedMesh<
         }
     }
 
+    // Insert faces.
     for (_, tri) in dt.interior_triangles() {
         let v0 = id_map[&tri.vertices[0].idx()];
         let v1 = id_map[&tri.vertices[1].idx()];

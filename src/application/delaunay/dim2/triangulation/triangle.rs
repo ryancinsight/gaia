@@ -79,7 +79,7 @@ pub const GHOST_TRIANGLE: TriangleId = TriangleId(u32::MAX);
 ///   or [`GHOST_TRIANGLE`] if that edge is on the convex hull boundary.
 /// - If `alive` is `false`, the triangle has been logically deleted
 ///   (tombstone) and will be skipped during iteration.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Triangle {
     /// Three vertex indices in counter-clockwise order.
     pub vertices: [PslgVertexId; 3],
@@ -95,6 +95,7 @@ pub struct Triangle {
 
 impl Triangle {
     /// Create a new triangle with the given vertices and no adjacency.
+    #[inline]
     #[must_use]
     pub fn new(v0: PslgVertexId, v1: PslgVertexId, v2: PslgVertexId) -> Self {
         Self {

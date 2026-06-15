@@ -117,7 +117,7 @@ impl Cdt {
 
         let mut cdt = Self {
             dt,
-            constrained_edges: HashSet::new(),
+            constrained_edges: HashSet::with_capacity(pslg.segments().len()),
         };
 
         // Enforce each constraint segment.
@@ -512,9 +512,9 @@ impl Cdt {
     ///
     /// $O(1)$: fixed number of array writes and adjacency patches.
     fn perform_flip(&mut self, tid: TriangleId, edge: usize) {
-        let tri = self.dt.triangle(tid).clone();
+        let tri = *self.dt.triangle(tid);
         let nbr_tid = tri.adj[edge];
-        let nbr = self.dt.triangle(nbr_tid).clone();
+        let nbr = *self.dt.triangle(nbr_tid);
 
         let nbr_edge = nbr.shared_edge(tid).expect("adjacency broken");
 
@@ -625,7 +625,7 @@ impl Cdt {
     /// case $O(n)$.
     fn restore_delaunay_near_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
         // Seed the stack with all non-constrained edges around both endpoints.
-        let mut stack: Vec<(TriangleId, usize)> = Vec::new();
+        let mut stack: Vec<(TriangleId, usize)> = Vec::with_capacity(24);
         for &v in &[a, b] {
             let star = self.dt.triangles_around_vertex(v);
             for tid in star {
@@ -741,7 +741,7 @@ impl Cdt {
         visited[seed_tid.idx()] = true;
 
         while let Some(tid) = queue.pop_front() {
-            let tri = self.dt.triangle(tid).clone();
+            let tri = *self.dt.triangle(tid);
             self.dt.triangle_mut(tid).alive = false;
 
             for edge in 0..3 {
@@ -779,7 +779,7 @@ impl Cdt {
                 continue;
             }
             let tid = TriangleId::from_usize(i);
-            let tri = self.dt.triangle(tid).clone();
+            let tri = *self.dt.triangle(tid);
             for edge in 0..3 {
                 let nbr = tri.adj[edge];
                 if nbr == GHOST_TRIANGLE || visited[nbr.idx()] {

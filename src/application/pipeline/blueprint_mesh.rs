@@ -1369,7 +1369,9 @@ fn build_venturi_chain_mesh(
         let path_tmp =
             ChannelPath::straight(Point3r::new(end_pos.x - 1.0, end_pos.y, end_pos.z), end_pos);
         let frames = path_tmp.compute_frames();
-        let frame = frames.last().unwrap();
+        let frame = frames
+            .last()
+            .expect("invariant: compute_frames on a 2-point straight path always yields ≥1 frame");
         let center = pool.insert_or_weld(end_pos, frame.tangent);
         let ring = &segment_rings[n_seg - 1].1;
         let n = ring.len();
@@ -1434,7 +1436,12 @@ fn label_boundaries(
 
     let outlet_positions: Vec<Point3r> = match class {
         TopologyClass::LinearChain { .. } | TopologyClass::VenturiChain => {
-            vec![layout.last().unwrap().end]
+            vec![
+                layout
+                    .last()
+                    .expect("invariant: layout has ≥n_seg≥1 segments")
+                    .end,
+            ]
         }
         TopologyClass::ParallelArray { .. } => {
             // Every channel has its own outlet cap at x = chip_w.

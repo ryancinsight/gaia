@@ -360,7 +360,8 @@ impl Pslg {
             }
         }
 
-        let mut seen: HashMap<(PslgVertexId, PslgVertexId), PslgSegmentId> = HashMap::new();
+        let mut seen: HashMap<(PslgVertexId, PslgVertexId), PslgSegmentId> =
+            HashMap::with_capacity(self.segments.len());
         for (idx, seg) in self.segments.iter().copied().enumerate() {
             let sid = PslgSegmentId::from_usize(idx);
             let key = seg.canonical();

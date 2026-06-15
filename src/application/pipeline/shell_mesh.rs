@@ -180,9 +180,15 @@ impl ShellMeshPipeline {
             }
             for face in &faces {
                 port_mesh.add_face_with_region(
-                    *vmap.get(&face.vertices[0]).unwrap(),
-                    *vmap.get(&face.vertices[1]).unwrap(),
-                    *vmap.get(&face.vertices[2]).unwrap(),
+                    *vmap
+                        .get(&face.vertices[0])
+                        .expect("invariant: face vertex in vmap, inserted above"),
+                    *vmap
+                        .get(&face.vertices[1])
+                        .expect("invariant: face vertex in vmap, inserted above"),
+                    *vmap
+                        .get(&face.vertices[2])
+                        .expect("invariant: face vertex in vmap, inserted above"),
                     face.region,
                 );
             }

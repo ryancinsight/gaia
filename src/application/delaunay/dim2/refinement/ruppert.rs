@@ -322,8 +322,8 @@ impl RuppertRefiner {
 
     /// Build the initial priority queue of bad triangles.
     fn build_bad_queue(&self) -> BinaryHeap<BadTriangle> {
-        let mut queue = BinaryHeap::new();
         let dt = self.cdt.triangulation();
+        let mut queue = BinaryHeap::with_capacity(dt.triangles_slice().len() / 4 + 8);
 
         for (tid, tri) in dt.interior_triangles() {
             let q = self.triangle_quality(tri);

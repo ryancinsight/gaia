@@ -115,18 +115,20 @@ impl TriangleQuality {
     }
 
     /// Check if the triangle quality satisfies the given radius-edge ratio bound.
+    #[inline]
     #[must_use]
     pub fn is_good(&self, max_ratio: Real) -> bool {
         self.radius_edge_ratio <= max_ratio
     }
 
     /// Minimum angle in degrees.
+    #[inline]
     #[must_use]
     pub fn min_angle_deg(&self) -> Real {
         self.min_angle_rad.to_degrees()
     }
 
-    /// Compute the minimum interior angle of a triangle given edge lengths.
+    #[inline]
     fn min_interior_angle(ab: Real, bc: Real, ca: Real) -> Real {
         // Angle at A (between edges AB and CA): cos A = (AB² + CA² - BC²) / (2·AB·CA)
         let cos_a = (ab * ab + ca * ca - bc * bc) / (2.0 * ab * ca);

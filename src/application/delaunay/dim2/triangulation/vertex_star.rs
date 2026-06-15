@@ -102,6 +102,7 @@ impl DelaunayTriangulation {
     /// Check whether edge (a, b) exists in the triangulation.
     ///
     /// Uses the vertex-star walk: O(deg(a)) ≈ O(6) instead of O(T).
+    #[inline]
     pub(crate) fn edge_exists_fast(&self, a: PslgVertexId, b: PslgVertexId) -> bool {
         for tid in self.triangles_around_vertex(a) {
             let tri = &self.triangles[tid.idx()];
@@ -115,6 +116,7 @@ impl DelaunayTriangulation {
     /// Find the triangle containing edge (a, b) and the local edge index.
     ///
     /// Uses the vertex-star walk: O(deg(a)) instead of O(T).
+    #[inline]
     pub(crate) fn find_edge_fast(
         &self,
         a: PslgVertexId,
