@@ -189,6 +189,8 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
     // Within each component we still pick the extremal (+X) face as seed by
     // scanning only the as-yet-unvisited range starting from `seed_cursor`.
     let mut seed_cursor = 0usize;
+    let mut queue: std::collections::VecDeque<usize> =
+        std::collections::VecDeque::with_capacity(n_faces);
 
     // Outer loop handles disconnected patches (multiple connected components).
     loop {
@@ -226,7 +228,7 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
         let seed_is_outward = seed_normal.x >= 0.0;
         orientation[seed_fi] = Some(seed_is_outward);
 
-        let mut queue: std::collections::VecDeque<usize> = std::collections::VecDeque::new();
+        queue.clear();
         queue.push_back(seed_fi);
 
         while let Some(fi) = queue.pop_front() {

@@ -84,7 +84,7 @@ pub fn fix_orientation(face_store: &mut FaceStore, edge_store: &EdgeStore) -> us
     // membership in hot repair paths.
     let mut visited = vec![false; n_faces];
     let mut flipped = 0usize;
-    let mut queue = std::collections::VecDeque::new();
+    let mut queue = std::collections::VecDeque::with_capacity(n_faces);
 
     // Traverse every disconnected component. Seeding only face 0 leaves
     // orientation defects untouched in later components.
