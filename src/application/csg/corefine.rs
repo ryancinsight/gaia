@@ -800,6 +800,7 @@ fn project_2d(p: Point3r, axis_u: usize, axis_v: usize) -> (Real, Real) {
 /// intersection of its three directed edge half-planes. Exact predicate signs
 /// evaluate those half-plane memberships without floating-point sign errors.
 /// Boundary points correspond to degenerate orientation on one or more edges. ∎
+#[inline]
 fn inside_triangle(
     p: Point3r,
     a: Point3r,

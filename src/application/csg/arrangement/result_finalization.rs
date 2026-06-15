@@ -29,7 +29,7 @@ pub(crate) fn finalize_boolean_faces(result_faces: &mut Vec<FaceData>, pool: &mu
     let preview_report = check_watertight(
         &preview.vertices,
         &preview.faces,
-        preview.edges_ref().unwrap(),
+        preview.edges_ref().expect("invariant: edges are rebuilt"),
     );
     if preview_report.is_watertight {
         refine_high_curvature_faces(result_faces, pool);
@@ -48,7 +48,9 @@ pub(crate) fn finalize_boolean_faces(result_faces: &mut Vec<FaceData>, pool: &mu
     let post_report = check_watertight(
         &post_check.vertices,
         &post_check.faces,
-        post_check.edges_ref().unwrap(),
+        post_check
+            .edges_ref()
+            .expect("invariant: edges are rebuilt"),
     );
     if post_report.is_watertight {
         refine_high_curvature_faces(result_faces, pool);

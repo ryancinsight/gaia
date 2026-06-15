@@ -79,8 +79,11 @@ impl Histogram {
         for i in 0..=n_bins {
             edges.push(min + i as Real * bin_w);
         }
-        // Ensure the last edge is exactly max (floating-point safety).
-        *edges.last_mut().unwrap() = max + Real::EPSILON;
+        // Invariant: the 0..=n_bins loop pushes n_bins+1 elements, so `edges` is always non-empty.
+        *edges
+            .last_mut()
+            .expect("invariant: edges has n_bins+1 elements, always non-empty") =
+            max + Real::EPSILON;
 
         let mut bins = vec![0usize; n_bins];
         let inv_w = 1.0 / bin_w;

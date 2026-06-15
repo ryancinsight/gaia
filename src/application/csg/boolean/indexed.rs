@@ -9,6 +9,24 @@ use crate::domain::mesh::IndexedMesh;
 use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
+/// Path-compressing union-find: return the root of `x` with halving compression.
+///
+/// # Invariant
+/// `parent[root] == root`. Path halving rewrites each traversed node to its
+/// grandparent, shortening future finds without allocating an auxiliary stack.
+///
+/// This is the single canonical implementation shared by all union-find phases in
+/// this module. Previously duplicated as `find_cdf` in `collapse_degenerate_faces`
+/// and `find` in `merge_coincident_vertices` — both are now removed.
+#[inline(always)]
+fn uf_find(parent: &mut [u32], mut x: u32) -> u32 {
+    while parent[x as usize] != x {
+        parent[x as usize] = parent[parent[x as usize] as usize];
+        x = parent[x as usize];
+    }
+    x
+}
+
 /// High-level binary boolean operation on two [`IndexedMesh`] objects.
 ///
 /// Merges both vertex pools into a shared [`VertexPool`] via `insert_or_weld`
@@ -304,6 +322,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
     /// Delegates to `euler_chi_from_stores` — the canonical SSOT implementation
     /// in `watertight::check`. Compared to the previous two-HashSet inline,
     /// this eliminates the O(F) edge-counting HashSet by reusing `EdgeStore::len()`.
+    #[inline]
     fn euler_chi(mesh: &IndexedMesh) -> i64 {
         let edge_store =
             crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
@@ -315,7 +334,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
         let mut report = crate::application::watertight::check::check_watertight(
             &mesh.vertices,
             &mesh.faces,
-            mesh.edges_ref().unwrap(),
+            mesh.edges_ref().expect("invariant: edges are rebuilt"),
         );
         if !report.is_watertight {
             // Phase 1: Orientation repair.
@@ -328,7 +347,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                 report = crate::application::watertight::check::check_watertight(
                     &mesh.vertices,
                     &mesh.faces,
-                    mesh.edges_ref().unwrap(),
+                    mesh.edges_ref().expect("invariant: edges are rebuilt"),
                 );
 
                 if !report.is_watertight && report.is_closed && !report.orientation_consistent {
@@ -344,7 +363,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                     report = crate::application::watertight::check::check_watertight(
                         &mesh.vertices,
                         &mesh.faces,
-                        mesh.edges_ref().unwrap(),
+                        mesh.edges_ref().expect("invariant: edges are rebuilt"),
                     );
                 }
             }
@@ -370,7 +389,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                     report = crate::application::watertight::check::check_watertight(
                         &mesh.vertices,
                         &mesh.faces,
-                        mesh.edges_ref().unwrap(),
+                        mesh.edges_ref().expect("invariant: edges are rebuilt"),
                     );
                 }
             }
@@ -388,7 +407,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                     report = crate::application::watertight::check::check_watertight(
                         &mesh.vertices,
                         &mesh.faces,
-                        mesh.edges_ref().unwrap(),
+                        mesh.edges_ref().expect("invariant: edges are rebuilt"),
                     );
                 }
             }
@@ -485,7 +504,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                 report = crate::application::watertight::check::check_watertight(
                     &mesh.vertices,
                     &mesh.faces,
-                    mesh.edges_ref().unwrap(),
+                    mesh.edges_ref().expect("invariant: edges are rebuilt"),
                 );
             }
 
@@ -500,7 +519,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                     report = crate::application::watertight::check::check_watertight(
                         &mesh.vertices,
                         &mesh.faces,
-                        mesh.edges_ref().unwrap(),
+                        mesh.edges_ref().expect("invariant: edges are rebuilt"),
                     );
 
                     // Attempt 2: fix_orientation (edge-store mutual-flip BFS).
@@ -521,7 +540,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
                         report = crate::application::watertight::check::check_watertight(
                             &mesh.vertices,
                             &mesh.faces,
-                            mesh.edges_ref().unwrap(),
+                            mesh.edges_ref().expect("invariant: edges are rebuilt"),
                         );
                     }
                 }
@@ -546,7 +565,7 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
         let pre_fin_report = crate::application::watertight::check::check_watertight(
             &mesh.vertices,
             &mesh.faces,
-            mesh.edges_ref().unwrap(),
+            mesh.edges_ref().expect("invariant: edges are rebuilt"),
         );
         if pre_fin_report.is_watertight {
             mesh.orient_outward();
@@ -625,14 +644,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
         let n = mesh.vertices.len();
         if n > 0 {
             let mut parent: Vec<u32> = (0..n as u32).collect();
-            #[inline(always)]
-            fn find_cdf(parent: &mut [u32], mut x: u32) -> u32 {
-                while parent[x as usize] != x {
-                    parent[x as usize] = parent[parent[x as usize] as usize];
-                    x = parent[x as usize];
-                }
-                x
-            }
+
             // Scan all faces: for each degenerate face with a near-coincident
             // vertex pair, union those two vertices.
             // Uses same scale-relative degenerate criterion as main loop.
@@ -663,15 +675,15 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
                 } else {
                     (face.vertices[2], face.vertices[0])
                 };
-                let ck = find_cdf(&mut parent, keep.0);
-                let cr = find_cdf(&mut parent, remove.0);
+                let ck = uf_find(&mut parent, keep.0);
+                let cr = uf_find(&mut parent, remove.0);
                 if ck != cr {
                     let (lo, hi) = if ck < cr { (ck, cr) } else { (cr, ck) };
                     parent[hi as usize] = lo;
                 }
             }
             // Flatten and check if any merges occurred.
-            let dedup: Vec<u32> = (0..n).map(|i| find_cdf(&mut parent, i as u32)).collect();
+            let dedup: Vec<u32> = (0..n).map(|i| uf_find(&mut parent, i as u32)).collect();
             let has_merges = dedup.iter().enumerate().any(|(i, &d)| d != i as u32);
             if has_merges {
                 // Rewrite face references in one pass.
@@ -1037,7 +1049,8 @@ fn split_non_manifold_vertices(mesh: &mut IndexedMesh) {
     use std::collections::VecDeque;
 
     // Step 1: build vertex → face-index map.
-    let mut vertex_faces: hashbrown::HashMap<VertexId, Vec<usize>> = hashbrown::HashMap::new();
+    let mut vertex_faces: hashbrown::HashMap<VertexId, Vec<usize>> =
+        hashbrown::HashMap::with_capacity(mesh.vertices.len());
     for (fi, face) in mesh.faces.iter().enumerate() {
         for &v in &face.vertices {
             vertex_faces.entry(v).or_default().push(fi);
@@ -1205,7 +1218,8 @@ fn split_figure8_pinch_vertices(mesh: &mut IndexedMesh) -> usize {
     use std::collections::VecDeque;
 
     // Build vertex → face-index map.
-    let mut vertex_faces: hashbrown::HashMap<VertexId, Vec<usize>> = hashbrown::HashMap::new();
+    let mut vertex_faces: hashbrown::HashMap<VertexId, Vec<usize>> =
+        hashbrown::HashMap::with_capacity(mesh.vertices.len());
     for (fi, face) in mesh.faces.iter().enumerate() {
         for &v in &face.vertices {
             vertex_faces.entry(v).or_default().push(fi);
@@ -1507,26 +1521,16 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
         // decreases.  A decrease means the merge created a topological
         // handle (common at dense N-way junctions where two boundary
         // loops should not be connected).
-        let faces_snapshot: Vec<FaceData> = mesh.faces.iter().copied().collect();
+        let faces_snapshot: Vec<crate::infrastructure::storage::face_store::FaceData> =
+            mesh.faces.iter().copied().collect();
 
-        // Compute χ using referenced vertices only.
+        // Compute χ using referenced vertices only — delegate to the canonical
+        // SSOT implementation in `watertight::check`.
+        #[inline]
         fn quick_euler_referenced(mesh: &IndexedMesh) -> i64 {
-            let mut referenced: hashbrown::HashSet<VertexId> = hashbrown::HashSet::new();
-            let mut edge_set: hashbrown::HashSet<(VertexId, VertexId)> = hashbrown::HashSet::new();
-            let f = mesh.faces.len();
-            for face in mesh.faces.iter() {
-                let vs = &face.vertices;
-                referenced.insert(vs[0]);
-                referenced.insert(vs[1]);
-                referenced.insert(vs[2]);
-                for k in 0..3 {
-                    let a = vs[k];
-                    let b = vs[(k + 1) % 3];
-                    let key = if a < b { (a, b) } else { (b, a) };
-                    edge_set.insert(key);
-                }
-            }
-            referenced.len() as i64 - edge_set.len() as i64 + f as i64
+            let edge_store =
+                crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
+            crate::application::watertight::check::euler_chi_from_stores(&mesh.faces, &edge_store)
         }
 
         let chi_before = quick_euler_referenced(mesh);
@@ -1654,17 +1658,9 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     let inv_eps = 1.0 / eps;
     let mut parent: Vec<u32> = (0..n as u32).collect();
 
-    #[inline(always)]
-    fn find(parent: &mut [u32], mut x: u32) -> u32 {
-        while parent[x as usize] != x {
-            parent[x as usize] = parent[parent[x as usize] as usize];
-            x = parent[x as usize];
-        }
-        x
-    }
-
     // Build spatial hash: cell → list of vertex indices.
-    let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> = hashbrown::HashMap::new();
+    let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
+        hashbrown::HashMap::with_capacity(n);
     let positions: Vec<nalgebra::Point3<f64>> = (0..n)
         .map(|i| *mesh.vertices.position(VertexId(i as u32)))
         .collect();
@@ -1692,8 +1688,8 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
                             }
                             let pj = &positions[j];
                             if (pi - pj).norm_squared() < eps_sq {
-                                let ci = find(&mut parent, i as u32);
-                                let cj = find(&mut parent, j as u32);
+                                let ci = uf_find(&mut parent, i as u32);
+                                let cj = uf_find(&mut parent, j as u32);
                                 if ci != cj {
                                     let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
                                     parent[hi as usize] = lo;
@@ -1707,7 +1703,7 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     }
 
     // Flatten union-find: old_id → canonical_id.
-    let dedup: Vec<u32> = (0..n).map(|i| find(&mut parent, i as u32)).collect();
+    let dedup: Vec<u32> = (0..n).map(|i| uf_find(&mut parent, i as u32)).collect();
 
     // Phase 2: remap face references through dedup mapping.
     let face_list: Vec<FaceData> = mesh.faces.iter().copied().collect();
@@ -1809,8 +1805,8 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
 
         // Classify each face by its directed half-edge orientation for (u,v).
         // forward = has u→v, reverse = has v→u.
-        let mut forward: Vec<usize> = Vec::new();
-        let mut reverse: Vec<usize> = Vec::new();
+        let mut forward: Vec<usize> = Vec::with_capacity(fis.len());
+        let mut reverse: Vec<usize> = Vec::with_capacity(fis.len());
 
         for &fi in fis {
             let fv = face_list[fi].vertices;
@@ -1883,6 +1879,7 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
 }
 
 /// Compute the unit normal of a face, or `None` if degenerate.
+#[inline]
 fn face_normal_of(face: &FaceData, vertices: &VertexPool) -> Option<nalgebra::Vector3<f64>> {
     crate::domain::geometry::normal::triangle_normal(
         vertices.position(face.vertices[0]),
@@ -1951,7 +1948,7 @@ fn remove_fin_faces(mesh: &mut IndexedMesh) {
 
         // Gather all distinct edge-neighbor face indices.
         let v = face_list[fi].vertices;
-        let mut neighbors = Vec::new();
+        let mut neighbors = Vec::with_capacity(6);
         for &(a, b) in &[(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
             let key = if a < b { (a, b) } else { (b, a) };
             if let Some(adj_faces) = edge_adj.get(&key) {
