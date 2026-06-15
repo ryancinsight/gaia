@@ -22,7 +22,8 @@ pub fn write_obj<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
     writeln!(writer, "# OBJ exported by gaia").map_err(MeshError::Io)?;
 
     // Build a contiguous index map: VertexId -> 0-based index.
-    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, usize> = HashMap::new();
+    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, usize> =
+        HashMap::with_capacity(mesh.vertex_count());
 
     // Emit vertices and normals in insertion order.
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {

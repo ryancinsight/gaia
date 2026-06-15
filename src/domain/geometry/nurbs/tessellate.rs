@@ -89,14 +89,18 @@ fn angle_deg(a: UnitVector3<Real>, b: UnitVector3<Real>) -> Real {
 /// Returns 0.0 if fewer than 2 normals could be computed (degenerate surface).
 fn quad_max_angle_deg(surf: &NurbsSurface, u0: Real, v0: Real, u1: Real, v1: Real) -> Real {
     let corners = [(u0, v0), (u1, v0), (u0, v1), (u1, v1)];
-    let normals: Vec<UnitVector3<Real>> = corners
-        .iter()
-        .filter_map(|&(u, v)| surf.normal(u, v))
-        .collect();
+    let mut normals = [UnitVector3::new_normalize(nalgebra::Vector3::z()); 4];
+    let mut count = 0;
+    for &(u, v) in &corners {
+        if let Some(n) = surf.normal(u, v) {
+            normals[count] = n;
+            count += 1;
+        }
+    }
 
     let mut max_a: Real = 0.0;
-    for i in 0..normals.len() {
-        for j in (i + 1)..normals.len() {
+    for i in 0..count {
+        for j in (i + 1)..count {
             let a = angle_deg(normals[i], normals[j]);
             if a > max_a {
                 max_a = a;
@@ -165,7 +169,7 @@ pub fn tessellate_surface(surf: &NurbsSurface, opts: &TessellationOptions) -> In
     let segs = opts.min_segments.max(1);
 
     // Collect all leaf quads via adaptive subdivision
-    let mut leaves: Vec<(Real, Real, Real, Real)> = Vec::new();
+    let mut leaves: Vec<(Real, Real, Real, Real)> = Vec::with_capacity(segs * segs);
     for i in 0..segs {
         for j in 0..segs {
             let ua = u0 + (u1 - u0) * (i as Real / segs as Real);
@@ -215,18 +219,13 @@ pub fn tessellate_curve(curve: &NurbsCurve<3>, opts: &TessellationOptions) -> Ve
     let (t0, t1) = curve.domain();
     let segs = opts.min_segments.max(1);
 
-    // Uniform initial parameter values
-    let initial: Vec<Real> = (0..=segs)
-        .map(|i| t0 + (t1 - t0) * (i as Real / segs as Real))
-        .collect();
-
     // Start with the first point, then adaptively fill in each segment
     let mut result: Vec<Point3r> = Vec::with_capacity(segs * 2 + 1);
     result.push(Point3r::from(curve.point(t0)));
 
     for i in 0..segs {
-        let ta = initial[i];
-        let tb = initial[i + 1];
+        let ta = t0 + (t1 - t0) * (i as Real / segs as Real);
+        let tb = t0 + (t1 - t0) * ((i + 1) as Real / segs as Real);
         subdivide_curve_segment(curve, ta, tb, 0, opts, &mut result);
     }
     result

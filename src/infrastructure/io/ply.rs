@@ -35,7 +35,8 @@ pub fn write_ply<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
     writeln!(writer, "end_header").map_err(MeshError::Io)?;
 
     // Build contiguous index map.
-    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, usize> = HashMap::new();
+    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, usize> =
+        HashMap::with_capacity(vertex_count);
 
     // Vertex data
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {

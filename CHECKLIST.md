@@ -124,3 +124,11 @@
     - [x] Update adjacency module documentation to describe the count/fill construction.
     - [x] Verify focused adjacency and connectivity tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
     - [x] Record residual gate observation: full-suite nextest passed with `dense_sphere_sphere_union_64x32` at 30.063s and `sphere_sphere_intersection_volume` at 33.563s; isolated `classify_prepared_2400f` benchmark rerun reports improvement after a noisy full benchmark regression.
+
+- [x] **Phase 19: Exporter Capacity Cleanup (Sprint 16)**
+    - [x] Review clean-tree diff state before continuing I/O allocation cleanup.
+    - [x] Pre-size GLB, OBJ, PLY, and 3MF vertex remap tables from exact mesh vertex counts.
+    - [x] Pre-size GLB position, normal, and index buffers from exact vertex and face counts.
+    - [x] Pre-size 3MF XML output using a bounded static/per-element capacity estimate.
+    - [x] Add value-semantic coverage for the 3MF capacity estimator and archive signature.
+    - [x] Verify focused I/O tests plus `three-mf-io` feature tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.

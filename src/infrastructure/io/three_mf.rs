@@ -44,13 +44,16 @@ fn io_err(e: zip::result::ZipError) -> MeshError {
 }
 
 fn build_model_xml(mesh: &IndexedMesh) -> String {
-    let mut xml = String::new();
+    let vertex_count = mesh.vertex_count();
+    let face_count = mesh.face_count();
+    let mut xml = String::with_capacity(estimate_model_xml_capacity(vertex_count, face_count));
     xml.push_str(MODEL_HEADER);
 
     // Vertices
     xml.push_str("      <vertices>\n");
 
-    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, usize> = HashMap::new();
+    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, usize> =
+        HashMap::with_capacity(vertex_count);
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
         id_to_idx.insert(vid, idx);
         let p = &vdata.position;
@@ -75,6 +78,20 @@ fn build_model_xml(mesh: &IndexedMesh) -> String {
 
     xml.push_str(MODEL_FOOTER);
     xml
+}
+
+const ESTIMATED_VERTEX_XML_BYTES: usize = 80;
+const ESTIMATED_TRIANGLE_XML_BYTES: usize = 64;
+
+fn estimate_model_xml_capacity(vertex_count: usize, face_count: usize) -> usize {
+    MODEL_HEADER.len()
+        + MODEL_FOOTER.len()
+        + "      <vertices>\n".len()
+        + "      </vertices>\n".len()
+        + "      <triangles>\n".len()
+        + "      </triangles>\n".len()
+        + vertex_count.saturating_mul(ESTIMATED_VERTEX_XML_BYTES)
+        + face_count.saturating_mul(ESTIMATED_TRIANGLE_XML_BYTES)
 }
 
 const CONTENT_TYPES_XML: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -106,3 +123,37 @@ const MODEL_FOOTER: &str = r#"      </mesh>
   </build>
 </model>
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::core::scalar::Point3r;
+
+    #[test]
+    fn model_xml_capacity_covers_static_and_per_element_payloads() {
+        let empty_capacity = estimate_model_xml_capacity(0, 0);
+        assert!(empty_capacity >= MODEL_HEADER.len() + MODEL_FOOTER.len());
+        assert_eq!(
+            estimate_model_xml_capacity(3, 1) - empty_capacity,
+            3 * ESTIMATED_VERTEX_XML_BYTES + ESTIMATED_TRIANGLE_XML_BYTES
+        );
+    }
+
+    #[test]
+    fn write_3mf_produces_zip_archive() {
+        let mut mesh = IndexedMesh::new();
+        let v0 = mesh.add_vertex_pos(Point3r::new(0.0, 0.0, 0.0));
+        let v1 = mesh.add_vertex_pos(Point3r::new(1.0, 0.0, 0.0));
+        let v2 = mesh.add_vertex_pos(Point3r::new(0.0, 1.0, 0.0));
+        mesh.add_face(v0, v1, v2);
+
+        let mut cursor = std::io::Cursor::new(Vec::new());
+        write_3mf(&mut cursor, &mesh).expect("3MF export should succeed");
+        let bytes = cursor.into_inner();
+
+        assert_eq!(&bytes[..4], b"PK\x03\x04");
+        assert!(bytes
+            .windows("3D/3dmodel.model".len())
+            .any(|window| { window == b"3D/3dmodel.model" }));
+    }
+}

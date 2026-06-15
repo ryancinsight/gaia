@@ -12,10 +12,14 @@ use crate::domain::mesh::IndexedMesh;
 
 /// Write an [`IndexedMesh`] as a glTF 2.0 Binary (`.glb`) file.
 pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
+    let vertex_count = mesh.vertex_count();
+    let face_count = mesh.face_count();
+
     // Build contiguous vertex data (position f32x3 + normal f32x3 = 24 bytes/vertex).
-    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, u32> = HashMap::new();
-    let mut positions: Vec<[f32; 3]> = Vec::new();
-    let mut normals: Vec<[f32; 3]> = Vec::new();
+    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, u32> =
+        HashMap::with_capacity(vertex_count);
+    let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertex_count);
+    let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertex_count);
     let mut min_pos = [f32::MAX; 3];
     let mut max_pos = [f32::MIN; 3];
 
@@ -40,14 +44,13 @@ pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
     }
 
     // Build index buffer (u32).
-    let mut indices: Vec<u32> = Vec::new();
+    let mut indices: Vec<u32> = Vec::with_capacity(face_count * 3);
     for (_fid, face) in mesh.faces.iter_enumerated() {
         indices.push(id_to_idx[&face.vertices[0]]);
         indices.push(id_to_idx[&face.vertices[1]]);
         indices.push(id_to_idx[&face.vertices[2]]);
     }
 
-    let vertex_count = positions.len();
     let index_count = indices.len();
 
     // Build binary buffer: indices, then positions, then normals.
