@@ -22,6 +22,18 @@ use num_traits::Float;
 
 use crate::domain::core::scalar::Scalar;
 
+#[inline]
+fn point_to_f64_arr<T: Scalar>(pt: &Point3<T>) -> [f64; 3] {
+    [
+        num_traits::ToPrimitive::to_f64(&pt.x)
+            .expect("invariant: real scalar can always be cast to f64"),
+        num_traits::ToPrimitive::to_f64(&pt.y)
+            .expect("invariant: real scalar can always be cast to f64"),
+        num_traits::ToPrimitive::to_f64(&pt.z)
+            .expect("invariant: real scalar can always be cast to f64"),
+    ]
+}
+
 /// A mathematical representation of a triangulated face.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Face {
@@ -59,18 +71,10 @@ impl<T: Scalar> Tetrahedron<T> {
     pub fn new(mut v: [usize; 4], points: &[Point3<T>]) -> Self {
         use crate::domain::geometry::predicates;
 
-        let to_r = |pt: &Point3<T>| {
-            [
-                num_traits::ToPrimitive::to_f64(&pt.x).unwrap(),
-                num_traits::ToPrimitive::to_f64(&pt.y).unwrap(),
-                num_traits::ToPrimitive::to_f64(&pt.z).unwrap(),
-            ]
-        };
-
-        let a = to_r(&points[v[0]]);
-        let b = to_r(&points[v[1]]);
-        let c = to_r(&points[v[2]]);
-        let d = to_r(&points[v[3]]);
+        let a = point_to_f64_arr(&points[v[0]]);
+        let b = point_to_f64_arr(&points[v[1]]);
+        let c = point_to_f64_arr(&points[v[2]]);
+        let d = point_to_f64_arr(&points[v[3]]);
 
         // Shewchuk's exact `insphere` predicate analytically requires the 4 defining vertices
         // to be strictly positively oriented according to HIS convention (gp::orient3d > 0).
@@ -92,19 +96,11 @@ impl<T: Scalar> Tetrahedron<T> {
     pub fn contains_in_circumsphere(&self, p: &Point3<T>, points: &[Point3<T>]) -> bool {
         use crate::domain::geometry::predicates;
 
-        let to_r = |pt: &Point3<T>| {
-            [
-                num_traits::ToPrimitive::to_f64(&pt.x).unwrap(),
-                num_traits::ToPrimitive::to_f64(&pt.y).unwrap(),
-                num_traits::ToPrimitive::to_f64(&pt.z).unwrap(),
-            ]
-        };
-
-        let a = to_r(&points[self.v[0]]);
-        let b = to_r(&points[self.v[1]]);
-        let c = to_r(&points[self.v[2]]);
-        let d = to_r(&points[self.v[3]]);
-        let e = to_r(p);
+        let a = point_to_f64_arr(&points[self.v[0]]);
+        let b = point_to_f64_arr(&points[self.v[1]]);
+        let c = point_to_f64_arr(&points[self.v[2]]);
+        let d = point_to_f64_arr(&points[self.v[3]]);
+        let e = point_to_f64_arr(p);
 
         let orientation = predicates::insphere(a, b, c, d, e);
 
@@ -272,7 +268,11 @@ impl<T: Scalar> BowyerWatson3D<T> {
             i
         };
 
-        for face in &self.tetrahedra[idx].as_ref().unwrap().faces() {
+        for face in &self.tetrahedra[idx]
+            .as_ref()
+            .expect("invariant: just inserted tetrahedron")
+            .faces()
+        {
             let entry = self
                 .face_tets
                 .entry(*face)
@@ -290,7 +290,9 @@ impl<T: Scalar> BowyerWatson3D<T> {
 
     /// Exact memory freeing mechanism for Delaunay retesselation.
     fn remove_tet(&mut self, idx: usize) -> Tetrahedron<T> {
-        let tet = self.tetrahedra[idx].take().unwrap();
+        let tet = self.tetrahedra[idx]
+            .take()
+            .expect("invariant: tetrahedron index to remove must be occupied");
         self.free_list.push(idx);
 
         for face in &tet.faces() {
@@ -384,7 +386,10 @@ impl<T: Scalar> BowyerWatson3D<T> {
             let curr = self.bad_tets[current_idx];
             current_idx += 1;
 
-            let face_list = self.tetrahedra[curr].as_ref().unwrap().faces();
+            let face_list = self.tetrahedra[curr]
+                .as_ref()
+                .expect("invariant: bad_tets contains valid occupied indices")
+                .faces();
 
             for face in &face_list {
                 *self.cavity_cache.entry(*face).or_insert(0) += 1;
