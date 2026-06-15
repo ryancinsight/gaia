@@ -23,6 +23,11 @@
 //! that overlap any given fragment AABB is O(1) (adjacent sectors only), so the
 //! total work is O(N) rather than O(N·|remaining|).
 //!
+//! Packed triangle-coordinate and AABB buffers use `leto::Array` as Gaia's
+//! Atlas-owned contiguous numeric storage boundary. The exact clipping kernels
+//! borrow slices from those arrays, so this changes storage ownership without
+//! copying during the hot query loops.
+//!
 
 use super::basis::PlaneBasis;
 use super::geometry2d::{
@@ -35,6 +40,7 @@ use crate::application::csg::clip::{
 use crate::domain::core::scalar::{Point3r, Real};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
+use leto::Storage;
 
 fn emit_one(
     p0: Point3r,
@@ -145,6 +151,34 @@ struct TriData {
     coords2d: [Real; 6],   // [ax,ay, bx,by, cx,cy] for point-in-union and clipping
     aabb2d: [Real; 4],     // [min_u, min_v, max_u, max_v]
     verts3d: [Point3r; 3], // 3-D positions (needed to emit original triangles)
+}
+
+struct CoplanarBuffers {
+    tris: leto::Array<[Real; 6], leto::VecStorage<[Real; 6]>, 1>,
+    aabbs: leto::Array<[Real; 4], leto::VecStorage<[Real; 4]>, 1>,
+}
+
+impl CoplanarBuffers {
+    fn from_tri_data(data: &[TriData]) -> Self {
+        let tris = data.iter().map(|tri| tri.coords2d).collect();
+        let aabbs = data.iter().map(|tri| tri.aabb2d).collect();
+        Self {
+            tris: leto::Array::from_shape_vec([data.len()], tris)
+                .expect("invariant: collected one coordinate row per triangle"),
+            aabbs: leto::Array::from_shape_vec([data.len()], aabbs)
+                .expect("invariant: collected one AABB row per triangle"),
+        }
+    }
+
+    #[inline]
+    fn tris(&self) -> &[[Real; 6]] {
+        self.tris.storage().as_slice()
+    }
+
+    #[inline]
+    fn aabbs(&self) -> &[[Real; 4]] {
+        self.aabbs.storage().as_slice()
+    }
 }
 
 fn build_tri_data(faces: &[FaceData], pool: &VertexPool, basis: &PlaneBasis) -> Vec<TriData> {
@@ -299,12 +333,14 @@ pub(crate) fn boolean_coplanar(
     let b_data = build_tri_data(faces_b, pool, basis);
     let a_data = build_tri_data(faces_a, pool, basis);
 
-    let b_tris: Vec<[Real; 6]> = b_data.iter().map(|b| b.coords2d).collect();
-    let a_tris: Vec<[Real; 6]> = a_data.iter().map(|a| a.coords2d).collect();
-    let b_aabbs: Vec<[Real; 4]> = b_data.iter().map(|b| b.aabb2d).collect();
-    let a_aabbs: Vec<[Real; 4]> = a_data.iter().map(|a| a.aabb2d).collect();
-    let b_index = SweepAabbIndex2d::build(&b_aabbs);
-    let a_index = SweepAabbIndex2d::build(&a_aabbs);
+    let b_buffers = CoplanarBuffers::from_tri_data(&b_data);
+    let a_buffers = CoplanarBuffers::from_tri_data(&a_data);
+    let b_tris = b_buffers.tris();
+    let a_tris = a_buffers.tris();
+    let b_aabbs = b_buffers.aabbs();
+    let a_aabbs = a_buffers.aabbs();
+    let b_index = SweepAabbIndex2d::build(b_aabbs);
+    let a_index = SweepAabbIndex2d::build(a_aabbs);
     let mut candidate_buf_ab: Vec<usize> = Vec::new();
     let mut candidate_buf_ba: Vec<usize> = Vec::new();
 
@@ -321,8 +357,8 @@ pub(crate) fn boolean_coplanar(
                     aabb,
                     &b_index,
                     &b_data,
-                    &b_tris,
-                    &b_aabbs,
+                    b_tris,
+                    b_aabbs,
                     false,
                     basis,
                     fa.region,
@@ -336,8 +372,8 @@ pub(crate) fn boolean_coplanar(
                     aabb,
                     &b_index,
                     &b_data,
-                    &b_tris,
-                    &b_aabbs,
+                    b_tris,
+                    b_aabbs,
                     true,
                     basis,
                     fa.region,
@@ -353,8 +389,8 @@ pub(crate) fn boolean_coplanar(
                     aabb,
                     &b_index,
                     &b_data,
-                    &b_tris,
-                    &b_aabbs,
+                    b_tris,
+                    b_aabbs,
                     true,
                     basis,
                     fa.region,
@@ -370,8 +406,8 @@ pub(crate) fn boolean_coplanar(
                     aabb,
                     &b_index,
                     &b_data,
-                    &b_tris,
-                    &b_aabbs,
+                    b_tris,
+                    b_aabbs,
                     false,
                     basis,
                     fa.region,
@@ -391,8 +427,8 @@ pub(crate) fn boolean_coplanar(
                 &b_aabbs[bi],
                 &a_index,
                 &a_data,
-                &a_tris,
-                &a_aabbs,
+                a_tris,
+                a_aabbs,
                 false,
                 basis,
                 fb.region,
@@ -409,8 +445,9 @@ pub(crate) fn boolean_coplanar(
 #[cfg(test)]
 mod tests {
     use super::super::geometry2d::polygon_area_2d;
-    use super::{aabb_overlaps, SweepAabbIndex2d};
+    use super::{aabb_overlaps, CoplanarBuffers, SweepAabbIndex2d, TriData};
     use crate::application::csg::boolean::{csg_boolean, BooleanOp};
+    use crate::domain::core::scalar::Point3r;
     use crate::domain::geometry::primitives::{Disk, PrimitiveMesh};
     use crate::domain::mesh::IndexedMesh;
 
@@ -486,6 +523,44 @@ mod tests {
         expected.sort_unstable_by(|&i, &j| opp_aabbs[i][0].total_cmp(&opp_aabbs[j][0]));
 
         assert_eq!(index.by_min_u, expected);
+    }
+
+    #[test]
+    fn coplanar_buffers_preserve_packed_triangle_order() {
+        let data = vec![
+            TriData {
+                coords2d: [0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+                aabb2d: [0.0, 0.0, 1.0, 1.0],
+                verts3d: [
+                    Point3r::new(0.0, 0.0, 0.0),
+                    Point3r::new(1.0, 0.0, 0.0),
+                    Point3r::new(0.0, 1.0, 0.0),
+                ],
+            },
+            TriData {
+                coords2d: [1.0, 1.0, 2.0, 1.0, 1.0, 2.0],
+                aabb2d: [1.0, 1.0, 2.0, 2.0],
+                verts3d: [
+                    Point3r::new(1.0, 1.0, 0.0),
+                    Point3r::new(2.0, 1.0, 0.0),
+                    Point3r::new(1.0, 2.0, 0.0),
+                ],
+            },
+        ];
+
+        let buffers = CoplanarBuffers::from_tri_data(&data);
+
+        assert_eq!(
+            buffers.tris(),
+            [
+                [0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+                [1.0, 1.0, 2.0, 1.0, 1.0, 2.0]
+            ]
+        );
+        assert_eq!(
+            buffers.aabbs(),
+            [[0.0, 0.0, 1.0, 1.0], [1.0, 1.0, 2.0, 2.0]]
+        );
     }
 
     #[test]

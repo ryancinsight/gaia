@@ -132,3 +132,11 @@
     - [x] Pre-size 3MF XML output using a bounded static/per-element capacity estimate.
     - [x] Add value-semantic coverage for the 3MF capacity estimator and archive signature.
     - [x] Verify focused I/O tests plus `three-mf-io` feature tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
+
+- [x] **Phase 20: Atlas Leto Coplanar Buffer Integration (Sprint 17)**
+    - [x] Review clean-tree diff state and audit local Atlas crates for usable `leto`, `moirai`, and `mnemosyne` replacement surfaces.
+    - [x] Keep `nalgebra` at Gaia's geometry boundary until `leto` exposes point/vector contracts; use `leto::Array` for packed numeric triangle/AABB buffers instead.
+    - [x] Replace coplanar CSG triangle-coordinate and AABB materialization with Atlas-owned `leto` contiguous arrays borrowed as slices in hot loops.
+    - [x] Add value-semantic coverage proving `leto` buffer construction preserves row order and values.
+    - [x] Verify focused coplanar tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
+    - [x] Record residual integration observation: `leto` is usable for Gaia's contiguous numeric buffers today; full `nalgebra::Point3`/`Vector3` replacement remains blocked until `leto` owns geometry point/vector contracts.

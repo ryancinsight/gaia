@@ -39,6 +39,7 @@ anyhow = "1.0"
 # Data structures
 indexmap = "2.0"
 slotmap = "1.0"
+leto = { path = "../leto/crates/leto", default-features = false, features = ["std"] }
 
 # Mesh / geometry — state-of-the-art kernel
 geometry-predicates = "0.3"
