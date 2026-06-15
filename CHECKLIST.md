@@ -115,4 +115,4 @@
     - [x] Reuse `IndexedMesh::orient_outward` traversal queue across disconnected components with exact face-count capacity.
     - [x] Add value-semantic coverage for the arrangement capacity estimator.
     - [x] Verify focused CSG and indexed-mesh tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
-    - [x] Record residual gate observation: `dense_sphere_sphere_union_64x32` and `sphere_sphere_intersection_volume` still pass but exceed the 30s slow threshold under full-suite contention; isolated `gwn_bvh_2400f` benchmark rerun reports improvement.
+    - [x] Record residual gate observation: `dense_sphere_sphere_union_64x32` and `sphere_sphere_intersection_volume` pass under 30s when isolated individually, but exceed the slow threshold when run concurrently or under full-suite contention; isolated touched-path `csg_union_cube_cube` benchmark rerun reports improvement.

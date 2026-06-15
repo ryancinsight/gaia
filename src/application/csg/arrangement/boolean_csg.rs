@@ -276,8 +276,8 @@ fn execute_arrangement_pass(
         aabbs.push(face_aabbs);
     }
 
-    let mesh_face_counts: Vec<usize> = meshes.iter().map(Vec::len).collect();
-    let mut pairs = Vec::with_capacity(estimate_candidate_pair_capacity(&mesh_face_counts));
+    let total_face_count: usize = meshes.iter().map(Vec::len).sum();
+    let mut pairs = Vec::with_capacity(estimate_candidate_pair_capacity(&aabbs));
     for i in 0..n_meshes {
         with_bvh(&aabbs[i], |tree, token| {
             let mut hits = Vec::new();
@@ -304,7 +304,7 @@ fn execute_arrangement_pass(
     // ── Phase 2: Narrow Segment Intersect ───────────────────────────────────────────
     let mut segs: Vec<Vec<Vec<SnapSegment>>> =
         meshes.iter().map(|m| vec![Vec::new(); m.len()]).collect();
-    let coplanar_pair_capacity = pairs.len().min(mesh_face_counts.iter().sum());
+    let coplanar_pair_capacity = pairs.len().min(total_face_count);
     let mut coplanar_pairs = Vec::with_capacity(coplanar_pair_capacity);
 
     for pair in &pairs {
@@ -384,10 +384,12 @@ fn execute_arrangement_pass(
     Ok(result_faces)
 }
 
-fn estimate_candidate_pair_capacity(face_counts: &[usize]) -> usize {
+fn estimate_candidate_pair_capacity(face_aabbs: &[Vec<Aabb>]) -> usize {
     let mut estimate = 0usize;
-    for (i, &count_i) in face_counts.iter().enumerate() {
-        for &count_j in &face_counts[(i + 1)..] {
+    for (i, face_aabbs_i) in face_aabbs.iter().enumerate() {
+        let count_i = face_aabbs_i.len();
+        for face_aabbs_j in &face_aabbs[(i + 1)..] {
+            let count_j = face_aabbs_j.len();
             estimate = estimate.saturating_add(count_i.min(count_j));
         }
     }
@@ -397,9 +399,17 @@ fn estimate_candidate_pair_capacity(face_counts: &[usize]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::estimate_candidate_pair_capacity;
+    use crate::domain::geometry::aabb::Aabb;
 
     #[test]
     fn candidate_pair_capacity_sums_pairwise_minima() {
-        assert_eq!(estimate_candidate_pair_capacity(&[0, 4, 7, 2]), 8);
+        let face_aabbs = vec![
+            Vec::new(),
+            vec![Aabb::empty(); 4],
+            vec![Aabb::empty(); 7],
+            vec![Aabb::empty(); 2],
+        ];
+
+        assert_eq!(estimate_candidate_pair_capacity(&face_aabbs), 8);
     }
 }
