@@ -93,3 +93,10 @@
     - [x] Review clean-tree diff state before continuing optimization.
     - [x] Replace BVH median fallback `partial_cmp` ordering with total float ordering.
     - [x] Verify focused BVH partition tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
+
+- [x] **Phase 15: Ruppert Queue Ordering Cleanup (Sprint 12)**
+    - [x] Review clean-tree diff state before continuing optimization.
+    - [x] Replace Ruppert bad-triangle priority ordering fallback with total float ordering.
+    - [x] Add value-semantic regression coverage for NaN and signed-zero ordering consistency.
+    - [x] Verify focused Ruppert tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
+    - [x] Record residual gate observations: `sphere_sphere_intersection_volume` is marginally slow in isolation (31.105s), and the confirmatory CSG benchmark rerun leaves only unrelated SVDAG rasterize noise.
