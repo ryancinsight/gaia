@@ -107,3 +107,12 @@
     - [x] Add value-semantic regression coverage for NaN and signed-zero AABB sort order.
     - [x] Verify focused coplanar tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
     - [x] Record residual gate observation: CSG sphere stress tests still pass but exceed the 30s slow threshold in full-suite and isolated runs.
+
+- [x] **Phase 17: Bounded Traversal Allocation Cleanup (Sprint 14)**
+    - [x] Review clean-tree diff state before continuing optimization.
+    - [x] Pre-size generalized arrangement candidate-pair storage from pairwise face-count minima.
+    - [x] Reuse one BVH hit buffer per source mesh and cap coplanar-pair preallocation by face-count upper bound.
+    - [x] Reuse `IndexedMesh::orient_outward` traversal queue across disconnected components with exact face-count capacity.
+    - [x] Add value-semantic coverage for the arrangement capacity estimator.
+    - [x] Verify focused CSG and indexed-mesh tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
+    - [x] Record residual gate observation: `dense_sphere_sphere_union_64x32` and `sphere_sphere_intersection_volume` still pass but exceed the 30s slow threshold under full-suite contention; isolated `gwn_bvh_2400f` benchmark rerun reports improvement.

@@ -276,14 +276,15 @@ fn execute_arrangement_pass(
         aabbs.push(face_aabbs);
     }
 
-    let mut pairs = Vec::new();
+    let mesh_face_counts: Vec<usize> = meshes.iter().map(Vec::len).collect();
+    let mut pairs = Vec::with_capacity(estimate_candidate_pair_capacity(&mesh_face_counts));
     for i in 0..n_meshes {
         with_bvh(&aabbs[i], |tree, token| {
+            let mut hits = Vec::new();
             for j in (i + 1)..n_meshes {
                 if !mesh_aabbs[i].intersects(&mesh_aabbs[j]) {
                     continue;
                 }
-                let mut hits = Vec::new();
                 for (fb, aabb_b) in aabbs[j].iter().enumerate() {
                     hits.clear();
                     tree.query_overlapping(aabb_b, &token, &mut hits);
@@ -303,7 +304,8 @@ fn execute_arrangement_pass(
     // ── Phase 2: Narrow Segment Intersect ───────────────────────────────────────────
     let mut segs: Vec<Vec<Vec<SnapSegment>>> =
         meshes.iter().map(|m| vec![Vec::new(); m.len()]).collect();
-    let mut coplanar_pairs = Vec::new();
+    let coplanar_pair_capacity = pairs.len().min(mesh_face_counts.iter().sum());
+    let mut coplanar_pairs = Vec::with_capacity(coplanar_pair_capacity);
 
     for pair in &pairs {
         let fa = &meshes[pair.mesh_a][pair.face_a];
@@ -380,4 +382,24 @@ fn execute_arrangement_pass(
     }
 
     Ok(result_faces)
+}
+
+fn estimate_candidate_pair_capacity(face_counts: &[usize]) -> usize {
+    let mut estimate = 0usize;
+    for (i, &count_i) in face_counts.iter().enumerate() {
+        for &count_j in &face_counts[(i + 1)..] {
+            estimate = estimate.saturating_add(count_i.min(count_j));
+        }
+    }
+    estimate
+}
+
+#[cfg(test)]
+mod tests {
+    use super::estimate_candidate_pair_capacity;
+
+    #[test]
+    fn candidate_pair_capacity_sums_pairwise_minima() {
+        assert_eq!(estimate_candidate_pair_capacity(&[0, 4, 7, 2]), 8);
+    }
 }

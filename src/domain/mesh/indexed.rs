@@ -511,6 +511,8 @@ impl<T: Scalar> IndexedMesh<T> {
         let mut component_seeds: Vec<usize> = Vec::new();
         let mut current_component: usize = 0;
 
+        let mut queue: VecDeque<usize> = VecDeque::with_capacity(n_faces);
+
         // Outer loop handles disconnected components — each gets its own seed.
         loop {
             // Find the unvisited non-degenerate face with the maximum
@@ -548,7 +550,6 @@ impl<T: Scalar> IndexedMesh<T> {
             orientation[seed_fi] = Some(seed_normal.x >= T::zero());
             component_id[seed_fi] = current_component;
 
-            let mut queue: VecDeque<usize> = VecDeque::new();
             queue.push_back(seed_fi);
 
             while let Some(fi) = queue.pop_front() {
