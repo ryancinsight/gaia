@@ -824,7 +824,7 @@ fn synthesize_complex_layout(
 
     // Kahn's BFS: seed with all zero-in-degree vertices, propagate depths.
     let mut depth_vec: Vec<usize> = vec![0; n_nodes];
-    let mut queue = std::collections::VecDeque::new();
+    let mut queue = std::collections::VecDeque::with_capacity(n_nodes);
     for i in 0..n_nodes {
         if in_degree[i] == 0 {
             queue.push_back(i);

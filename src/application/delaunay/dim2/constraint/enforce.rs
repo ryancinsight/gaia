@@ -204,7 +204,7 @@ impl Cdt {
     /// full pass through the queue makes zero progress.
     fn flip_to_enforce(&mut self, a: PslgVertexId, b: PslgVertexId) {
         // Collect all crossing edges into a work queue.
-        let mut queue: VecDeque<(TriangleId, usize)> = VecDeque::new();
+        let mut queue: VecDeque<(TriangleId, usize)> = VecDeque::with_capacity(32);
         self.collect_crossing_edges(a, b, &mut queue);
         if queue.is_empty() {
             return;
@@ -325,7 +325,7 @@ impl Cdt {
         let mut visited = vec![false; pool_len];
 
         // Find the starting triangle whose edge opposite `a` crosses (a,b).
-        let mut walk_queue: VecDeque<TriangleId> = VecDeque::new();
+        let mut walk_queue: VecDeque<TriangleId> = VecDeque::with_capacity(32);
         for &tid in &star_a {
             let tri = self.dt.triangle(tid);
             for edge in 0..3 {
@@ -735,7 +735,7 @@ impl Cdt {
         // hash overhead of `HashSet<TriangleId>` and gives cache-friendly
         // sequential access during the adjacency-patching pass.
         let pool_len = self.dt.triangles_slice().len();
-        let mut queue = VecDeque::new();
+        let mut queue = VecDeque::with_capacity(32);
         let mut visited = vec![false; pool_len];
         queue.push_back(seed_tid);
         visited[seed_tid.idx()] = true;
