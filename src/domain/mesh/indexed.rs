@@ -602,7 +602,17 @@ impl<T: Scalar> IndexedMesh<T> {
 
         if current_component > 1 {
             let component_count = current_component;
-            let mut component_faces: Vec<Vec<FaceData>> = vec![Vec::new(); component_count];
+            let mut component_face_counts = vec![0; component_count];
+            for fi in 0..n_faces {
+                let comp = component_id[fi];
+                if comp != usize::MAX && face_normals[fi].is_some() {
+                    component_face_counts[comp] += 1;
+                }
+            }
+            let mut component_faces: Vec<Vec<FaceData>> = component_face_counts
+                .into_iter()
+                .map(Vec::with_capacity)
+                .collect();
             let mut component_aabbs: Vec<Aabb<T>> = vec![Aabb::empty(); component_count];
 
             for (fi, face) in face_list.iter().enumerate() {
