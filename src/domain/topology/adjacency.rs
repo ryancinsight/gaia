@@ -5,10 +5,13 @@
 //!
 //! # Algorithm — N-ary Dense Adjacency Construction
 //!
-//! All three adjacency maps are built in a single two-pass scan:
+//! All three adjacency maps are built by first counting each list's required
+//! capacity, then filling pre-sized dense vectors:
 //!
-//! 1. **Face pass** (O(F)): For each face, record vertex → face incidence.
-//! 2. **Edge pass** (O(E)): For each edge, record vertex → vertex adjacency
+//! 1. **Count pass** (O(F + E)): Count vertex-face incidence, vertex valence,
+//!    and pre-dedup face-neighbor entries.
+//! 2. **Fill pass** (O(F + E)): For each face, record vertex → face incidence;
+//!    for each edge, record vertex → vertex adjacency
 //!    and, for each pair of faces sharing the edge, record face → face adjacency.
 //!
 //! Dense `Vec<Vec<T>>` arrays indexed by `VertexId::as_usize()` and
@@ -74,8 +77,8 @@ pub struct AdjacencyGraph {
 impl AdjacencyGraph {
     /// Build the adjacency graph from edge and face stores.
     ///
-    /// Performs a two-pass construction (face-pass + edge-pass) to populate
-    /// all three adjacency maps in O(V + E + F) time.
+    /// Counts list capacities before filling dense adjacency maps, avoiding
+    /// incremental reallocation while preserving O(V + E + F) construction.
     #[must_use]
     pub fn build(face_store: &FaceStore, edge_store: &EdgeStore) -> Self {
         let n_faces = face_store.len();
@@ -89,9 +92,39 @@ impl AdjacencyGraph {
             .max()
             .unwrap_or(0);
 
-        let mut vertex_neighbors: Vec<Vec<VertexId>> = vec![Vec::new(); n_vertices];
-        let mut vertex_faces: Vec<Vec<FaceId>> = vec![Vec::new(); n_vertices];
-        let mut face_neighbors: Vec<Vec<FaceId>> = vec![Vec::new(); n_faces];
+        let mut vertex_neighbor_counts = vec![0usize; n_vertices];
+        let mut vertex_face_counts = vec![0usize; n_vertices];
+        let mut face_neighbor_counts = vec![0usize; n_faces];
+
+        for (_, face) in face_store.iter_enumerated() {
+            for &vid in &face.vertices {
+                vertex_face_counts[vid.as_usize()] += 1;
+            }
+        }
+
+        for edge in edge_store.iter() {
+            let (a, b) = edge.vertices;
+            vertex_neighbor_counts[a.as_usize()] += 1;
+            vertex_neighbor_counts[b.as_usize()] += 1;
+
+            let neighbor_count = edge.faces.len().saturating_sub(1);
+            for &face in &edge.faces {
+                face_neighbor_counts[face.as_usize()] += neighbor_count;
+            }
+        }
+
+        let mut vertex_neighbors: Vec<Vec<VertexId>> = vertex_neighbor_counts
+            .into_iter()
+            .map(Vec::with_capacity)
+            .collect();
+        let mut vertex_faces: Vec<Vec<FaceId>> = vertex_face_counts
+            .into_iter()
+            .map(Vec::with_capacity)
+            .collect();
+        let mut face_neighbors: Vec<Vec<FaceId>> = face_neighbor_counts
+            .into_iter()
+            .map(Vec::with_capacity)
+            .collect();
 
         // Pass 1 — vertex → face incidence from face store.
         for (fid, face) in face_store.iter_enumerated() {

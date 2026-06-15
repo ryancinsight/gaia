@@ -116,3 +116,11 @@
     - [x] Add value-semantic coverage for the arrangement capacity estimator.
     - [x] Verify focused CSG and indexed-mesh tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
     - [x] Record residual gate observation: `dense_sphere_sphere_union_64x32` and `sphere_sphere_intersection_volume` pass under 30s when isolated individually, but exceed the slow threshold when run concurrently or under full-suite contention; isolated touched-path `csg_union_cube_cube` benchmark rerun reports improvement.
+
+- [x] **Phase 18: Dense Adjacency Capacity Cleanup (Sprint 15)**
+    - [x] Review clean-tree diff state before continuing topology allocation cleanup.
+    - [x] Count vertex-face incidence, vertex valence, and pre-dedup face-neighbor entries before filling dense adjacency vectors.
+    - [x] Allocate each adjacency list with exact pre-dedup capacity while preserving dense O(1) lookup APIs.
+    - [x] Update adjacency module documentation to describe the count/fill construction.
+    - [x] Verify focused adjacency and connectivity tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
+    - [x] Record residual gate observation: full-suite nextest passed with `dense_sphere_sphere_union_64x32` at 30.063s and `sphere_sphere_intersection_volume` at 33.563s; isolated `classify_prepared_2400f` benchmark rerun reports improvement after a noisy full benchmark regression.
