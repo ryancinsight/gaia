@@ -51,6 +51,7 @@ use super::tiebreaker::{
 };
 use crate::domain::core::constants::{GWN_INSIDE_THRESHOLD, GWN_OUTSIDE_THRESHOLD};
 use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::geometry::normal::{triangle_area_normal, triangle_centroid};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -71,6 +72,7 @@ pub struct FragRecord {
 /// Classify whether a fragment's centroid is inside the opposing mesh.
 ///
 /// Calls GWN, then tiebreakers in order — see module-level decision flow.
+#[inline]
 #[must_use]
 pub fn classify_fragment(
     centroid: &Point3r,
@@ -99,6 +101,7 @@ pub fn classify_fragment(
 /// When the standard GWN falls in the band, a bounded GWN refinement is
 /// attempted first — this resolves many near-surface cases without needing
 /// the tiebreaker chain.
+#[inline]
 #[must_use]
 pub fn classify_fragment_prepared(
     centroid: &Point3r,
@@ -130,32 +133,24 @@ pub fn classify_fragment_prepared(
 
 // ── Geometric utilities ───────────────────────────────────────────────────────
 
-/// Triangle centroid.
+/// Triangle centroid — delegates to the canonical SSOT [`triangle_centroid`].
+///
+/// Takes a fixed `[Point3r; 3]` array for callers that already have their three
+/// vertices in that form. The single implementation lives in
+/// `domain::geometry::normal`.
 #[inline]
 #[must_use]
 pub fn centroid(tri: &[Point3r; 3]) -> Point3r {
-    Point3r::new(
-        (tri[0].x + tri[1].x + tri[2].x) / 3.0,
-        (tri[0].y + tri[1].y + tri[2].y) / 3.0,
-        (tri[0].z + tri[1].z + tri[2].z) / 3.0,
-    )
+    triangle_centroid::<f64>(&tri[0], &tri[1], &tri[2])
 }
 
-/// Geometric normal of a triangle (not normalised).
+/// Geometric (area-weighted) normal of a triangle (not normalised).
+///
+/// Delegates to [`triangle_area_normal`] from `domain::geometry::normal`.
 #[inline]
 #[must_use]
 pub fn tri_normal(tri: &[Point3r; 3]) -> Vector3r {
-    let ab = Vector3r::new(
-        tri[1].x - tri[0].x,
-        tri[1].y - tri[0].y,
-        tri[1].z - tri[0].z,
-    );
-    let ac = Vector3r::new(
-        tri[2].x - tri[0].x,
-        tri[2].y - tri[0].y,
-        tri[2].z - tri[0].z,
-    );
-    ab.cross(&ac)
+    triangle_area_normal::<f64>(&tri[0], &tri[1], &tri[2])
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

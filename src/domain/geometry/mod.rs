@@ -7,7 +7,7 @@ pub mod plane;
 pub mod predicates;
 
 pub use aabb::Aabb;
-pub use normal::{triangle_centroid, triangle_normal};
+pub use normal::{triangle_area_normal, triangle_centroid, triangle_normal};
 pub use plane::Plane;
 pub use predicates::Orientation;
 
