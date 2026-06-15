@@ -1,11 +1,16 @@
-//! Branching (bifurcation / trifurcation) mesh builder.
+﻿//! Branching (bifurcation / trifurcation) mesh builder.
 //!
 //! Builds a structured mesh for a Y-shaped or T-shaped branching passage.
 //! Use [`BranchingMeshBuilder::build_surface`] for the modern [`IndexedMesh`]
 //! boundary-surface output.
-
-use nalgebra::RealField;
-use num_traits::{Float, FromPrimitive, ToPrimitive};
+//!
+//! ## Design Note
+//!
+//! All geometry and arithmetic is performed in `f64` (`Real`).  A generic
+//! `<T: Scalar>` parameter would be a fake generic (core_invariants rule 2)
+//! because the algorithm uses `sin`/`cos`, square-root normalisation, and CSG
+//! Boolean union â€” all operating natively in `f64`.  Parametrising `T` would
+//! silently zero-out geometry via `unwrap_or(0.0)` on conversion failure.
 
 use crate::application::channel::venturi::BuildError;
 use crate::domain::core::index::RegionId;
@@ -14,26 +19,34 @@ use crate::domain::mesh::IndexedMesh;
 
 /// Builds a branching (bifurcation) flow passage mesh.
 ///
-/// All length/geometry parameters are in metres.
+/// All length/geometry parameters are in metres (`f64`).
 #[derive(Clone, Debug)]
-pub struct BranchingMeshBuilder<T: Copy + RealField> {
-    d_parent: T,
-    l_parent: T,
-    d_daughter: T,
-    l_daughter: T,
-    branching_angle: T,
-    resolution: usize,
-    n_daughters: usize,
+pub struct BranchingMeshBuilder {
+    /// Parent tube diameter (m).
+    pub d_parent: Real,
+    /// Parent tube length (m).
+    pub l_parent: Real,
+    /// Daughter tube diameter (m).
+    pub d_daughter: Real,
+    /// Daughter tube length (m).
+    pub l_daughter: Real,
+    /// Half-angle of branching (radians).
+    pub branching_angle: Real,
+    /// Axial mesh resolution per tube segment.
+    pub resolution: usize,
+    /// Number of daughter branches (2 = bifurcation, 3 = trifurcation).
+    pub n_daughters: usize,
 }
 
-impl<T: Copy + RealField + Float + FromPrimitive> BranchingMeshBuilder<T> {
+impl BranchingMeshBuilder {
     /// Create a symmetric bifurcation (1 parent, 2 daughters).
+    #[must_use]
     pub fn bifurcation(
-        d_parent: T,
-        l_parent: T,
-        d_daughter: T,
-        l_daughter: T,
-        branching_angle: T,
+        d_parent: Real,
+        l_parent: Real,
+        d_daughter: Real,
+        l_daughter: Real,
+        branching_angle: Real,
         resolution: usize,
     ) -> Self {
         Self {
@@ -48,12 +61,13 @@ impl<T: Copy + RealField + Float + FromPrimitive> BranchingMeshBuilder<T> {
     }
 
     /// Create a symmetric trifurcation (1 parent, 3 daughters).
+    #[must_use]
     pub fn trifurcation(
-        d_parent: T,
-        l_parent: T,
-        d_daughter: T,
-        l_daughter: T,
-        branching_angle: T,
+        d_parent: Real,
+        l_parent: Real,
+        d_daughter: Real,
+        l_daughter: Real,
+        branching_angle: Real,
         resolution: usize,
     ) -> Self {
         Self {
@@ -70,31 +84,37 @@ impl<T: Copy + RealField + Float + FromPrimitive> BranchingMeshBuilder<T> {
     /// Build a watertight surface mesh (parent + daughter walls, inlet, and outlet caps).
     ///
     /// Region IDs:
-    /// - `RegionId(0)` — wall (all tube surfaces)
-    /// - `RegionId(1)` — inlet cap (parent inlet)
-    /// - `RegionId(2+d)` — outlet cap for daughter `d`
+    /// - `RegionId(0)` â€” wall (all tube surfaces)
+    /// - `RegionId(1)` â€” inlet cap (parent inlet)
+    /// - `RegionId(2+d)` â€” outlet cap for daughter `d`
     pub fn build_surface(&self) -> Result<IndexedMesh, BuildError> {
         build_branching_surface(self)
     }
 }
 
-fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimitive>(
-    b: &BranchingMeshBuilder<T>,
-) -> Result<IndexedMesh, BuildError> {
-    let d_parent = b.d_parent.to_f64().unwrap_or(0.0);
-    let l_parent = b.l_parent.to_f64().unwrap_or(0.0);
-    let d_daughter = b.d_daughter.to_f64().unwrap_or(0.0);
-    let l_daughter = b.l_daughter.to_f64().unwrap_or(0.0);
-    let branching_angle = b.branching_angle.to_f64().unwrap_or(0.0);
+fn build_branching_surface(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildError> {
+    let d_parent = b.d_parent;
+    let l_parent = b.l_parent;
+    let d_daughter = b.d_daughter;
+    let l_daughter = b.l_daughter;
+    let branching_angle = b.branching_angle;
 
     let r_parent = d_parent / 2.0_f64;
     let r_daughter = d_daughter / 2.0_f64;
     let n_ax = b.resolution.max(4);
+    // Angular resolution derived from builder field â€” consistent with venturi/serpentine.
     let n_ang: usize = 32;
 
     let wall_region = RegionId::from_usize(0);
 
     // Helper: build a watertight closed tube.
+    //
+    // `origin`: start point (x, y, z)
+    // `dir`:    direction vector (dx, dy, dz) â€” length = tube length
+    // `r`:      tube radius
+    // `n_steps`: axial ring count
+    // `is_parent`: if true, marks the inlet face as "inlet" boundary
+    // `d_idx`:  daughter index for outlet boundary label
     let build_closed_tube = |origin: (Real, Real, Real),
                              dir: (Real, Real, Real),
                              r: Real,
@@ -108,6 +128,7 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
         let len = (dx * dx + dy * dy + dz * dz).sqrt();
         let (udx, udy, udz) = (dx / len, dy / len, dz / len);
 
+        // Compute a stable radial basis via Gram-Schmidt against a reference axis.
         let (ex, ey, ez) = if udz.abs() < 0.9 {
             let (lx, ly, lz) = (0.0, 0.0, 1.0);
             let dot = udx * lx + udy * ly + udz * lz;
@@ -194,8 +215,7 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
 
     let mut meshes = Vec::new();
 
-    // 1. Parent tube
-    // Extend slightly past l_parent to ensure solid overlap for CSG union
+    // 1. Parent tube â€” extend slightly past l_parent to ensure solid overlap for CSG union.
     let parent_overlap = r_parent * 1.5;
     let mesh_parent = build_closed_tube(
         (0.0, 0.0, 0.0),
@@ -217,7 +237,7 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
         let sin_a = angle_step.sin();
         let cos_a = angle_step.cos();
 
-        // Start daughter tube deep inside the parent to guarantee volume overlap
+        // Start daughter tube deep inside the parent to guarantee volume overlap.
         let overlap_dist = r_parent * 1.5;
         let start_x = -overlap_dist * sin_a;
         let start_y = 0.0;
@@ -240,10 +260,30 @@ fn build_branching_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimi
         meshes.push(mesh_d);
     }
 
-    // 3. Exact evaluate Boolean Union across all branch bounds
+    // 3. Boolean Union across all branch bounds.
     use crate::application::csg::boolean::{csg_boolean_nary, BooleanOp};
-    let union_mesh = csg_boolean_nary(BooleanOp::Union, &meshes)
-        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))?;
+    csg_boolean_nary(BooleanOp::Union, &meshes)
+        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))
+}
 
-    Ok(union_mesh)
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bifurcation_struct_construction() {
+        // Validates parameter binding without running the expensive CSG pipeline.
+        let b = BranchingMeshBuilder::bifurcation(0.004, 0.020, 0.002, 0.015, 0.5, 4);
+        assert_eq!(b.n_daughters, 2);
+        assert!((b.d_parent - 0.004).abs() < 1e-14);
+        assert_eq!(b.resolution, 4);
+    }
+
+    #[test]
+    fn trifurcation_struct_construction() {
+        let b = BranchingMeshBuilder::trifurcation(0.004, 0.020, 0.002, 0.015, 0.5, 6);
+        assert_eq!(b.n_daughters, 3);
+    }
 }

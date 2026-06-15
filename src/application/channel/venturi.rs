@@ -1,17 +1,20 @@
-//! Venturi tube mesh builder.
+﻿//! Venturi tube mesh builder.
 //!
 //! Builds a structured mesh for a Venturi flow passage.
 //! Use [`VenturiMeshBuilder::build_surface`] for the [`IndexedMesh`]
 //! boundary-surface output.
-
-use nalgebra::RealField;
-use num_traits::{Float, FromPrimitive, ToPrimitive};
+//!
+//! ## Design Note
+//!
+//! All arithmetic is `f64` (`Real`). A generic `<T: Scalar>` parameter is a
+//! fake generic (core_invariants Â§2): the body unconditionally converts Tâ†’f64
+//! before computation; parametrising T adds no numerical benefit.
 
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
-/// Error type for mesh building.
+/// Error type for Venturi mesh building.
 #[derive(Debug)]
 pub struct BuildError(pub String);
 
@@ -25,190 +28,125 @@ impl std::error::Error for BuildError {}
 
 /// Builds a Venturi tube mesh.
 ///
-/// All length parameters are in metres.
+/// All length parameters are in metres (`f64`).
+///
+/// ```rust
+/// use gaia::VenturiMeshBuilder;
+/// let mesh = VenturiMeshBuilder::new(0.010, 0.004, 0.020, 0.040, 0.010, 0.060, 0.020)
+///     .build_surface()
+///     .unwrap();
+/// assert!(!mesh.faces.is_empty());
+/// ```
 #[derive(Clone, Debug)]
-pub struct VenturiMeshBuilder<T: Copy + RealField> {
-    // --- geometry parameters ---
+pub struct VenturiMeshBuilder {
     /// Inlet diameter (m).
-    pub d_inlet: T,
+    pub d_inlet: Real,
     /// Throat diameter (m).
-    pub d_throat: T,
+    pub d_throat: Real,
     /// Inlet section length (m).
-    pub l_inlet: T,
+    pub l_inlet: Real,
     /// Convergent section length (m).
-    pub l_convergent: T,
+    pub l_convergent: Real,
     /// Throat section length (m).
-    pub l_throat: T,
+    pub l_throat: Real,
     /// Divergent section length (m).
-    pub l_divergent: T,
+    pub l_divergent: Real,
     /// Outlet section length (m).
-    pub l_outlet: T,
-
-    // --- mesh resolution ---
+    pub l_outlet: Real,
     resolution_x: usize,
     resolution_y: usize,
     circular: bool,
 }
 
-impl<T: Copy + RealField + Float + FromPrimitive> VenturiMeshBuilder<T> {
-    /// Create a Venturi mesh builder with the given geometry.
+impl VenturiMeshBuilder {
+    /// Create a Venturi mesh builder with the given geometry (all in metres).
+    #[must_use]
     pub fn new(
-        d_inlet: T,
-        d_throat: T,
-        l_inlet: T,
-        l_convergent: T,
-        l_throat: T,
-        l_divergent: T,
-        l_outlet: T,
+        d_inlet: Real, d_throat: Real,
+        l_inlet: Real, l_convergent: Real, l_throat: Real,
+        l_divergent: Real, l_outlet: Real,
     ) -> Self {
         Self {
-            d_inlet,
-            d_throat,
-            l_inlet,
-            l_convergent,
-            l_throat,
-            l_divergent,
-            l_outlet,
-            resolution_x: 8,
-            resolution_y: 4,
-            circular: true,
+            d_inlet, d_throat, l_inlet, l_convergent, l_throat,
+            l_divergent, l_outlet,
+            resolution_x: 8, resolution_y: 4, circular: true,
         }
     }
 
-    /// Set the mesh resolution (axial × radial).
+    /// Set the mesh resolution (axial Ã— radial).
+    #[must_use]
     pub fn with_resolution(mut self, x: usize, y: usize) -> Self {
-        self.resolution_x = x;
-        self.resolution_y = y;
-        self
+        self.resolution_x = x; self.resolution_y = y; self
     }
 
-    /// Use a circular (cylinder) cross-section (default) vs. square.
+    /// Use a circular cross-section (default) vs. square.
+    #[must_use]
     pub fn with_circular(mut self, circular: bool) -> Self {
-        self.circular = circular;
-        self
+        self.circular = circular; self
     }
 
-    /// Build a watertight surface mesh (wall + inlet + outlet caps).
-    ///
-    /// Returns an [`IndexedMesh`] with three named regions:
-    /// - `RegionId(0)` — outer wall
-    /// - `RegionId(1)` — inlet cap
-    /// - `RegionId(2)` — outlet cap
+    /// Build a watertight surface mesh.
     pub fn build_surface(&self) -> Result<IndexedMesh, BuildError> {
         build_venturi_surface(self)
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal mesh generation
-// ---------------------------------------------------------------------------
-
-fn build_venturi_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimitive>(
-    b: &VenturiMeshBuilder<T>,
-) -> Result<IndexedMesh, BuildError> {
-    let f = |v: T| v.to_f64().ok_or_else(|| BuildError("float conv".into()));
-
-    let d_inlet = f(b.d_inlet)?;
-    let d_throat = f(b.d_throat)?;
-    let l_inlet = f(b.l_inlet)?;
-    let l_convergent = f(b.l_convergent)?;
-    let l_throat = f(b.l_throat)?;
-    let l_divergent = f(b.l_divergent)?;
-    let l_outlet = f(b.l_outlet)?;
-
+fn build_venturi_surface(b: &VenturiMeshBuilder) -> Result<IndexedMesh, BuildError> {
+    let (d_in, d_th) = (b.d_inlet, b.d_throat);
+    let (l_in, l_cv, l_th, l_dv, l_out) =
+        (b.l_inlet, b.l_convergent, b.l_throat, b.l_divergent, b.l_outlet);
     let nx = b.resolution_x.max(2);
-    let n_ang: usize = if b.circular {
-        b.resolution_y.max(2) * 4
-    } else {
-        4
-    };
-    let total_l = l_inlet + l_convergent + l_throat + l_divergent + l_outlet;
+    let n_ang: usize = if b.circular { b.resolution_y.max(2) * 4 } else { 4 };
+    let total_l = l_in + l_cv + l_th + l_dv + l_out;
 
-    let wall_region = RegionId::from_usize(0);
-    let inlet_region = RegionId::from_usize(1);
+    let wall_region   = RegionId::from_usize(0);
+    let inlet_region  = RegionId::from_usize(1);
     let outlet_region = RegionId::from_usize(2);
 
-    // Radius at axial position z (all in f64).
-    let radius_at_f64 = |z: Real| -> Real {
-        let r_in = d_inlet / 2.0;
-        let r_th = d_throat / 2.0;
-        let z1 = l_inlet;
-        let z2 = z1 + l_convergent;
-        let z3 = z2 + l_throat;
-        let z4 = z3 + l_divergent;
-        if z <= z1 {
-            r_in
-        } else if z <= z2 {
-            let t = (z - z1) / l_convergent;
-            r_in + (r_th - r_in) * t
-        } else if z <= z3 {
-            r_th
-        } else if z <= z4 {
-            let t = (z - z3) / l_divergent;
-            r_th + (r_in - r_th) * t
-        } else {
-            r_in
-        }
+    let radius_at = |z: Real| -> Real {
+        let (r_in, r_th) = (d_in / 2.0, d_th / 2.0);
+        let (z1, z2, z3, z4) = (l_in, l_in+l_cv, l_in+l_cv+l_th, l_in+l_cv+l_th+l_dv);
+        if z <= z1      { r_in }
+        else if z <= z2 { r_in + (r_th - r_in) * (z - z1) / l_cv }
+        else if z <= z3 { r_th }
+        else if z <= z4 { r_th + (r_in - r_th) * (z - z3) / l_dv }
+        else            { r_in }
     };
 
     let mut mesh = IndexedMesh::new();
-
-    // Build rings of vertices (no center node needed for surface mesh).
     let mut rings: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(nx);
     for i in 0..nx {
-        let t = i as Real / (nx - 1) as Real;
-        let z = total_l * t;
-        let r = radius_at_f64(z);
+        let z = total_l * i as Real / (nx - 1) as Real;
+        let r = radius_at(z);
         let mut ring = Vec::with_capacity(n_ang);
         for ia in 0..n_ang {
             let theta = std::f64::consts::TAU * ia as Real / n_ang as Real;
             let (sin_t, cos_t) = theta.sin_cos();
-            let vid = mesh.add_vertex(
+            ring.push(mesh.add_vertex(
                 Point3r::new(r * cos_t, r * sin_t, z),
                 Vector3r::new(cos_t, sin_t, 0.0),
-            );
-            ring.push(vid);
+            ));
         }
         rings.push(ring);
     }
 
-    // Wall: quad strip between adjacent rings → 2 outward-facing triangles per quad.
-    //
-    // Ring vertices lie in the XY plane (x = r·cosθ, y = r·sinθ, z = axial).
-    // Viewed from outside (+radial), the outward CCW quad is:
-    //   v00 → v01 → v11 → v10   (angle increases first, then axially back)
-    // giving cross product (angular) × (−axial) = outward radial. ✓
     for iz in 0..(nx - 1) {
         for ia in 0..n_ang {
             let ia1 = (ia + 1) % n_ang;
-            let v00 = rings[iz][ia]; // (θ, z_iz)
-            let v01 = rings[iz][ia1]; // (θ+1, z_iz)
-            let v10 = rings[iz + 1][ia]; // (θ, z_{iz+1})
-            let v11 = rings[iz + 1][ia1]; // (θ+1, z_{iz+1})
-                                          // CCW from outside: v00 → v01 → v11, then v00 → v11 → v10
+            let (v00, v01) = (rings[iz][ia], rings[iz][ia1]);
+            let (v10, v11) = (rings[iz+1][ia], rings[iz+1][ia1]);
             mesh.add_face_with_region(v00, v01, v11, wall_region);
             mesh.add_face_with_region(v00, v11, v10, wall_region);
         }
     }
 
-    // Inlet cap at z = 0 (outward normal = −z).
-    // Wall bottom edge runs rings[0][ia] → rings[0][ia1] (positive-θ).
-    // Cap must reverse that shared edge: rings[0][ia1] → rings[0][ia].
-    // Fan: ic → rings[0][ia1] → rings[0][ia]  →  normal = −z ✓
     let ic = mesh.add_vertex(Point3r::new(0.0, 0.0, 0.0), Vector3r::new(0.0, 0.0, -1.0));
     for ia in 0..n_ang {
         let ia1 = (ia + 1) % n_ang;
         mesh.add_face_with_region(ic, rings[0][ia1], rings[0][ia], inlet_region);
     }
 
-    // Outlet cap at z = total_l (outward normal = +z).
-    // Wall top edge at iz=nx-2 runs rings[last][ia1] → rings[last][ia] (negative-θ).
-    // Cap must reverse that shared edge: rings[last][ia] → rings[last][ia1].
-    // Fan: oc → rings[last][ia] → rings[last][ia1]  →  normal = +z ✓
-    let oc = mesh.add_vertex(
-        Point3r::new(0.0, 0.0, total_l),
-        Vector3r::new(0.0, 0.0, 1.0),
-    );
+    let oc = mesh.add_vertex(Point3r::new(0.0, 0.0, total_l), Vector3r::new(0.0, 0.0, 1.0));
     let last = nx - 1;
     for ia in 0..n_ang {
         let ia1 = (ia + 1) % n_ang;
@@ -216,4 +154,27 @@ fn build_venturi_surface<T: Copy + RealField + Float + FromPrimitive + ToPrimiti
     }
 
     Ok(mesh)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn venturi_produces_non_empty_mesh() {
+        let mesh = VenturiMeshBuilder::new(0.010, 0.004, 0.020, 0.040, 0.010, 0.060, 0.020)
+            .build_surface()
+            .expect("should succeed");
+        assert!(!mesh.faces.is_empty());
+        assert!(!mesh.vertices.is_empty());
+    }
+
+    #[test]
+    fn venturi_resolution_affects_face_count() {
+        let lo = VenturiMeshBuilder::new(0.010, 0.004, 0.020, 0.040, 0.010, 0.060, 0.020)
+            .with_resolution(4, 2).build_surface().unwrap();
+        let hi = VenturiMeshBuilder::new(0.010, 0.004, 0.020, 0.040, 0.010, 0.060, 0.020)
+            .with_resolution(8, 4).build_surface().unwrap();
+        assert!(hi.faces.len() > lo.faces.len());
+    }
 }
