@@ -1099,15 +1099,17 @@ fn split_non_manifold_vertices(mesh: &mut IndexedMesh) {
         // entry (manifold edge).  At a non-manifold edge (multiplicity > 1
         // in either map), we refuse to cross — this is the bridge between
         // pinch cycles.
-        let mut visited: hashbrown::HashSet<usize> = hashbrown::HashSet::new();
+        let mut visited: hashbrown::HashSet<usize> =
+            hashbrown::HashSet::with_capacity(face_indices.len());
         let mut components: Vec<Vec<usize>> = Vec::new();
+        let mut queue: VecDeque<usize> = VecDeque::with_capacity(face_indices.len());
 
         for &start_fi in face_indices {
             if visited.contains(&start_fi) {
                 continue;
             }
-            let mut component: Vec<usize> = Vec::new();
-            let mut queue: VecDeque<usize> = VecDeque::new();
+            let mut component: Vec<usize> = Vec::with_capacity(face_indices.len());
+            queue.clear();
             queue.push_back(start_fi);
             visited.insert(start_fi);
 
@@ -1271,13 +1273,14 @@ fn split_figure8_pinch_vertices(mesh: &mut IndexedMesh) -> usize {
         // with extra edges).
         let mut visited: Vec<bool> = vec![false; n];
         let mut components: Vec<Vec<usize>> = Vec::new();
+        let mut queue: VecDeque<usize> = VecDeque::with_capacity(n);
 
         for start_local in 0..n {
             if visited[start_local] {
                 continue;
             }
-            let mut component: Vec<usize> = Vec::new();
-            let mut queue: VecDeque<usize> = VecDeque::new();
+            let mut component: Vec<usize> = Vec::with_capacity(n);
+            queue.clear();
             queue.push_back(start_local);
             visited[start_local] = true;
 
