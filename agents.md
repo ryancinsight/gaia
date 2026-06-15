@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 10 complete (OpenFOAM polyMesh writers + patch APIs); Phase 11 candidates tracked in `backlog.md`.
+> **Rewrite status**: Phase 12 complete (Delaunay Zero-Allocation Seeding, Hashing/Adjacency Consolidation, and Quality Metric Angle SSOT).
 
 ---
 
@@ -707,6 +707,8 @@ proptest! {
 | **8** Boolean | ✅ DONE | `csg/broad_phase.rs`, `csg/intersect.rs`, `csg/clip.rs`, `csg/reconstruct.rs`, `csg/boolean.rs`, `csg/mod.rs`, `csg/classify.rs` | Exact Boolean ops: AABB broad phase in `broad_phase.rs`; Möller-Trumbore + Shewchuk `orient_3d` exact T-T intersection in `intersect.rs`; Sutherland-Hodgman polygon clipping with exact predicates in `clip.rs`; fragment reconstruction with vertex welding in `reconstruct.rs`; `CsgNode` expression tree + `csg_boolean_indexed()` IndexedMesh API + `transform_mesh()` in `boolean.rs`; `classify_triangle_exact()` (no epsilon) in `classify.rs`; 107 tests pass |
 | **9** Docs | ✅ DONE | `lib.rs` + all modules | Rustdoc + aquamarine architecture diagram + crate invariants; removed `#![allow(missing_docs)]` + `#![allow(dead_code)]`; fixed 4 unused-import warnings; documented all 18 previously-missing items (ElementType variants, SurfaceError fields, CsgNode fields); 107 tests pass, 0 warnings |
 | **10** OpenFOAM I/O | ✅ DONE | `io/openfoam.rs`, `io/mod.rs`, `mesh.rs` | `write_openfoam_polymesh()` for `IndexedMesh` + `write_openfoam_polymesh_he()` for `HalfEdgeMesh`; writes `points`/`faces`/`owner`/`neighbour`/`boundary` polyMesh files; `PatchType → OF type` mapping (`wall`, `symmetry`, `cyclicAMI`, `patch` + `physicalType` for inlet/outlet); `PatchSpec` public struct; `face_patch()` + `patch_info()` accessors added to `HalfEdgeMesh`; 6 new unit tests (5-file creation, vertex count, face count, default patch, named patches, empty-mesh error); 113 tests pass, 0 new warnings |
+| **11** Quality & Welding | ✅ DONE | `quality/triangle.rs`, `welding/welder.rs` | Tightened quality angle formulas via vector norms; optimized welding vertex adjacency with low-valence arrays. |
+| **12** Delaunay & Hashing | ✅ DONE | `delaunay/dim3/tetrahedralize.rs`, `domain/mesh/indexed.rs`, `domain/grid.rs` | Eliminated BowyerWatson3D BFS seed allocations; completed BTreeMap/BTreeSet migration to HashMap/HashSet; hoisted CSG edge-use map cache. |
 
 ---
 
