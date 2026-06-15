@@ -660,15 +660,15 @@ fn csg_boolean_nary_single_mesh_returns_clone() {
     .build()
     .unwrap();
 
-    let result = csg_boolean_nary(BooleanOp::Union, &[a.clone()]).unwrap();
+    let result = csg_boolean_nary(BooleanOp::Union, std::slice::from_ref(&a)).unwrap();
 
     // The result should have the same number of vertices and faces as the input
     assert_eq!(result.vertices.len(), a.vertices.len());
     assert_eq!(result.faces.len(), a.faces.len());
 
     // Verify it works for all operators since nary with len == 1 ignores the op
-    assert!(csg_boolean_nary(BooleanOp::Intersection, &[a.clone()]).is_ok());
-    assert!(csg_boolean_nary(BooleanOp::Difference, &[a]).is_ok());
+    assert!(csg_boolean_nary(BooleanOp::Intersection, std::slice::from_ref(&a)).is_ok());
+    assert!(csg_boolean_nary(BooleanOp::Difference, std::slice::from_ref(&a)).is_ok());
 }
 
 /// N-ary union of 3 cubes must produce the same volume as sequential
