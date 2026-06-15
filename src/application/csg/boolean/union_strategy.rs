@@ -17,10 +17,9 @@ pub(super) fn spatial_union_order(meshes: &[IndexedMesh]) -> Vec<usize> {
             let a = &aabbs[lhs];
             let b = &aabbs[rhs];
             a.min.x
-                .partial_cmp(&b.min.x)
-                .unwrap()
-                .then(a.min.y.partial_cmp(&b.min.y).unwrap())
-                .then(a.min.z.partial_cmp(&b.min.z).unwrap())
+                .total_cmp(&b.min.x)
+                .then(a.min.y.total_cmp(&b.min.y))
+                .then(a.min.z.total_cmp(&b.min.z))
                 .then(lhs.cmp(&rhs))
         })
         .unwrap();
@@ -39,12 +38,10 @@ pub(super) fn spatial_union_order(meshes: &[IndexedMesh]) -> Vec<usize> {
                 let lhs_overlap = overlap_volume(&accumulated, &aabbs[lhs]);
                 let rhs_overlap = overlap_volume(&accumulated, &aabbs[rhs]);
                 rhs_overlap
-                    .partial_cmp(&lhs_overlap)
-                    .unwrap()
+                    .total_cmp(&lhs_overlap)
                     .then_with(|| {
                         center_distance2(&accumulated_center, &centers[lhs])
-                            .partial_cmp(&center_distance2(&accumulated_center, &centers[rhs]))
-                            .unwrap()
+                            .total_cmp(&center_distance2(&accumulated_center, &centers[rhs]))
                     })
                     .then(lhs.cmp(&rhs))
             })
@@ -97,6 +94,7 @@ fn append_mesh(dst: &mut IndexedMesh, src: &IndexedMesh) {
     }
 }
 
+#[inline]
 fn overlap_volume(
     lhs: &crate::domain::geometry::Aabb,
     rhs: &crate::domain::geometry::Aabb,
@@ -107,6 +105,7 @@ fn overlap_volume(
     dx * dy * dz
 }
 
+#[inline]
 fn center_distance2(
     lhs: &crate::domain::core::scalar::Point3r,
     rhs: &crate::domain::core::scalar::Point3r,

@@ -149,7 +149,7 @@ fn edge_crossings_interval(
     let proj_span = projs.iter().copied().fold(Real::NEG_INFINITY, Real::max)
         - projs.iter().copied().fold(Real::INFINITY, Real::min);
     let dedup_tol = INTERVAL_OVERLAP_REL * proj_span.abs().max(1e-30);
-    crossings.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap_or(std::cmp::Ordering::Equal));
+    crossings.sort_by(|x, y| x.0.total_cmp(&y.0));
     crossings.dedup_by(|x, y| (x.0 - y.0).abs() < dedup_tol);
 
     if crossings.len() < 2 {

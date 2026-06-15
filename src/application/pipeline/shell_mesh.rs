@@ -19,6 +19,7 @@ use crate::domain::geometry::tpms::{
     SchwarzD, SchwarzP, SplitP, TpmsBoxParams,
 };
 use crate::domain::mesh::IndexedMesh;
+use hashbrown::HashMap;
 
 use cfd_schematics::geometry::types::{InterchangeShellCuboid, TpmsSurfaceKind};
 
@@ -172,7 +173,7 @@ impl ShellMeshPipeline {
             let faces = mesher.sweep(&profile, &path, &mut pool, RegionId::new(1));
 
             let mut port_mesh = IndexedMesh::new();
-            let mut vmap = std::collections::HashMap::new();
+            let mut vmap = HashMap::new();
             for (vid, vdata) in pool.iter() {
                 let mid = port_mesh.add_vertex(vdata.position, vdata.normal);
                 vmap.insert(vid, mid);

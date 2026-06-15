@@ -336,7 +336,7 @@ mod tests {
         assert_ne!(p1, p3);
 
         // BoundaryPatch can be used as a HashMap key.
-        use std::collections::HashMap;
+        use hashbrown::HashMap;
         let mut map: HashMap<BoundaryPatch, usize> = HashMap::new();
         map.insert(p1.clone(), 1);
         assert_eq!(map[&p2], 1);

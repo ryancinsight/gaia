@@ -16,7 +16,7 @@
 //! between generic point insertions is mathematically identical and topologically isomorphic to
 //! fresh allocations, yielding guaranteed zero-allocation O(1) memory overhead during mesh generation.
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use nalgebra::{Point3, Vector3};
 use num_traits::Float;
 
@@ -160,6 +160,10 @@ pub struct BowyerWatson3D<T: Scalar> {
     visited_tets: Vec<usize>,
     visited_flags: Vec<bool>,
 
+    // -- BFS Seed Search Cache --
+    search_q: Vec<usize>,
+    search_visited: HashSet<usize>,
+
     super_idx: usize,
 }
 
@@ -177,6 +181,8 @@ impl<T: Scalar> BowyerWatson3D<T> {
             bad_tets: Vec::with_capacity(1024),
             visited_tets: Vec::with_capacity(1024),
             visited_flags: Vec::new(),
+            search_q: Vec::with_capacity(256),
+            search_visited: HashSet::with_capacity(256),
             super_idx: 0,
         };
         engine.inject_super_tetrahedron(min_bound, max_bound);
@@ -201,6 +207,8 @@ impl<T: Scalar> BowyerWatson3D<T> {
             bad_tets: Vec::with_capacity(1024),
             visited_tets: Vec::with_capacity(1024),
             visited_flags: Vec::with_capacity(point_capacity * 6),
+            search_q: Vec::with_capacity(256),
+            search_visited: HashSet::with_capacity(256),
             super_idx: 0,
         };
         engine.inject_super_tetrahedron(min_bound, max_bound);
@@ -315,6 +323,8 @@ impl<T: Scalar> BowyerWatson3D<T> {
         self.cavity_faces.clear();
         self.bad_tets.clear();
         self.visited_tets.clear();
+        self.search_q.clear();
+        self.search_visited.clear();
 
         // 1. Seed Discovery: O(1) expected time walk from last insertion.
         let mut seed = usize::MAX;
@@ -325,12 +335,10 @@ impl<T: Scalar> BowyerWatson3D<T> {
             }
         }
 
-        let mut search_q = Vec::new();
-        let mut search_visited = std::collections::HashSet::new();
-        search_q.push(curr);
-        search_visited.insert(curr);
+        self.search_q.push(curr);
+        self.search_visited.insert(curr);
 
-        while let Some(current) = search_q.pop() {
+        while let Some(current) = self.search_q.pop() {
             if let Some(tet) = &self.tetrahedra[current] {
                 if tet.contains_in_circumsphere(&point, &self.vertices) {
                     seed = current;
@@ -339,9 +347,9 @@ impl<T: Scalar> BowyerWatson3D<T> {
                 for face in &tet.faces() {
                     if let Some(&[t0, t1]) = self.face_tets.get(face) {
                         let neighbor = if t0 == current { t1 } else { t0 };
-                        if neighbor != usize::MAX && search_visited.insert(neighbor) {
-                            search_q.push(neighbor);
-                            if search_visited.len() > 300 {
+                        if neighbor != usize::MAX && self.search_visited.insert(neighbor) {
+                            self.search_q.push(neighbor);
+                            if self.search_visited.len() > 300 {
                                 break;
                             } // Bound local BFS logic
                         }

@@ -254,7 +254,7 @@ pub fn propagate_seam_vertices(
             }
 
             // Deduplicate and sort t-parameters.
-            t_params.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            t_params.sort_by(|a, b| a.total_cmp(b));
             t_params.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
 
             // Build sub-interval snap segments and inject into adjacent faces.
@@ -563,7 +563,7 @@ pub fn inject_cap_seam_into_barrels(
         }
 
         // Sort and deduplicate cut parameters, then emit sub-interval SnapSegments.
-        cut_params.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        cut_params.sort_by(|a, b| a.total_cmp(b));
         cut_params.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
 
         let mut params: Vec<Real> = Vec::with_capacity(cut_params.len() + 2);

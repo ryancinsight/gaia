@@ -2,48 +2,18 @@
 //!
 //! This is the same algorithm used inside `VertexPool`, but exposed as a
 //! generic utility for any point set.
+//!
+//! `GridCell` is defined in `snap` (the canonical SSOT) and re-exported here
+//! to eliminate the duplicate struct that previously existed in both modules.
 
 use hashbrown::HashMap;
 
 use crate::domain::core::scalar::{Point3r, Real};
 
-/// Key for a spatial hash grid cell.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct GridCell {
-    /// X grid coordinate.
-    pub x: i64,
-    /// Y grid coordinate.
-    pub y: i64,
-    /// Z grid coordinate.
-    pub z: i64,
-}
-
-impl GridCell {
-    /// Quantize a point to a grid cell.
-    #[inline]
-    #[must_use]
-    pub fn from_point(p: &Point3r, inv_cell_size: Real) -> Self {
-        Self {
-            x: (p.x * inv_cell_size).floor() as i64,
-            y: (p.y * inv_cell_size).floor() as i64,
-            z: (p.z * inv_cell_size).floor() as i64,
-        }
-    }
-
-    /// Iterate over the 3×3×3 neighborhood (27 cells including self).
-    #[inline]
-    pub fn neighborhood(self) -> impl Iterator<Item = GridCell> {
-        (-1i64..=1).flat_map(move |dz| {
-            (-1i64..=1).flat_map(move |dy| {
-                (-1i64..=1).map(move |dx| GridCell {
-                    x: self.x + dx,
-                    y: self.y + dy,
-                    z: self.z + dz,
-                })
-            })
-        })
-    }
-}
+/// Canonical 3-D grid cell key — re-exported from [`snap::GridCell`].
+///
+/// [`snap::GridCell`]: crate::application::welding::snap::GridCell
+pub use super::snap::GridCell;
 
 /// A spatial hash grid mapping 3D points to bucket indices.
 pub struct SpatialHashGrid {
@@ -84,7 +54,7 @@ impl SpatialHashGrid {
         let radius_sq = radius * radius;
         let mut results = Vec::new();
 
-        for neighbor in cell.neighborhood() {
+        for neighbor in cell.neighborhood_27() {
             if let Some(indices) = self.buckets.get(&neighbor) {
                 for &idx in indices {
                     let dist_sq = (positions[idx as usize] - point).norm_squared();
@@ -110,7 +80,7 @@ impl SpatialHashGrid {
         let radius_sq = radius * radius;
         let mut best: Option<(u32, Real)> = None;
 
-        for neighbor in cell.neighborhood() {
+        for neighbor in cell.neighborhood_27() {
             if let Some(indices) = self.buckets.get(&neighbor) {
                 for &idx in indices {
                     let dist_sq = (positions[idx as usize] - point).norm_squared();

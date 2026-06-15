@@ -132,3 +132,34 @@ pub fn assert_watertight<T: Scalar>(
     }
     Ok(report)
 }
+
+/// Compute the Euler characteristic `V - E + F` from a pre-built `EdgeStore`.
+///
+/// # Complexity
+/// - **Time**: O(F) for the vertex-reference scan; O(1) for E and F lookups.
+/// - **Memory**: one `HashSet<VertexId>` of size ≤ 3F.
+///
+/// This is the canonical SSOT implementation. Prefer this over reinventing
+/// edge/vertex counting inline — the two-HashSet pattern used before this
+/// function was introduced allocated O(F) extra and counted edges in O(F)
+/// instead of using `edge_store.len()` which is already O(1).
+///
+/// # Note
+/// `vertex_pool.len()` is **not** used because it includes dead/welded entries
+/// from CSG input meshes that inflate V incorrectly. Only referenced vertices
+/// (those appearing in at least one face) are counted.
+#[inline]
+#[must_use]
+pub fn euler_chi_from_stores(face_store: &FaceStore, edge_store: &EdgeStore) -> i64 {
+    let mut referenced: hashbrown::HashSet<crate::domain::core::index::VertexId> =
+        hashbrown::HashSet::with_capacity(face_store.len() * 3 / 2);
+    for face in face_store.iter() {
+        referenced.insert(face.vertices[0]);
+        referenced.insert(face.vertices[1]);
+        referenced.insert(face.vertices[2]);
+    }
+    let v = referenced.len() as i64;
+    let e = edge_store.len() as i64;
+    let f = face_store.len() as i64;
+    v - e + f
+}

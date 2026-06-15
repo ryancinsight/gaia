@@ -239,7 +239,7 @@ pub fn build_seam_vertex_map(
     // Sort each edge's Steiners by t-parameter for consistent boundary
     // polygon construction.
     for steiners in map.values_mut() {
-        steiners.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        steiners.sort_by(|a, b| a.0.total_cmp(&b.0));
         steiners.dedup_by_key(|entry| entry.1);
     }
 
@@ -503,7 +503,7 @@ pub fn corefine_face(
     // ── Dedup edge steiners before length checks ───────────────────────────────
     // Deferring deduplication avoids O(N^2) linear scan overhead on highly refined edges.
     for es in &mut edge_steiners {
-        es.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        es.sort_by(|a, b| a.0.total_cmp(&b.0));
         es.dedup_by_key(|&mut (_, vid)| vid);
     }
 

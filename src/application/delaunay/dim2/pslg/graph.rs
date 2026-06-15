@@ -287,7 +287,7 @@ impl Pslg {
     /// - No duplicate segments.
     /// - No segment-segment interior intersections (shared endpoints allowed).
     pub fn validate(&self) -> Result<(), PslgValidationError> {
-        use std::collections::HashMap;
+        use hashbrown::HashMap;
 
         let n_vertices = self.vertices.len();
 

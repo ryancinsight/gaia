@@ -33,7 +33,7 @@
 #![allow(clippy::cast_precision_loss)]
 
 use gaia::domain::core::scalar::{Point3r, Real, Vector3r};
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::BufReader;

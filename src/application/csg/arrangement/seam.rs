@@ -223,7 +223,7 @@ pub(crate) fn stitch_boundary_seams(faces: &mut Vec<FaceData>, pool: &VertexPool
                 (d, vi, vj)
             })
             .collect();
-        edge_info.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        edge_info.sort_by(|a, b| a.0.total_cmp(&b.0));
 
         let min_len_sq = edge_info.first().map_or(0.0, |e| e.0);
         let max_len_sq = edge_info.last().map_or(0.0, |e| e.0);
@@ -372,7 +372,7 @@ pub(crate) fn stitch_boundary_seams_conservative(faces: &mut Vec<FaceData>, pool
                 (d, vi, vj)
             })
             .collect();
-        edge_info.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        edge_info.sort_by(|a, b| a.0.total_cmp(&b.0));
 
         let min_len_sq = edge_info.first().map_or(0.0, |e| e.0);
         let max_len_sq = edge_info.last().map_or(0.0, |e| e.0);

@@ -78,7 +78,7 @@ pub fn off_center(
 
     let (shortest, shortest_sq) = edges
         .iter()
-        .min_by(|(_, d1), (_, d2)| d1.partial_cmp(d2).unwrap())
+        .min_by(|(_, d1), (_, d2)| d1.total_cmp(d2))
         .unwrap();
 
     let shortest_len = shortest_sq.sqrt();

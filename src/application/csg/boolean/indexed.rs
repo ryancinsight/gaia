@@ -300,23 +300,14 @@ fn postprocess_boolean_mesh(
 /// after all repair phases.
 fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<()> {
     /// Compute Euler characteristic V - E + F for Euler guards.
+    ///
+    /// Delegates to `euler_chi_from_stores` — the canonical SSOT implementation
+    /// in `watertight::check`. Compared to the previous two-HashSet inline,
+    /// this eliminates the O(F) edge-counting HashSet by reusing `EdgeStore::len()`.
     fn euler_chi(mesh: &IndexedMesh) -> i64 {
-        let mut refs: hashbrown::HashSet<VertexId> = hashbrown::HashSet::new();
-        let mut edges: hashbrown::HashSet<(VertexId, VertexId)> = hashbrown::HashSet::new();
-        let f = mesh.faces.len();
-        for face in mesh.faces.iter() {
-            let vs = &face.vertices;
-            refs.insert(vs[0]);
-            refs.insert(vs[1]);
-            refs.insert(vs[2]);
-            for k in 0..3 {
-                let a = vs[k];
-                let b = vs[(k + 1) % 3];
-                let key = if a < b { (a, b) } else { (b, a) };
-                edges.insert(key);
-            }
-        }
-        refs.len() as i64 - edges.len() as i64 + f as i64
+        let edge_store =
+            crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
+        crate::application::watertight::check::euler_chi_from_stores(&mesh.faces, &edge_store)
     }
 
     if !is_coplanar {

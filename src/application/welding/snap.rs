@@ -63,10 +63,15 @@ use crate::domain::core::scalar::{Point3r, Real};
 
 // ── GridCell ─────────────────────────────────────────────────────────────────
 
-/// A quantized 3-D grid cell coordinate.
+/// Canonical 3-D grid cell coordinate — SSOT for all spatial hash and welding
+/// consumers in the crate.
 ///
 /// Uses `i64` so that negative coordinates and very large models are handled
 /// correctly without overflow for any mesh that fits in ±9 × 10¹² ε-units.
+///
+/// Re-exported by [`spatial_hash`] to eliminate the duplicate struct.
+///
+/// [`spatial_hash`]: crate::application::welding::spatial_hash
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct GridCell {
     /// Quantized X index.
@@ -78,11 +83,28 @@ pub struct GridCell {
 }
 
 impl GridCell {
-    /// Quantize a point using **rounding** (not flooring).
+    /// Quantize a point using **floor** quantization (suitable for range queries).
     ///
-    /// Rounding assigns boundary points consistently, avoiding the ghost-
-    /// duplicate artifact that occurs with floor-based quantization when a
-    /// point lies exactly on a cell wall.
+    /// Floor maps each point to the cell at or below it on every axis.
+    /// Used by `SpatialHashGrid` for O(1) bucket lookup.
+    #[inline]
+    #[must_use]
+    pub fn from_point(p: &Point3r, inv_cell_size: Real) -> Self {
+        Self {
+            x: (p.x * inv_cell_size).floor() as i64,
+            y: (p.y * inv_cell_size).floor() as i64,
+            z: (p.z * inv_cell_size).floor() as i64,
+        }
+    }
+
+    /// Quantize a point using **round-half-up** (suitable for vertex welding).
+    ///
+    /// `floor(v + 0.5)` is single-valued for all real inputs including negative
+    /// values. Rust `.round()` uses round-half-away-from-zero which maps
+    /// `-0.5 \u2192 -1` while floor-based maps `-0.5 \u2192 0`. When two floating-point
+    /// paths to the same geometric point straddle a half-integer boundary,
+    /// `.round()` can assign different cells; `floor(v + 0.5)` always assigns
+    /// the same cell. \u220e
     #[inline]
     #[must_use]
     pub fn from_point_round(p: &Point3r, inv_eps: Real) -> Self {

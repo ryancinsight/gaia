@@ -459,7 +459,7 @@ mod tests {
 
     fn tet_six_volume(mesh: &IndexedMesh<f64>, cell: &crate::domain::topology::Cell) -> f64 {
         let mut vertices = Vec::new();
-        let mut seen: std::collections::HashSet<_> = std::collections::HashSet::new();
+        let mut seen: hashbrown::HashSet<_> = hashbrown::HashSet::new();
         for &f_idx_raw in &cell.faces {
             let f_idx = FaceId::from_usize(f_idx_raw);
             let face = mesh.faces.get(f_idx);

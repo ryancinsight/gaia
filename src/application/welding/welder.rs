@@ -92,6 +92,11 @@ impl MeshWelder {
             grid.insert(p, i as u32);
         }
 
+        // Pre-allocate scratch maps for is_safe_to_merge — reused each iteration
+        // instead of allocating two new HashMaps per merge candidate.
+        let mut dst_scratch: HashMap<u32, u32> = HashMap::new();
+        let mut src_scratch: HashMap<u32, u32> = HashMap::new();
+
         // 3. Greedy topological clustering
         // remap[i] maps original vertex i to its canonical merged vertex head.
         let mut remap: Vec<u32> = (0..n as u32).collect();
@@ -129,6 +134,8 @@ impl MeshWelder {
                     &v_faces[i as usize],
                     &v_faces[c as usize],
                     &cur_face_verts,
+                    &mut dst_scratch,
+                    &mut src_scratch,
                 ) {
                     // SAFE! Merge c into i.
                     remap[c as usize] = i;
@@ -189,6 +196,9 @@ impl MeshWelder {
     }
 
     /// Evaluates the topological safety of merging vertex `src` into `dst`.
+    ///
+    /// Accepts pre-allocated scratch maps (`dst_scratch`, `src_scratch`) to
+    /// avoid per-call `HashMap` allocation. Both are cleared on entry.
     fn is_safe_to_merge(
         &self,
         dst: u32,
@@ -196,6 +206,8 @@ impl MeshWelder {
         dst_faces: &[u32],
         src_faces: &[u32],
         cur_face_verts: &HashMap<u32, [u32; 3]>,
+        dst_scratch: &mut HashMap<u32, u32>,
+        src_scratch: &mut HashMap<u32, u32>,
     ) -> bool {
         // Condition 1: Shared Face Check (Degenerate Prevention)
         // O(|dst| * |src|), but valence is small and Vec adjacency avoids a
@@ -207,31 +219,32 @@ impl MeshWelder {
         }
 
         // Condition 2: Non-Manifold Edge Prevention
-        let mut dst_neighbors: HashMap<u32, u32> = HashMap::new();
+        // Reuse pre-allocated scratch maps — clear here rather than allocating.
+        dst_scratch.clear();
         for &f_id in dst_faces {
             if let Some(verts) = cur_face_verts.get(&f_id) {
                 for &v in verts {
                     if v != dst {
-                        *dst_neighbors.entry(v).or_insert(0) += 1;
+                        *dst_scratch.entry(v).or_insert(0) += 1;
                     }
                 }
             }
         }
 
-        let mut src_neighbors: HashMap<u32, u32> = HashMap::new();
+        src_scratch.clear();
         for &f_id in src_faces {
             if let Some(verts) = cur_face_verts.get(&f_id) {
                 for &v in verts {
                     if v != src {
-                        *src_neighbors.entry(v).or_insert(0) += 1;
+                        *src_scratch.entry(v).or_insert(0) += 1;
                     }
                 }
             }
         }
 
         // If they share a neighbor, the combined face count on that edge cannot exceed 2.
-        for (v, count_src) in &src_neighbors {
-            if let Some(count_dst) = dst_neighbors.get(v) {
+        for (v, count_src) in src_scratch.iter() {
+            if let Some(count_dst) = dst_scratch.get(v) {
                 if count_src + count_dst > 2 {
                     return false;
                 }

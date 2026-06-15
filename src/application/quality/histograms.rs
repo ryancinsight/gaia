@@ -26,7 +26,7 @@ pub fn exact_percentile(values: &[Real], p: f64) -> Option<Real> {
     if finite.is_empty() {
         return None;
     }
-    finite.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    finite.sort_unstable_by(|a, b| a.total_cmp(b));
     let target_idx = (p.clamp(0.0, 1.0) * (finite.len() - 1) as f64).round() as usize;
     Some(finite[target_idx])
 }

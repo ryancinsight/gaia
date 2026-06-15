@@ -299,7 +299,9 @@ impl<T: Scalar> IndexedMesh<T> {
         if self.edges.is_none() {
             self.edges = Some(EdgeStore::from_face_store(&self.faces));
         }
-        self.edges.as_ref().unwrap()
+        self.edges
+            .as_ref()
+            .expect("invariant: edges is Some after the if-branch sets it")
     }
 
     /// Force rebuild of edge adjacency.
@@ -348,7 +350,10 @@ impl<T: Scalar> IndexedMesh<T> {
     /// Check watertightness (rebuilds edges if needed).
     pub fn is_watertight(&mut self) -> bool {
         self.rebuild_edges();
-        let edges = self.edges.as_ref().unwrap();
+        let edges = self
+            .edges
+            .as_ref()
+            .expect("invariant: rebuild_edges() sets edges to Some");
         let report = crate::application::watertight::check::check_watertight(
             &self.vertices,
             &self.faces,
@@ -539,7 +544,7 @@ impl<T: Scalar> IndexedMesh<T> {
 
             // Seed orientation: the outward normal of the extremal face must
             // have a non-negative X component.
-            let seed_normal = face_normals[seed_fi].unwrap();
+            let seed_normal = face_normals[seed_fi].expect("invariant: seed_fi is the extremal face whose normal was computed in the face_normals pass");
             orientation[seed_fi] = Some(seed_normal.x >= T::zero());
             component_id[seed_fi] = current_component;
 
@@ -547,7 +552,8 @@ impl<T: Scalar> IndexedMesh<T> {
             queue.push_back(seed_fi);
 
             while let Some(fi) = queue.pop_front() {
-                let is_outward = orientation[fi].unwrap();
+                let is_outward = orientation[fi]
+                    .expect("invariant: orientation is set before fi is pushed into the BFS queue");
                 let v = face_list[fi].vertices;
                 for k in 0..3 {
                     let j = (k + 1) % 3;
@@ -834,8 +840,7 @@ impl<T: Scalar> IndexedMesh<T> {
         // Single-pass over components: build a fresh mesh from kept faces only.
         let mut new_mesh = self.empty_clone();
         // Map old VertexId → new VertexId (None = not yet seen).
-        let mut vertex_remap: std::collections::HashMap<VertexId, VertexId> =
-            std::collections::HashMap::new();
+        let mut vertex_remap: HashMap<VertexId, VertexId> = HashMap::new();
         // Map old FaceId → new FaceId for attribute/label remapping.
         let mut face_remap: HashMap<FaceId, FaceId> = HashMap::new();
         let mut discarded = 0usize;

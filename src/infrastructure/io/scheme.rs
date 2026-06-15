@@ -192,7 +192,7 @@ pub fn from_blueprint(
     };
 
     let mut channels = Vec::with_capacity(blueprint.channels.len());
-    let node_points: std::collections::HashMap<&str, (f64, f64)> = blueprint
+    let node_points: hashbrown::HashMap<&str, (f64, f64)> = blueprint
         .nodes
         .iter()
         .map(|node| (node.id.as_str(), node.point))

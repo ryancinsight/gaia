@@ -165,7 +165,7 @@ fn build_recursive(
     sorted[start..end].select_nth_unstable_by(mid - start, |&a, &b| {
         let ca = face_centroid_axis(src, a, axis);
         let cb = face_centroid_axis(src, b, axis);
-        ca.partial_cmp(&cb).unwrap_or(std::cmp::Ordering::Equal)
+        ca.total_cmp(&cb)
     });
 
     let left = build_recursive(src, sorted, start, mid, nodes, reordered);

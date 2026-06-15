@@ -8,7 +8,7 @@ use crate::application::delaunay::dim3::tetrahedralize::BowyerWatson3D;
 use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::indexed::IndexedMesh;
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use nalgebra::{Point3, Vector3};
 
 /// An implicit-to-explicit tetrahedral mesh generator.
@@ -140,8 +140,7 @@ impl<T: Scalar> SdfMesher<T> {
         let cell_s = weld_tol * <T as Scalar>::from_f64(2.0);
         let c_s_f64: f64 = num_traits::ToPrimitive::to_f64(&cell_s).unwrap();
 
-        let mut grid: std::collections::HashMap<[isize; 3], Vec<usize>> =
-            std::collections::HashMap::with_capacity(raw_points.len());
+        let mut grid: HashMap<[isize; 3], Vec<usize>> = HashMap::with_capacity(raw_points.len());
         let mut unique_points = Vec::with_capacity(raw_points.len());
 
         for p in raw_points {
@@ -201,8 +200,7 @@ impl<T: Scalar> SdfMesher<T> {
             // to definitively break incremental Delaunay collinear degeneracies.
             let macro_h =
                 num_traits::ToPrimitive::to_f64(&(<T as Scalar>::from_f64(5.0) * h)).unwrap();
-            let mut blocks: std::collections::HashMap<[isize; 3], Vec<Point3<T>>> =
-                std::collections::HashMap::new();
+            let mut blocks: HashMap<[isize; 3], Vec<Point3<T>>> = HashMap::new();
 
             for p in unique_points {
                 let px: f64 = num_traits::ToPrimitive::to_f64(&p.x).unwrap();
@@ -431,7 +429,7 @@ impl<T: Scalar> SdfMesher<T> {
         // BCC snapping creates geometrically exact but topologically anisotropic (jagged) surface bounds.
         // A bounded Laplacian relaxation specifically operating on the mesh boundary vertices perfectly
         // homogenizes triangle aspect ratios, ensuring CFD smoothness and isotropic wall shear elements.
-        let mut b_vertices = std::collections::HashSet::new();
+        let mut b_vertices = HashSet::new();
         let mut b_adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(b_faces.len() * 3);
 
         for fid in &b_faces {

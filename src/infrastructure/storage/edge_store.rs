@@ -181,29 +181,51 @@ impl EdgeStore {
     /// All boundary edges (valence == 1).
     #[must_use]
     pub fn boundary_edges(&self) -> Vec<EdgeId> {
+        self.boundary_edges_iter().collect()
+    }
+
+    /// Iterate over boundary edges without allocating a `Vec`.
+    ///
+    /// Prefer this over [`boundary_edges`] when only iteration is needed.
+    ///
+    /// [`boundary_edges`]: Self::boundary_edges
+    pub fn boundary_edges_iter(&self) -> impl Iterator<Item = EdgeId> + '_ {
         self.edges
             .iter()
             .enumerate()
             .filter(|(_, e)| e.is_boundary())
             .map(|(i, _)| EdgeId::from_usize(i))
-            .collect()
     }
 
     /// All non-manifold edges (valence > 2).
     #[must_use]
     pub fn non_manifold_edges(&self) -> Vec<EdgeId> {
+        self.non_manifold_edges_iter().collect()
+    }
+
+    /// Iterate over non-manifold edges without allocating a `Vec`.
+    ///
+    /// Prefer this over [`non_manifold_edges`] when only iteration is needed.
+    ///
+    /// [`non_manifold_edges`]: Self::non_manifold_edges
+    pub fn non_manifold_edges_iter(&self) -> impl Iterator<Item = EdgeId> + '_ {
         self.edges
             .iter()
             .enumerate()
             .filter(|(_, e)| e.is_non_manifold())
             .map(|(i, _)| EdgeId::from_usize(i))
-            .collect()
     }
 
     /// Count boundary edges.
     #[must_use]
     pub fn boundary_edge_count(&self) -> usize {
         self.edges.iter().filter(|e| e.is_boundary()).count()
+    }
+
+    /// Count non-manifold edges.
+    #[must_use]
+    pub fn non_manifold_edge_count(&self) -> usize {
+        self.edges.iter().filter(|e| e.is_non_manifold()).count()
     }
 
     /// Clear all edges.

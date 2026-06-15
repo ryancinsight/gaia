@@ -182,8 +182,7 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
     // Find all faces using the "next CCW edge" traversal.
     // For each vertex i and neighbour j, find the face (i→j→k→...).
     // At each step, turn "left" = pick the neighbour that is most CCW.
-    let mut visited_edges: std::collections::HashSet<(usize, usize)> =
-        std::collections::HashSet::new();
+    let mut visited_edges: hashbrown::HashSet<(usize, usize)> = hashbrown::HashSet::new();
     let mut faces: Vec<Vec<usize>> = Vec::new();
 
     for start in 0..60 {
@@ -208,7 +207,7 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
                         // Most CCW = most negative cross product z (when projected onto face plane).
                         let ca = dir.cross(&da).dot(&outward);
                         let cb = dir.cross(&db).dot(&outward);
-                        ca.partial_cmp(&cb).unwrap()
+                        ca.total_cmp(&cb)
                     })
                     .copied();
                 let candidate = match best {
