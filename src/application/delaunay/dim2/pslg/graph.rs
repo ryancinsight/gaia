@@ -575,8 +575,7 @@ impl Pslg {
                             [a1.y, a2.y, b1.y, b2.y]
                         };
                         let mut sorted = coords;
-                        sorted
-                            .sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
+                        sorted.sort_by(|x, y| x.total_cmp(y));
                         let lo_val = sorted[1];
                         let hi_val = sorted[2];
                         let char_scale = (sorted[3] - sorted[0]).abs().max(1.0);
@@ -622,7 +621,7 @@ impl Pslg {
                                 let p2 = self.vertices[v2.idx()];
                                 let val1 = if use_x { p1.x } else { p1.y };
                                 let val2 = if use_x { p2.x } else { p2.y };
-                                val1.partial_cmp(&val2).unwrap_or(std::cmp::Ordering::Equal)
+                                val1.total_cmp(&val2)
                             });
                             for k in 0..3 {
                                 let p = verts[k];

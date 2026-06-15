@@ -132,6 +132,7 @@ fn r(v: Real) -> f64 {
 /// let c = Point2::new(0.0, 1.0);
 /// assert_eq!(orient_2d(&a, &b, &c), Orientation::Positive); // CCW
 /// ```
+#[inline]
 #[must_use]
 pub fn orient_2d(a: &Point2<Real>, b: &Point2<Real>, c: &Point2<Real>) -> Orientation {
     let det = gp::orient2d([r(a.x), r(a.y)], [r(b.x), r(b.y)], [r(c.x), r(c.y)]);
@@ -173,6 +174,7 @@ pub fn orient_2d_arr(a: [Real; 2], b: [Real; 2], c: [Real; 2]) -> Orientation {
 /// let ez = [0.0, 0.0, 1.0];
 /// assert_eq!(orient_3d(o, ex, ey, ez), Orientation::Positive);
 /// ```
+#[inline]
 #[must_use]
 pub fn orient_3d(a: [Real; 3], b: [Real; 3], c: [Real; 3], d: [Real; 3]) -> Orientation {
     let to64 = |v: [Real; 3]| [r(v[0]), r(v[1]), r(v[2])];
@@ -184,6 +186,7 @@ pub fn orient_3d(a: [Real; 3], b: [Real; 3], c: [Real; 3], d: [Real; 3]) -> Orie
 }
 
 /// Convenience wrapper: accept `nalgebra::Point3<Real>`.
+#[inline]
 #[must_use]
 pub fn orient_3d_pts(
     a: &nalgebra::Point3<Real>,
@@ -218,6 +221,7 @@ pub fn orient_3d_pts(
 /// - [`Degenerate`][Orientation::Degenerate] — `d` lies exactly on the circle.
 ///
 /// Used in Delaunay mesh refinement to enforce the empty-circumcircle property.
+#[inline]
 #[must_use]
 pub fn incircle(
     a: &Point2<Real>,

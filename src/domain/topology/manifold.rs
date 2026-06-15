@@ -66,6 +66,7 @@ pub fn check_manifold(edge_store: &EdgeStore) -> ManifoldReport {
 }
 
 /// Assert that the mesh is a closed 2-manifold, returning an error if not.
+#[inline]
 pub fn assert_manifold(edge_store: &EdgeStore) -> MeshResult<ManifoldReport> {
     let report = check_manifold(edge_store);
     if !report.non_manifold_edge_ids.is_empty() {

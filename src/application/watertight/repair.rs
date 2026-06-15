@@ -65,9 +65,7 @@ impl MeshRepair {
         vertex_pool: &VertexPool,
         max_passes: usize,
     ) -> usize {
-        let mut boundary_edges = EdgeStore::from_face_store(face_store)
-            .boundary_edges()
-            .len();
+        let mut boundary_edges = EdgeStore::from_face_store(face_store).boundary_edge_count();
         let mut improved_passes = 0usize;
 
         for _ in 0..max_passes {
@@ -79,14 +77,13 @@ impl MeshRepair {
             snap_round::snap_round_tjunctions(&mut repaired_faces, vertex_pool);
             stitch::fill_boundary_loops(&mut repaired_faces, vertex_pool);
 
-            let mut repaired_store = FaceStore::new();
+            let mut repaired_store = FaceStore::with_capacity(repaired_faces.len());
             for face in repaired_faces {
                 repaired_store.push(face);
             }
 
-            let next_boundary_edges = EdgeStore::from_face_store(&repaired_store)
-                .boundary_edges()
-                .len();
+            let next_boundary_edges =
+                EdgeStore::from_face_store(&repaired_store).boundary_edge_count();
             if next_boundary_edges >= boundary_edges {
                 break;
             }

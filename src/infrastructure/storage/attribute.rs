@@ -47,13 +47,10 @@ impl<I: std::hash::Hash + Eq + Copy> AttributeStore<I> {
         self.channels.contains_key(channel)
     }
 
-    /// List all channel names.
-    #[must_use]
-    pub fn channel_names(&self) -> Vec<&str> {
-        self.channels
-            .keys()
-            .map(std::string::String::as_str)
-            .collect()
+    /// Iterate over all channel names.
+    #[inline]
+    pub fn channel_names(&self) -> impl Iterator<Item = &str> {
+        self.channels.keys().map(std::string::String::as_str)
     }
 
     /// Iterate over all `(element_id, value)` pairs in a channel.

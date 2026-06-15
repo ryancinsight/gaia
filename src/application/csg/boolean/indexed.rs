@@ -625,6 +625,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
         let n = mesh.vertices.len();
         if n > 0 {
             let mut parent: Vec<u32> = (0..n as u32).collect();
+            #[inline(always)]
             fn find_cdf(parent: &mut [u32], mut x: u32) -> u32 {
                 while parent[x as usize] != x {
                     parent[x as usize] = parent[parent[x as usize] as usize];
@@ -716,18 +717,56 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
     }
 
     // ── Main loop: handle sliver collapses (Case 2) one at a time ──
-    loop {
-        // Build an edge-use count: how many faces reference each undirected edge.
-        let mut edge_use: hashbrown::HashMap<(VertexId, VertexId), usize> =
-            hashbrown::HashMap::new();
-        for face in mesh.faces.iter() {
-            let v = face.vertices;
-            for &(a, b) in &[(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
-                let key = if a < b { (a, b) } else { (b, a) };
-                *edge_use.entry(key).or_insert(0) += 1;
+    //
+    // Build edge-use map ONCE before the loop and update it incrementally after
+    // each collapse. This reduces total work from O(K×F) to O(F + K×v) where
+    // K is the number of slivers and v is average vertex valence (~6 for manifold).
+    //
+    // Invariant: `edge_use[(min(a,b), max(a,b))]` = number of current faces that
+    // contain the undirected edge {a, b}. Maintained via subtract-old/add-new
+    // around each rename+purge step.
+    #[inline]
+    fn edge_key(a: VertexId, b: VertexId) -> (VertexId, VertexId) {
+        if a < b {
+            (a, b)
+        } else {
+            (b, a)
+        }
+    }
+    #[inline]
+    fn add_face_edges(map: &mut hashbrown::HashMap<(VertexId, VertexId), usize>, v: [VertexId; 3]) {
+        if v[0] == v[1] || v[1] == v[2] || v[2] == v[0] {
+            return;
+        }
+        for (a, b) in [(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
+            *map.entry(edge_key(a, b)).or_insert(0) += 1;
+        }
+    }
+    #[inline]
+    fn remove_face_edges(
+        map: &mut hashbrown::HashMap<(VertexId, VertexId), usize>,
+        v: [VertexId; 3],
+    ) {
+        for (a, b) in [(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
+            let k = edge_key(a, b);
+            match map.get_mut(&k) {
+                Some(c) if *c > 1 => *c -= 1,
+                _ => {
+                    map.remove(&k);
+                }
             }
         }
+    }
 
+    let mut edge_use: hashbrown::HashMap<(VertexId, VertexId), usize> =
+        hashbrown::HashMap::with_capacity(mesh.faces.len() * 3 / 2);
+    for face in mesh.faces.iter() {
+        add_face_edges(&mut edge_use, face.vertices);
+    }
+
+    const REL_DEGEN_TOL_SQ: f64 = 1e-12;
+
+    loop {
         // Find a degenerate face we can safely collapse.
         //
         // Scale-relative degenerate check: a face is degenerate when its
@@ -737,7 +776,6 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
         //
         // Criterion: |cross|² / max_edge² < REL_DEGEN_TOL²
         // ≡ area/edge_max < REL_DEGEN_TOL (sin of sliver angle < 1e-6).
-        const REL_DEGEN_TOL_SQ: f64 = 1e-12;
         let degen = mesh.faces.iter().enumerate().find_map(|(i, face)| {
             if skip_faces.contains(&i) {
                 return None;
@@ -795,12 +833,8 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
 
             // Link condition: the edge (keep, remove) must be shared by at most
             // 2 faces.
-            let edge_key = if keep < remove {
-                (keep, remove)
-            } else {
-                (remove, keep)
-            };
-            let uses = edge_use.get(&edge_key).copied().unwrap_or(0);
+            let ek = edge_key(keep, remove);
+            let uses = edge_use.get(&ek).copied().unwrap_or(0);
             if uses > 2 {
                 return None;
             }
@@ -892,15 +926,31 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
         }
 
         // Commit: rewrite all face references from `remove` → `keep`.
+        // Incrementally update edge_use: for each affected face, subtract old
+        // edges, compute renamed vertices, and add new edges (skip if degenerate).
         for face in mesh.faces.iter_mut() {
+            let has_remove = face.vertices.contains(&remove);
+            if !has_remove {
+                continue;
+            }
+            // Remove old edge contributions from this face.
+            remove_face_edges(&mut edge_use, face.vertices);
+            // Apply rename.
             for v in &mut face.vertices {
                 if *v == remove {
                     *v = keep;
                 }
             }
+            // Add new edge contributions (only if face is still non-degenerate).
+            let v = face.vertices;
+            if v[0] != v[1] && v[1] != v[2] && v[2] != v[0] {
+                add_face_edges(&mut edge_use, v);
+            }
         }
 
         // Purge collapsed faces and exact duplicates.
+        // For purged faces: remove their edge contributions (non-degenerate ones
+        // already have a refcount, degenerate ones were skipped in the add above).
         let mut seen: hashbrown::HashSet<[VertexId; 3]> = hashbrown::HashSet::new();
         let mut keep_faces: Vec<FaceData> = Vec::with_capacity(mesh.faces.len());
         let mut removed = 0usize;
@@ -909,6 +959,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
                 || face.vertices[1] == face.vertices[2]
                 || face.vertices[2] == face.vertices[0]
             {
+                // Degenerate: edges were NOT added in the rename step; no removal needed.
                 removed += 1;
                 continue;
             }
@@ -923,6 +974,8 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
                 key.swap(0, 1);
             }
             if !seen.insert(key) {
+                // Duplicate: its edges were double-counted in the add step.
+                remove_face_edges(&mut edge_use, face.vertices);
                 removed += 1;
                 continue;
             }
@@ -1016,7 +1069,10 @@ fn split_non_manifold_vertices(mesh: &mut IndexedMesh) {
         for &fi in face_indices {
             let face = mesh.faces.get(FaceId::from_usize(fi));
             let verts = &face.vertices;
-            let pos = verts.iter().position(|&vid| vid == v).unwrap();
+            let pos = verts
+                .iter()
+                .position(|&vid| vid == v)
+                .expect("invariant: face in vertex_faces[v] must contain vertex v");
             let next = verts[(pos + 1) % 3]; // v → next (outgoing half-edge)
             let prev = verts[(pos + 2) % 3]; // prev → v (incoming half-edge)
             outgoing.entry(next).or_default().push(fi);
@@ -1046,7 +1102,10 @@ fn split_non_manifold_vertices(mesh: &mut IndexedMesh) {
                 component.push(fi);
                 let face = mesh.faces.get(FaceId::from_usize(fi));
                 let verts = &face.vertices;
-                let pos = verts.iter().position(|&vid| vid == v).unwrap();
+                let pos = verts
+                    .iter()
+                    .position(|&vid| vid == v)
+                    .expect("invariant: face in vertex_faces[v] must contain vertex v");
                 let next_v = verts[(pos + 1) % 3];
                 let prev_v = verts[(pos + 2) % 3];
 
@@ -1169,7 +1228,10 @@ fn split_figure8_pinch_vertices(mesh: &mut IndexedMesh) -> usize {
         for &fi in face_indices {
             let face = mesh.faces.get(FaceId::from_usize(fi));
             let verts = &face.vertices;
-            let pos = verts.iter().position(|&vid| vid == v).unwrap();
+            let pos = verts
+                .iter()
+                .position(|&vid| vid == v)
+                .expect("invariant: face in vertex_faces[v] must contain vertex v");
             let a = verts[(pos + 1) % 3];
             let b = verts[(pos + 2) % 3];
             face_link_edges.push((fi, a, b));
@@ -1592,6 +1654,7 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     let inv_eps = 1.0 / eps;
     let mut parent: Vec<u32> = (0..n as u32).collect();
 
+    #[inline(always)]
     fn find(parent: &mut [u32], mut x: u32) -> u32 {
         while parent[x as usize] != x {
             parent[x as usize] = parent[parent[x as usize] as usize];

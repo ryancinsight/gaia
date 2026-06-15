@@ -266,12 +266,14 @@ impl<T: Scalar> VertexPool<T> {
     }
 
     /// Number of unique vertices.
+    #[must_use]
     #[inline]
     pub fn len(&self) -> usize {
         self.vertices.len()
     }
 
     /// `true` when the pool contains no vertices.
+    #[must_use]
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.vertices.is_empty()
@@ -358,12 +360,14 @@ impl<T: Scalar> VertexPool<T> {
     }
 
     /// Get vertex position by ID.
+    #[must_use]
     #[inline]
     pub fn position(&self, id: VertexId) -> &Point3<T> {
         &self.vertices[id.as_usize()].position
     }
 
     /// Get vertex normal by ID.
+    #[must_use]
     #[inline]
     pub fn normal(&self, id: VertexId) -> &Vector3<T> {
         &self.vertices[id.as_usize()].normal
@@ -382,6 +386,7 @@ impl<T: Scalar> VertexPool<T> {
     }
 
     /// Iterate over all (id, data) pairs.
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = (VertexId, &VertexData<T>)> {
         self.vertices
             .iter()
@@ -390,6 +395,7 @@ impl<T: Scalar> VertexPool<T> {
     }
 
     /// Iterate over all vertex positions.
+    #[inline]
     pub fn positions(&self) -> impl Iterator<Item = &Point3<T>> {
         self.vertices.iter().map(|v| &v.position)
     }

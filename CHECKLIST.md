@@ -79,3 +79,7 @@
     - [x] Tighten `triangle_angles` to derive all angles from three edge vectors and three norms instead of six normalized directed edges.
     - [x] Document degenerate angle behavior and add a value-semantic NaN regression test.
     - [x] Restore `MeshWelder` vertex adjacency to Vec-backed low-valence storage with a single push-unique helper to avoid per-vertex hash table allocation.
+
+- [x] **Phase 12: CSG Edge-Use Cache Audit (Sprint 9)**
+    - [x] Review current CSG/watertight/grid diff before merge.
+    - [x] Fix `collapse_degenerate_faces` edge-use cache invariant so degenerate faces are never counted in the non-degenerate edge-use map.

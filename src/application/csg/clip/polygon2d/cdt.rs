@@ -317,14 +317,14 @@ fn add_shattered_edges(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hashbrown::HashSet;
     use proptest::prelude::*;
-    use std::collections::BTreeSet;
 
     fn brute_overlapping_pairs(
         subject: &[EdgeAabb2d],
         clip: &[EdgeAabb2d],
-    ) -> BTreeSet<(usize, usize)> {
-        let mut set = BTreeSet::new();
+    ) -> HashSet<(usize, usize)> {
+        let mut set = HashSet::new();
         for (i, &se) in subject.iter().enumerate() {
             for (j, &ce) in clip.iter().enumerate() {
                 if se.aabb_overlaps(ce) {
@@ -338,8 +338,8 @@ mod tests {
     fn sweep_overlapping_pairs(
         subject: &[EdgeAabb2d],
         clip: &[EdgeAabb2d],
-    ) -> BTreeSet<(usize, usize)> {
-        let mut set = BTreeSet::new();
+    ) -> HashSet<(usize, usize)> {
+        let mut set = HashSet::new();
         collect_overlapping_edge_pairs_sweep(subject, clip, |i, j| {
             let _ = set.insert((i, j));
         });

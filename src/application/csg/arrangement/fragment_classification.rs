@@ -14,7 +14,7 @@ use crate::domain::topology::predicates::{orient3d, Sign};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 #[cfg(test)]
-use std::collections::BTreeMap;
+use hashbrown::HashMap;
 
 fn fragment_component_roots(frags: &[FragRecord]) -> Vec<usize> {
     component_roots_by_source(frags, |frag| frag.face.vertices, |frag| frag.from_a)
@@ -284,7 +284,7 @@ mod tests {
     use crate::infrastructure::storage::face_store::FaceData;
 
     fn component_signature(frags: &[FragRecord], roots: &[usize]) -> Vec<Vec<[u32; 3]>> {
-        let mut groups: BTreeMap<usize, Vec<[u32; 3]>> = BTreeMap::new();
+        let mut groups: HashMap<usize, Vec<[u32; 3]>> = HashMap::new();
         for (i, frag) in frags.iter().enumerate() {
             let mut key = frag.face.vertices;
             key.sort();

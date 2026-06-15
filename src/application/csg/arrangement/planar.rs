@@ -371,8 +371,8 @@ pub(crate) fn build_pslg_from_points_and_edges(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hashbrown::HashSet;
     use proptest::prelude::*;
-    use std::collections::BTreeSet;
 
     #[test]
     fn indexed_segment_collection_finds_all_collinear_points() {
@@ -396,7 +396,7 @@ mod tests {
             1e-12,
             &mut candidates,
         );
-        let slots: BTreeSet<usize> = got.into_iter().map(|(_, slot)| slot).collect();
+        let slots: HashSet<usize> = got.into_iter().map(|(_, slot)| slot).collect();
         assert!(slots.contains(&0));
         assert!(slots.contains(&1));
         assert!(slots.contains(&2));
@@ -428,12 +428,12 @@ mod tests {
                 t_eps,
                 dist_sq_tol,
             );
-            let exact_slots: BTreeSet<usize> = exact.into_iter().map(|(_, slot)| slot).collect();
+            let exact_slots: HashSet<usize> = exact.into_iter().map(|(_, slot)| slot).collect();
 
             let index = PlanarPointGridIndex::new(&unique_pts, dist_sq_tol.sqrt());
             let mut candidates = Vec::new();
             index.collect_segment_corridor_candidates(p1, p2, dist_sq_tol.sqrt(), &mut candidates);
-            let candidate_slots: BTreeSet<usize> = candidates.into_iter().collect();
+            let candidate_slots: HashSet<usize> = candidates.into_iter().collect();
 
             for slot in exact_slots {
                 prop_assert!(
@@ -480,8 +480,8 @@ mod tests {
                 &mut candidates,
             );
 
-            let brute_slots: BTreeSet<usize> = brute.into_iter().map(|(_, slot)| slot).collect();
-            let fast_slots: BTreeSet<usize> = fast.into_iter().map(|(_, slot)| slot).collect();
+            let brute_slots: HashSet<usize> = brute.into_iter().map(|(_, slot)| slot).collect();
+            let fast_slots: HashSet<usize> = fast.into_iter().map(|(_, slot)| slot).collect();
             prop_assert_eq!(fast_slots, brute_slots);
         }
     }

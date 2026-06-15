@@ -252,8 +252,7 @@ impl<T: Scalar> IndexedMesh<T> {
         if self.cells.is_empty() {
             return self.faces.iter_enumerated().map(|(id, _)| id).collect();
         }
-        let mut face_cell_count: std::collections::BTreeMap<FaceId, usize> =
-            std::collections::BTreeMap::new();
+        let mut face_cell_count: HashMap<FaceId, usize> = HashMap::new();
         for cell in &self.cells {
             for &fv_idx in &cell.faces {
                 // In IndexedMesh, Cell.faces holds FaceId cast as usize currently ? wait:
@@ -261,11 +260,13 @@ impl<T: Scalar> IndexedMesh<T> {
                 *face_cell_count.entry(id).or_insert(0) += 1;
             }
         }
-        face_cell_count
+        let mut result: Vec<FaceId> = face_cell_count
             .into_iter()
             .filter(|&(_, count)| count == 1)
             .map(|(id, _)| id)
-            .collect()
+            .collect();
+        result.sort_unstable();
+        result
     }
 
     /// Extrude the true subset of boundary faces into a strictly 2D-manifold `IndexedMesh` B-Rep.
@@ -275,8 +276,7 @@ impl<T: Scalar> IndexedMesh<T> {
     pub fn extract_boundary_mesh(&self) -> Self {
         let mut b_mesh = Self::new();
         let b_faces = self.boundary_faces();
-        let mut old_to_new_vid: std::collections::BTreeMap<VertexId, VertexId> =
-            std::collections::BTreeMap::new();
+        let mut old_to_new_vid: HashMap<VertexId, VertexId> = HashMap::new();
 
         for &fid in &b_faces {
             let face = self.faces.get(fid);

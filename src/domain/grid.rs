@@ -9,6 +9,7 @@
 use crate::domain::core::index::VertexId;
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::Cell;
+use hashbrown::HashMap;
 use nalgebra::Point3;
 
 /// Error type for grid building.
@@ -57,11 +58,11 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     let mut mesh = IndexedMesh::<f64>::new();
     let mut v_ids = Vec::with_capacity(vnx * vny * vnz);
 
-    // BTreeMap for deterministic face deduplication order
-    let mut face_map: std::collections::BTreeMap<
+    // HashMap for deterministic face deduplication order (since nesting loops are deterministic)
+    let mut face_map: HashMap<
         [crate::domain::core::index::VertexId; 3],
         crate::domain::core::index::FaceId,
-    > = std::collections::BTreeMap::new();
+    > = HashMap::new();
 
     let mut add_tri = |v0: crate::domain::core::index::VertexId,
                        v1: crate::domain::core::index::VertexId,
