@@ -18,7 +18,7 @@
 
 use nalgebra::{Point3, Vector3};
 use num_traits::Float;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use crate::domain::core::scalar::Scalar;
 

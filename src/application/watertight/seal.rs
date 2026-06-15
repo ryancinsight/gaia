@@ -12,6 +12,7 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 /// triangles from each boundary edge to the centroid.
 ///
 /// Returns the number of faces added.
+#[must_use]
 pub fn seal_boundary_loops(
     vertex_pool: &mut VertexPool,
     face_store: &mut FaceStore,

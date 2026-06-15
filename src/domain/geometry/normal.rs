@@ -115,16 +115,3 @@ pub fn angle_weighted_normal<T: Scalar>(
     }
     Some(sum / len)
 }
-
-// ── f64 convenience wrappers (keep existing callers compiling unchanged) ──────
-
-/// Convenience alias for `triangle_normal::<f64>`.
-#[inline]
-#[must_use]
-pub fn triangle_normal_f64(
-    a: &crate::domain::core::scalar::Point3r,
-    b: &crate::domain::core::scalar::Point3r,
-    c: &crate::domain::core::scalar::Point3r,
-) -> Option<crate::domain::core::scalar::Vector3r> {
-    triangle_normal(a, b, c)
-}

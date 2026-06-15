@@ -335,7 +335,7 @@ pub(crate) fn insert_shattered_subedges(
     mut on_seg: Vec<(Real, usize)>,
     edges: &mut Vec<PlanarEdgeKey>,
 ) {
-    on_seg.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    on_seg.sort_by(|a, b| a.0.total_cmp(&b.0));
     on_seg.dedup_by_key(|x| x.1);
 
     for w in on_seg.windows(2) {

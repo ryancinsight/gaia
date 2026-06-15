@@ -73,6 +73,7 @@ fn directed_edge_order(
 /// local opposite-edge-direction constraint yields a consistent orientation on
 /// that component. Repeating this for every unvisited seed covers all
 /// components, so no disconnected component is skipped. ∎
+#[must_use]
 pub fn fix_orientation(face_store: &mut FaceStore, edge_store: &EdgeStore) -> usize {
     let n_faces = face_store.len();
     if n_faces == 0 {

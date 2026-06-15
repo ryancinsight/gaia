@@ -82,6 +82,17 @@ impl FaceData {
         self.vertices.contains(&v)
     }
 
+    /// Returns `true` if any two vertex indices are identical (degenerate triangle).
+    ///
+    /// A degenerate face has zero area — it cannot contribute to a manifold surface
+    /// and must be removed before normal computation or CSG operations.
+    #[inline]
+    #[must_use]
+    pub fn is_degenerate(&self) -> bool {
+        let [v0, v1, v2] = self.vertices;
+        v0 == v1 || v1 == v2 || v0 == v2
+    }
+
     /// The vertex opposite to a given edge.
     #[inline]
     #[must_use]

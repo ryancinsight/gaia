@@ -4,7 +4,7 @@
 //! buffer. No external dependencies are required — the JSON and binary
 //! payloads are assembled manually per the glTF 2.0 specification.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::io::Write;
 
 use crate::domain::core::error::{MeshError, MeshResult};

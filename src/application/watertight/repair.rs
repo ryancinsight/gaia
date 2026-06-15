@@ -16,6 +16,7 @@ impl MeshRepair {
     ///
     /// Returns the number of faces flipped.
     #[inline]
+    #[must_use]
     pub fn fix_orientations(face_store: &mut FaceStore, edge_store: &EdgeStore) -> usize {
         orientation::fix_orientation(face_store, edge_store)
     }

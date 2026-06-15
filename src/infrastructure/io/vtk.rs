@@ -2,7 +2,7 @@
 //!
 //! Writes a VTK legacy ASCII file suitable for ParaView visualization.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::io::Write;
 
 use crate::domain::core::error::{MeshError, MeshResult};

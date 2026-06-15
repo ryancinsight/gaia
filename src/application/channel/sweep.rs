@@ -1,4 +1,4 @@
-﻿//! Profile sweep along a path to generate channel geometry.
+//! Profile sweep along a path to generate channel geometry.
 //!
 //! This is the core extrusion engine — the equivalent of blue2mesh's
 //! `ExtrusionEngine` but producing indexed mesh faces directly.
@@ -89,9 +89,8 @@ impl SweepMesher {
             let scale_x = scale_x_fn(i);
             let mut ring = Vec::with_capacity(n_profile);
             for pt2d in &profile_pts {
-                let pos = frame.position
-                    + frame.normal * (pt2d[0] * scale_x)
-                    + frame.binormal * pt2d[1];
+                let pos =
+                    frame.position + frame.normal * (pt2d[0] * scale_x) + frame.binormal * pt2d[1];
                 let outward = (pos - frame.position).normalize();
                 let vid = vertex_pool.insert_or_weld(pos, outward);
                 ring.push(vid);

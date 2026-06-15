@@ -3,7 +3,7 @@
 //! 3MF is the modern replacement for STL in additive manufacturing workflows.
 //! It is a ZIP archive containing an XML model file at `3D/3dmodel.model`.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::io::{Seek, Write};
 
 use crate::domain::core::error::{MeshError, MeshResult};

@@ -5,7 +5,7 @@
 //! doesn't know about attribute semantics, and attribute storage doesn't
 //! know about topology.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 /// A named collection of per-element scalar attributes.
 ///

@@ -1,4 +1,4 @@
-﻿//! Venturi tube mesh builder.
+//! Venturi tube mesh builder.
 //!
 //! Builds a structured mesh for a Venturi flow passage.
 //! Use [`VenturiMeshBuilder::build_surface`] for the [`IndexedMesh`]
@@ -62,27 +62,41 @@ impl VenturiMeshBuilder {
     /// Create a Venturi mesh builder with the given geometry (all in metres).
     #[must_use]
     pub fn new(
-        d_inlet: Real, d_throat: Real,
-        l_inlet: Real, l_convergent: Real, l_throat: Real,
-        l_divergent: Real, l_outlet: Real,
+        d_inlet: Real,
+        d_throat: Real,
+        l_inlet: Real,
+        l_convergent: Real,
+        l_throat: Real,
+        l_divergent: Real,
+        l_outlet: Real,
     ) -> Self {
         Self {
-            d_inlet, d_throat, l_inlet, l_convergent, l_throat,
-            l_divergent, l_outlet,
-            resolution_x: 8, resolution_y: 4, circular: true,
+            d_inlet,
+            d_throat,
+            l_inlet,
+            l_convergent,
+            l_throat,
+            l_divergent,
+            l_outlet,
+            resolution_x: 8,
+            resolution_y: 4,
+            circular: true,
         }
     }
 
     /// Set the mesh resolution (axial Ã— radial).
     #[must_use]
     pub fn with_resolution(mut self, x: usize, y: usize) -> Self {
-        self.resolution_x = x; self.resolution_y = y; self
+        self.resolution_x = x;
+        self.resolution_y = y;
+        self
     }
 
     /// Use a circular cross-section (default) vs. square.
     #[must_use]
     pub fn with_circular(mut self, circular: bool) -> Self {
-        self.circular = circular; self
+        self.circular = circular;
+        self
     }
 
     /// Build a watertight surface mesh.
@@ -93,24 +107,44 @@ impl VenturiMeshBuilder {
 
 fn build_venturi_surface(b: &VenturiMeshBuilder) -> Result<IndexedMesh, BuildError> {
     let (d_in, d_th) = (b.d_inlet, b.d_throat);
-    let (l_in, l_cv, l_th, l_dv, l_out) =
-        (b.l_inlet, b.l_convergent, b.l_throat, b.l_divergent, b.l_outlet);
+    let (l_in, l_cv, l_th, l_dv, l_out) = (
+        b.l_inlet,
+        b.l_convergent,
+        b.l_throat,
+        b.l_divergent,
+        b.l_outlet,
+    );
     let nx = b.resolution_x.max(2);
-    let n_ang: usize = if b.circular { b.resolution_y.max(2) * 4 } else { 4 };
+    let n_ang: usize = if b.circular {
+        b.resolution_y.max(2) * 4
+    } else {
+        4
+    };
     let total_l = l_in + l_cv + l_th + l_dv + l_out;
 
-    let wall_region   = RegionId::from_usize(0);
-    let inlet_region  = RegionId::from_usize(1);
+    let wall_region = RegionId::from_usize(0);
+    let inlet_region = RegionId::from_usize(1);
     let outlet_region = RegionId::from_usize(2);
 
     let radius_at = |z: Real| -> Real {
         let (r_in, r_th) = (d_in / 2.0, d_th / 2.0);
-        let (z1, z2, z3, z4) = (l_in, l_in+l_cv, l_in+l_cv+l_th, l_in+l_cv+l_th+l_dv);
-        if z <= z1      { r_in }
-        else if z <= z2 { r_in + (r_th - r_in) * (z - z1) / l_cv }
-        else if z <= z3 { r_th }
-        else if z <= z4 { r_th + (r_in - r_th) * (z - z3) / l_dv }
-        else            { r_in }
+        let (z1, z2, z3, z4) = (
+            l_in,
+            l_in + l_cv,
+            l_in + l_cv + l_th,
+            l_in + l_cv + l_th + l_dv,
+        );
+        if z <= z1 {
+            r_in
+        } else if z <= z2 {
+            r_in + (r_th - r_in) * (z - z1) / l_cv
+        } else if z <= z3 {
+            r_th
+        } else if z <= z4 {
+            r_th + (r_in - r_th) * (z - z3) / l_dv
+        } else {
+            r_in
+        }
     };
 
     let mut mesh = IndexedMesh::new();
@@ -134,7 +168,7 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> Result<IndexedMesh, BuildErr
         for ia in 0..n_ang {
             let ia1 = (ia + 1) % n_ang;
             let (v00, v01) = (rings[iz][ia], rings[iz][ia1]);
-            let (v10, v11) = (rings[iz+1][ia], rings[iz+1][ia1]);
+            let (v10, v11) = (rings[iz + 1][ia], rings[iz + 1][ia1]);
             mesh.add_face_with_region(v00, v01, v11, wall_region);
             mesh.add_face_with_region(v00, v11, v10, wall_region);
         }
@@ -146,7 +180,10 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> Result<IndexedMesh, BuildErr
         mesh.add_face_with_region(ic, rings[0][ia1], rings[0][ia], inlet_region);
     }
 
-    let oc = mesh.add_vertex(Point3r::new(0.0, 0.0, total_l), Vector3r::new(0.0, 0.0, 1.0));
+    let oc = mesh.add_vertex(
+        Point3r::new(0.0, 0.0, total_l),
+        Vector3r::new(0.0, 0.0, 1.0),
+    );
     let last = nx - 1;
     for ia in 0..n_ang {
         let ia1 = (ia + 1) % n_ang;
@@ -172,9 +209,13 @@ mod tests {
     #[test]
     fn venturi_resolution_affects_face_count() {
         let lo = VenturiMeshBuilder::new(0.010, 0.004, 0.020, 0.040, 0.010, 0.060, 0.020)
-            .with_resolution(4, 2).build_surface().unwrap();
+            .with_resolution(4, 2)
+            .build_surface()
+            .unwrap();
         let hi = VenturiMeshBuilder::new(0.010, 0.004, 0.020, 0.040, 0.010, 0.060, 0.020)
-            .with_resolution(8, 4).build_surface().unwrap();
+            .with_resolution(8, 4)
+            .build_surface()
+            .unwrap();
         assert!(hi.faces.len() > lo.faces.len());
     }
 }

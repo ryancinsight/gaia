@@ -9,7 +9,7 @@ use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::{Cell, ElementType};
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 
 type TriKey = [VertexId; 3];
 

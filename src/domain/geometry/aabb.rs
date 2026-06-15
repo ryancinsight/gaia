@@ -34,6 +34,7 @@ impl<T: Scalar> Aabb<T> {
     }
 
     /// Expand to include `p`.
+    #[inline]
     pub fn expand(&mut self, p: &Point3<T>) {
         if p.x < self.min.x {
             self.min.x = p.x;
@@ -56,6 +57,8 @@ impl<T: Scalar> Aabb<T> {
     }
 
     /// Union with another AABB.
+    #[inline]
+    #[must_use]
     pub fn union(&self, other: &Aabb<T>) -> Aabb<T> {
         Aabb {
             min: Point3::new(
@@ -96,6 +99,8 @@ impl<T: Scalar> Aabb<T> {
     }
 
     /// Check if two AABBs overlap (inclusive of boundary).
+    #[inline]
+    #[must_use]
     pub fn intersects(&self, other: &Aabb<T>) -> bool {
         self.min.x <= other.max.x
             && self.max.x >= other.min.x
@@ -106,6 +111,8 @@ impl<T: Scalar> Aabb<T> {
     }
 
     /// Check if this AABB completely contains another AABB.
+    #[inline]
+    #[must_use]
     pub fn contains_aabb(&self, other: &Aabb<T>) -> bool {
         self.min.x <= other.min.x
             && self.max.x >= other.max.x

@@ -3,7 +3,7 @@
 //! Classifies a blueprint into a topology class and provides graph-traversal
 //! helpers used by the mesh pipeline to lay out channel segments.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use cfd_schematics::{ChannelSpec, NetworkBlueprint, NodeKind};
 

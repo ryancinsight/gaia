@@ -2,7 +2,7 @@
 //!
 //! Supports ASCII PLY with vertex positions, normals, and triangular faces.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
 
 use crate::domain::core::error::{MeshError, MeshResult};

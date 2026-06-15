@@ -8,8 +8,8 @@ use crate::application::delaunay::dim3::tetrahedralize::BowyerWatson3D;
 use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::indexed::IndexedMesh;
+use hashbrown::HashMap;
 use nalgebra::{Point3, Vector3};
-use std::collections::HashMap;
 
 /// An implicit-to-explicit tetrahedral mesh generator.
 pub struct SdfMesher<T: Scalar> {
@@ -394,17 +394,17 @@ impl<T: Scalar> SdfMesher<T> {
         // the manifold topology graph completely from geometric inversions.
         let b_faces = mesh.boundary_faces();
 
-        let mut face_to_cell: HashMap<FaceId, &crate::domain::topology::Cell> =
-            HashMap::with_capacity(b_faces.len());
-        for cell in &mesh.cells {
+        let mut face_to_cell: HashMap<FaceId, usize> = HashMap::with_capacity(b_faces.len());
+        for (cell_idx, cell) in mesh.cells.iter().enumerate() {
             for &fv_idx in &cell.faces {
-                face_to_cell.insert(FaceId::from_usize(fv_idx), cell);
+                face_to_cell.insert(FaceId::from_usize(fv_idx), cell_idx);
             }
         }
 
         let third = <T as Scalar>::from_f64(3.0);
         for &fid in &b_faces {
-            if let Some(cell) = face_to_cell.get(&fid) {
+            if let Some(&cell_idx) = face_to_cell.get(&fid) {
+                let cell = &mesh.cells[cell_idx];
                 let face_data = *mesh.faces.get(fid);
                 let a = mesh.vertices.position(face_data.vertices[0]);
                 let b = mesh.vertices.position(face_data.vertices[1]);

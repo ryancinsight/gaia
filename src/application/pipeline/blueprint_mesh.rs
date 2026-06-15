@@ -3,7 +3,7 @@
 //! Converts a `cfd_schematics::NetworkBlueprint` into watertight surface meshes
 //! suitable for CFD simulation (fluid mesh) and manufacturing output (chip body).
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::f64::consts::PI;
 
 use cfd_schematics::geometry::FluidVolumeSummary;
@@ -1473,7 +1473,7 @@ fn label_boundaries(
     // Apply labels to faces by centroid proximity
     let face_ids: Vec<_> = mesh.faces.iter_enumerated().map(|(id, _)| id).collect();
     for fid in face_ids {
-        let face = mesh.faces.get(fid);
+        let face = *mesh.faces.get(fid);
         let p0 = mesh.vertices.position(face.vertices[0]);
         let p1 = mesh.vertices.position(face.vertices[1]);
         let p2 = mesh.vertices.position(face.vertices[2]);

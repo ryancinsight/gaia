@@ -1522,7 +1522,7 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
         if !mesh.is_watertight() {
             let es =
                 crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
-            crate::application::watertight::seal::seal_boundary_loops(
+            let _ = crate::application::watertight::seal::seal_boundary_loops(
                 &mut mesh.vertices,
                 &mut mesh.faces,
                 &es,

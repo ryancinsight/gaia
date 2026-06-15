@@ -153,7 +153,11 @@ pub fn gwn<T: Scalar>(query: &nalgebra::Point3<T>, faces: &[FaceData], pool: &Ve
 }
 
 #[inline(always)]
-fn solid_angle_f64(va: nalgebra::Vector3<f64>, vb: nalgebra::Vector3<f64>, vc: nalgebra::Vector3<f64>) -> f64 {
+fn solid_angle_f64(
+    va: nalgebra::Vector3<f64>,
+    vb: nalgebra::Vector3<f64>,
+    vc: nalgebra::Vector3<f64>,
+) -> f64 {
     let la = va.norm();
     let lb = vb.norm();
     let lc = vc.norm();
@@ -244,7 +248,6 @@ pub(crate) fn gwn_bounded_prepared(query: &Point3r, faces: &[PreparedFace]) -> f
     }
     (solid_angle_sum / (4.0 * std::f64::consts::PI)).clamp(-1.0, 1.0)
 }
-
 
 /// Exact analytical spatial gradient of the Generalized Winding Number ∇GWN(p).
 ///

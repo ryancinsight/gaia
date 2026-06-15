@@ -11,7 +11,7 @@ use crate::infrastructure::storage::attribute::AttributeStore;
 use crate::infrastructure::storage::edge_store::EdgeStore;
 use crate::infrastructure::storage::face_store::FaceStore;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 /// A deduplicated, indexed triangle surface mesh — generic over scalar `T`.
 ///

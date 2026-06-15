@@ -13,7 +13,7 @@ use crate::application::csg::arrangement::planar::{
     insert_shattered_subedges, PlanarEdgeKey, PlanarPointGridIndex,
 };
 use crate::domain::core::scalar::Real;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 const WELD_TOL: Real = 1e-8;
 const INTERIOR_TOL: Real = 1e-10;

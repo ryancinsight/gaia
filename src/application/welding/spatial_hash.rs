@@ -31,6 +31,7 @@ impl GridCell {
     }
 
     /// Iterate over the 3×3×3 neighborhood (27 cells including self).
+    #[inline]
     pub fn neighborhood(self) -> impl Iterator<Item = GridCell> {
         (-1i64..=1).flat_map(move |dz| {
             (-1i64..=1).flat_map(move |dy| {

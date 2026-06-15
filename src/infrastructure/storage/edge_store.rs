@@ -115,6 +115,7 @@ impl EdgeStore {
     }
 
     /// Register an edge between `a` and `b` as belonging to `face`.
+    #[inline]
     fn register_edge(&mut self, a: VertexId, b: VertexId, face: FaceId) {
         let key = if a.0 <= b.0 { (a, b) } else { (b, a) };
 

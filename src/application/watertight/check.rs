@@ -60,6 +60,7 @@ pub struct WatertightReport {
 }
 
 /// Check if a mesh is watertight.
+#[must_use]
 pub fn check_watertight<T: Scalar>(
     vertex_pool: &VertexPool<T>,
     face_store: &FaceStore,

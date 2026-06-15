@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::mesh::IndexedMesh;

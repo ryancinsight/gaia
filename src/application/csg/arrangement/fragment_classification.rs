@@ -146,9 +146,17 @@ pub(crate) fn classify_kept_fragments(
     }
 
     // Phase 3: Classify each unique component root exactly once using its representative.
-    let mut class_cache = vec![None; frags.len()];
-    for root in 0..frags.len() {
-        if let Some(vf_idx) = representatives[root] {
+    let mut roots_to_classify = Vec::new();
+    for (root, rep) in representatives.iter().enumerate() {
+        if let Some(vf_idx) = *rep {
+            roots_to_classify.push((root, vf_idx));
+        }
+    }
+
+    #[cfg(feature = "parallel")]
+    let classifications: Vec<FragmentClass> = {
+        use moirai::ParallelSlice;
+        roots_to_classify.par().map_collect(|&(_, vf_idx)| {
             let vf = &valid_frags[vf_idx];
             let frag = &frags[vf.frag_idx];
             let tri = [vf.p0, vf.p1, vf.p2];
@@ -164,13 +172,46 @@ pub(crate) fn classify_kept_fragments(
                 Vector3r::zeros()
             };
 
-            let val = if frag.from_a {
+            if frag.from_a {
                 classify_fragment_prepared(&c, &face_normal, &prepared_b)
             } else {
                 classify_fragment_prepared(&c, &face_normal, &prepared_a)
-            };
-            class_cache[root] = Some(val);
-        }
+            }
+        })
+    };
+
+    #[cfg(not(feature = "parallel"))]
+    let classifications: Vec<FragmentClass> = {
+        roots_to_classify
+            .iter()
+            .map(|&(_, vf_idx)| {
+                let vf = &valid_frags[vf_idx];
+                let frag = &frags[vf.frag_idx];
+                let tri = [vf.p0, vf.p1, vf.p2];
+                let c = centroid(&tri);
+                let n = tri_normal(&tri);
+                let nlen = n.norm();
+                let e1 = (vf.p1 - vf.p0).norm();
+                let e2 = (vf.p2 - vf.p0).norm();
+                let edge_product = e1 * e2;
+                let face_normal = if nlen > 1e-10 * edge_product {
+                    n / nlen
+                } else {
+                    Vector3r::zeros()
+                };
+
+                if frag.from_a {
+                    classify_fragment_prepared(&c, &face_normal, &prepared_b)
+                } else {
+                    classify_fragment_prepared(&c, &face_normal, &prepared_a)
+                }
+            })
+            .collect()
+    };
+
+    let mut class_cache = vec![None; frags.len()];
+    for (i, &(root, _)) in roots_to_classify.iter().enumerate() {
+        class_cache[root] = Some(classifications[i]);
     }
 
     // Phase 4: Construct the final list of kept/flipped faces based on cached classifications.

@@ -19,7 +19,7 @@ use crate::domain::mesh::IndexedMesh;
 
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Point3r;
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 // ── Parameters ────────────────────────────────────────────────────────────────
 

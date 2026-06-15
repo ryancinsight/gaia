@@ -2,7 +2,7 @@
 //!
 //! Supports triangle meshes with vertex positions and normals.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
 
 use crate::domain::core::error::{MeshError, MeshResult};

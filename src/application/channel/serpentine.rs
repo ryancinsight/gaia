@@ -1,4 +1,4 @@
-﻿//! Serpentine channel mesh builder.
+//! Serpentine channel mesh builder.
 //!
 //! Builds a structured mesh for a sinuous (serpentine) microchannel.
 //! All arithmetic is `f64` (`Real`) â€” fake-generic eliminated per core_invariants Â§2.
@@ -73,19 +73,25 @@ impl SerpentineMeshBuilder {
 fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> Result<IndexedMesh, BuildError> {
     let r = b.diameter / 2.0;
     let n_ax = b.resolution_x.max(4) * b.num_periods;
-    let n_ang = if b.circular { (b.resolution_y.max(2) * 4).max(4) } else { 4 };
+    let n_ang = if b.circular {
+        (b.resolution_y.max(2) * 4).max(4)
+    } else {
+        4
+    };
     let total_len = b.wavelength * b.num_periods as f64;
 
-    let wall_region   = RegionId::from_usize(0);
-    let inlet_region  = RegionId::from_usize(1);
+    let wall_region = RegionId::from_usize(0);
+    let inlet_region = RegionId::from_usize(1);
     let outlet_region = RegionId::from_usize(2);
 
     let mut mesh = IndexedMesh::new();
-    let spine: Vec<(f64, f64, f64)> = (0..n_ax).map(|i| {
-        let z = total_len * i as f64 / (n_ax - 1) as f64;
-        let y = b.amplitude * (std::f64::consts::TAU * z / b.wavelength).sin();
-        (0.0, y, z)
-    }).collect();
+    let spine: Vec<(f64, f64, f64)> = (0..n_ax)
+        .map(|i| {
+            let z = total_len * i as f64 / (n_ax - 1) as f64;
+            let y = b.amplitude * (std::f64::consts::TAU * z / b.wavelength).sin();
+            (0.0, y, z)
+        })
+        .collect();
 
     let mut rings: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(n_ax);
     for &(cx, cy, cz) in &spine {
@@ -105,7 +111,7 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> Result<IndexedMesh, Bu
         for ia in 0..n_ang {
             let ia1 = (ia + 1) % n_ang;
             let (v00, v01) = (rings[iz][ia], rings[iz][ia1]);
-            let (v10, v11) = (rings[iz+1][ia], rings[iz+1][ia1]);
+            let (v10, v11) = (rings[iz + 1][ia], rings[iz + 1][ia1]);
             mesh.add_face_with_region(v00, v10, v01, wall_region);
             mesh.add_face_with_region(v01, v10, v11, wall_region);
         }
@@ -136,8 +142,10 @@ mod tests {
     #[test]
     fn serpentine_produces_non_empty_mesh() {
         let mesh = SerpentineMeshBuilder::new(0.002, 0.005, 0.020)
-            .with_periods(2).with_resolution(8, 2)
-            .build_surface().expect("should succeed");
+            .with_periods(2)
+            .with_resolution(8, 2)
+            .build_surface()
+            .expect("should succeed");
         assert!(!mesh.faces.is_empty());
         assert!(!mesh.vertices.is_empty());
     }
@@ -145,9 +153,15 @@ mod tests {
     #[test]
     fn serpentine_more_periods_more_faces() {
         let one = SerpentineMeshBuilder::new(0.002, 0.005, 0.020)
-            .with_periods(1).with_resolution(8, 2).build_surface().unwrap();
+            .with_periods(1)
+            .with_resolution(8, 2)
+            .build_surface()
+            .unwrap();
         let two = SerpentineMeshBuilder::new(0.002, 0.005, 0.020)
-            .with_periods(2).with_resolution(8, 2).build_surface().unwrap();
+            .with_periods(2)
+            .with_resolution(8, 2)
+            .build_surface()
+            .unwrap();
         assert!(two.faces.len() > one.faces.len());
     }
 }

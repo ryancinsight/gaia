@@ -72,7 +72,7 @@
 //! for pools of 2 000+ vertices.  The HashMap reduces per-call allocation from
 //! O(pool_size) to O(face_vertex_count) (typically 3–12 entries).
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use super::intersect::SnapSegment;
 use crate::domain::core::index::VertexId;
@@ -720,7 +720,9 @@ pub fn corefine_face(
         let v0 = pslg_to_vid[pv0.idx()];
         let v1 = pslg_to_vid[pv1.idx()];
         let v2 = pslg_to_vid[pv2.idx()];
-        if v0 == v1 || v1 == v2 || v0 == v2 {
+        if crate::infrastructure::storage::face_store::FaceData::untagged(v0, v1, v2)
+            .is_degenerate()
+        {
             continue;
         }
 
@@ -757,6 +759,8 @@ pub fn corefine_face(
 ///
 /// Dropping the dominant axis ensures the projected area ≥ true 3-D area / √3,
 /// so the polygon is never near-degenerate for any non-zero normal.
+#[inline]
+#[must_use]
 fn dominant_normal_axes(n: Vector3r) -> (usize, usize) {
     let (ax, ay, az) = (n.x.abs(), n.y.abs(), n.z.abs());
     if ax >= ay && ax >= az {

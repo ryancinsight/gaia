@@ -22,7 +22,7 @@
 //! extracted surface converges to the true level-set at rate `O(h)` in
 //! Hausdorff distance (Lorensen & Cline 1987).
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
