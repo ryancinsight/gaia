@@ -88,3 +88,8 @@
     - [x] Review clean-tree diff state before continuing optimization.
     - [x] Remove avoidable hot-loop `unwrap()` calls from CSG closest-pair and non-manifold pair selection.
     - [x] Pre-size CSG repair hash maps/sets where loop-local upper bounds are already known.
+
+- [x] **Phase 14: BVH Median Ordering Cleanup (Sprint 11)**
+    - [x] Review clean-tree diff state before continuing optimization.
+    - [x] Replace BVH median fallback `partial_cmp` ordering with total float ordering.
+    - [x] Verify focused BVH partition tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.

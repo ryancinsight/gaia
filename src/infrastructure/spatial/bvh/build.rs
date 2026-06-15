@@ -12,7 +12,6 @@ use super::geo::{axis_extent, axis_min, axis_value, longest_axis, surface_area};
 use super::node::{BvhNodeKind, MAX_LEAF_PRIMITIVES, SAH_N_BINS, SAH_TRAVERSAL_COST};
 use crate::domain::geometry::aabb::Aabb;
 use nalgebra::Point3;
-use std::cmp::Ordering;
 
 // ── Public build entry ────────────────────────────────────────────────────────
 
@@ -251,9 +250,7 @@ pub(super) fn partition_median(
     debug_assert!(start < end, "empty range in partition_median");
     let local_mid = (end - start) / 2;
     indices[start..end].select_nth_unstable_by(local_mid, |lhs, rhs| {
-        axis_value(&centroids[*lhs], axis)
-            .partial_cmp(&axis_value(&centroids[*rhs], axis))
-            .unwrap_or(Ordering::Equal)
+        axis_value(&centroids[*lhs], axis).total_cmp(&axis_value(&centroids[*rhs], axis))
     });
     start + local_mid
 }
