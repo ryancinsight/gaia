@@ -26,10 +26,10 @@ use crate::domain::core::scalar::{Point3r, Scalar};
 use crate::domain::geometry::aabb::Aabb;
 use crate::domain::mesh::indexed::IndexedMesh;
 
-use super::core::{DagIndex, SparseVoxelOctree, SvoNode};
+use super::core::{DagIndex, DagNode, OctreeSubdivision, SparseVoxelDag, Subdivision};
 
-impl SparseVoxelOctree {
-    /// Exact volumetric rasterization of an `IndexedMesh` into a new `SparseVoxelOctree`.
+impl SparseVoxelDag<8, OctreeSubdivision> {
+    /// Exact volumetric rasterization of an `IndexedMesh` into a new `SparseVoxelDag`.
     ///
     /// The resulting octree is built recursively up to `max_depth` levels.
     /// `mesh` should be a closed, watertight 2-manifold for correct GWN inside/outside
@@ -112,7 +112,7 @@ impl SparseVoxelOctree {
     ) -> DagIndex {
         // Early exit: cell entirely outside the mesh bounding box → definitely empty.
         if !current_aabb.intersects(mesh_bb) {
-            return self.intern_node(SvoNode::Leaf(false));
+            return Self::leaf_index(false);
         }
 
         // Leaf level: evaluate exact GWN at the cell centre.
@@ -125,11 +125,11 @@ impl SparseVoxelOctree {
             );
             let wn = gwn(&p, mesh.faces.as_slice(), &mesh.vertices);
             let is_solid = wn.to_f64().unwrap_or(0.0).abs() > 0.5;
-            return self.intern_node(SvoNode::Leaf(is_solid));
+            return Self::leaf_index(is_solid);
         }
 
         // Internal: unconditionally subdivide into 8 equal sub-octants.
-        let sub_aabbs = Self::exact_subdivide(current_aabb);
+        let sub_aabbs = OctreeSubdivision::subdivide(current_aabb);
         let mut children = [DagIndex(0); 8];
         for i in 0..8 {
             children[i] =
@@ -138,12 +138,12 @@ impl SparseVoxelOctree {
 
         // Isomorphic DAG compression: all-same-Leaf children collapse to one Leaf.
         if children.iter().all(|&c| c == children[0]) {
-            if let SvoNode::Leaf(v) = self.nodes[children[0].0 as usize] {
-                return self.intern_node(SvoNode::Leaf(v));
+            if let DagNode::Leaf(_) = self.nodes[children[0].0 as usize] {
+                return children[0];
             }
         }
 
-        self.intern_node(SvoNode::Internal(children))
+        self.intern_node(DagNode::Internal(children))
     }
 }
 
@@ -161,16 +161,16 @@ mod tests {
     #[test]
     fn shallow_rasterize_compresses_to_solid_leaf() {
         let mesh = Cube::centred(1.0).build().unwrap();
-        let svo = SparseVoxelOctree::from_mesh(&mesh, 3);
+        let svo = SparseVoxelDag::<8, OctreeSubdivision>::from_mesh(&mesh, 3);
 
-        match &svo.nodes[svo.root_index.0 as usize] {
-            SvoNode::Leaf(solid) => {
+        match svo.nodes[svo.root_index.0 as usize] {
+            DagNode::Leaf(solid) => {
                 assert!(
-                    *solid,
+                    solid,
                     "All depth-3 leaf centres are inside the cube → must be solid"
                 );
             }
-            SvoNode::Internal(_) => {
+            DagNode::Internal(_) => {
                 panic!(
                     "At depth=3 every leaf centre is inside the cube; \
                         isomorphic compression should yield a single Leaf(true)"
@@ -189,10 +189,10 @@ mod tests {
     #[test]
     fn deep_rasterize_has_interior_root_with_empty_corners() {
         let mesh = Cube::centred(1.0).build().unwrap();
-        let svo = SparseVoxelOctree::from_mesh(&mesh, 6);
+        let svo = SparseVoxelDag::<8, OctreeSubdivision>::from_mesh(&mesh, 6);
 
-        match &svo.nodes[svo.root_index.0 as usize] {
-            SvoNode::Internal(children) => {
+        match svo.nodes[svo.root_index.0 as usize] {
+            DagNode::Internal(children) => {
                 assert_eq!(
                     children.len(),
                     8,
@@ -205,7 +205,7 @@ mod tests {
                     svo.nodes.len()
                 );
             }
-            SvoNode::Leaf(_) => {
+            DagNode::Leaf(_) => {
                 panic!(
                     "At depth=6, corner leaf centres (≈0.502) are outside the cube; \
                      the root must be Internal with some empty leaf descendants"

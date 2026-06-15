@@ -7,4 +7,6 @@ pub mod boolean;
 pub mod core;
 pub mod rasterize;
 
-pub use core::{DagIndex, SparseVoxelOctree, SvoNode};
+pub use core::{
+    DagIndex, DagNode, OctreeSubdivision, QuadtreeSubdivision, SparseVoxelDag, Subdivision,
+};

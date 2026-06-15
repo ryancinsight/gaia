@@ -16,9 +16,9 @@
 //! between generic point insertions is mathematically identical and topologically isomorphic to
 //! fresh allocations, yielding guaranteed zero-allocation O(1) memory overhead during mesh generation.
 
+use hashbrown::HashMap;
 use nalgebra::{Point3, Vector3};
 use num_traits::Float;
-use hashbrown::HashMap;
 
 use crate::domain::core::scalar::Scalar;
 

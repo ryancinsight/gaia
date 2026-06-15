@@ -7,7 +7,9 @@ use gaia::application::csg::arrangement::classify::{
 use gaia::application::csg::boolean::{csg_boolean, BooleanOp};
 use gaia::application::csg::detect_self_intersect::detect_self_intersections;
 use gaia::domain::core::scalar::Point3r;
+use gaia::domain::geometry::aabb::Aabb;
 use gaia::domain::geometry::primitives::{Cube, Cylinder, PrimitiveMesh, UvSphere};
+use gaia::infrastructure::spatial::ssvdag::{OctreeSubdivision, SparseVoxelDag};
 use gaia::infrastructure::storage::face_store::FaceData;
 use gaia::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -194,6 +196,39 @@ fn bench_detect_self_intersect_flat(c: &mut Criterion) {
     });
 }
 
+fn bench_svo_rasterize_cube(c: &mut Criterion) {
+    let cube = Cube::centred(1.0).build().unwrap();
+    c.bench_function("svo_rasterize_depth_6", |b| {
+        b.iter(|| {
+            let _svo = SparseVoxelDag::<8, OctreeSubdivision>::from_mesh(black_box(&cube), 6);
+        })
+    });
+}
+
+fn bench_svo_boolean_union(c: &mut Criterion) {
+    let domain = Aabb::new(Point3r::new(-1.0, -1.0, -1.0), Point3r::new(1.0, 1.0, 1.0));
+    let mut svo_a = SparseVoxelDag::<8, OctreeSubdivision>::new(domain);
+    let mut svo_b = SparseVoxelDag::<8, OctreeSubdivision>::new(domain);
+
+    let aabb_a = Aabb::new(Point3r::new(-0.5, -0.5, -0.5), Point3r::new(0.5, 0.5, 0.5));
+    let aabb_b = Aabb::new(
+        Point3r::new(-0.25, -0.25, -0.25),
+        Point3r::new(0.75, 0.75, 0.75),
+    );
+
+    svo_a.insert_aabb(&aabb_a, 5);
+    svo_b.insert_aabb(&aabb_b, 5);
+
+    c.bench_function("svo_boolean_union_depth_5", |b| {
+        b.iter(|| {
+            let _merged = black_box(&svo_a).boolean(
+                black_box(&svo_b),
+                gaia::infrastructure::spatial::ssvdag::boolean::BooleanOp::Union,
+            );
+        })
+    });
+}
+
 criterion_group!(
     gwn_benches,
     bench_gwn_linear_small,
@@ -207,4 +242,9 @@ criterion_group!(
     bench_csg_intersection_cylinders
 );
 criterion_group!(detect_benches, bench_detect_self_intersect_flat);
-criterion_main!(gwn_benches, csg_benches, detect_benches);
+criterion_group!(
+    svo_benches,
+    bench_svo_rasterize_cube,
+    bench_svo_boolean_union
+);
+criterion_main!(gwn_benches, csg_benches, detect_benches, svo_benches);

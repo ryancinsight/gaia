@@ -7,8 +7,8 @@
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
-use nalgebra::Point3;
 use hashbrown::HashMap;
+use nalgebra::Point3;
 
 /// Converts a P1 (linear) mesh to a refined mesh by 1:4 triangle subdivision.
 ///

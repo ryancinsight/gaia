@@ -4,7 +4,7 @@
 //! boolean operations (Union, Intersection, Difference) can be computed exactly and swiftly
 //! by recursively merging nodes.
 
-use super::core::{DagIndex, SparseVoxelOctree, SvoNode};
+use super::core::{DagIndex, DagNode, SparseVoxelDag, Subdivision};
 use hashbrown::HashMap;
 
 /// The type of exact Boolean CSG operation.
@@ -18,7 +18,7 @@ pub enum BooleanOp {
     Difference,
 }
 
-impl SparseVoxelOctree {
+impl<const B: usize, S: Subdivision<B>> SparseVoxelDag<B, S> {
     /// Compute the exact boolean operation between `self` (A) and `other` (B).
     ///
     /// Both DAGs must cover the exact same domain AABB.
@@ -29,7 +29,7 @@ impl SparseVoxelOctree {
             "SSVDAG Booleans require identical initial domain AABBs to preserve spatial consistency"
         );
 
-        let mut result = SparseVoxelOctree::new(self.root_aabb);
+        let mut result = SparseVoxelDag::new(self.root_aabb);
 
         let mut ctx = MergeContext {
             a: self,
@@ -50,10 +50,10 @@ impl SparseVoxelOctree {
 }
 
 /// Recursive merge context with memoization over DAG indices.
-struct MergeContext<'a> {
-    a: &'a SparseVoxelOctree,
-    b: &'a SparseVoxelOctree,
-    out: &'a mut SparseVoxelOctree,
+struct MergeContext<'a, const B: usize, S: Subdivision<B>> {
+    a: &'a SparseVoxelDag<B, S>,
+    b: &'a SparseVoxelDag<B, S>,
+    out: &'a mut SparseVoxelDag<B, S>,
     /// Memoizes `merge_dag(a_idx, b_idx)`
     memo_merge: HashMap<(DagIndex, DagIndex), DagIndex>,
     /// Memoizes mapping a tree A node into `out`
@@ -65,25 +65,25 @@ struct MergeContext<'a> {
     op: BooleanOp,
 }
 
-impl MergeContext<'_> {
+impl<const B: usize, S: Subdivision<B>> MergeContext<'_, B, S> {
     fn map_subtree_a(&mut self, root: DagIndex) -> DagIndex {
         if let Some(&cached) = self.memo_map_a.get(&root) {
             return cached;
         }
 
-        let idx = match &self.a.nodes[root.0 as usize] {
-            SvoNode::Leaf(v) => self.out.intern_node(SvoNode::Leaf(*v)),
-            SvoNode::Internal(children) => {
-                let mut new_children = [DagIndex(0); 8];
-                for i in 0..8 {
+        let idx = match self.a.nodes[root.0 as usize] {
+            DagNode::Leaf(v) => SparseVoxelDag::<B, S>::leaf_index(v),
+            DagNode::Internal(children) => {
+                let mut new_children = [DagIndex(0); B];
+                for i in 0..B {
                     new_children[i] = self.map_subtree_a(children[i]);
                 }
                 if new_children.iter().all(|&c| c == new_children[0]) {
-                    if let SvoNode::Leaf(v) = self.out.nodes[new_children[0].0 as usize] {
-                        return self.out.intern_node(SvoNode::Leaf(v));
+                    if let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize] {
+                        return new_children[0];
                     }
                 }
-                self.out.intern_node(SvoNode::Internal(new_children))
+                self.out.intern_node(DagNode::Internal(new_children))
             }
         };
 
@@ -96,19 +96,19 @@ impl MergeContext<'_> {
             return cached;
         }
 
-        let idx = match &self.b.nodes[root.0 as usize] {
-            SvoNode::Leaf(v) => self.out.intern_node(SvoNode::Leaf(*v)),
-            SvoNode::Internal(children) => {
-                let mut new_children = [DagIndex(0); 8];
-                for i in 0..8 {
+        let idx = match self.b.nodes[root.0 as usize] {
+            DagNode::Leaf(v) => SparseVoxelDag::<B, S>::leaf_index(v),
+            DagNode::Internal(children) => {
+                let mut new_children = [DagIndex(0); B];
+                for i in 0..B {
                     new_children[i] = self.map_subtree_b(children[i]);
                 }
                 if new_children.iter().all(|&c| c == new_children[0]) {
-                    if let SvoNode::Leaf(v) = self.out.nodes[new_children[0].0 as usize] {
-                        return self.out.intern_node(SvoNode::Leaf(v));
+                    if let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize] {
+                        return new_children[0];
                     }
                 }
-                self.out.intern_node(SvoNode::Internal(new_children))
+                self.out.intern_node(DagNode::Internal(new_children))
             }
         };
 
@@ -121,19 +121,19 @@ impl MergeContext<'_> {
             return cached;
         }
 
-        let idx = match &self.b.nodes[root.0 as usize] {
-            SvoNode::Leaf(v) => self.out.intern_node(SvoNode::Leaf(!*v)),
-            SvoNode::Internal(children) => {
-                let mut new_children = [DagIndex(0); 8];
-                for i in 0..8 {
+        let idx = match self.b.nodes[root.0 as usize] {
+            DagNode::Leaf(v) => SparseVoxelDag::<B, S>::leaf_index(!v),
+            DagNode::Internal(children) => {
+                let mut new_children = [DagIndex(0); B];
+                for i in 0..B {
                     new_children[i] = self.invert_subtree_b(children[i]);
                 }
                 if new_children.iter().all(|&c| c == new_children[0]) {
-                    if let SvoNode::Leaf(v) = self.out.nodes[new_children[0].0 as usize] {
-                        return self.out.intern_node(SvoNode::Leaf(v));
+                    if let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize] {
+                        return new_children[0];
                     }
                 }
-                self.out.intern_node(SvoNode::Internal(new_children))
+                self.out.intern_node(DagNode::Internal(new_children))
             }
         };
 
@@ -147,79 +147,77 @@ impl MergeContext<'_> {
             return cached;
         }
 
-        let node_a = &self.a.nodes[root_a.0 as usize];
-        let node_b = &self.b.nodes[root_b.0 as usize];
+        let node_a = self.a.nodes[root_a.0 as usize];
+        let node_b = self.b.nodes[root_b.0 as usize];
 
         let out_idx = match (node_a, node_b) {
-            (SvoNode::Leaf(val_a), SvoNode::Leaf(val_b)) => {
+            (DagNode::Leaf(val_a), DagNode::Leaf(val_b)) => {
                 let res = match self.op {
-                    BooleanOp::Union => *val_a || *val_b,
-                    BooleanOp::Intersection => *val_a && *val_b,
-                    BooleanOp::Difference => *val_a && !*val_b,
+                    BooleanOp::Union => val_a || val_b,
+                    BooleanOp::Intersection => val_a && val_b,
+                    BooleanOp::Difference => val_a && !val_b,
                 };
-                self.out.intern_node(SvoNode::Leaf(res))
+                SparseVoxelDag::<B, S>::leaf_index(res)
             }
-            (SvoNode::Leaf(val_a), SvoNode::Internal(_)) => match self.op {
+            (DagNode::Leaf(val_a), DagNode::Internal(_)) => match self.op {
                 BooleanOp::Union => {
-                    if *val_a {
-                        self.out.intern_node(SvoNode::Leaf(true))
+                    if val_a {
+                        SparseVoxelDag::<B, S>::leaf_index(true)
                     } else {
                         self.map_subtree_b(root_b)
                     }
                 }
                 BooleanOp::Intersection => {
-                    if *val_a {
+                    if val_a {
                         self.map_subtree_b(root_b)
                     } else {
-                        self.out.intern_node(SvoNode::Leaf(false))
+                        SparseVoxelDag::<B, S>::leaf_index(false)
                     }
                 }
                 BooleanOp::Difference => {
-                    if *val_a {
+                    if val_a {
                         self.invert_subtree_b(root_b)
                     } else {
-                        self.out.intern_node(SvoNode::Leaf(false))
+                        SparseVoxelDag::<B, S>::leaf_index(false)
                     }
                 }
             },
-            (SvoNode::Internal(_), SvoNode::Leaf(val_b)) => match self.op {
+            (DagNode::Internal(_), DagNode::Leaf(val_b)) => match self.op {
                 BooleanOp::Union => {
-                    if *val_b {
-                        self.out.intern_node(SvoNode::Leaf(true))
+                    if val_b {
+                        SparseVoxelDag::<B, S>::leaf_index(true)
                     } else {
                         self.map_subtree_a(root_a)
                     }
                 }
                 BooleanOp::Intersection => {
-                    if *val_b {
+                    if val_b {
                         self.map_subtree_a(root_a)
                     } else {
-                        self.out.intern_node(SvoNode::Leaf(false))
+                        SparseVoxelDag::<B, S>::leaf_index(false)
                     }
                 }
                 BooleanOp::Difference => {
-                    if *val_b {
-                        self.out.intern_node(SvoNode::Leaf(false))
+                    if val_b {
+                        SparseVoxelDag::<B, S>::leaf_index(false)
                     } else {
                         self.map_subtree_a(root_a)
                     }
                 }
             },
-            (SvoNode::Internal(ca), SvoNode::Internal(cb)) => {
-                let mut new_children = [DagIndex(0); 8];
-                let ca = *ca;
-                let cb = *cb;
+            (DagNode::Internal(ca), DagNode::Internal(cb)) => {
+                let mut new_children = [DagIndex(0); B];
 
-                for i in 0..8 {
+                for i in 0..B {
                     new_children[i] = self.merge_dag(ca[i], cb[i]);
                 }
 
                 if new_children.iter().all(|&c| c == new_children[0]) {
-                    if let SvoNode::Leaf(v) = self.out.nodes[new_children[0].0 as usize] {
-                        return self.out.intern_node(SvoNode::Leaf(v));
+                    if let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize] {
+                        return new_children[0];
                     }
                 }
-                self.out.intern_node(SvoNode::Internal(new_children))
+                self.out.intern_node(DagNode::Internal(new_children))
             }
         };
 
@@ -233,12 +231,13 @@ mod tests {
     use super::*;
     use crate::domain::core::scalar::Point3r;
     use crate::domain::geometry::aabb::Aabb;
+    use crate::infrastructure::spatial::ssvdag::OctreeSubdivision;
 
     #[test]
     fn boolean_dag_union_exact() {
         let domain = Aabb::new(Point3r::new(0.0, 0.0, 0.0), Point3r::new(10.0, 10.0, 10.0));
-        let mut a = SparseVoxelOctree::new(domain);
-        let mut b = SparseVoxelOctree::new(domain);
+        let mut a = SparseVoxelDag::<8, OctreeSubdivision>::new(domain);
+        let mut b = SparseVoxelDag::<8, OctreeSubdivision>::new(domain);
 
         let target_a = Aabb::new(Point3r::new(1.0, 1.0, 1.0), Point3r::new(4.0, 4.0, 4.0));
         let target_b = Aabb::new(Point3r::new(3.0, 3.0, 3.0), Point3r::new(6.0, 6.0, 6.0));
