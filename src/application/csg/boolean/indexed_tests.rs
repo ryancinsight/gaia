@@ -640,6 +640,37 @@ fn self_union_idempotent() {
     );
 }
 
+#[test]
+fn csg_boolean_nary_empty_slice_returns_error() {
+    let result = csg_boolean_nary(BooleanOp::Union, &[]);
+    assert!(matches!(
+        result,
+        Err(crate::domain::core::error::MeshError::EmptyBooleanResult { .. })
+    ));
+}
+
+#[test]
+fn csg_boolean_nary_single_mesh_returns_clone() {
+    let a = Cube {
+        origin: Point3r::new(0.0, 0.0, 0.0),
+        width: 1.0,
+        height: 1.0,
+        depth: 1.0,
+    }
+    .build()
+    .unwrap();
+
+    let result = csg_boolean_nary(BooleanOp::Union, &[a.clone()]).unwrap();
+
+    // The result should have the same number of vertices and faces as the input
+    assert_eq!(result.vertices.len(), a.vertices.len());
+    assert_eq!(result.faces.len(), a.faces.len());
+
+    // Verify it works for all operators since nary with len == 1 ignores the op
+    assert!(csg_boolean_nary(BooleanOp::Intersection, &[a.clone()]).is_ok());
+    assert!(csg_boolean_nary(BooleanOp::Difference, &[a]).is_ok());
+}
+
 /// N-ary union of 3 cubes must produce the same volume as sequential
 /// binary unions (within tolerance).
 ///
