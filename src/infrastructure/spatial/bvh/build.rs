@@ -276,9 +276,9 @@ pub(super) fn build_centroids(aabbs: &[Aabb]) -> Vec<Point3<f64>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hashbrown::HashSet;
     use nalgebra::Point3;
     use proptest::prelude::*;
-    use std::collections::BTreeSet;
 
     fn pt(x: f64, y: f64, z: f64) -> Point3<f64> {
         Point3::new(x, y, z)
@@ -300,7 +300,7 @@ mod tests {
                 .collect();
             let centroids = build_centroids(&aabbs);
             let mut indices: Vec<usize> = (0..aabbs.len()).collect();
-            let before: BTreeSet<usize> = indices.iter().copied().collect();
+            let before: HashSet<usize> = indices.iter().copied().collect();
             let end = indices.len();
             let mid = partition(&centroids, &mut indices, 0, end, 0, f64::from(split));
 
@@ -311,7 +311,7 @@ mod tests {
                 prop_assert!(axis_value(&aabbs[idx].center(), 0) >= f64::from(split));
             }
 
-            let after: BTreeSet<usize> = indices.iter().copied().collect();
+            let after: HashSet<usize> = indices.iter().copied().collect();
             prop_assert_eq!(before, after);
         }
     }
@@ -337,10 +337,10 @@ mod tests {
         ];
         let centroids = build_centroids(&aabbs);
         let mut indices = vec![5, 2, 4, 0, 1, 3];
-        let before: BTreeSet<usize> = indices.iter().copied().collect();
+        let before: HashSet<usize> = indices.iter().copied().collect();
         let mid = partition_median(&centroids, &mut indices, 0, 6, 0);
         assert_eq!(mid, 3);
-        let after: BTreeSet<usize> = indices.iter().copied().collect();
+        let after: HashSet<usize> = indices.iter().copied().collect();
         assert_eq!(before, after);
     }
 

@@ -148,8 +148,6 @@ pub fn broad_phase_pairs(
         );
     } else {
         // Build BVH on A and query B.
-        // Emit lexicographically by buffering `face_b` indices per `face_a`.
-        let mut b_hits_per_a: Vec<Vec<usize>> = vec![Vec::new(); faces_a.len()];
         with_bvh(
             &aabbs_a,
             |tree: crate::infrastructure::spatial::bvh::BvhTree<'_, '_>, token| {
@@ -158,19 +156,19 @@ pub fn broad_phase_pairs(
                     hits.clear();
                     tree.query_overlapping(aabb_b, &token, &mut hits);
                     for &i in &hits {
-                        b_hits_per_a[i].push(j);
+                        pairs.push(CandidatePair {
+                            face_a: i,
+                            face_b: j,
+                        });
                     }
                 }
             },
         );
-        for (i, js) in b_hits_per_a.iter().enumerate() {
-            for &j in js {
-                pairs.push(CandidatePair {
-                    face_a: i,
-                    face_b: j,
-                });
-            }
-        }
+        pairs.sort_unstable_by(|x, y| {
+            x.face_a
+                .cmp(&y.face_a)
+                .then_with(|| x.face_b.cmp(&y.face_b))
+        });
     }
 
     pairs
@@ -182,8 +180,8 @@ pub fn broad_phase_pairs(
 mod tests {
     use super::*;
     use crate::domain::core::scalar::Point3r;
+    use hashbrown::HashSet;
     use proptest::prelude::*;
-    use std::collections::BTreeSet;
 
     fn make_pool_and_face(pts: [[f64; 3]; 3]) -> (VertexPool, FaceData) {
         let mut pool = VertexPool::default_millifluidic();
@@ -282,10 +280,10 @@ mod tests {
         pool_a: &VertexPool,
         faces_b: &[FaceData],
         pool_b: &VertexPool,
-    ) -> BTreeSet<(usize, usize)> {
+    ) -> HashSet<(usize, usize)> {
         let aabbs_a: Vec<Aabb> = faces_a.iter().map(|f| triangle_aabb(f, pool_a)).collect();
         let aabbs_b: Vec<Aabb> = faces_b.iter().map(|f| triangle_aabb(f, pool_b)).collect();
-        let mut out = BTreeSet::new();
+        let mut out = HashSet::new();
         for (i, a) in aabbs_a.iter().enumerate() {
             for (j, b) in aabbs_b.iter().enumerate() {
                 if a.intersects(b) {
@@ -308,9 +306,9 @@ mod tests {
             let ab = broad_phase_pairs(&faces_a, &pool_a, &faces_b, &pool_b);
             let ba = broad_phase_pairs(&faces_b, &pool_b, &faces_a, &pool_a);
 
-            let set_ab: BTreeSet<(usize, usize)> =
+            let set_ab: HashSet<(usize, usize)> =
                 ab.into_iter().map(|p| (p.face_a, p.face_b)).collect();
-            let set_ba_flipped: BTreeSet<(usize, usize)> =
+            let set_ba_flipped: HashSet<(usize, usize)> =
                 ba.into_iter().map(|p| (p.face_b, p.face_a)).collect();
 
             prop_assert_eq!(set_ab, set_ba_flipped);
@@ -324,7 +322,7 @@ mod tests {
             let (pool_a, faces_a) = make_faces_from_raw(&a_raw);
             let (pool_b, faces_b) = make_faces_from_raw(&b_raw);
 
-            let got: BTreeSet<(usize, usize)> = broad_phase_pairs(&faces_a, &pool_a, &faces_b, &pool_b)
+            let got: HashSet<(usize, usize)> = broad_phase_pairs(&faces_a, &pool_a, &faces_b, &pool_b)
                 .into_iter()
                 .map(|p| (p.face_a, p.face_b))
                 .collect();

@@ -83,3 +83,8 @@
 - [x] **Phase 12: CSG Edge-Use Cache Audit (Sprint 9)**
     - [x] Review current CSG/watertight/grid diff before merge.
     - [x] Fix `collapse_degenerate_faces` edge-use cache invariant so degenerate faces are never counted in the non-degenerate edge-use map.
+
+- [x] **Phase 13: CSG Selection Hot-Path Cleanup (Sprint 10)**
+    - [x] Review clean-tree diff state before continuing optimization.
+    - [x] Remove avoidable hot-loop `unwrap()` calls from CSG closest-pair and non-manifold pair selection.
+    - [x] Pre-size CSG repair hash maps/sets where loop-local upper bounds are already known.

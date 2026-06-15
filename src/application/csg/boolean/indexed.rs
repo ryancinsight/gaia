@@ -1382,7 +1382,8 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
     let max_iter = 30;
 
     // Pairs that caused a χ decrease (topology-damaging merges); skip on retry.
-    let mut skip_pairs: hashbrown::HashSet<(VertexId, VertexId)> = hashbrown::HashSet::new();
+    let mut skip_pairs: hashbrown::HashSet<(VertexId, VertexId)> =
+        hashbrown::HashSet::with_capacity(max_iter);
 
     for _iter in 0..max_iter {
         mesh.rebuild_edges();
@@ -1392,7 +1393,8 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
         };
 
         // Phase 1: collect boundary vertex IDs.
-        let mut boundary_verts: hashbrown::HashSet<VertexId> = hashbrown::HashSet::new();
+        let mut boundary_verts: hashbrown::HashSet<VertexId> =
+            hashbrown::HashSet::with_capacity(edges_ref.len().saturating_mul(2));
         for edge in edges_ref.iter() {
             if edge.is_boundary() {
                 boundary_verts.insert(edge.vertices.0);
@@ -1416,7 +1418,7 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
         let mut best: Option<(VertexId, VertexId, f64)> = None;
         {
             let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
-                hashbrown::HashMap::new();
+                hashbrown::HashMap::with_capacity(bv.len());
             let bv_pos: Vec<nalgebra::Point3<f64>> =
                 bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
             for i in 0..bv.len() {
@@ -1449,7 +1451,11 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
                                     }
                                     let pj = &bv_pos[j];
                                     let d = (pi - pj).norm();
-                                    if d < tol && (best.is_none() || d < best.unwrap().2) {
+                                    let is_better = match best {
+                                        Some((_, _, best_dist)) => d < best_dist,
+                                        None => true,
+                                    };
+                                    if d < tol && is_better {
                                         best = Some((bv[i], bv[j], d));
                                     }
                                 }
@@ -1468,7 +1474,9 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
             // Build grid over interior vertices only.
             let all_vids: Vec<VertexId> = mesh.vertices.iter().map(|(id, _)| id).collect();
             let mut igrid: hashbrown::HashMap<(i64, i64, i64), Vec<VertexId>> =
-                hashbrown::HashMap::new();
+                hashbrown::HashMap::with_capacity(
+                    all_vids.len().saturating_sub(boundary_verts.len()),
+                );
             for &ivid in &all_vids {
                 if boundary_verts.contains(&ivid) {
                     continue;
@@ -1499,8 +1507,11 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
                                     }
                                     let ip = mesh.vertices.position(ivid);
                                     let d = (bp - ip).norm();
-                                    if d < per_vertex_tol && (best.is_none() || d < best.unwrap().2)
-                                    {
+                                    let is_better = match best {
+                                        Some((_, _, best_dist)) => d < best_dist,
+                                        None => true,
+                                    };
+                                    if d < per_vertex_tol && is_better {
                                         best = Some((ivid, bvid, d));
                                     }
                                 }
@@ -1785,7 +1796,7 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
 
     // Build undirected edge → face index map.
     let mut edge_faces: hashbrown::HashMap<(VertexId, VertexId), Vec<usize>> =
-        hashbrown::HashMap::new();
+        hashbrown::HashMap::with_capacity(face_list.len().saturating_mul(3) / 2);
     for (fi, face) in face_list.iter().enumerate() {
         let v = face.vertices;
         for &(a, b) in &[(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
@@ -1796,7 +1807,8 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
 
     // Collect faces nominated for removal across all non-manifold edges.
     // For each non-manifold edge, pick the best pair and mark the rest.
-    let mut faces_to_remove: hashbrown::HashSet<usize> = hashbrown::HashSet::new();
+    let mut faces_to_remove: hashbrown::HashSet<usize> =
+        hashbrown::HashSet::with_capacity(face_list.len() / 8);
 
     for (&(u, v), fis) in &edge_faces {
         if fis.len() <= 2 {
@@ -1831,11 +1843,9 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
                 };
                 let better = match best_pair {
                     None => true,
-                    Some((_, _, best_dot)) => {
+                    Some((best_fwd, best_rev, best_dot)) => {
                         dot > best_dot
-                            || (dot == best_dot
-                                && fi_fwd.min(fi_rev)
-                                    < best_pair.unwrap().0.min(best_pair.unwrap().1))
+                            || (dot == best_dot && fi_fwd.min(fi_rev) < best_fwd.min(best_rev))
                     }
                 };
                 if better {
@@ -1927,7 +1937,7 @@ fn remove_fin_faces(mesh: &mut IndexedMesh) {
 
     // Build undirected edge → face adjacency.
     let mut edge_adj: hashbrown::HashMap<(VertexId, VertexId), Vec<usize>> =
-        hashbrown::HashMap::new();
+        hashbrown::HashMap::with_capacity(n_faces.saturating_mul(3) / 2);
     for (fi, face) in face_list.iter().enumerate() {
         let v = face.vertices;
         for &(a, b) in &[(v[0], v[1]), (v[1], v[2]), (v[2], v[0])] {
@@ -1938,7 +1948,7 @@ fn remove_fin_faces(mesh: &mut IndexedMesh) {
 
     // For each face, find the maximum dot product with any edge neighbor.
     let cos_threshold = -0.94_f64; // cos(160°) — only flags extreme folds
-    let mut fin_faces: hashbrown::HashSet<usize> = hashbrown::HashSet::new();
+    let mut fin_faces: hashbrown::HashSet<usize> = hashbrown::HashSet::with_capacity(n_faces / 16);
 
     for fi in 0..n_faces {
         let n_f = match face_normals[fi] {
