@@ -118,11 +118,7 @@ struct SweepAabbIndex2d {
 impl SweepAabbIndex2d {
     fn build(aabbs: &[[Real; 4]]) -> Self {
         let mut by_min_u: Vec<usize> = (0..aabbs.len()).collect();
-        by_min_u.sort_unstable_by(|&i, &j| {
-            aabbs[i][0]
-                .partial_cmp(&aabbs[j][0])
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        by_min_u.sort_unstable_by(|&i, &j| aabbs[i][0].total_cmp(&aabbs[j][0]));
         Self { by_min_u }
     }
 
@@ -475,6 +471,21 @@ mod tests {
 
             assert_eq!(got, want, "query={q:?}");
         }
+    }
+
+    #[test]
+    fn sweep_index_orders_min_u_totally() {
+        let opp_aabbs = vec![
+            [0.0, -1.0, 1.0, 1.0],
+            [f64::NAN, -1.0, 1.0, 1.0],
+            [-0.0, -1.0, 1.0, 1.0],
+            [f64::NEG_INFINITY, -1.0, 1.0, 1.0],
+        ];
+        let index = SweepAabbIndex2d::build(&opp_aabbs);
+        let mut expected: Vec<usize> = (0..opp_aabbs.len()).collect();
+        expected.sort_unstable_by(|&i, &j| opp_aabbs[i][0].total_cmp(&opp_aabbs[j][0]));
+
+        assert_eq!(index.by_min_u, expected);
     }
 
     #[test]
