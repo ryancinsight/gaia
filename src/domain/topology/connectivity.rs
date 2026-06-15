@@ -50,7 +50,7 @@ pub fn connected_components(
     let total_faces = face_store.len();
     let mut visited = vec![false; total_faces];
     let mut components = Vec::new();
-    let mut queue = std::collections::VecDeque::new();
+    let mut queue = std::collections::VecDeque::with_capacity(total_faces);
 
     for (fid, _) in face_store.iter_enumerated() {
         let idx = fid.as_usize();
