@@ -113,7 +113,8 @@ fn edge_crossings_interval(
     projs: [Real; 3],
     dists: [Real; 3],
 ) -> Option<(Real, Real, Point3r, Point3r)> {
-    let mut crossings: Vec<(Real, Point3r)> = Vec::with_capacity(2);
+    let mut crossings = [(0.0, Point3r::default()); 3];
+    let mut count = 0;
 
     // Scale reference for on-plane vertex test: max |dist| across all vertices.
     let dist_scale = dists[0]
@@ -135,12 +136,18 @@ fn edge_crossings_interval(
             }
             let t = di / denom; // parameter ∈ (0,1)
             let tp = projs[i] + (projs[j] - projs[i]) * t;
-            crossings.push((tp, lerp(verts[i], verts[j], t)));
+            if count < 3 {
+                crossings[count] = (tp, lerp(verts[i], verts[j], t));
+                count += 1;
+            }
         } else if di.abs() < INTERVAL_OVERLAP_REL * dist_scale
             && dj.abs() > INTERVAL_OVERLAP_REL * dist_scale
         {
             // Vertex i lies exactly on the plane; it is a crossing point.
-            crossings.push((projs[i], *verts[i]));
+            if count < 3 {
+                crossings[count] = (projs[i], *verts[i]);
+                count += 1;
+            }
         }
     }
 
@@ -149,15 +156,28 @@ fn edge_crossings_interval(
     let proj_span = projs.iter().copied().fold(Real::NEG_INFINITY, Real::max)
         - projs.iter().copied().fold(Real::INFINITY, Real::min);
     let dedup_tol = INTERVAL_OVERLAP_REL * proj_span.abs().max(1e-30);
-    crossings.sort_by(|x, y| x.0.total_cmp(&y.0));
-    crossings.dedup_by(|x, y| (x.0 - y.0).abs() < dedup_tol);
 
-    if crossings.len() < 2 {
+    let slice = &mut crossings[0..count];
+    slice.sort_by(|x, y| x.0.total_cmp(&y.0));
+
+    let mut new_count = count;
+    if count > 1 {
+        let mut write = 1;
+        for read in 1..count {
+            if (slice[read].0 - slice[write - 1].0).abs() >= dedup_tol {
+                slice[write] = slice[read];
+                write += 1;
+            }
+        }
+        new_count = write;
+    }
+
+    if new_count < 2 {
         return None;
     }
 
-    let (t_min, pt_min) = crossings[0];
-    let (t_max, pt_max) = crossings[crossings.len() - 1];
+    let (t_min, pt_min) = slice[0];
+    let (t_max, pt_max) = slice[new_count - 1];
     Some((t_min, t_max, pt_min, pt_max))
 }
 

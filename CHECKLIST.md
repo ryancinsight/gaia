@@ -191,3 +191,11 @@
     - [x] Define and integrate `CorefinerScratch` in `corefine.rs` and `fragment_refinement.rs`.
     - [x] Pre-size `frags` in `boolean_csg.rs` and `SeamVertexMap` in `corefine.rs`.
     - [x] Verify `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, full `cargo nextest run --all-features` (968 tests), focused `cargo nextest run --all-features csg` (346 tests), doctests, rustdoc, and `cargo bench --bench csg_performance csg_union_cube_cube -- --warm-up-time 1 --measurement-time 2 --sample-size 10` (median 205.14 us; p=0.18, no statistically significant change).
+
+- [x] **Phase 28: Intersection Segment Calculation Stack-Allocation Optimization (Sprint 25)**
+    - [x] Refactor `edge_crossings_interval` in `segment.rs` to use stack-allocated array.
+    - [x] Verify `cargo fmt --check`.
+    - [x] Verify `cargo clippy --all-targets --all-features -- -D warnings`.
+    - [x] Run full test suite (968 tests).
+    - [x] Verify `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`.
+    - [x] Run benchmark verification tests.
