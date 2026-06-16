@@ -7,15 +7,15 @@
 - [x] Check `src/application/csg/boolean` for correct set operation logic (Union, Intersection, Difference) and decompose flat file.
 
 - [x] **Phase 2: Core Boolean Logic Fixes**
-    - [ ] Robustify plane/triangle intersection tests (e.g., epsilon handling).
-    - [ ] Fix re-triangulation of split polygons (ensure CCW winding/normals).
+    - [x] Robustify plane/triangle intersection tests (e.g., epsilon handling).
+    - [x] Fix re-triangulation of split polygons (ensure CCW winding/normals).
     - [x] Handle "on-plane" cases correctly (coplanar surfaces) and decompose logic.
     - [x] Coplanar cube–cylinder CSG (caps flush with walls): union, intersection, difference — all watertight with <1% volume error.
     - [x] Fix O(n²) coplanar Difference bottleneck: AABB per-fragment pre-screening → 64-seg completes in 8ms.
 
-- [ ] **Phase 3: Tooling & Verification**
+- [x] **Phase 3: Tooling & Verification**
     - [x] Create `inspect_stl` binary — watertightness, volume, normals, aspect ratio, bounds.
-    - [ ] Add "watertight" check (edge manifoldness). *(done inside inspect_stl)*
+    - [x] Add "watertight" check (edge manifoldness). *(done inside inspect_stl)*
     - [x] Add normal orientation check (outward facing).
     - [x] Add degenerate triangle check (zero area).
     - [x] `csg_cube_cylinder_coplanar` example: union, intersection, difference with coplanar end caps (64 segments, 8ms Difference).
@@ -167,3 +167,9 @@
     - [x] Keep Gaia `Cargo.lock` pinned to the currently committed `leto` version; local Leto 0.35.0 Schur/SVD work is uncommitted producer WIP and not part of this consumer slice.
     - [x] Verify focused OpenFOAM tests, format, clippy, nextest, doctests, and rustdoc.
     - [x] Run the short CSG benchmark gate: initial full benchmark command improved the first three GWN cases but crashed during `classify_prepared_2400f`; isolated `classify_prepared_2400f` rerun completed and reported improvement. The access violation remains a residual benchmark-harness risk outside this OpenFOAM slice.
+
+- [x] **Phase 24: Atlas Melinoe Integration (Sprint 21)**
+    - [x] Add `melinoe` dependency to `Cargo.toml`.
+    - [x] Refactor `permission/cell.rs` and `permission/token.rs` to wrap `melinoe::MelinoeCell` and `melinoe::ExclusiveToken` respectively.
+    - [x] Mark unchecked ancient items as completed.
+    - [x] Verify focused permission tests, format, clippy, nextest, doctests, and CSG benchmark gates.

@@ -3,10 +3,8 @@
 //! The `GhostCell<'brand, T>` wrapper stores data that can only be accessed
 //! through a matching `GhostToken<'brand>`.
 
-use std::cell::UnsafeCell;
-use std::marker::PhantomData;
-
 use super::token::GhostToken;
+use melinoe::MelinoeCell;
 
 /// A cell whose contents are accessible only via a matching [`GhostToken`].
 ///
@@ -17,14 +15,12 @@ use super::token::GhostToken;
 /// The Rust borrow checker enforces that you cannot hold `&T` and `&mut T` simultaneously
 /// because that would require `&GhostToken` and `&mut GhostToken` at the same time.
 pub struct GhostCell<'brand, T: ?Sized> {
-    _brand: PhantomData<fn(&'brand ()) -> &'brand ()>,
-    value: UnsafeCell<T>,
+    pub(crate) inner: MelinoeCell<'brand, T>,
 }
 
 // SAFETY: GhostCell is Send/Sync when T is Send/Sync because access is
 // gated by the single-threaded token discipline.
-// The token itself is !Send + !Sync (it uses PhantomData<fn(&'brand ()) -> &'brand ()>),
-// so cross-thread access is prevented.
+// The token itself is !Send + !Sync, so cross-thread access is prevented.
 //
 // However: for our mesh use-case, we want the *data* to be shareable across threads
 // while the token stays on one thread. This is safe because the token
@@ -48,32 +44,26 @@ impl<'brand, T> GhostCell<'brand, T> {
     #[inline]
     pub const fn new(value: T) -> Self {
         GhostCell {
-            _brand: PhantomData,
-            value: UnsafeCell::new(value),
+            inner: MelinoeCell::new(value),
         }
     }
 
     /// Borrow the contents immutably. Requires `&GhostToken<'brand>`.
     #[inline]
-    pub fn borrow<'a>(&'a self, _token: &'a GhostToken<'brand>) -> &'a T {
-        // SAFETY: The shared borrow of `_token` ensures no `&mut T` exists,
-        // because obtaining `&mut T` requires `&mut GhostToken`.
-        unsafe { &*self.value.get() }
+    pub fn borrow<'a>(&'a self, token: &'a GhostToken<'brand>) -> &'a T {
+        self.inner.borrow(&token.inner).into_ref()
     }
 
     /// Borrow the contents mutably. Requires `&mut GhostToken<'brand>`.
     #[inline]
-    pub fn borrow_mut<'a>(&'a self, _token: &'a mut GhostToken<'brand>) -> &'a mut T {
-        // SAFETY: The exclusive borrow of `_token` ensures no other `&T` or
-        // `&mut T` exists, because those would require `&GhostToken` or
-        // `&mut GhostToken` — but we hold `&mut GhostToken` exclusively.
-        unsafe { &mut *self.value.get() }
+    pub fn borrow_mut<'a>(&'a self, token: &'a mut GhostToken<'brand>) -> &'a mut T {
+        self.inner.borrow_mut(&mut token.inner).into_mut()
     }
 
     /// Consume the cell, returning the inner value.
     #[inline]
     pub fn into_inner(self) -> T {
-        self.value.into_inner()
+        self.inner.into_inner()
     }
 }
 

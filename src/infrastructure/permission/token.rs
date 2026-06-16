@@ -4,8 +4,6 @@
 //! specific scope. Only cells created within the same branded scope can be
 //! accessed through the token.
 
-use std::marker::PhantomData;
-
 /// A permission token branded with lifetime `'brand`.
 ///
 /// - `&GhostToken<'brand>` grants **shared** read access to all
@@ -14,7 +12,7 @@ use std::marker::PhantomData;
 ///
 /// The brand ensures tokens from unrelated scopes cannot be mixed.
 pub struct GhostToken<'brand> {
-    _brand: PhantomData<fn(&'brand ()) -> &'brand ()>,
+    pub(crate) inner: melinoe::ExclusiveToken<'brand>,
 }
 
 impl GhostToken<'_> {
@@ -31,10 +29,7 @@ impl GhostToken<'_> {
     /// });
     /// ```
     pub fn new<R>(f: impl for<'new_brand> FnOnce(GhostToken<'new_brand>) -> R) -> R {
-        let token = GhostToken {
-            _brand: PhantomData,
-        };
-        f(token)
+        melinoe::brand_scope(|token| f(GhostToken { inner: token }))
     }
 }
 

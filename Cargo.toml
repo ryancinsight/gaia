@@ -40,6 +40,7 @@ anyhow = "1.0"
 indexmap = "2.0"
 slotmap = "1.0"
 leto = { path = "../leto/crates/leto", default-features = false, features = ["std"] }
+melinoe = { version = "0.7.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false }
 
 # Mesh / geometry — state-of-the-art kernel
 geometry-predicates = "0.3"
