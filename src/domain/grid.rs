@@ -58,11 +58,13 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     let mut mesh = IndexedMesh::<f64>::new();
     let mut v_ids = Vec::with_capacity(vnx * vny * vnz);
 
-    // HashMap for deterministic face deduplication order (since nesting loops are deterministic)
+    // HashMap for deterministic face deduplication order (since nesting loops are deterministic).
+    // Each hex creates five tetrahedra and each tetrahedron contributes four
+    // candidate faces before deduplication.
     let mut face_map: HashMap<
         [crate::domain::core::index::VertexId; 3],
         crate::domain::core::index::FaceId,
-    > = HashMap::new();
+    > = HashMap::with_capacity(nx * ny * nz * 20);
 
     let mut add_tri = |v0: crate::domain::core::index::VertexId,
                        v1: crate::domain::core::index::VertexId,
@@ -143,22 +145,19 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     }
 
     // Label boundary faces.
-    let mut boundary_updates = Vec::new();
+    let mut boundary_updates = Vec::with_capacity(mesh.faces.len());
     for (f_idx, face) in mesh.faces.iter_enumerated() {
-        let verts: Vec<_> = face
-            .vertices
-            .iter()
-            .map(|&vi| mesh.vertices.position(vi))
-            .collect();
-        if verts.is_empty() {
-            continue;
-        }
-        let all_bottom = verts.iter().all(|p| p.z < 1e-9);
-        let all_top = verts.iter().all(|p| p.z > 1.0 - 1e-9);
-        let all_front = verts.iter().all(|p| p.y < 1e-9);
-        let all_back = verts.iter().all(|p| p.y > 1.0 - 1e-9);
-        let all_left = verts.iter().all(|p| p.x < 1e-9);
-        let all_right = verts.iter().all(|p| p.x > 1.0 - 1e-9);
+        let [v0, v1, v2] = face.vertices;
+        let p0 = mesh.vertices.position(v0);
+        let p1 = mesh.vertices.position(v1);
+        let p2 = mesh.vertices.position(v2);
+
+        let all_bottom = p0.z < 1e-9 && p1.z < 1e-9 && p2.z < 1e-9;
+        let all_top = p0.z > 1.0 - 1e-9 && p1.z > 1.0 - 1e-9 && p2.z > 1.0 - 1e-9;
+        let all_front = p0.y < 1e-9 && p1.y < 1e-9 && p2.y < 1e-9;
+        let all_back = p0.y > 1.0 - 1e-9 && p1.y > 1.0 - 1e-9 && p2.y > 1.0 - 1e-9;
+        let all_left = p0.x < 1e-9 && p1.x < 1e-9 && p2.x < 1e-9;
+        let all_right = p0.x > 1.0 - 1e-9 && p1.x > 1.0 - 1e-9 && p2.x > 1.0 - 1e-9;
         if all_bottom {
             boundary_updates.push((f_idx, "inlet"));
         } else if all_top {

@@ -60,6 +60,7 @@ use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::index::RegionId;
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::halfedge::PatchType;
+use hashbrown::HashMap;
 
 // ── FoamFile header helper ────────────────────────────────────────────────────
 
@@ -185,15 +186,32 @@ pub fn write_openfoam_polymesh(
         .iter()
         .map(|(rid, name, pt)| (*rid, (*name).to_owned(), pt.clone()))
         .collect();
+    let patch_indices: HashMap<RegionId, usize> = patch_map
+        .iter()
+        .enumerate()
+        .map(|(index, (region, _, _))| (*region, index))
+        .collect();
 
-    // Assign each face to a patch bucket
-    let mut buckets: Vec<Vec<[u32; 3]>> = vec![Vec::new(); patch_map.len() + 1]; // +1 for default
+    // Assign each face to a patch bucket. The count pass gives each bucket an
+    // exact capacity and avoids O(face_count * patch_count) linear lookup.
     let default_idx = patch_map.len();
+    let mut bucket_counts = vec![0usize; patch_map.len() + 1]; // +1 for default
+    for (_, face) in mesh.faces.iter_enumerated() {
+        let bucket = patch_indices
+            .get(&face.region)
+            .copied()
+            .unwrap_or(default_idx);
+        bucket_counts[bucket] += 1;
+    }
+    let mut buckets: Vec<Vec<[u32; 3]>> = bucket_counts
+        .iter()
+        .map(|count| Vec::with_capacity(*count))
+        .collect();
 
     for (_, face) in mesh.faces.iter_enumerated() {
-        let bucket = patch_map
-            .iter()
-            .position(|(rid, _, _)| *rid == face.region)
+        let bucket = patch_indices
+            .get(&face.region)
+            .copied()
             .unwrap_or(default_idx);
         buckets[bucket].push([
             face.vertices[0].raw(),

@@ -140,3 +140,12 @@
     - [x] Add value-semantic coverage proving `leto` buffer construction preserves row order and values.
     - [x] Verify focused coplanar tests, format, clippy, nextest, doctests, rustdoc, and CSG benchmark gates.
     - [x] Record residual integration observation: `leto` is usable for Gaia's contiguous numeric buffers today; full `nalgebra::Point3`/`Vector3` replacement remains blocked until `leto` owns geometry point/vector contracts.
+
+- [x] **Phase 21: Grid and OpenFOAM Allocation Cleanup (Sprint 18)**
+    - [x] Review clean-tree diff state and audit remaining Atlas dependency replacement candidates.
+    - [x] Keep `mnemosyne::BrandedVec` out of Gaia mesh storage until branded heap/token ownership can be introduced without compatibility shims or fake integration.
+    - [x] Pre-size structured-grid face deduplication from the exact five-tet candidate-face upper bound.
+    - [x] Remove per-face temporary vector allocation from structured-grid boundary labelling.
+    - [x] Replace OpenFOAM export's per-face linear patch lookup with one `RegionId` index map and exact bucket pre-counting.
+    - [x] Verify focused OpenFOAM tests, format, clippy, nextest, doctests, rustdoc, and short benchmark command execution.
+    - [x] Record residual observations: Gaia still emits unused Atlas patch warnings for optional Moirai/Mnemosyne crates; full-suite nextest has existing CSG slow tests above 30s; the unrelated CSG/SVDAG benchmark group reported regressions and remains the next performance-investigation target.
