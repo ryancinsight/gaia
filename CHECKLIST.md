@@ -190,4 +190,4 @@
     - [x] Hoist `injections` and `pts` allocations in `propagate_seam_vertices_impl` (`propagate.rs`).
     - [x] Define and integrate `CorefinerScratch` in `corefine.rs` and `fragment_refinement.rs`.
     - [x] Pre-size `frags` in `boolean_csg.rs` and `SeamVertexMap` in `corefine.rs`.
-    - [x] Verify focused pipeline/repair tests, format, clippy, nextest, and CSG benchmark gates.
+    - [x] Verify `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, full `cargo nextest run --all-features` (968 tests), focused `cargo nextest run --all-features csg` (346 tests), doctests, rustdoc, and `cargo bench --bench csg_performance csg_union_cube_cube -- --warm-up-time 1 --measurement-time 2 --sample-size 10` (median 205.14 us; p=0.18, no statistically significant change).
