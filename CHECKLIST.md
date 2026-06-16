@@ -149,3 +149,13 @@
     - [x] Replace OpenFOAM export's per-face linear patch lookup with one `RegionId` index map and exact bucket pre-counting.
     - [x] Verify focused OpenFOAM tests, format, clippy, nextest, doctests, rustdoc, and short benchmark command execution.
     - [x] Record residual observations: Gaia still emits unused Atlas patch warnings for optional Moirai/Mnemosyne crates; full-suite nextest has existing CSG slow tests above 30s; the unrelated CSG/SVDAG benchmark group reported regressions and remains the next performance-investigation target.
+
+- [x] **Phase 22: Delaunay, Hierarchy, and Seam Propagation Allocation Cleanup (Sprint 19)**
+    - [x] Pre-size `seen` and `hull` vectors in `convex_hull_vertices` in `vertex_star.rs`, and pre-size `b_vertices` and reuse `next_pos` in `lattice.rs`.
+    - [x] Add `empty_clone_with_capacity` to `VertexPool` and `IndexedMesh` to support pre-allocated empty clones while preserving tolerances.
+    - [x] Refactored `P2MeshConverter` and `HexToTetConverter` to use `empty_clone_with_capacity` and pre-allocate midpoint maps, face maps, and local adjacency maps.
+    - [x] Refactored `propagate_seam_vertices_until_stable` to construct edge-to-face adjacency map exactly once per convergence loop using a heap-allocation-free inline `AdjacentFaces` struct.
+    - [x] Pre-allocated `interior_vid_set` in `corefine_face` and sets/vectors in `consolidate_cross_mesh_vertices`.
+    - [x] Migrated `boundary_labels` from `HashMap<FaceId, String>` to `HashMap<FaceId, std::borrow::Cow<'static, str>>` to avoid redundant string allocations.
+    - [x] Verify format, clippy, nextest, doctests, and CSG benchmark gates.
+
