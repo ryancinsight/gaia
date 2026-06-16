@@ -5,7 +5,7 @@ use crate::application::csg::arrangement::stitch;
 use crate::domain::core::index::FaceId;
 use crate::domain::topology::orientation;
 use crate::infrastructure::storage::edge_store::EdgeStore;
-use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
+use crate::infrastructure::storage::face_store::FaceStore;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
 /// Mesh repair operations.
@@ -68,17 +68,21 @@ impl MeshRepair {
         let mut boundary_edges = EdgeStore::from_face_store(face_store).boundary_edge_count();
         let mut improved_passes = 0usize;
 
+        let mut repaired_faces = Vec::with_capacity(face_store.len());
+
         for _ in 0..max_passes {
             if boundary_edges == 0 {
                 break;
             }
 
-            let mut repaired_faces: Vec<FaceData> = face_store.iter().copied().collect();
+            repaired_faces.clear();
+            repaired_faces.extend(face_store.iter().copied());
+
             snap_round::snap_round_tjunctions(&mut repaired_faces, vertex_pool);
             stitch::fill_boundary_loops(&mut repaired_faces, vertex_pool);
 
             let mut repaired_store = FaceStore::with_capacity(repaired_faces.len());
-            for face in repaired_faces {
+            for &face in &repaired_faces {
                 repaired_store.push(face);
             }
 

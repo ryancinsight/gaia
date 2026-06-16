@@ -173,3 +173,9 @@
     - [x] Refactor `permission/cell.rs` and `permission/token.rs` to wrap `melinoe::MelinoeCell` and `melinoe::ExclusiveToken` respectively.
     - [x] Mark unchecked ancient items as completed.
     - [x] Verify focused permission tests, format, clippy, nextest, doctests, and CSG benchmark gates.
+
+- [x] **Phase 25: Watertight Repair & Pipeline Allocation Optimization (Sprint 22)**
+    - [x] Hoist `repaired_faces` allocation in `MeshRepair::iterative_boundary_stitch` (`repair.rs`).
+    - [x] Pre-size `boundary_pairs` and `adj` map in boundary loop sealing (`seal.rs`).
+    - [x] Pre-allocate `port_mesh` and `vmap` capacities in shell pipeline (`shell_mesh.rs`).
+    - [x] Verify focused pipeline/repair tests, format, clippy, nextest, and CSG benchmark gates.

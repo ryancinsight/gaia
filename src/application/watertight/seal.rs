@@ -25,7 +25,7 @@ pub fn seal_boundary_loops(
     }
 
     // Collect boundary edges as directed pairs
-    let mut boundary_pairs: Vec<(VertexId, VertexId)> = Vec::new();
+    let mut boundary_pairs: Vec<(VertexId, VertexId)> = Vec::with_capacity(boundary.len());
     for &eid in &boundary {
         let edge = edge_store.get(eid);
         // For boundary edges (valence 1), the single adjacent face determines the winding.
@@ -89,7 +89,7 @@ fn extract_boundary_loops(edges: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> 
     use hashbrown::{HashMap, HashSet};
 
     // Build adjacency that preserves all outgoing boundary links.
-    let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::new();
+    let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(edges.len());
     for &(a, b) in edges {
         adj.entry(a).or_default().push(b);
     }

@@ -172,8 +172,8 @@ impl ShellMeshPipeline {
             };
             let faces = mesher.sweep(&profile, &path, &mut pool, RegionId::new(1));
 
-            let mut port_mesh = IndexedMesh::new();
-            let mut vmap = HashMap::new();
+            let mut port_mesh = IndexedMesh::with_capacity(pool.len(), faces.len(), 0);
+            let mut vmap = HashMap::with_capacity(pool.len());
             for (vid, vdata) in pool.iter() {
                 let mid = port_mesh.add_vertex(vdata.position, vdata.normal);
                 vmap.insert(vid, mid);
