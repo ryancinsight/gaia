@@ -43,7 +43,7 @@ pub struct IndexedMesh<T: Scalar = f64> {
     /// Volumetric cells (for CFD support).
     pub cells: Vec<Cell>,
     /// Boundary patch names tagged by `FaceId`.
-    pub boundary_labels: HashMap<FaceId, String>,
+    pub boundary_labels: HashMap<FaceId, std::borrow::Cow<'static, str>>,
 }
 
 impl<T: Scalar> IndexedMesh<T> {
@@ -250,15 +250,17 @@ impl<T: Scalar> IndexedMesh<T> {
     // ── Boundary management ─────────────────────────────────────────────
 
     /// Label a face as a boundary with the given name.
-    pub fn mark_boundary(&mut self, face_id: FaceId, label: impl Into<String>) {
+    pub fn mark_boundary(
+        &mut self,
+        face_id: FaceId,
+        label: impl Into<std::borrow::Cow<'static, str>>,
+    ) {
         self.boundary_labels.insert(face_id, label.into());
     }
 
     /// Return the boundary label of a face, if any.
     pub fn boundary_label(&self, face_id: FaceId) -> Option<&str> {
-        self.boundary_labels
-            .get(&face_id)
-            .map(std::string::String::as_str)
+        self.boundary_labels.get(&face_id).map(|c| c.as_ref())
     }
 
     /// Return face IDs on the geometric boundary (faces belonging to exactly one cell).
