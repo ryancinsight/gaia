@@ -127,7 +127,18 @@ pub fn propagate_seam_vertices(
         }
     }
 
-    propagate_seam_vertices_impl(faces, segs, pool, &edge_to_faces);
+    let mut injections = Vec::new();
+    let mut t_params = Vec::new();
+    let mut pts = Vec::new();
+    propagate_seam_vertices_impl(
+        faces,
+        segs,
+        pool,
+        &edge_to_faces,
+        &mut injections,
+        &mut t_params,
+        &mut pts,
+    );
 }
 
 #[derive(Clone, Default)]
@@ -203,9 +214,11 @@ fn propagate_seam_vertices_impl(
         ),
         AdjacentFaces,
     >,
+    injections: &mut Vec<(usize, SnapSegment)>,
+    t_params: &mut Vec<Real>,
+    pts: &mut Vec<Point3r>,
 ) {
-    let mut injections: Vec<(usize, SnapSegment)> = Vec::new();
-    let mut t_params: Vec<Real> = Vec::new();
+    injections.clear();
 
     for (fi, snap_segs) in segs.iter().enumerate() {
         if snap_segs.is_empty() || fi >= faces.len() {
@@ -317,10 +330,12 @@ fn propagate_seam_vertices_impl(
             t_params.sort_by(|a, b| a.total_cmp(b));
             t_params.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
 
-            let pts: Vec<Point3r> = std::iter::once(pa)
-                .chain(t_params.iter().map(|&t| pa + edge_vec * t))
-                .chain(std::iter::once(pb))
-                .collect();
+            pts.clear();
+            pts.push(pa);
+            for &t in &*t_params {
+                pts.push(pa + edge_vec * t);
+            }
+            pts.push(pb);
 
             for &adj_fi in adj_faces {
                 if adj_fi == fi {
@@ -342,7 +357,7 @@ fn propagate_seam_vertices_impl(
         }
     }
 
-    for (fi, seg) in injections {
+    for (fi, seg) in injections.drain(..) {
         if fi < segs.len() {
             let sb = (
                 seg.start.x.to_bits(),
@@ -418,9 +433,20 @@ pub(crate) fn propagate_seam_vertices_until_stable(
         }
     }
 
+    let mut injections = Vec::new();
+    let mut t_params = Vec::new();
+    let mut pts = Vec::new();
     for _ in 0..MAX_PROPAGATION_PASSES {
         let before: usize = segs.iter().map(Vec::len).sum();
-        propagate_seam_vertices_impl(faces, segs, pool, &edge_to_faces);
+        propagate_seam_vertices_impl(
+            faces,
+            segs,
+            pool,
+            &edge_to_faces,
+            &mut injections,
+            &mut t_params,
+            &mut pts,
+        );
         let after: usize = segs.iter().map(Vec::len).sum();
         if after == before {
             break;

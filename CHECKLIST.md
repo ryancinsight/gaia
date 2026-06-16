@@ -185,3 +185,9 @@
     - [x] Pre-size coplanar index and group sets/maps in `coplanar_groups.rs`.
     - [x] Pre-allocate `PlanarPointGridIndex` bins and reuse output vectors in `planar.rs` and `cdt.rs`.
     - [x] Verify focused pipeline/repair tests, format, clippy, nextest, and CSG benchmark gates.
+
+- [x] **Phase 27: Corefinement & Seam Propagation Allocation Optimization (Sprint 24)**
+    - [x] Hoist `injections` and `pts` allocations in `propagate_seam_vertices_impl` (`propagate.rs`).
+    - [x] Define and integrate `CorefinerScratch` in `corefine.rs` and `fragment_refinement.rs`.
+    - [x] Pre-size `frags` in `boolean_csg.rs` and `SeamVertexMap` in `corefine.rs`.
+    - [x] Verify focused pipeline/repair tests, format, clippy, nextest, and CSG benchmark gates.

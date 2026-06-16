@@ -233,25 +233,28 @@ impl PlanarPointGridIndex {
 /// This variant is used by the native 2-D polygon clipping path where polygon
 /// loop endpoints are known explicitly and interior intersection points are
 /// added from the merged point set.
-pub(crate) fn collect_points_on_segment_interior(
+pub(crate) fn collect_points_on_segment_interior_to_buf(
     unique_pts: &[[Real; 2]],
     p1: [Real; 2],
     p2: [Real; 2],
     endpoint_slots: (usize, usize),
     t_eps: Real,
     dist_sq_tol: Real,
-) -> Vec<(Real, usize)> {
+    out: &mut Vec<(Real, usize)>,
+) {
     let (ri, rj) = endpoint_slots;
     let dx = p2[0] - p1[0];
     let dy = p2[1] - p1[1];
     let l2 = dx * dx + dy * dy;
 
-    let mut out = vec![(0.0, ri), (1.0, rj)];
+    out.clear();
+    out.push((0.0, ri));
+    out.push((1.0, rj));
     if l2 < 1e-24 {
-        return out;
+        return;
     }
 
-    for (slot, upt) in unique_pts.iter().enumerate() {
+    for (slot, &upt) in unique_pts.iter().enumerate() {
         if slot == ri || slot == rj {
             continue;
         }
@@ -270,7 +273,26 @@ pub(crate) fn collect_points_on_segment_interior(
             out.push((t, slot));
         }
     }
+}
 
+pub(crate) fn collect_points_on_segment_interior(
+    unique_pts: &[[Real; 2]],
+    p1: [Real; 2],
+    p2: [Real; 2],
+    endpoint_slots: (usize, usize),
+    t_eps: Real,
+    dist_sq_tol: Real,
+) -> Vec<(Real, usize)> {
+    let mut out = Vec::new();
+    collect_points_on_segment_interior_to_buf(
+        unique_pts,
+        p1,
+        p2,
+        endpoint_slots,
+        t_eps,
+        dist_sq_tol,
+        &mut out,
+    );
     out
 }
 

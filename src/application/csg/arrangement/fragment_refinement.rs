@@ -4,7 +4,7 @@
 
 use hashbrown::{HashMap, HashSet};
 
-use super::super::corefine::{corefine_face, SeamVertexMap};
+use super::super::corefine::{corefine_face, CorefinerScratch, SeamVertexMap};
 use super::super::intersect::SnapSegment;
 use super::classify::FragRecord;
 use crate::domain::core::index::VertexId;
@@ -31,6 +31,8 @@ pub(crate) fn append_corefined_fragments<T, F>(
         "every source face must have a snap-segment slot"
     );
 
+    let mut scratch = CorefinerScratch::new();
+
     for (face_index, face) in faces.iter().enumerate() {
         if skipped_faces.contains(&face_index) {
             continue;
@@ -42,7 +44,7 @@ pub(crate) fn append_corefined_fragments<T, F>(
             continue;
         }
 
-        for sub_face in corefine_face(face, face_segments, pool, seam_map) {
+        for sub_face in corefine_face(face, face_segments, pool, seam_map, &mut scratch) {
             fragments.push(build_fragment(sub_face, face_index));
         }
     }

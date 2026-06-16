@@ -346,7 +346,7 @@ fn execute_arrangement_pass(
         .map(|i| build_seam_vertex_map(&meshes[i], &segs[i], pool))
         .collect();
 
-    let mut frags: Vec<BooleanFragmentRecord> = Vec::new();
+    let mut frags: Vec<BooleanFragmentRecord> = Vec::with_capacity(total_face_count);
 
     for (m_idx, m_faces) in meshes.iter().enumerate() {
         append_corefined_fragments(

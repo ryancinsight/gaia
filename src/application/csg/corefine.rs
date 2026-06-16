@@ -101,6 +101,89 @@ const EDGE_EPS: Real = COREFINE_EDGE_EPS;
 
 type PointBits3 = [u64; 3];
 
+/// 1-D bounding interval of a projected segment.
+#[derive(Clone, Copy, Debug)]
+struct SegBounds {
+    /// Minimum value along the projected U axis.
+    u_min: f64,
+    /// Maximum value along the projected U axis.
+    u_max: f64,
+    /// Minimum value along the projected V axis.
+    v_min: f64,
+    /// Maximum value along the projected V axis.
+    v_max: f64,
+}
+
+/// Reusable allocations for face co-refinement, eliminating heap allocation churn.
+pub(crate) struct CorefinerScratch {
+    /// Deduplicated snap segments.
+    dedup_snap_segments: Vec<SnapSegment>,
+    /// Set of snap segment canonical keys already seen.
+    seen_snap_segments: hashbrown::HashSet<(PointBits3, PointBits3)>,
+    /// Array of vertex IDs of segment endpoints, indexed by segment.
+    seg_vids: Vec<[Option<VertexId>; 2]>,
+    /// List of interior Steiner vertex IDs.
+    interior_vids: Vec<VertexId>,
+    /// Set of interior Steiner vertex IDs.
+    interior_vid_set: hashbrown::HashSet<VertexId>,
+    /// Pre-computed 1-D bounding intervals of projected segments.
+    seg_bounds: Vec<SegBounds>,
+    /// Edge Steiner vertices along the 3 face edges, sorted by parameter.
+    edge_steiners: [Vec<(Real, VertexId)>; 3],
+    /// Ordered list of boundary vertex IDs.
+    boundary_vids: Vec<VertexId>,
+    /// Mapping from VertexId to PSLG vertex identifier.
+    vid_to_pslg: HashMap<VertexId, PslgVertexId>,
+    /// Inverse mapping from PSLG vertex identifier index to VertexId.
+    pslg_to_vid: Vec<VertexId>,
+    /// Unique 2D coordinates of PSLG vertices.
+    unique_pts: Vec<[Real; 2]>,
+    /// Planar edge keys in the PSLG.
+    pslg_edges: Vec<(usize, usize)>,
+    /// Points collected along the interior of a segment.
+    on_edge: Vec<(Real, usize)>,
+}
+
+impl CorefinerScratch {
+    /// Creates a new, empty `CorefinerScratch` with default capacities.
+    pub(crate) fn new() -> Self {
+        Self {
+            dedup_snap_segments: Vec::new(),
+            seen_snap_segments: hashbrown::HashSet::new(),
+            seg_vids: Vec::new(),
+            interior_vids: Vec::new(),
+            interior_vid_set: hashbrown::HashSet::new(),
+            seg_bounds: Vec::new(),
+            edge_steiners: [Vec::new(), Vec::new(), Vec::new()],
+            boundary_vids: Vec::new(),
+            vid_to_pslg: HashMap::new(),
+            pslg_to_vid: Vec::new(),
+            unique_pts: Vec::new(),
+            pslg_edges: Vec::new(),
+            on_edge: Vec::new(),
+        }
+    }
+
+    /// Clears all buffers inside the scratchpad while retaining their allocated capacities.
+    fn clear(&mut self) {
+        self.dedup_snap_segments.clear();
+        self.seen_snap_segments.clear();
+        self.seg_vids.clear();
+        self.interior_vids.clear();
+        self.interior_vid_set.clear();
+        self.seg_bounds.clear();
+        for es in &mut self.edge_steiners {
+            es.clear();
+        }
+        self.boundary_vids.clear();
+        self.vid_to_pslg.clear();
+        self.pslg_to_vid.clear();
+        self.unique_pts.clear();
+        self.pslg_edges.clear();
+        self.on_edge.clear();
+    }
+}
+
 #[inline]
 fn point_bits3(p: &Point3r) -> PointBits3 {
     [p.x.to_bits(), p.y.to_bits(), p.z.to_bits()]
@@ -174,7 +257,8 @@ pub fn build_seam_vertex_map(
         "every face must have a snap-segment slot"
     );
 
-    let mut map: SeamVertexMap = HashMap::new();
+    let non_empty_count = snap_segments.iter().filter(|s| !s.is_empty()).count();
+    let mut map: SeamVertexMap = HashMap::with_capacity(non_empty_count * 2);
 
     for (fi, face) in faces.iter().enumerate() {
         let face_segs = &snap_segments[fi];
@@ -259,12 +343,15 @@ pub fn build_seam_vertex_map(
 /// from the global map rather than recomputed from raw snap-segment geometry.
 /// This guarantees that adjacent faces sharing an edge produce identical
 /// Steiner sequences → matching CDT triangulations → zero non-manifold edges.
-pub fn corefine_face(
+pub(crate) fn corefine_face(
     face: &FaceData,
     snap_segments: &[SnapSegment],
     pool: &mut VertexPool,
     seam_map: &SeamVertexMap,
+    scratch: &mut CorefinerScratch,
 ) -> Vec<FaceData> {
+    scratch.clear();
+
     let a = *pool.position(face.vertices[0]);
     let b = *pool.position(face.vertices[1]);
     let c = *pool.position(face.vertices[2]);
@@ -286,10 +373,9 @@ pub fn corefine_face(
     // sqrt(DEGENERATE_SEGMENT_REL_SQ) · max_edge are collapsed.
     let max_edge_sq = edge1_sq.max(edge2_sq).max((c - b).norm_squared());
     let seg_degen_sq = DEGENERATE_SEGMENT_REL_SQ * max_edge_sq;
-    let mut dedup_snap_segments: Vec<SnapSegment> = Vec::with_capacity(snap_segments.len());
-    // O(1) amortised membership test via HashSet instead of O(n) Vec::contains.
-    let mut seen_snap_segments: hashbrown::HashSet<(PointBits3, PointBits3)> =
-        hashbrown::HashSet::with_capacity(snap_segments.len());
+    let dedup_snap_segments = &mut scratch.dedup_snap_segments;
+    let seen_snap_segments = &mut scratch.seen_snap_segments;
+    seen_snap_segments.reserve(snap_segments.len());
     for seg in snap_segments {
         if (seg.end - seg.start).norm_squared() < seg_degen_sq {
             continue;
@@ -310,11 +396,10 @@ pub fn corefine_face(
     // the map (keyed by canonical edge pair) rather than recomputed from raw
     // snap-segment geometry.  This guarantees that adjacent faces sharing the
     // same edge receive the exact same Steiner VertexIds.
-    let mut edge_steiners: [Vec<(Real, VertexId)>; 3] = [
-        Vec::with_capacity(4),
-        Vec::with_capacity(4),
-        Vec::with_capacity(4),
-    ];
+    let edge_steiners = &mut scratch.edge_steiners;
+    for es in edge_steiners.iter_mut() {
+        es.reserve(4);
+    }
 
     let use_seam_map = !seam_map.is_empty();
 
@@ -338,12 +423,13 @@ pub fn corefine_face(
     }
 
     // seg_vids[i] = [vid_of_start, vid_of_end]; None if not on face boundary.
-    let mut seg_vids: Vec<[Option<VertexId>; 2]> = vec![[None, None]; dedup_snap_segments.len()];
+    let seg_vids = &mut scratch.seg_vids;
+    seg_vids.resize(dedup_snap_segments.len(), [None, None]);
     // Use a flat Vec for O(1) short-array dedup to preserve insertion order without allocation.
-    let mut interior_vids: Vec<VertexId> = Vec::new();
+    let interior_vids = &mut scratch.interior_vids;
     // O(1) membership test; the Vec preserves insertion order for PSLG registration.
-    let mut interior_vid_set: hashbrown::HashSet<VertexId> =
-        hashbrown::HashSet::with_capacity(dedup_snap_segments.len());
+    let interior_vid_set = &mut scratch.interior_vid_set;
+    interior_vid_set.reserve(dedup_snap_segments.len());
 
     for (si, seg) in dedup_snap_segments.iter().enumerate() {
         for (ep, &p3d) in [seg.start, seg.end].iter().enumerate() {
@@ -438,27 +524,19 @@ pub fn corefine_face(
     let n_sq = face_n.norm_squared();
 
     // Pre-compute 1-D bounding intervals for each segment on (axis_u, axis_v).
-    struct SegBounds {
-        u_min: f64,
-        u_max: f64,
-        v_min: f64,
-        v_max: f64,
+    let seg_bounds = &mut scratch.seg_bounds;
+    for seg in dedup_snap_segments.iter() {
+        let su = seg.start[axis_u];
+        let eu = seg.end[axis_u];
+        let sv = seg.start[axis_v];
+        let ev = seg.end[axis_v];
+        seg_bounds.push(SegBounds {
+            u_min: su.min(eu),
+            u_max: su.max(eu),
+            v_min: sv.min(ev),
+            v_max: sv.max(ev),
+        });
     }
-    let seg_bounds: Vec<SegBounds> = dedup_snap_segments
-        .iter()
-        .map(|seg| {
-            let su = seg.start[axis_u];
-            let eu = seg.end[axis_u];
-            let sv = seg.start[axis_v];
-            let ev = seg.end[axis_v];
-            SegBounds {
-                u_min: su.min(eu),
-                u_max: su.max(eu),
-                v_min: sv.min(ev),
-                v_max: sv.max(ev),
-            }
-        })
-        .collect();
 
     for i in 0..dedup_snap_segments.len() {
         for j in (i + 1)..dedup_snap_segments.len() {
@@ -503,7 +581,7 @@ pub fn corefine_face(
 
     // ── Dedup edge steiners before length checks ───────────────────────────────
     // Deferring deduplication avoids O(N^2) linear scan overhead on highly refined edges.
-    for es in &mut edge_steiners {
+    for es in edge_steiners.iter_mut() {
         es.sort_by(|a, b| a.0.total_cmp(&b.0));
         es.dedup_by_key(|&mut (_, vid)| vid);
     }
@@ -533,14 +611,15 @@ pub fn corefine_face(
                 MAX_STEINER_PER_FACE,
                 "corefine_face: Steiner count exceeds limit — falling back to midpoint subdivision"
             );
-            return midpoint_subdivide(face, &edge_steiners, pool, face_n);
+            return midpoint_subdivide(face, edge_steiners, pool, face_n);
         }
     }
 
     // ── Step 4: Build ordered boundary polygon ────────────────────────────────
     // Compute exact capacity: 3 corners + sum of Steiners per edge.
     let steiner_count: usize = edge_steiners.iter().map(|e| e.len()).sum();
-    let mut boundary_vids: Vec<VertexId> = Vec::with_capacity(3 + steiner_count);
+    let boundary_vids = &mut scratch.boundary_vids;
+    boundary_vids.reserve(3 + steiner_count);
     for ei in 0..3_usize {
         boundary_vids.push(face.vertices[ei]);
         for &(_, vid) in &edge_steiners[ei] {
@@ -575,7 +654,7 @@ pub fn corefine_face(
             // Sliver: produce sub-triangles by splitting each Steiner-containing
             // edge and fan-stitching. This guarantees Steiner points appear as
             // vertices on the shared boundary even when CDT would degenerate.
-            return midpoint_subdivide(face, &edge_steiners, pool, face_n);
+            return midpoint_subdivide(face, edge_steiners, pool, face_n);
         }
     }
 
@@ -596,8 +675,10 @@ pub fn corefine_face(
     // The previous linear-scan `iter().find()` was O(n) per lookup, making
     // PSLG registration O(n²) in the number of Steiner vertices per face.
     let register_cap = boundary_vids.len() + interior_vids.len();
-    let mut vid_to_pslg: HashMap<VertexId, PslgVertexId> = HashMap::with_capacity(register_cap);
-    let mut pslg_to_vid: Vec<VertexId> = Vec::with_capacity(register_cap);
+    let vid_to_pslg = &mut scratch.vid_to_pslg;
+    vid_to_pslg.reserve(register_cap);
+    let pslg_to_vid = &mut scratch.pslg_to_vid;
+    pslg_to_vid.reserve(register_cap);
     let mut pslg = Pslg::new();
 
     // Helper: register a VertexId into the PSLG if not already there.
@@ -620,20 +701,25 @@ pub fn corefine_face(
     };
 
     // Register boundary vertices in order.
-    for &vid in &boundary_vids {
-        register(vid, &mut pslg, &mut vid_to_pslg, &mut pslg_to_vid, pool);
+    for &vid in &*boundary_vids {
+        register(vid, &mut pslg, vid_to_pslg, pslg_to_vid, pool);
     }
     // Register interior Steiner vertices.
-    for &vid in &interior_vids {
-        register(vid, &mut pslg, &mut vid_to_pslg, &mut pslg_to_vid, pool);
+    for &vid in &*interior_vids {
+        register(vid, &mut pslg, vid_to_pslg, pslg_to_vid, pool);
     }
 
     // Extract unique 2D points from PSLG for segment shattering.
-    let unique_pts: Vec<[Real; 2]> = pslg.vertices().iter().map(|v| [v.x, v.y]).collect();
-    let mut pslg_edges = Vec::new();
+    let unique_pts = &mut scratch.unique_pts;
+    unique_pts.reserve(pslg.vertices().len());
+    for v in pslg.vertices() {
+        unique_pts.push([v.x, v.y]);
+    }
+    let pslg_edges = &mut scratch.pslg_edges;
 
     // Boundary polygon segments (ring).
     let nb = boundary_vids.len();
+    let on_edge = &mut scratch.on_edge;
     for i in 0..nb {
         let va = boundary_vids[i];
         let vb = boundary_vids[(i + 1) % nb];
@@ -642,24 +728,23 @@ pub fn corefine_face(
         if pa != pb {
             let p1 = unique_pts[pa.idx()];
             let p2 = unique_pts[pb.idx()];
-            let mut on_edge =
-                crate::application::csg::arrangement::planar::collect_points_on_segment_interior(
-                    &unique_pts,
-                    p1,
-                    p2,
-                    (pa.idx(), pb.idx()),
-                    1e-8,
-                    1e-14,
-                );
+            crate::application::csg::arrangement::planar::collect_points_on_segment_interior_to_buf(
+                unique_pts,
+                p1,
+                p2,
+                (pa.idx(), pb.idx()),
+                1e-8,
+                1e-14,
+                on_edge,
+            );
             crate::application::csg::arrangement::planar::insert_shattered_subedges(
-                &mut on_edge,
-                &mut pslg_edges,
+                on_edge, pslg_edges,
             );
         }
     }
 
     // Constraint segments from snap-segment endpoints.
-    for vids in &seg_vids {
+    for vids in &*seg_vids {
         if let (Some(v0), Some(v1)) = (vids[0], vids[1]) {
             let p0_opt = vid_to_pslg.get(&v0).copied();
             let p1_opt = vid_to_pslg.get(&v1).copied();
@@ -667,12 +752,11 @@ pub fn corefine_face(
                 if p0 != p1 {
                     let pa = unique_pts[p0.idx()];
                     let pb = unique_pts[p1.idx()];
-                    let mut on_edge = crate::application::csg::arrangement::planar::collect_points_on_segment_interior(
-                        &unique_pts, pa, pb, (p0.idx(), p1.idx()), 1e-8, 1e-14
+                    crate::application::csg::arrangement::planar::collect_points_on_segment_interior_to_buf(
+                        unique_pts, pa, pb, (p0.idx(), p1.idx()), 1e-8, 1e-14, on_edge
                     );
                     crate::application::csg::arrangement::planar::insert_shattered_subedges(
-                        &mut on_edge,
-                        &mut pslg_edges,
+                        on_edge, pslg_edges,
                     );
                 }
             }
@@ -681,7 +765,7 @@ pub fn corefine_face(
 
     pslg_edges.sort_unstable();
     pslg_edges.dedup();
-    for (a, b) in pslg_edges {
+    for &(a, b) in &*pslg_edges {
         let _ = pslg.add_segment(PslgVertexId::from_usize(a), PslgVertexId::from_usize(b));
     }
 
@@ -1031,7 +1115,14 @@ mod tests {
 
         // Must not panic; Steiner guard triggers midpoint fallback before CDT receives
         // a pathological O(s²) input.
-        let result = corefine_face(&face, &segments, &mut pool, &SeamVertexMap::new());
+        let mut scratch = CorefinerScratch::new();
+        let result = corefine_face(
+            &face,
+            &segments,
+            &mut pool,
+            &SeamVertexMap::new(),
+            &mut scratch,
+        );
         assert!(
             !result.is_empty(),
             "midpoint fallback must produce at least one triangle"
