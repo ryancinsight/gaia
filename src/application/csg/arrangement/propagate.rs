@@ -114,9 +114,9 @@ pub fn propagate_seam_vertices(
         return;
     }
 
-    // Build undirected edge → face-index adjacency.
     type EdgeKey = (VertexId, VertexId);
-    let mut edge_to_faces: HashMap<EdgeKey, Vec<usize>> = HashMap::new();
+    let mut edge_to_faces: HashMap<EdgeKey, AdjacentFaces> =
+        HashMap::with_capacity(faces.len() * 3 / 2);
     for (fi, face) in faces.iter().enumerate() {
         let v = face.vertices;
         for i in 0..3_usize {
@@ -127,7 +127,85 @@ pub fn propagate_seam_vertices(
         }
     }
 
+    propagate_seam_vertices_impl(faces, segs, pool, &edge_to_faces);
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct AdjacentFaces {
+    count: u8,
+    inline: [usize; 2],
+    heap: Option<Vec<usize>>,
+}
+
+impl AdjacentFaces {
+    pub(crate) fn push(&mut self, face_idx: usize) {
+        if self.count < 2 {
+            self.inline[self.count as usize] = face_idx;
+            self.count += 1;
+        } else {
+            let mut v = self.heap.take().unwrap_or_default();
+            v.push(face_idx);
+            self.heap = Some(v);
+            self.count += 1;
+        }
+    }
+
+    pub(crate) fn iter(&self) -> AdjacentFacesIter<'_> {
+        AdjacentFacesIter {
+            adj: self,
+            index: 0,
+        }
+    }
+}
+
+pub(crate) struct AdjacentFacesIter<'a> {
+    adj: &'a AdjacentFaces,
+    index: u8,
+}
+
+impl<'a> Iterator for AdjacentFacesIter<'a> {
+    type Item = &'a usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < 2 && self.index < self.adj.count {
+            let item = &self.adj.inline[self.index as usize];
+            self.index += 1;
+            Some(item)
+        } else if self.index < self.adj.count {
+            let heap_idx = (self.index - 2) as usize;
+            let heap_vec = self.adj.heap.as_ref().unwrap();
+            let item = &heap_vec[heap_idx];
+            self.index += 1;
+            Some(item)
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a AdjacentFaces {
+    type Item = &'a usize;
+    type IntoIter = AdjacentFacesIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+fn propagate_seam_vertices_impl(
+    faces: &[FaceData],
+    segs: &mut [Vec<SnapSegment>],
+    pool: &VertexPool,
+    edge_to_faces: &HashMap<
+        (
+            crate::domain::core::index::VertexId,
+            crate::domain::core::index::VertexId,
+        ),
+        AdjacentFaces,
+    >,
+) {
     let mut injections: Vec<(usize, SnapSegment)> = Vec::new();
+    let mut t_params: Vec<Real> = Vec::new();
 
     for (fi, snap_segs) in segs.iter().enumerate() {
         if snap_segs.is_empty() || fi >= faces.len() {
@@ -140,12 +218,6 @@ pub fn propagate_seam_vertices(
         let p2 = *pool.position(v[2]);
         let face_n = (p1 - p0).cross(&(p2 - p0));
 
-        // For each face edge, collect all positions where snap segments touch or cross it.
-        // These include:
-        //   (A) snap-segment endpoints that lie on the edge
-        //   (B) crossing points where a snap segment crosses the edge interior
-        // Both types create Steiner vertices in the CDT that must be propagated
-        // to the adjacent face sharing that edge.
         for i in 0..3_usize {
             let va_id = v[i];
             let vb_id = v[(i + 1) % 3];
@@ -171,12 +243,10 @@ pub fn propagate_seam_vertices(
                 continue;
             }
 
-            // Collect t-parameters (on edge [pa,pb], t ∈ (0,1)) for all contacts.
-            let mut t_params: Vec<Real> = Vec::new();
+            t_params.clear();
             const MARGIN: Real = 1e-7;
 
             for seg in snap_segs {
-                // (A) Endpoint on edge.
                 for &p in &[seg.start, seg.end] {
                     if let Some(t_exact) = point_on_segment_exact(&pa, &pb, &p) {
                         if t_exact > MARGIN && t_exact < 1.0 - MARGIN {
@@ -185,12 +255,10 @@ pub fn propagate_seam_vertices(
                         continue;
                     }
 
-                    // Fallback: tolerance-based on-edge check for residual drift.
-                    // True angular check: sin²(θ) = |cross|² / (|edge|² · |sp|²)
                     let sp: nalgebra::Vector3<f64> = p - pa;
                     let sp_len_sq = sp.norm_squared();
                     if sp_len_sq < 1e-30 {
-                        continue; // P ≈ Va, skip (not strictly interior)
+                        continue;
                     }
                     let cross_v = edge_vec.cross(&sp);
                     if cross_v.norm_squared() <= COLLINEAR_TOL_SQ * edge_len_sq * sp_len_sq {
@@ -201,9 +269,6 @@ pub fn propagate_seam_vertices(
                     }
                 }
 
-                // (B) Segment-edge crossing in 3-D.
-                // Solve pa + t*(pb-pa) = seg.start + s*(seg.end-seg.start):
-                // Use the two axis-equations with the largest determinant.
                 let sv = seg.end - seg.start;
                 let r_vec = seg.start - pa;
                 let pairs: [(usize, usize); 3] = [(0, 1), (0, 2), (1, 2)];
@@ -217,7 +282,7 @@ pub fn propagate_seam_vertices(
                     let s1 = sv[ay];
                     let r0 = r_vec[ax];
                     let r1 = r_vec[ay];
-                    let det = e0 * (-s1) - e1 * (-s0); // det([e,-sv])
+                    let det = e0 * (-s1) - e1 * (-s0);
                     if det.abs() > best_det_abs {
                         best_det_abs = det.abs();
                         best_t = (r0 * (-s1) - r1 * (-s0)) / det;
@@ -234,13 +299,9 @@ pub fn propagate_seam_vertices(
                 if best_s <= MARGIN || best_s >= 1.0 - MARGIN {
                     continue;
                 }
-                // Verify that the crossing is consistent (lines actually meet).
                 let x_edge = pa + edge_vec * best_t;
                 let x_seg = seg.start + sv * best_s;
-                // Widened from 1e-8 to 1e-6 to match WELD_TOL_SQ in corefine.rs.
                 if nalgebra::distance_squared(&x_edge, &x_seg) > 1e-6 * edge_len_sq {
-                    // Shadow evaluation only: keep exact projected predicate hot
-                    // without changing current seam behavior.
                     let _ = proper_segment_intersection_params_projected_exact(
                         &pa, &pb, &seg.start, &seg.end, &face_n,
                     );
@@ -253,11 +314,9 @@ pub fn propagate_seam_vertices(
                 continue;
             }
 
-            // Deduplicate and sort t-parameters.
             t_params.sort_by(|a, b| a.total_cmp(b));
             t_params.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
 
-            // Build sub-interval snap segments and inject into adjacent faces.
             let pts: Vec<Point3r> = std::iter::once(pa)
                 .chain(t_params.iter().map(|&t| pa + edge_vec * t))
                 .chain(std::iter::once(pb))
@@ -285,8 +344,6 @@ pub fn propagate_seam_vertices(
 
     for (fi, seg) in injections {
         if fi < segs.len() {
-            // Dedup: skip segments whose endpoints match an existing segment
-            // (bitwise on f64 bits to avoid tolerance ambiguity).
             let sb = (
                 seg.start.x.to_bits(),
                 seg.start.y.to_bits(),
@@ -341,10 +398,29 @@ pub(crate) fn propagate_seam_vertices_until_stable(
     pool: &VertexPool,
 ) {
     const MAX_PROPAGATION_PASSES: usize = 8;
+    use crate::domain::core::index::VertexId;
+
+    if segs.is_empty() {
+        return;
+    }
+
+    // Build undirected edge → face-index adjacency ONCE.
+    type EdgeKey = (VertexId, VertexId);
+    let mut edge_to_faces: HashMap<EdgeKey, AdjacentFaces> =
+        HashMap::with_capacity(faces.len() * 3 / 2);
+    for (fi, face) in faces.iter().enumerate() {
+        let v = face.vertices;
+        for i in 0..3_usize {
+            let va = v[i];
+            let vb = v[(i + 1) % 3];
+            let key = if va < vb { (va, vb) } else { (vb, va) };
+            edge_to_faces.entry(key).or_default().push(fi);
+        }
+    }
 
     for _ in 0..MAX_PROPAGATION_PASSES {
         let before: usize = segs.iter().map(Vec::len).sum();
-        propagate_seam_vertices(faces, segs, pool);
+        propagate_seam_vertices_impl(faces, segs, pool, &edge_to_faces);
         let after: usize = segs.iter().map(Vec::len).sum();
         if after == before {
             break;
