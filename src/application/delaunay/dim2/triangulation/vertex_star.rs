@@ -287,8 +287,8 @@ impl DelaunayTriangulation {
     /// the previous $O(T)$.  For typical CFD meshes $h \ll T$.
     #[must_use]
     pub fn convex_hull_vertices(&self) -> Vec<PslgVertexId> {
-        let mut seen = hashbrown::HashSet::new();
-        let mut hull = Vec::new();
+        let mut seen = hashbrown::HashSet::with_capacity(32);
+        let mut hull = Vec::with_capacity(32);
         // Walk the star of each super-vertex — these are exactly the
         // triangles that share an edge with the convex hull.
         for &sv in &self.super_verts {

@@ -23,14 +23,16 @@ impl P2MeshConverter {
     /// Each edge of every triangle gets a new mid-point node.
     /// Each original triangle is replaced by 4 sub-triangles.
     pub fn convert_to_p2<T: Scalar>(mesh: &IndexedMesh<T>) -> IndexedMesh<T> {
-        let mut out = mesh.clone();
+        let est_new_vertices = mesh.faces.len() * 3 / 2;
+        let mut out = mesh.empty_clone_with_capacity(
+            mesh.vertex_count() + est_new_vertices,
+            mesh.faces.len() * 4,
+        );
+        out.vertices = mesh.vertices.clone();
 
         // Insert midpoint nodes for every unique edge.
-        let mut edge_mid: HashMap<(VertexId, VertexId), VertexId> = HashMap::new();
-
-        // Replace all faces with the subdivided set.
-        out.faces.clear();
-        out.boundary_labels.clear();
+        let mut edge_mid: HashMap<(VertexId, VertexId), VertexId> =
+            HashMap::with_capacity(est_new_vertices);
 
         for (f_id, face) in mesh.faces.iter_enumerated() {
             let [v0, v1, v2] = face.vertices;

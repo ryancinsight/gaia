@@ -265,6 +265,18 @@ impl<T: Scalar> VertexPool<T> {
         }
     }
 
+    /// Create an empty clone with the exact same cell_size and tolerance_sq
+    /// settings, reserving capacity in both vertices and spatial hash.
+    #[must_use]
+    pub fn empty_clone_with_capacity(&self, capacity: usize) -> Self {
+        Self {
+            vertices: Vec::with_capacity(capacity),
+            spatial_hash: HashMap::with_capacity(capacity),
+            inv_cell_size: self.inv_cell_size,
+            tolerance_sq: self.tolerance_sq,
+        }
+    }
+
     /// Number of unique vertices.
     #[must_use]
     #[inline]

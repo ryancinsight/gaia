@@ -429,7 +429,7 @@ impl<T: Scalar> SdfMesher<T> {
         // BCC snapping creates geometrically exact but topologically anisotropic (jagged) surface bounds.
         // A bounded Laplacian relaxation specifically operating on the mesh boundary vertices perfectly
         // homogenizes triangle aspect ratios, ensuring CFD smoothness and isotropic wall shear elements.
-        let mut b_vertices = HashSet::new();
+        let mut b_vertices = HashSet::with_capacity(b_faces.len() * 3);
         let mut b_adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(b_faces.len() * 3);
 
         for fid in &b_faces {
@@ -451,9 +451,10 @@ impl<T: Scalar> SdfMesher<T> {
             neighbors.dedup();
         }
 
+        let mut next_pos = Vec::with_capacity(b_vertices.len());
         let relax_iters = 10;
         for _ in 0..relax_iters {
-            let mut next_pos = Vec::with_capacity(b_vertices.len());
+            next_pos.clear();
             for &vid in &b_vertices {
                 let neighbors = &b_adj[&vid];
                 let mut sum = Vector3::zeros();
@@ -479,7 +480,7 @@ impl<T: Scalar> SdfMesher<T> {
                 next_pos.push((vid, p));
             }
 
-            for (vid, p) in next_pos {
+            for &(vid, p) in &next_pos {
                 mesh.vertices.set_position(vid, p);
             }
         }

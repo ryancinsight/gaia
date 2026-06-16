@@ -34,14 +34,16 @@ pub struct HexToTetConverter;
 impl HexToTetConverter {
     /// Decompose all hexahedral cells in a mesh into tetrahedra
     pub fn convert<T: Scalar>(mesh: &IndexedMesh<T>) -> IndexedMesh<T> {
-        let mut new_mesh = IndexedMesh::new();
+        let mut new_mesh =
+            mesh.empty_clone_with_capacity(mesh.vertex_count(), mesh.faces.len() * 3);
+        new_mesh.cells.reserve(mesh.cells.len() * 6);
 
         // 1. Copy all vertices exactly (retaining their IDs)
         new_mesh.vertices = mesh.vertices.clone();
 
         // 2. Identify boundary faces and map them
         // Key: canonical triangle vertex triplet, Value: new FaceId
-        let mut face_map: HashMap<TriKey, FaceId> = HashMap::new();
+        let mut face_map: HashMap<TriKey, FaceId> = HashMap::with_capacity(mesh.faces.len() * 3);
 
         // 3. Process cells
         for c in &mesh.cells {
@@ -307,7 +309,7 @@ impl HexToTetConverter {
             return None;
         }
 
-        let mut adjacency: HashMap<VertexId, Vec<VertexId>> = HashMap::new();
+        let mut adjacency: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(8);
         for &f_idx_raw in &cell.faces {
             let f_idx = FaceId::from_usize(f_idx_raw);
             let face = mesh.faces.get(f_idx);

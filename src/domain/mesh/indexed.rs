@@ -149,6 +149,20 @@ impl<T: Scalar> IndexedMesh<T> {
         }
     }
 
+    /// Create an empty clone of this mesh with reserved capacities for vertices,
+    /// faces, and boundary labels.
+    #[must_use]
+    pub fn empty_clone_with_capacity(&self, vertex_capacity: usize, face_capacity: usize) -> Self {
+        Self {
+            vertices: self.vertices.empty_clone_with_capacity(vertex_capacity),
+            faces: FaceStore::with_capacity(face_capacity),
+            edges: None,
+            attributes: AttributeStore::new(),
+            cells: Vec::new(),
+            boundary_labels: HashMap::with_capacity(face_capacity),
+        }
+    }
+
     // ── Vertex operations ─────────────────────────────────────────────────
 
     /// Insert a vertex (deduplicated via spatial hash); returns its ID.
