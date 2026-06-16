@@ -642,7 +642,7 @@ pub fn corefine_face(
         if pa != pb {
             let p1 = unique_pts[pa.idx()];
             let p2 = unique_pts[pb.idx()];
-            let on_edge =
+            let mut on_edge =
                 crate::application::csg::arrangement::planar::collect_points_on_segment_interior(
                     &unique_pts,
                     p1,
@@ -652,7 +652,7 @@ pub fn corefine_face(
                     1e-14,
                 );
             crate::application::csg::arrangement::planar::insert_shattered_subedges(
-                on_edge,
+                &mut on_edge,
                 &mut pslg_edges,
             );
         }
@@ -667,11 +667,11 @@ pub fn corefine_face(
                 if p0 != p1 {
                     let pa = unique_pts[p0.idx()];
                     let pb = unique_pts[p1.idx()];
-                    let on_edge = crate::application::csg::arrangement::planar::collect_points_on_segment_interior(
+                    let mut on_edge = crate::application::csg::arrangement::planar::collect_points_on_segment_interior(
                         &unique_pts, pa, pb, (p0.idx(), p1.idx()), 1e-8, 1e-14
                     );
                     crate::application::csg::arrangement::planar::insert_shattered_subedges(
-                        on_edge,
+                        &mut on_edge,
                         &mut pslg_edges,
                     );
                 }

@@ -517,7 +517,7 @@ pub fn inject_cap_seam_into_barrels(
         pb: Point3r,
     }
 
-    let mut rim_faces: Vec<RimFace> = Vec::new();
+    let mut rim_faces: Vec<RimFace> = Vec::with_capacity(barrel_faces.len() / 4);
     for (face_idx, face) in barrel_faces.iter().enumerate() {
         if coplanar_used.contains(&face_idx) {
             continue;
@@ -574,6 +574,10 @@ pub fn inject_cap_seam_into_barrels(
     }
 
     // ── Phase 3: Query & inject ───────────────────────────────────────────────
+    let mut candidates: Vec<usize> = Vec::new();
+    let mut cut_params: Vec<Real> = Vec::new();
+    let mut params: Vec<Real> = Vec::new();
+
     for rim in &rim_faces {
         let RimFace { face_idx, pa, pb } = *rim;
         let edge = pb - pa;
@@ -581,7 +585,7 @@ pub fn inject_cap_seam_into_barrels(
 
         // 5 sample points at t ∈ {0, ¼, ½, ¾, 1} along the rim edge.
         // Deduplication via sort+dedup on the candidate index list.
-        let mut candidates: Vec<usize> = Vec::new();
+        candidates.clear();
         for k in 0..=4_u8 {
             let t = Real::from(k) * 0.25;
             let sample = pa + edge * t;
@@ -600,8 +604,8 @@ pub fn inject_cap_seam_into_barrels(
         candidates.dedup();
 
         // Collinearity test for each candidate seam position.
-        let mut cut_params: Vec<Real> = Vec::new();
-        for i in candidates {
+        cut_params.clear();
+        for &i in &candidates {
             let s = &seam_positions[i];
 
             // Guard: s must lie on the cap plane.
@@ -642,7 +646,7 @@ pub fn inject_cap_seam_into_barrels(
         cut_params.sort_by(|a, b| a.total_cmp(b));
         cut_params.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
 
-        let mut params: Vec<Real> = Vec::with_capacity(cut_params.len() + 2);
+        params.clear();
         params.push(0.0);
         params.extend_from_slice(&cut_params);
         params.push(1.0);

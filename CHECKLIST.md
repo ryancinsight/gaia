@@ -179,3 +179,9 @@
     - [x] Pre-size `boundary_pairs` and `adj` map in boundary loop sealing (`seal.rs`).
     - [x] Pre-allocate `port_mesh` and `vmap` capacities in shell pipeline (`shell_mesh.rs`).
     - [x] Verify focused pipeline/repair tests, format, clippy, nextest, and CSG benchmark gates.
+
+- [x] **Phase 26: Seam Injection & Coplanar DSU Allocation Optimization (Sprint 23)**
+    - [x] Hoist `candidates`, `cut_params`, and `params` in `inject_cap_seam_into_barrels` (`propagate.rs`).
+    - [x] Pre-size coplanar index and group sets/maps in `coplanar_groups.rs`.
+    - [x] Pre-allocate `PlanarPointGridIndex` bins and reuse output vectors in `planar.rs` and `cdt.rs`.
+    - [x] Verify focused pipeline/repair tests, format, clippy, nextest, and CSG benchmark gates.

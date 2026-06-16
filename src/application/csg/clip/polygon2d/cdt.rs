@@ -293,6 +293,7 @@ fn add_shattered_edges(
 ) {
     let n = poly.len();
     let mut candidates: Vec<usize> = Vec::new();
+    let mut on_edge: Vec<(Real, usize)> = Vec::new();
     for i in 0..n {
         let j = (i + 1) % n;
         let ri = indices[i];
@@ -300,7 +301,7 @@ fn add_shattered_edges(
         if ri == rj {
             continue;
         }
-        let on_edge = collect_points_on_segment_interior_indexed(
+        collect_points_on_segment_interior_indexed(
             unique,
             point_index,
             poly[i],
@@ -309,8 +310,9 @@ fn add_shattered_edges(
             1e-8,
             1e-12,
             &mut candidates,
+            &mut on_edge,
         );
-        insert_shattered_subedges(on_edge, pslg_edges);
+        insert_shattered_subedges(&mut on_edge, pslg_edges);
     }
 }
 

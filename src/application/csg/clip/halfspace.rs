@@ -235,7 +235,7 @@ pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {
         if va != vb {
             let p_a = unique_pts[va];
             let p_b = unique_pts[vb];
-            let on_edge =
+            let mut on_edge =
                 crate::application::csg::arrangement::planar::collect_points_on_segment_interior(
                     &unique_pts,
                     p_a,
@@ -245,7 +245,7 @@ pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {
                     1e-14,
                 );
             crate::application::csg::arrangement::planar::insert_shattered_subedges(
-                on_edge,
+                &mut on_edge,
                 &mut pslg_edges,
             );
         }

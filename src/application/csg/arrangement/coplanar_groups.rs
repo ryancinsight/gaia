@@ -81,9 +81,9 @@ pub(crate) fn build_coplanar_group_index(
         dsu.union(a, num_faces_a + b);
     }
 
-    let mut root_to_group: HashMap<usize, usize> = HashMap::new();
-    let mut plane_a: HashMap<usize, Vec<usize>> = HashMap::new();
-    let mut plane_b: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut root_to_group: HashMap<usize, usize> = HashMap::with_capacity(pairs.len());
+    let mut plane_a: HashMap<usize, Vec<usize>> = HashMap::with_capacity(pairs.len());
+    let mut plane_b: HashMap<usize, Vec<usize>> = HashMap::with_capacity(pairs.len());
 
     for &(a, b) in &pairs {
         let root = dsu.find(a);
@@ -132,9 +132,10 @@ pub(crate) fn process_coplanar_groups(
     segs_a: &mut [Vec<SnapSegment>],
     segs_b: &mut [Vec<SnapSegment>],
 ) -> CoplanarPhaseResult {
-    let mut coplanar_a_used: HashSet<usize> = HashSet::new();
-    let mut coplanar_b_used: HashSet<usize> = HashSet::new();
-    let mut coplanar_results: HashMap<usize, Vec<FaceData>> = HashMap::new();
+    let mut coplanar_a_used: HashSet<usize> = HashSet::with_capacity(group_index.plane_a.len());
+    let mut coplanar_b_used: HashSet<usize> = HashSet::with_capacity(group_index.plane_b.len());
+    let mut coplanar_results: HashMap<usize, Vec<FaceData>> =
+        HashMap::with_capacity(group_index.plane_a.len());
 
     for (key, a_idxs) in &group_index.plane_a {
         let Some(b_idxs) = group_index.plane_b.get(key) else {

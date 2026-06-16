@@ -28,7 +28,7 @@ impl PlanarPointGridIndex {
     pub(crate) fn new(points: &[[Real; 2]], cell: Real) -> Self {
         let safe_cell = cell.max(1e-12);
         let inv_cell = 1.0 / safe_cell;
-        let mut bins: HashMap<(i64, i64), Vec<usize>> = HashMap::new();
+        let mut bins: HashMap<(i64, i64), Vec<usize>> = HashMap::with_capacity(points.len());
         for (slot, &p) in points.iter().enumerate() {
             let key = (
                 (p[0] * inv_cell).floor() as i64,
@@ -292,15 +292,18 @@ pub(crate) fn collect_points_on_segment_interior_indexed(
     t_eps: Real,
     dist_sq_tol: Real,
     candidate_slots: &mut Vec<usize>,
-) -> Vec<(Real, usize)> {
+    out: &mut Vec<(Real, usize)>,
+) {
     let (ri, rj) = endpoint_slots;
     let dx = p2[0] - p1[0];
     let dy = p2[1] - p1[1];
     let l2 = dx * dx + dy * dy;
 
-    let mut out = vec![(0.0, ri), (1.0, rj)];
+    out.clear();
+    out.push((0.0, ri));
+    out.push((1.0, rj));
     if l2 < 1e-24 {
-        return out;
+        return;
     }
 
     let tol = dist_sq_tol.sqrt();
@@ -325,14 +328,12 @@ pub(crate) fn collect_points_on_segment_interior_indexed(
             out.push((t, slot));
         }
     }
-
-    out
 }
 
 /// Sort a `(t, slot)` point list, deduplicate slots, and emit shattered
 /// consecutive sub-edges into `edges`.
 pub(crate) fn insert_shattered_subedges(
-    mut on_seg: Vec<(Real, usize)>,
+    on_seg: &mut Vec<(Real, usize)>,
     edges: &mut Vec<PlanarEdgeKey>,
 ) {
     on_seg.sort_by(|a, b| a.0.total_cmp(&b.0));
@@ -386,7 +387,8 @@ mod tests {
         ];
         let index = PlanarPointGridIndex::new(&pts, 0.1);
         let mut candidates = Vec::new();
-        let got = collect_points_on_segment_interior_indexed(
+        let mut got = Vec::new();
+        collect_points_on_segment_interior_indexed(
             &pts,
             &index,
             pts[0],
@@ -395,6 +397,7 @@ mod tests {
             1e-8,
             1e-12,
             &mut candidates,
+            &mut got,
         );
         let slots: HashSet<usize> = got.into_iter().map(|(_, slot)| slot).collect();
         assert!(slots.contains(&0));
@@ -469,7 +472,8 @@ mod tests {
 
             let index = PlanarPointGridIndex::new(&unique_pts, dist_sq_tol.sqrt());
             let mut candidates = Vec::new();
-            let fast = collect_points_on_segment_interior_indexed(
+            let mut fast = Vec::new();
+            collect_points_on_segment_interior_indexed(
                 &unique_pts,
                 &index,
                 p1,
@@ -478,6 +482,7 @@ mod tests {
                 t_eps,
                 dist_sq_tol,
                 &mut candidates,
+                &mut fast,
             );
 
             let brute_slots: HashSet<usize> = brute.into_iter().map(|(_, slot)| slot).collect();
