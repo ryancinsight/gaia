@@ -538,7 +538,7 @@ fn reassign_regions_from_labels(mesh: &mut IndexedMesh) {
         .boundary_labels
         .iter()
         .map(|(&fid, label)| {
-            let region = match label.as_str() {
+            let region = match label.as_ref() {
                 "inlet" => RegionId::new(REGION_INLET),
                 "outlet" => RegionId::new(REGION_OUTLET),
                 _ => RegionId::new(REGION_WALL),

@@ -246,13 +246,10 @@ pub fn write_openfoam_polymesh(
         // No cursor advance needed; this is the last bucket.
     }
 
-    // Flatten sorted face list
-    let sorted_faces: Vec<[u32; 3]> = buckets.iter().flatten().copied().collect();
-
     // ── Write all five polyMesh files ─────────────────────────────────────
-    write_points_file(dir, mesh.vertices.positions().copied())?;
-    write_faces_file(dir, &sorted_faces)?;
-    write_owner_file(dir, sorted_faces.len())?;
+    write_points_file(dir, mesh.vertices.positions().copied(), mesh.vertex_count())?;
+    write_faces_file(dir, &buckets, mesh.face_count())?;
+    write_owner_file(dir, mesh.face_count())?;
     write_neighbour_file(dir)?;
     write_boundary_file(dir, &specs)?;
 
@@ -264,15 +261,15 @@ pub fn write_openfoam_polymesh(
 fn write_points_file(
     dir: &Path,
     positions: impl Iterator<Item = nalgebra::Point3<crate::domain::core::scalar::Real>>,
+    n_points: usize,
 ) -> MeshResult<()> {
     let path = dir.join("points");
     let mut file = std::io::BufWriter::new(std::fs::File::create(&path).map_err(MeshError::Io)?);
     write_foam_header(&mut file, "vectorField", "constant/polyMesh", "points")
         .map_err(MeshError::Io)?;
-    let pts: Vec<_> = positions.collect();
-    writeln!(file, "{}", pts.len()).map_err(MeshError::Io)?;
+    writeln!(file, "{n_points}").map_err(MeshError::Io)?;
     writeln!(file, "(").map_err(MeshError::Io)?;
-    for p in &pts {
+    for p in positions {
         writeln!(file, "    ({:.15e} {:.15e} {:.15e})", p.x, p.y, p.z).map_err(MeshError::Io)?;
     }
     writeln!(file, ")").map_err(MeshError::Io)?;
@@ -284,15 +281,17 @@ fn write_points_file(
     Ok(())
 }
 
-fn write_faces_file(dir: &Path, faces: &[[u32; 3]]) -> MeshResult<()> {
+fn write_faces_file(dir: &Path, buckets: &[Vec<[u32; 3]>], n_faces: usize) -> MeshResult<()> {
     let path = dir.join("faces");
     let mut file = std::io::BufWriter::new(std::fs::File::create(&path).map_err(MeshError::Io)?);
     write_foam_header(&mut file, "faceList", "constant/polyMesh", "faces")
         .map_err(MeshError::Io)?;
-    writeln!(file, "{}", faces.len()).map_err(MeshError::Io)?;
+    writeln!(file, "{n_faces}").map_err(MeshError::Io)?;
     writeln!(file, "(").map_err(MeshError::Io)?;
-    for [v0, v1, v2] in faces {
-        writeln!(file, "    3({v0} {v1} {v2})").map_err(MeshError::Io)?;
+    for bucket in buckets {
+        for [v0, v1, v2] in bucket {
+            writeln!(file, "    3({v0} {v1} {v2})").map_err(MeshError::Io)?;
+        }
     }
     writeln!(file, ")").map_err(MeshError::Io)?;
     writeln!(

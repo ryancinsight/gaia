@@ -159,3 +159,11 @@
     - [x] Migrated `boundary_labels` from `HashMap<FaceId, String>` to `HashMap<FaceId, std::borrow::Cow<'static, str>>` to avoid redundant string allocations.
     - [x] Verify format, clippy, nextest, doctests, and CSG benchmark gates.
 
+- [x] **Phase 23: OpenFOAM Streaming Export Cleanup (Sprint 20)**
+    - [x] Review clean-tree diff state before continuing I/O allocation cleanup.
+    - [x] Stream OpenFOAM point output directly from `VertexPool::positions()` using `mesh.vertex_count()` instead of collecting a temporary point vector.
+    - [x] Stream OpenFOAM face output directly from pre-counted patch buckets instead of flattening into a second sorted-face vector.
+    - [x] Fix `schematic_to_openfoam` after the `Cow<'static, str>` boundary-label migration by using stable `as_ref()` matching instead of unstable `Cow::as_str()`.
+    - [x] Keep Gaia `Cargo.lock` pinned to the currently committed `leto` version; local Leto 0.35.0 Schur/SVD work is uncommitted producer WIP and not part of this consumer slice.
+    - [x] Verify focused OpenFOAM tests, format, clippy, nextest, doctests, and rustdoc.
+    - [x] Run the short CSG benchmark gate: initial full benchmark command improved the first three GWN cases but crashed during `classify_prepared_2400f`; isolated `classify_prepared_2400f` rerun completed and reported improvement. The access violation remains a residual benchmark-harness risk outside this OpenFOAM slice.
