@@ -342,7 +342,8 @@ pub fn corefine_face(
     // Use a flat Vec for O(1) short-array dedup to preserve insertion order without allocation.
     let mut interior_vids: Vec<VertexId> = Vec::new();
     // O(1) membership test; the Vec preserves insertion order for PSLG registration.
-    let mut interior_vid_set: hashbrown::HashSet<VertexId> = hashbrown::HashSet::new();
+    let mut interior_vid_set: hashbrown::HashSet<VertexId> =
+        hashbrown::HashSet::with_capacity(dedup_snap_segments.len());
 
     for (si, seg) in dedup_snap_segments.iter().enumerate() {
         for (ep, &p3d) in [seg.start, seg.end].iter().enumerate() {

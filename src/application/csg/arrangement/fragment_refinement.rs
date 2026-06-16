@@ -233,8 +233,8 @@ pub(crate) fn consolidate_cross_mesh_vertices(frags: &mut Vec<FragRecord>, pool:
     const CONSOLIDATE_TOL: Real = 2e-6;
     const CONSOLIDATE_TOL_SQ: Real = CONSOLIDATE_TOL * CONSOLIDATE_TOL;
 
-    let mut vids_a: HashSet<VertexId> = HashSet::new();
-    let mut vids_b: HashSet<VertexId> = HashSet::new();
+    let mut vids_a: HashSet<VertexId> = HashSet::with_capacity(frags.len());
+    let mut vids_b: HashSet<VertexId> = HashSet::with_capacity(frags.len());
     for fr in &*frags {
         for &v in &fr.face.vertices {
             if fr.from_a {
@@ -246,9 +246,14 @@ pub(crate) fn consolidate_cross_mesh_vertices(frags: &mut Vec<FragRecord>, pool:
     }
 
     // Already shared seam IDs must never move.
-    let seam_vids: HashSet<VertexId> = vids_a.intersection(&vids_b).copied().collect();
-    let pure_a: Vec<VertexId> = vids_a.difference(&seam_vids).copied().collect();
-    let pure_b: Vec<VertexId> = vids_b.difference(&seam_vids).copied().collect();
+    let mut seam_vids: HashSet<VertexId> = HashSet::with_capacity(vids_a.len().min(vids_b.len()));
+    seam_vids.extend(vids_a.intersection(&vids_b).copied());
+    let mut pure_a: Vec<VertexId> =
+        Vec::with_capacity(vids_a.len().saturating_sub(seam_vids.len()));
+    pure_a.extend(vids_a.difference(&seam_vids).copied());
+    let mut pure_b: Vec<VertexId> =
+        Vec::with_capacity(vids_b.len().saturating_sub(seam_vids.len()));
+    pure_b.extend(vids_b.difference(&seam_vids).copied());
 
     if pure_a.is_empty() || pure_b.is_empty() {
         return;
