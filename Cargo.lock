@@ -2331,7 +2331,7 @@ dependencies = [
 
 [[package]]
 name = "themis"
-version = "0.9.15"
+version = "0.9.17"
 dependencies = [
  "melinoe",
 ]

@@ -73,26 +73,51 @@ pub fn prepare_classification_faces(
     faces: &[FaceData],
     pool: &VertexPool<f64>,
 ) -> Vec<PreparedFace> {
-    let mut prepared = Vec::with_capacity(faces.len());
-    for face in faces {
-        let a = *pool.position(face.vertices[0]);
-        let b = *pool.position(face.vertices[1]);
-        let c = *pool.position(face.vertices[2]);
-        let ab = b - a;
-        let ac = c - a;
-        let normal = ab.cross(&ac);
-        let area = 0.5 * normal.norm();
-        let centroid = triangle_centroid::<f64>(&a, &b, &c);
-        prepared.push(PreparedFace {
-            a,
-            b,
-            c,
-            centroid,
-            normal,
-            area,
-        });
+    #[cfg(feature = "parallel")]
+    {
+        use moirai::ParallelSlice;
+        faces.par().map_collect(|face| {
+            let a = *pool.position(face.vertices[0]);
+            let b = *pool.position(face.vertices[1]);
+            let c = *pool.position(face.vertices[2]);
+            let ab = b - a;
+            let ac = c - a;
+            let normal = ab.cross(&ac);
+            let area = 0.5 * normal.norm();
+            let centroid = triangle_centroid::<f64>(&a, &b, &c);
+            PreparedFace {
+                a,
+                b,
+                c,
+                centroid,
+                normal,
+                area,
+            }
+        })
     }
-    prepared
+    #[cfg(not(feature = "parallel"))]
+    {
+        let mut prepared = Vec::with_capacity(faces.len());
+        for face in faces {
+            let a = *pool.position(face.vertices[0]);
+            let b = *pool.position(face.vertices[1]);
+            let c = *pool.position(face.vertices[2]);
+            let ab = b - a;
+            let ac = c - a;
+            let normal = ab.cross(&ac);
+            let area = 0.5 * normal.norm();
+            let centroid = triangle_centroid::<f64>(&a, &b, &c);
+            prepared.push(PreparedFace {
+                a,
+                b,
+                c,
+                centroid,
+                normal,
+                area,
+            });
+        }
+        prepared
+    }
 }
 
 // ── GWN computation ───────────────────────────────────────────────────────────

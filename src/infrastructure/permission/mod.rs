@@ -30,4 +30,4 @@ pub mod token;
 
 pub use arena::PermissionedArena;
 pub use cell::GhostCell;
-pub use token::GhostToken;
+pub use token::{GhostToken, SharedGhostToken};

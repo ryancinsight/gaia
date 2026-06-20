@@ -4,7 +4,7 @@
 //! is stored contiguously but access is gated by a branded token.
 
 use super::cell::GhostCell;
-use super::token::GhostToken;
+use super::token::{GhostToken, SharedGhostToken};
 
 /// A contiguous arena of `GhostCell`-wrapped values.
 ///
@@ -63,6 +63,16 @@ impl<'brand, T> PermissionedArena<'brand, T> {
         self.elements[index].borrow(token)
     }
 
+    /// Borrow element at `index` immutably using a shared read token.
+    ///
+    /// # Panics
+    /// Panics if `index >= len()`.
+    #[inline]
+    #[must_use]
+    pub fn get_shared<'a>(&'a self, index: usize, token: SharedGhostToken<'a, 'brand>) -> &'a T {
+        self.elements[index].borrow_shared(token)
+    }
+
     /// Borrow element at `index` mutably.
     ///
     /// # Panics
@@ -77,6 +87,17 @@ impl<'brand, T> PermissionedArena<'brand, T> {
     #[must_use]
     pub fn try_get<'a>(&'a self, index: usize, token: &'a GhostToken<'brand>) -> Option<&'a T> {
         self.elements.get(index).map(|c| c.borrow(token))
+    }
+
+    /// Try to borrow element at `index` immutably using a shared read token.
+    #[inline]
+    #[must_use]
+    pub fn try_get_shared<'a>(
+        &'a self,
+        index: usize,
+        token: SharedGhostToken<'a, 'brand>,
+    ) -> Option<&'a T> {
+        self.elements.get(index).map(|c| c.borrow_shared(token))
     }
 
     /// Iterate over all elements immutably.

@@ -54,7 +54,7 @@ mod node;
 mod query;
 
 use crate::domain::geometry::aabb::Aabb;
-use crate::infrastructure::permission::{GhostToken, PermissionedArena};
+use crate::infrastructure::permission::{GhostToken, PermissionedArena, SharedGhostToken};
 use build::{build_centroids, build_recursive};
 use node::BvhNodeKind;
 
@@ -89,6 +89,24 @@ impl<'brand> BvhTree<'brand, '_> {
         out: &mut Vec<usize>,
     ) {
         query::query_overlapping(
+            &self.node_aabbs,
+            &self.node_kinds,
+            &self.indices,
+            self.prim_aabbs,
+            query,
+            token,
+            out,
+        );
+    }
+
+    /// Query all primitive indices whose AABB overlaps `query` using a SharedGhostToken.
+    pub fn query_overlapping_shared(
+        &self,
+        query: &Aabb,
+        token: SharedGhostToken<'_, 'brand>,
+        out: &mut Vec<usize>,
+    ) {
+        query::query_overlapping_shared(
             &self.node_aabbs,
             &self.node_kinds,
             &self.indices,

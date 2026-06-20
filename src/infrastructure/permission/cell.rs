@@ -3,7 +3,7 @@
 //! The `GhostCell<'brand, T>` wrapper stores data that can only be accessed
 //! through a matching `GhostToken<'brand>`.
 
-use super::token::GhostToken;
+use super::token::{GhostToken, SharedGhostToken};
 use melinoe::MelinoeCell;
 
 /// A cell whose contents are accessible only via a matching [`GhostToken`].
@@ -52,6 +52,12 @@ impl<'brand, T> GhostCell<'brand, T> {
     #[inline]
     pub fn borrow<'a>(&'a self, token: &'a GhostToken<'brand>) -> &'a T {
         self.inner.borrow(&token.inner).into_ref()
+    }
+
+    /// Borrow the contents immutably using a shared read token.
+    #[inline]
+    pub fn borrow_shared<'a>(&'a self, token: SharedGhostToken<'a, 'brand>) -> &'a T {
+        self.inner.borrow(token.inner).into_ref()
     }
 
     /// Borrow the contents mutably. Requires `&mut GhostToken<'brand>`.

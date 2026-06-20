@@ -199,3 +199,16 @@
     - [x] Run full test suite (968 tests).
     - [x] Verify `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`.
     - [x] Run benchmark verification tests.
+
+- [x] **Phase 29: Parallel Read Sharing & Contiguous Curvature Optimization (Sprint 26)**
+    - [x] Introduce covariant `SharedGhostToken` read sharing in `permission::token` and `cell` to allow contention-free parallel reads.
+    - [x] Implement thread-safe parallel BVH queries using shared tokens.
+    - [x] Parallelize AABB precomputation and broad-phase intersection search using Moirai task parallelism with thread-local scratch vectors.
+    - [x] Parallelize classification face preparation in GWN.
+    - [x] Reorganize mean curvature estimation to use contiguous, flat `Vec` storage arrays indexed by `VertexId` offset instead of sparse `HashMap` accumulators.
+    - [x] Verify formatting (`cargo fmt --check`).
+    - [x] Verify lint rules (`cargo clippy --all-targets --all-features -- -D warnings`).
+    - [x] Run full test suite (968 tests).
+    - [x] Verify documentation compilation (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`).
+    - [x] Run benchmark verification tests.
+

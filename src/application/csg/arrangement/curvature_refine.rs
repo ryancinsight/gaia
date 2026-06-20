@@ -216,13 +216,14 @@ pub(crate) fn refine_high_curvature_faces(faces: &mut Vec<FaceData>, pool: &mut 
 ///   2-Manifolds", VisMath 2003.
 /// - Wardetzky et al., "Discrete Laplace operators: No free lunch", SGP 2007.
 fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<VertexId, Real> {
+    let n_verts = pool.len();
     // Phase 1: accumulate cotangent-weighted Laplacian contributions and areas.
     //
     // For each face [v0, v1, v2], each edge (vi, vj) has the opposite angle at vk.
     // cot(angle at vk) = cos/sin, computed from edge vectors.
-    let mut laplacian: HashMap<VertexId, Vector3r> = HashMap::new();
-    let mut area_sum: HashMap<VertexId, Real> = HashMap::new();
-    let mut face_count: HashMap<VertexId, u32> = HashMap::new();
+    let mut laplacian = vec![Vector3r::zeros(); n_verts];
+    let mut area_sum = vec![0.0_f64; n_verts];
+    let mut face_count = vec![0_u32; n_verts];
 
     for face in faces {
         let [v0, v1, v2] = face.vertices;
@@ -239,12 +240,17 @@ fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<
         }
 
         let bary_area = face_area / 3.0;
-        *area_sum.entry(v0).or_insert(0.0) += bary_area;
-        *area_sum.entry(v1).or_insert(0.0) += bary_area;
-        *area_sum.entry(v2).or_insert(0.0) += bary_area;
-        *face_count.entry(v0).or_insert(0) += 1;
-        *face_count.entry(v1).or_insert(0) += 1;
-        *face_count.entry(v2).or_insert(0) += 1;
+
+        let v0_idx = v0.0 as usize;
+        let v1_idx = v1.0 as usize;
+        let v2_idx = v2.0 as usize;
+
+        area_sum[v0_idx] += bary_area;
+        area_sum[v1_idx] += bary_area;
+        area_sum[v2_idx] += bary_area;
+        face_count[v0_idx] += 1;
+        face_count[v1_idx] += 1;
+        face_count[v2_idx] += 1;
 
         // Compute cotangent weights for each edge.
         // Edge (v0, v1): opposite angle at v2.
@@ -274,27 +280,28 @@ fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<
             //             Hn(vj) += cot_k * (vi - vj) / 2
             let diff = pj - pi;
             let weighted = diff * (cot_k * 0.5);
-            *laplacian.entry(vi).or_insert_with(Vector3r::zeros) += weighted;
-            *laplacian.entry(vj).or_insert_with(Vector3r::zeros) -= weighted;
+            laplacian[vi.0 as usize] += weighted;
+            laplacian[vj.0 as usize] -= weighted;
         }
     }
 
     // Phase 2: compute |H| = |Hn| / (2 * A_mixed).
-    let mut curvature: HashMap<VertexId, Real> = HashMap::with_capacity(laplacian.len());
+    let mut curvature = HashMap::with_capacity(n_verts);
 
-    for (vid, hn) in &laplacian {
-        let count = face_count.get(vid).copied().unwrap_or(0);
+    for i in 0..n_verts {
+        let count = face_count[i];
         if count < 3 {
             continue;
         }
-        let area = area_sum.get(vid).copied().unwrap_or(0.0);
+        let area = area_sum[i];
         if area < Real::MIN_POSITIVE {
             continue;
         }
+        let hn = &laplacian[i];
         // H = |Hn| / (2 * A_mixed)
         let h = hn.norm() / (2.0 * area);
         if h.is_finite() && h > 0.0 {
-            curvature.insert(*vid, h);
+            curvature.insert(VertexId(i as u32), h);
         }
     }
 
