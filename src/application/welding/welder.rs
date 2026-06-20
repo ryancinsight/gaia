@@ -74,16 +74,13 @@ impl MeshWelder {
         let old_active_count = v_faces.iter().filter(|f| !f.is_empty()).count();
 
         // Keep track of the current vertices for each face to dynamically check topologies.
-        let mut cur_face_verts: HashMap<u32, [u32; 3]> = HashMap::with_capacity(face_store.len());
+        let mut cur_face_verts: Vec<[u32; 3]> = vec![[0; 3]; face_store.len()];
         for (f_id, face) in face_store.iter_enumerated() {
-            cur_face_verts.insert(
-                f_id.0,
-                [
-                    face.vertices[0].raw(),
-                    face.vertices[1].raw(),
-                    face.vertices[2].raw(),
-                ],
-            );
+            cur_face_verts[f_id.0 as usize] = [
+                face.vertices[0].raw(),
+                face.vertices[1].raw(),
+                face.vertices[2].raw(),
+            ];
         }
 
         // 2. Build a SpatialHashGrid containing all original positions
@@ -100,6 +97,7 @@ impl MeshWelder {
         // 3. Greedy topological clustering
         // remap[i] maps original vertex i to its canonical merged vertex head.
         let mut remap: Vec<u32> = (0..n as u32).collect();
+        let mut candidates = Vec::new();
 
         for i in 0..n as u32 {
             if remap[i as usize] != i {
@@ -111,9 +109,15 @@ impl MeshWelder {
             }
 
             // Find all spatial neighbors
-            let candidates = grid.query_radius(&positions[i as usize], self.tolerance, positions);
+            candidates.clear();
+            grid.query_radius_to(
+                &positions[i as usize],
+                self.tolerance,
+                positions,
+                &mut candidates,
+            );
 
-            for c in candidates {
+            for &c in &candidates {
                 if c <= i {
                     continue; // Only merge larger indices into smaller/earlier indices.
                 }
@@ -145,7 +149,7 @@ impl MeshWelder {
                     let faces_of_c = std::mem::take(&mut v_faces[c as usize]);
                     for f_id in faces_of_c {
                         // Update cur_face_verts
-                        if let Some(verts) = cur_face_verts.get_mut(&f_id) {
+                        if let Some(verts) = cur_face_verts.get_mut(f_id as usize) {
                             for v in verts.iter_mut() {
                                 if *v == c {
                                     *v = i;
@@ -205,7 +209,7 @@ impl MeshWelder {
         src: u32,
         dst_faces: &[u32],
         src_faces: &[u32],
-        cur_face_verts: &HashMap<u32, [u32; 3]>,
+        cur_face_verts: &[[u32; 3]],
         dst_scratch: &mut HashMap<u32, u32>,
         src_scratch: &mut HashMap<u32, u32>,
     ) -> bool {
@@ -222,7 +226,7 @@ impl MeshWelder {
         // Reuse pre-allocated scratch maps — clear here rather than allocating.
         dst_scratch.clear();
         for &f_id in dst_faces {
-            if let Some(verts) = cur_face_verts.get(&f_id) {
+            if let Some(verts) = cur_face_verts.get(f_id as usize) {
                 for &v in verts {
                     if v != dst {
                         *dst_scratch.entry(v).or_insert(0) += 1;
@@ -233,7 +237,7 @@ impl MeshWelder {
 
         src_scratch.clear();
         for &f_id in src_faces {
-            if let Some(verts) = cur_face_verts.get(&f_id) {
+            if let Some(verts) = cur_face_verts.get(f_id as usize) {
                 for &v in verts {
                     if v != src {
                         *src_scratch.entry(v).or_insert(0) += 1;

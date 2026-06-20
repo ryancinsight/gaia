@@ -50,22 +50,34 @@ impl SpatialHashGrid {
     /// Searches the 3×3×3 neighborhood and filters by actual distance.
     #[must_use]
     pub fn query_radius(&self, point: &Point3r, radius: Real, positions: &[Point3r]) -> Vec<u32> {
+        let mut results = Vec::new();
+        self.query_radius_to(point, radius, positions, &mut results);
+        results
+    }
+
+    /// Query: find all indices within `radius` of `point`, appending them to the provided vector.
+    ///
+    /// Searches the 3×3×3 neighborhood and filters by actual distance.
+    pub fn query_radius_to(
+        &self,
+        point: &Point3r,
+        radius: Real,
+        positions: &[Point3r],
+        out: &mut Vec<u32>,
+    ) {
         let cell = GridCell::from_point(point, self.inv_cell_size);
         let radius_sq = radius * radius;
-        let mut results = Vec::new();
 
         for neighbor in cell.neighborhood_27() {
             if let Some(indices) = self.buckets.get(&neighbor) {
                 for &idx in indices {
                     let dist_sq = (positions[idx as usize] - point).norm_squared();
                     if dist_sq <= radius_sq {
-                        results.push(idx);
+                        out.push(idx);
                     }
                 }
             }
         }
-
-        results
     }
 
     /// Find the nearest point within `radius`, if any.

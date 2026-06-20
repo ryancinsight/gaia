@@ -116,7 +116,7 @@ pub(crate) fn dispatch_boolean_coplanar(
         }
     }
 
-    let mut id_map = HashMap::new();
+    let mut id_map = HashMap::with_capacity(unique_list.len());
     for (i, &key) in unique_list.iter().enumerate() {
         id_map.insert(key, i);
     }

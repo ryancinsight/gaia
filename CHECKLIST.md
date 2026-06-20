@@ -212,3 +212,14 @@
     - [x] Verify documentation compilation (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`).
     - [x] Run benchmark verification tests.
 
+- [x] **Phase 30: Vertex Welding Allocation & Coplanar pre-sizing Optimization (Sprint 27)**
+    - [x] Introduce `query_radius_to` in `spatial_hash.rs` to append matching indices directly into a pre-allocated vector.
+    - [x] Refactor greedy topological clustering in `MeshWelder::weld` to reuse a single `candidates` query buffer.
+    - [x] Replace the sparse `cur_face_verts` HashMap in `MeshWelder` with a flat contiguous Vec indexed directly by face ID offsets, converting $O(\log F)$ lookups into $O(1)$ slice access.
+    - [x] Pre-size `id_map` in `coplanar_dispatch.rs` using `HashMap::with_capacity(unique_list.len())` to prevent map resizing and rehashing.
+    - [x] Verify formatting (`cargo fmt --check`).
+    - [x] Verify lint rules (`cargo clippy --all-targets --all-features -- -D warnings`).
+    - [x] Run full test suite (968 tests).
+    - [x] Verify documentation compilation (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`).
+    - [x] Run benchmark verification tests.
+
