@@ -223,3 +223,13 @@
     - [x] Verify documentation compilation (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`).
     - [x] Run benchmark verification tests.
 
+- [x] **Phase 31: SVDAG Memory Optimization & Pre-sizing (Sprint 28)**
+    - [x] Introduce `with_capacity` constructor and `finalize()` method in `SparseVoxelDag` to release internal construction-only deduplication maps and reclaim ~60% memory.
+    - [x] Call `svo.finalize()` inside SVO `from_mesh` rasterization.
+    - [x] Pre-size result DAG and memoization tables inside `MergeContext` in `boolean.rs` using capacity heuristics, and call `result.finalize()` before returning.
+    - [x] Verify formatting (`cargo fmt --check`).
+    - [x] Verify lint rules (`cargo clippy --all-targets --all-features -- -D warnings`).
+    - [x] Run full test suite (968 tests).
+    - [x] Verify documentation compilation (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`).
+    - [x] Run benchmark verification tests.
+

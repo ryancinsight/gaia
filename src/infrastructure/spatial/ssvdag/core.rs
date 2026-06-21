@@ -121,13 +121,19 @@ impl<const B: usize, S: Subdivision<B>> SparseVoxelDag<B, S> {
     /// Create a new empty DAG over `domain_aabb`.
     #[must_use]
     pub fn new(domain_aabb: Aabb) -> Self {
+        Self::with_capacity(domain_aabb, 32)
+    }
+
+    /// Create a new empty DAG over `domain_aabb` with pre-allocated node capacity.
+    #[must_use]
+    pub fn with_capacity(domain_aabb: Aabb, cap: usize) -> Self {
         let empty_leaf = DagNode::Leaf(false);
         let solid_leaf = DagNode::Leaf(true);
-        let mut nodes = Vec::with_capacity(32);
+        let mut nodes = Vec::with_capacity(cap);
         nodes.push(empty_leaf);
         nodes.push(solid_leaf);
 
-        let mut node_map = HashMap::new();
+        let mut node_map = HashMap::with_capacity(cap);
         node_map.insert(empty_leaf, DagIndex(0));
         node_map.insert(solid_leaf, DagIndex(1));
 
@@ -138,6 +144,18 @@ impl<const B: usize, S: Subdivision<B>> SparseVoxelDag<B, S> {
             root_index: DagIndex(0),
             _marker: std::marker::PhantomData,
         }
+    }
+
+    /// Finalize construction of this DAG.
+    ///
+    /// Reclaims 100% of the internal deduplication map memory and shrinks
+    /// node storage capacity to fit the current length. Subsequent calls to
+    /// `intern_node` will still work, but will not be able to deduplicate
+    /// against existing nodes.
+    pub fn finalize(&mut self) {
+        self.nodes.shrink_to_fit();
+        self.node_map.clear();
+        self.node_map.shrink_to_fit();
     }
 
     /// O(1) retrieval of pre-allocated Leaf node indices.

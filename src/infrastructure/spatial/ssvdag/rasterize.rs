@@ -89,6 +89,7 @@ impl SparseVoxelDag<8, OctreeSubdivision> {
         let mut svo = Self::new(expanded_root);
         let new_root = svo.rasterize_recursive(mesh, &expanded_root, &mesh_bb, 0, max_depth);
         svo.root_index = new_root;
+        svo.finalize();
         svo
     }
 

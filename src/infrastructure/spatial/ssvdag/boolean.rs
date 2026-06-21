@@ -29,21 +29,23 @@ impl<const B: usize, S: Subdivision<B>> SparseVoxelDag<B, S> {
             "SSVDAG Booleans require identical initial domain AABBs to preserve spatial consistency"
         );
 
-        let mut result = SparseVoxelDag::new(self.root_aabb);
+        let est_nodes = self.nodes.len().max(other.nodes.len());
+        let mut result = SparseVoxelDag::with_capacity(self.root_aabb, est_nodes);
 
         let mut ctx = MergeContext {
             a: self,
             b: other,
             out: &mut result,
-            memo_merge: HashMap::new(),
-            memo_map_a: HashMap::new(),
-            memo_map_b: HashMap::new(),
-            memo_inv_b: HashMap::new(),
+            memo_merge: HashMap::with_capacity(est_nodes),
+            memo_map_a: HashMap::with_capacity(self.nodes.len()),
+            memo_map_b: HashMap::with_capacity(other.nodes.len()),
+            memo_inv_b: HashMap::with_capacity(other.nodes.len()),
             op,
         };
 
         let new_root = ctx.merge_dag(self.root_index, other.root_index);
         result.root_index = new_root;
+        result.finalize();
 
         result
     }
