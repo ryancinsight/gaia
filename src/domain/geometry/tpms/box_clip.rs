@@ -143,7 +143,8 @@ pub fn build_tpms_box<S: Tpms>(
     }
 
     let mut mesh = IndexedMesh::new();
-    let mut cache: HashMap<(usize, usize, usize, usize), VertexId> = HashMap::new();
+    let mut cache: HashMap<(usize, usize, usize, usize), VertexId> =
+        HashMap::with_capacity(gs * gs * 3);
 
     for iz in 0..(gs - 1) {
         for iy in 0..(gs - 1) {
@@ -362,7 +363,8 @@ pub fn build_tpms_box_graded<S: Tpms>(
     }
 
     let mut mesh = IndexedMesh::new();
-    let mut cache: HashMap<(usize, usize, usize, usize), VertexId> = HashMap::new();
+    let mut cache: HashMap<(usize, usize, usize, usize), VertexId> =
+        HashMap::with_capacity(gs * gs * 3);
 
     for iz in 0..(gs - 1) {
         for iy in 0..(gs - 1) {

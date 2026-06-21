@@ -320,8 +320,14 @@ impl HexToTetConverter {
             for i in 0..n {
                 let a = face.vertices[i];
                 let b = face.vertices[(i + 1) % n];
-                adjacency.entry(a).or_default().push(b);
-                adjacency.entry(b).or_default().push(a);
+                adjacency
+                    .entry(a)
+                    .or_insert_with(|| Vec::with_capacity(3))
+                    .push(b);
+                adjacency
+                    .entry(b)
+                    .or_insert_with(|| Vec::with_capacity(3))
+                    .push(a);
             }
         }
         for neigh in adjacency.values_mut() {

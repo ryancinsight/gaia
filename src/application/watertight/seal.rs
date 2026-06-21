@@ -91,7 +91,9 @@ fn extract_boundary_loops(edges: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> 
     // Build adjacency that preserves all outgoing boundary links.
     let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(edges.len());
     for &(a, b) in edges {
-        adj.entry(a).or_default().push(b);
+        adj.entry(a)
+            .or_insert_with(|| Vec::with_capacity(2))
+            .push(b);
     }
     for nexts in adj.values_mut() {
         nexts.sort();
@@ -104,10 +106,10 @@ fn extract_boundary_loops(edges: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> 
 
     for start in starts {
         let successors = match adj.get(&start) {
-            Some(s) => s.clone(),
+            Some(s) => s.as_slice(),
             None => continue,
         };
-        for first_next in successors {
+        for &first_next in successors {
             if used.contains(&(start, first_next)) {
                 continue;
             }

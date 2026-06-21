@@ -146,9 +146,11 @@ pub(crate) fn fill_boundary_loops(faces: &mut Vec<FaceData>, pool: &VertexPool) 
 /// Trace closed boundary loops from directed boundary edges using greedy DFS
 /// with inner-cycle extraction for figure-8 topologies.
 fn trace_loops(boundary: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> {
-    let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::new();
+    let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(boundary.len());
     for &(vi, vj) in boundary {
-        adj.entry(vi).or_default().push(vj);
+        adj.entry(vi)
+            .or_insert_with(|| Vec::with_capacity(2))
+            .push(vj);
     }
     for v in adj.values_mut() {
         v.sort();
@@ -161,10 +163,10 @@ fn trace_loops(boundary: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> {
 
     for start in starts {
         let nexts = match adj.get(&start) {
-            Some(s) => s.clone(),
+            Some(s) => s.as_slice(),
             None => continue,
         };
-        for first_next in nexts {
+        for &first_next in nexts {
             if used.contains(&(start, first_next)) {
                 continue;
             }

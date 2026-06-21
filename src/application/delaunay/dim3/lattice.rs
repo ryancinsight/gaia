@@ -171,7 +171,7 @@ impl<T: Scalar> SdfMesher<T> {
 
             if !duplicate {
                 grid.entry([cx, cy, cz])
-                    .or_default()
+                    .or_insert_with(|| Vec::with_capacity(4))
                     .push(unique_points.len());
                 unique_points.push(p);
             }
@@ -200,7 +200,8 @@ impl<T: Scalar> SdfMesher<T> {
             // to definitively break incremental Delaunay collinear degeneracies.
             let macro_h =
                 num_traits::ToPrimitive::to_f64(&(<T as Scalar>::from_f64(5.0) * h)).unwrap();
-            let mut blocks: HashMap<[isize; 3], Vec<Point3<T>>> = HashMap::new();
+            let mut blocks: HashMap<[isize; 3], Vec<Point3<T>>> =
+                HashMap::with_capacity((unique_points.len() / 32).max(16));
 
             for p in unique_points {
                 let px: f64 = num_traits::ToPrimitive::to_f64(&p.x).unwrap();
@@ -209,7 +210,10 @@ impl<T: Scalar> SdfMesher<T> {
                 let cx = (px / macro_h).floor() as isize;
                 let cy = (py / macro_h).floor() as isize;
                 let cz = (pz / macro_h).floor() as isize;
-                blocks.entry([cx, cy, cz]).or_default().push(p);
+                blocks
+                    .entry([cx, cy, cz])
+                    .or_insert_with(|| Vec::with_capacity(32))
+                    .push(p);
             }
 
             let mut block_list: Vec<_> = blocks.into_values().collect();
@@ -429,8 +433,8 @@ impl<T: Scalar> SdfMesher<T> {
         // BCC snapping creates geometrically exact but topologically anisotropic (jagged) surface bounds.
         // A bounded Laplacian relaxation specifically operating on the mesh boundary vertices perfectly
         // homogenizes triangle aspect ratios, ensuring CFD smoothness and isotropic wall shear elements.
-        let mut b_vertices = HashSet::with_capacity(b_faces.len() * 3);
-        let mut b_adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(b_faces.len() * 3);
+        let mut b_vertices = HashSet::with_capacity(b_faces.len() / 2);
+        let mut b_adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(b_faces.len() / 2);
 
         for fid in &b_faces {
             let face = mesh.faces.get(*fid);
@@ -438,12 +442,30 @@ impl<T: Scalar> SdfMesher<T> {
             for &vid in &v {
                 b_vertices.insert(vid);
             }
-            b_adj.entry(v[0]).or_default().push(v[1]);
-            b_adj.entry(v[0]).or_default().push(v[2]);
-            b_adj.entry(v[1]).or_default().push(v[0]);
-            b_adj.entry(v[1]).or_default().push(v[2]);
-            b_adj.entry(v[2]).or_default().push(v[0]);
-            b_adj.entry(v[2]).or_default().push(v[1]);
+            b_adj
+                .entry(v[0])
+                .or_insert_with(|| Vec::with_capacity(6))
+                .push(v[1]);
+            b_adj
+                .entry(v[0])
+                .or_insert_with(|| Vec::with_capacity(6))
+                .push(v[2]);
+            b_adj
+                .entry(v[1])
+                .or_insert_with(|| Vec::with_capacity(6))
+                .push(v[0]);
+            b_adj
+                .entry(v[1])
+                .or_insert_with(|| Vec::with_capacity(6))
+                .push(v[2]);
+            b_adj
+                .entry(v[2])
+                .or_insert_with(|| Vec::with_capacity(6))
+                .push(v[0]);
+            b_adj
+                .entry(v[2])
+                .or_insert_with(|| Vec::with_capacity(6))
+                .push(v[1]);
         }
 
         for neighbors in b_adj.values_mut() {

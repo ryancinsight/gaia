@@ -110,14 +110,18 @@ fn build_cross_mesh_merge_map(
             let ix = (p.x * inv_cell).floor() as i64;
             let iy = (p.y * inv_cell).floor() as i64;
             let iz = (p.z * inv_cell).floor() as i64;
-            grid.entry((ix, iy, iz)).or_default().push(i);
+            grid.entry((ix, iy, iz))
+                .or_insert_with(|| Vec::with_capacity(2))
+                .push(i);
         }
     } else {
         for (i, p) in b_positions.iter().enumerate() {
             let ix = (p.x * inv_cell).floor() as i64;
             let iy = (p.y * inv_cell).floor() as i64;
             let iz = (p.z * inv_cell).floor() as i64;
-            grid.entry((ix, iy, iz)).or_default().push(i);
+            grid.entry((ix, iy, iz))
+                .or_insert_with(|| Vec::with_capacity(2))
+                .push(i);
         }
     }
 
@@ -320,7 +324,9 @@ mod tests {
             let ix = (p.x * inv_cell).floor() as i64;
             let iy = (p.y * inv_cell).floor() as i64;
             let iz = (p.z * inv_cell).floor() as i64;
-            grid.entry((ix, iy, iz)).or_default().push(vid);
+            grid.entry((ix, iy, iz))
+                .or_insert_with(|| Vec::with_capacity(2))
+                .push(vid);
         }
 
         let all_merge_vids: Vec<VertexId> = pure_a.iter().chain(pure_b.iter()).copied().collect();
@@ -372,7 +378,8 @@ mod tests {
             }
         }
 
-        let mut merge_map: HashMap<VertexId, VertexId> = HashMap::new();
+        let mut merge_map: HashMap<VertexId, VertexId> =
+            HashMap::with_capacity(all_merge_vids.len());
         for &vid in &all_merge_vids {
             let i = index_of[&vid];
             let root_i = find_root(&mut parent, i);

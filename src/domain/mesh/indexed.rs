@@ -268,7 +268,7 @@ impl<T: Scalar> IndexedMesh<T> {
         if self.cells.is_empty() {
             return self.faces.iter_enumerated().map(|(id, _)| id).collect();
         }
-        let mut face_cell_count: HashMap<FaceId, usize> = HashMap::new();
+        let mut face_cell_count: HashMap<FaceId, usize> = HashMap::with_capacity(self.faces.len());
         for cell in &self.cells {
             for &fv_idx in &cell.faces {
                 // In IndexedMesh, Cell.faces holds FaceId cast as usize currently ? wait:
@@ -292,16 +292,21 @@ impl<T: Scalar> IndexedMesh<T> {
     pub fn extract_boundary_mesh(&self) -> Self {
         let mut b_mesh = Self::new();
         let b_faces = self.boundary_faces();
-        let mut old_to_new_vid: HashMap<VertexId, VertexId> = HashMap::new();
+        let mut old_to_new_vid = vec![None; self.vertices.len()];
 
         for &fid in &b_faces {
             let face = self.faces.get(fid);
             let mut new_vids = [VertexId::default(); 3];
             for k in 0..3 {
                 let old_vid = face.vertices[k];
-                new_vids[k] = *old_to_new_vid
-                    .entry(old_vid)
-                    .or_insert_with(|| b_mesh.add_vertex_pos(*self.vertices.position(old_vid)));
+                let old_idx = old_vid.as_usize();
+                new_vids[k] = if let Some(new_vid) = old_to_new_vid[old_idx] {
+                    new_vid
+                } else {
+                    let new_vid = b_mesh.add_vertex_pos(*self.vertices.position(old_vid));
+                    old_to_new_vid[old_idx] = Some(new_vid);
+                    new_vid
+                };
             }
             b_mesh.add_face(new_vids[0], new_vids[1], new_vids[2]);
         }
@@ -867,9 +872,9 @@ impl<T: Scalar> IndexedMesh<T> {
         // Single-pass over components: build a fresh mesh from kept faces only.
         let mut new_mesh = self.empty_clone();
         // Map old VertexId → new VertexId (None = not yet seen).
-        let mut vertex_remap: HashMap<VertexId, VertexId> = HashMap::new();
+        let mut vertex_remap: Vec<Option<VertexId>> = vec![None; self.vertices.len()];
         // Map old FaceId → new FaceId for attribute/label remapping.
-        let mut face_remap: HashMap<FaceId, FaceId> = HashMap::new();
+        let mut face_remap: Vec<Option<FaceId>> = vec![None; self.faces.len()];
         let mut discarded = 0usize;
 
         for component in &components {
@@ -877,7 +882,7 @@ impl<T: Scalar> IndexedMesh<T> {
                 discarded += 1;
                 tracing::debug!(
                     "retain_largest_component: discarding {} phantom face(s) \
-                     (threshold = {} faces)",
+                      (threshold = {} faces)",
                     component.len(),
                     min_keep,
                 );
@@ -888,11 +893,14 @@ impl<T: Scalar> IndexedMesh<T> {
                 let mut nv = [VertexId::default(); 3];
                 for (k, &vid) in fd.vertices.iter().enumerate() {
                     let idx = vid.as_usize();
-                    let entry = vertex_remap.entry(VertexId(idx as u32));
-                    nv[k] = *entry.or_insert_with(|| {
-                        new_mesh
-                            .add_vertex(*self.vertices.position(vid), *self.vertices.normal(vid))
-                    });
+                    nv[k] = if let Some(new_vid) = vertex_remap[idx] {
+                        new_vid
+                    } else {
+                        let new_vid = new_mesh
+                            .add_vertex(*self.vertices.position(vid), *self.vertices.normal(vid));
+                        vertex_remap[idx] = Some(new_vid);
+                        new_vid
+                    };
                 }
                 // Guard: skip any face that collapsed under vertex welding.
                 if nv[0] == nv[1] || nv[1] == nv[2] || nv[2] == nv[0] {
@@ -903,7 +911,7 @@ impl<T: Scalar> IndexedMesh<T> {
                 } else {
                     new_mesh.add_face_with_region(nv[0], nv[1], nv[2], fd.region)
                 };
-                face_remap.insert(old_fid, new_fid);
+                face_remap[old_fid.as_usize()] = Some(new_fid);
             }
         }
 
@@ -914,9 +922,12 @@ impl<T: Scalar> IndexedMesh<T> {
         // Remap per-face scalar attributes.
         let old_attrs = std::mem::take(&mut self.attributes);
         for channel in old_attrs.channel_names() {
-            for (&old_fid, &new_fid) in &face_remap {
-                if let Some(val) = old_attrs.get(channel, old_fid) {
-                    new_mesh.attributes.set(channel, new_fid, val);
+            for (old_fid_idx, &opt_new_fid) in face_remap.iter().enumerate() {
+                if let Some(new_fid) = opt_new_fid {
+                    let old_fid = FaceId::from_usize(old_fid_idx);
+                    if let Some(val) = old_attrs.get(channel, old_fid) {
+                        new_mesh.attributes.set(channel, new_fid, val);
+                    }
                 }
             }
         }
@@ -925,7 +936,7 @@ impl<T: Scalar> IndexedMesh<T> {
         let old_labels = std::mem::take(&mut self.boundary_labels);
         new_mesh.boundary_labels = old_labels
             .into_iter()
-            .filter_map(|(old_fid, label)| face_remap.get(&old_fid).map(|&nf| (nf, label)))
+            .filter_map(|(old_fid, label)| face_remap[old_fid.as_usize()].map(|nf| (nf, label)))
             .collect();
 
         // Swap stores in-place.

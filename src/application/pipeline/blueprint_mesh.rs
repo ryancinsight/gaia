@@ -853,9 +853,12 @@ fn synthesize_complex_layout(
     let max_depth = depth.values().copied().max().unwrap_or(1).max(1);
 
     // Group nodes by depth.
-    let mut depth_groups: HashMap<usize, Vec<&str>> = HashMap::new();
+    let mut depth_groups: HashMap<usize, Vec<&str>> = HashMap::with_capacity(max_depth + 1);
     for (&node_id, &d) in &depth {
-        depth_groups.entry(d).or_default().push(node_id);
+        depth_groups
+            .entry(d)
+            .or_insert_with(|| Vec::with_capacity((n_nodes / max_depth).max(4)))
+            .push(node_id);
     }
     // Sort each group for deterministic layout.
     for group in depth_groups.values_mut() {
@@ -865,7 +868,7 @@ fn synthesize_complex_layout(
     // Assign 2D positions:
     // - X: depth / max_depth × chip_w
     // - Y: evenly spaced in [min_y, max_y], centred on y_center
-    let mut positions: HashMap<&str, (Real, Real)> = HashMap::new();
+    let mut positions: HashMap<&str, (Real, Real)> = HashMap::with_capacity(n_nodes);
     for (&d, group) in &depth_groups {
         let x = (d as Real / max_depth as Real) * chip_w;
         let n = group.len();
