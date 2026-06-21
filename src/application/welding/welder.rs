@@ -89,10 +89,10 @@ impl MeshWelder {
             grid.insert(p, i as u32);
         }
 
-        // Pre-allocate scratch maps for is_safe_to_merge — reused each iteration
+        // Pre-allocate scratch buffers for is_safe_to_merge — reused each iteration
         // instead of allocating two new HashMaps per merge candidate.
-        let mut dst_scratch: HashMap<u32, u32> = HashMap::new();
-        let mut src_scratch: HashMap<u32, u32> = HashMap::new();
+        let mut dst_scratch: Vec<(u32, u32)> = Vec::with_capacity(32);
+        let mut src_scratch: Vec<(u32, u32)> = Vec::with_capacity(32);
 
         // 3. Greedy topological clustering
         // remap[i] maps original vertex i to its canonical merged vertex head.
@@ -163,8 +163,8 @@ impl MeshWelder {
         }
 
         // 4. Pack vertices
-        let mut packed_positions = Vec::new();
-        let mut pack_map: HashMap<u32, u32> = HashMap::new();
+        let mut packed_positions = Vec::with_capacity(n);
+        let mut pack_map = HashMap::with_capacity(n);
 
         let mut faces_updated = 0;
 
@@ -210,8 +210,8 @@ impl MeshWelder {
         dst_faces: &[u32],
         src_faces: &[u32],
         cur_face_verts: &[[u32; 3]],
-        dst_scratch: &mut HashMap<u32, u32>,
-        src_scratch: &mut HashMap<u32, u32>,
+        dst_scratch: &mut Vec<(u32, u32)>,
+        src_scratch: &mut Vec<(u32, u32)>,
     ) -> bool {
         // Condition 1: Shared Face Check (Degenerate Prevention)
         // O(|dst| * |src|), but valence is small and Vec adjacency avoids a
@@ -223,13 +223,17 @@ impl MeshWelder {
         }
 
         // Condition 2: Non-Manifold Edge Prevention
-        // Reuse pre-allocated scratch maps — clear here rather than allocating.
+        // Reuse pre-allocated scratch buffers — clear here rather than allocating.
         dst_scratch.clear();
         for &f_id in dst_faces {
             if let Some(verts) = cur_face_verts.get(f_id as usize) {
                 for &v in verts {
                     if v != dst {
-                        *dst_scratch.entry(v).or_insert(0) += 1;
+                        if let Some(entry) = dst_scratch.iter_mut().find(|e| e.0 == v) {
+                            entry.1 += 1;
+                        } else {
+                            dst_scratch.push((v, 1));
+                        }
                     }
                 }
             }
@@ -240,16 +244,20 @@ impl MeshWelder {
             if let Some(verts) = cur_face_verts.get(f_id as usize) {
                 for &v in verts {
                     if v != src {
-                        *src_scratch.entry(v).or_insert(0) += 1;
+                        if let Some(entry) = src_scratch.iter_mut().find(|e| e.0 == v) {
+                            entry.1 += 1;
+                        } else {
+                            src_scratch.push((v, 1));
+                        }
                     }
                 }
             }
         }
 
         // If they share a neighbor, the combined face count on that edge cannot exceed 2.
-        for (v, count_src) in src_scratch.iter() {
-            if let Some(count_dst) = dst_scratch.get(v) {
-                if count_src + count_dst > 2 {
+        for &(v, count_src) in src_scratch.iter() {
+            if let Some(entry_dst) = dst_scratch.iter().find(|e| e.0 == v) {
+                if count_src + entry_dst.1 > 2 {
                     return false;
                 }
             }

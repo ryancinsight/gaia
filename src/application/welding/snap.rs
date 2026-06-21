@@ -197,6 +197,21 @@ impl SnappingGrid {
         }
     }
 
+    /// Create a new snapping grid with tolerance `eps` and pre-allocated capacity.
+    #[must_use]
+    pub fn with_capacity(capacity: usize, eps: Real) -> Self {
+        assert!(
+            eps.is_finite() && eps > 0.0,
+            "eps must be finite and positive"
+        );
+        Self {
+            buckets: HashMap::with_capacity(capacity),
+            positions: Vec::with_capacity(capacity),
+            eps,
+            inv_eps: 1.0 / eps,
+        }
+    }
+
     /// Create a snapping grid suitable for millifluidic devices (ε = 1 μm).
     #[must_use]
     pub fn millifluidic() -> Self {

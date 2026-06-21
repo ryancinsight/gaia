@@ -19,7 +19,6 @@ use crate::domain::core::error::MeshResult;
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::Real;
 use crate::domain::mesh::IndexedMesh;
-use hashbrown::HashMap;
 use nalgebra::Isometry3;
 
 /// A composable CSG expression tree over [`IndexedMesh`] operands.
@@ -138,19 +137,19 @@ impl CsgNode {
 fn transform_mesh(mesh: IndexedMesh, iso: &Isometry3<Real>) -> IndexedMesh {
     use crate::domain::core::index::VertexId;
     let mut new_mesh = IndexedMesh::new();
-    let mut remap: HashMap<VertexId, VertexId> = HashMap::with_capacity(mesh.vertices.len());
+    let mut remap = vec![None; mesh.vertices.len()];
 
     for face in mesh.faces.iter() {
         let mut new_verts = [VertexId::default(); 3];
         for (k, &vid) in face.vertices.iter().enumerate() {
             let idx = vid.as_usize();
-            let new_id = if let Some(id) = remap.get(&VertexId(idx as u32)).copied() {
+            let new_id = if let Some(id) = remap[idx] {
                 id
             } else {
                 let pos = iso * *mesh.vertices.position(vid);
                 let nrm = iso.rotation * *mesh.vertices.normal(vid);
                 let id = new_mesh.add_vertex(pos, nrm);
-                remap.insert(VertexId(idx as u32), id);
+                remap[idx] = Some(id);
                 id
             };
             new_verts[k] = new_id;

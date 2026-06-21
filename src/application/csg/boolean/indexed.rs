@@ -633,7 +633,11 @@ fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> MeshResult<
 fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
     let tol_sq = 1e-18_f64; // (1e-9)²
     let mut total_collapsed: usize = 0;
-    let mut skip_faces: hashbrown::HashSet<usize> = hashbrown::HashSet::new();
+    let num_faces = mesh.faces.len();
+    let mut skip_faces = hashbrown::HashSet::with_capacity(num_faces / 16);
+    let mut new_face_keys = hashbrown::HashSet::with_capacity(num_faces);
+    let mut seen = hashbrown::HashSet::with_capacity(num_faces);
+    let mut keep_faces = Vec::with_capacity(num_faces);
 
     // ── Batch Phase 0: Union-find merge of all near-coincident vertex pairs ──
     //
@@ -687,8 +691,8 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
             let has_merges = dedup.iter().enumerate().any(|(i, &d)| d != i as u32);
             if has_merges {
                 // Rewrite face references in one pass.
-                let mut seen: hashbrown::HashSet<[VertexId; 3]> = hashbrown::HashSet::new();
-                let mut keep_faces: Vec<FaceData> = Vec::with_capacity(mesh.faces.len());
+                seen.clear();
+                keep_faces.clear();
                 let mut removed = 0usize;
                 for face in mesh.faces.iter() {
                     let mut f = *face;
@@ -720,7 +724,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
                 }
                 total_collapsed += removed;
                 let mut new_faces = FaceStore::with_capacity(keep_faces.len());
-                for f in keep_faces {
+                for f in keep_faces.drain(..) {
                     new_faces.push(f);
                 }
                 mesh.faces = new_faces;
@@ -862,7 +866,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
         if !is_coincident {
             let mut would_create_duplicate = false;
             let mut would_invert_normal = false;
-            let mut new_face_keys: hashbrown::HashSet<[VertexId; 3]> = hashbrown::HashSet::new();
+            new_face_keys.clear();
 
             for face in mesh.faces.iter() {
                 let mut verts = face.vertices;
@@ -963,8 +967,8 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
         // Purge collapsed faces and exact duplicates.
         // For purged faces: remove their edge contributions (non-degenerate ones
         // already have a refcount, degenerate ones were skipped in the add above).
-        let mut seen: hashbrown::HashSet<[VertexId; 3]> = hashbrown::HashSet::new();
-        let mut keep_faces: Vec<FaceData> = Vec::with_capacity(mesh.faces.len());
+        seen.clear();
+        keep_faces.clear();
         let mut removed = 0usize;
         for face in mesh.faces.iter() {
             if face.vertices[0] == face.vertices[1]
@@ -996,7 +1000,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
         total_collapsed += removed;
         skip_faces.clear(); // face indices changed after rebuild
         let mut new_faces = FaceStore::with_capacity(keep_faces.len());
-        for f in keep_faces {
+        for f in keep_faces.drain(..) {
             new_faces.push(f);
         }
         mesh.faces = new_faces;
@@ -1735,7 +1739,7 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     }
 
     // Phase 3: compact — collect referenced vertex IDs and build new pool.
-    let mut referenced = hashbrown::HashSet::new();
+    let mut referenced = hashbrown::HashSet::with_capacity(mesh.vertices.len());
     for face in &remapped_faces {
         for &v in &face.vertices {
             referenced.insert(v.0);

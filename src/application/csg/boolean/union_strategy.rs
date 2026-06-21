@@ -1,5 +1,3 @@
-use hashbrown::HashMap;
-
 use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::mesh::IndexedMesh;
 
@@ -65,30 +63,38 @@ pub(super) fn concat_disjoint_meshes(lhs: &IndexedMesh, rhs: &IndexedMesh) -> In
 }
 
 fn append_mesh(dst: &mut IndexedMesh, src: &IndexedMesh) {
-    let mut vertex_remap: HashMap<VertexId, VertexId> = HashMap::with_capacity(src.vertices.len());
-    let mut face_remap: HashMap<FaceId, FaceId> = HashMap::with_capacity(src.faces.len());
+    let mut vertex_remap = vec![None; src.vertices.len()];
+    let mut face_remap = vec![None; src.faces.len()];
 
     for (old_fid, face) in src.faces.iter_enumerated() {
         let vertices = face.vertices.map(|old_vid| {
-            *vertex_remap.entry(old_vid).or_insert_with(|| {
-                dst.add_vertex(*src.vertices.position(old_vid), *src.vertices.normal(old_vid))
-            })
+            let idx = old_vid.as_usize();
+            if let Some(new_vid) = vertex_remap[idx] {
+                new_vid
+            } else {
+                let nv = dst.add_vertex(*src.vertices.position(old_vid), *src.vertices.normal(old_vid));
+                vertex_remap[idx] = Some(nv);
+                nv
+            }
         });
 
         let new_fid = dst.add_face_with_region(vertices[0], vertices[1], vertices[2], face.region);
-        face_remap.insert(old_fid, new_fid);
+        face_remap[old_fid.as_usize()] = Some(new_fid);
     }
 
     for channel in src.attributes.channel_names() {
-        for (&old_fid, &new_fid) in &face_remap {
-            if let Some(value) = src.attributes.get(channel, old_fid) {
-                dst.attributes.set(channel, new_fid, value);
+        for (old_idx, &opt_new_fid) in face_remap.iter().enumerate() {
+            if let Some(new_fid) = opt_new_fid {
+                let old_fid = FaceId(old_idx as u32);
+                if let Some(value) = src.attributes.get(channel, old_fid) {
+                    dst.attributes.set(channel, new_fid, value);
+                }
             }
         }
     }
 
     for (&old_fid, label) in &src.boundary_labels {
-        if let Some(&new_fid) = face_remap.get(&old_fid) {
+        if let Some(&Some(new_fid)) = face_remap.get(old_fid.as_usize()) {
             dst.boundary_labels.insert(new_fid, label.clone());
         }
     }
