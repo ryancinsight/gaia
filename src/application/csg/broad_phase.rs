@@ -120,27 +120,13 @@ pub fn broad_phase_pairs(
         return Vec::new();
     }
 
-    #[cfg(feature = "parallel")]
-    let (aabbs_a, aabbs_b): (Vec<Aabb>, Vec<Aabb>) = {
-        use moirai::ParallelSlice;
-        let a = faces_a.par().map_collect(|f| triangle_aabb(f, pool_a));
-        let b = faces_b.par().map_collect(|f| triangle_aabb(f, pool_b));
-        (a, b)
-    };
-
-    #[cfg(not(feature = "parallel"))]
-    let (aabbs_a, aabbs_b): (Vec<Aabb>, Vec<Aabb>) = {
-        let a = faces_a.iter().map(|f| triangle_aabb(f, pool_a)).collect();
-        let b = faces_b.iter().map(|f| triangle_aabb(f, pool_b)).collect();
-        (a, b)
-    };
-
     let mut pairs = Vec::with_capacity(usize::midpoint(faces_a.len(), faces_b.len()));
 
     #[cfg(feature = "parallel")]
     {
         use moirai::fold_reduce_with;
         use moirai::Parallel;
+        use moirai::ParallelSlice;
 
         struct WorkerScratch {
             pairs: Vec<CandidatePair>,
@@ -149,19 +135,20 @@ pub fn broad_phase_pairs(
 
         if faces_b.len() <= faces_a.len() {
             // Build BVH on B and query A.
+            let aabbs_b = faces_b.par().map_collect(|f| triangle_aabb(f, pool_b));
             with_bvh(&aabbs_b, |tree, token| {
                 let shared_token = token.share();
-                let aabbs_a_ref = &aabbs_a;
 
                 let scratch = fold_reduce_with::<Parallel, _, _, _, _>(
-                    aabbs_a.len(),
+                    faces_a.len(),
                     || WorkerScratch {
                         pairs: Vec::new(),
                         hits: Vec::new(),
                     },
                     |mut s, i| {
                         s.hits.clear();
-                        tree.query_overlapping_shared(&aabbs_a_ref[i], shared_token, &mut s.hits);
+                        let aabb_a = triangle_aabb(&faces_a[i], pool_a);
+                        tree.query_overlapping_shared(&aabb_a, shared_token, &mut s.hits);
                         s.hits.sort_unstable();
                         for &j in &s.hits {
                             s.pairs.push(CandidatePair {
@@ -180,19 +167,20 @@ pub fn broad_phase_pairs(
             });
         } else {
             // Build BVH on A and query B.
+            let aabbs_a = faces_a.par().map_collect(|f| triangle_aabb(f, pool_a));
             with_bvh(&aabbs_a, |tree, token| {
                 let shared_token = token.share();
-                let aabbs_b_ref = &aabbs_b;
 
                 let scratch = fold_reduce_with::<Parallel, _, _, _, _>(
-                    aabbs_b.len(),
+                    faces_b.len(),
                     || WorkerScratch {
                         pairs: Vec::new(),
                         hits: Vec::new(),
                     },
                     |mut s, j| {
                         s.hits.clear();
-                        tree.query_overlapping_shared(&aabbs_b_ref[j], shared_token, &mut s.hits);
+                        let aabb_b = triangle_aabb(&faces_b[j], pool_b);
+                        tree.query_overlapping_shared(&aabb_b, shared_token, &mut s.hits);
                         for &i in &s.hits {
                             s.pairs.push(CandidatePair {
                                 face_a: i,
@@ -222,11 +210,13 @@ pub fn broad_phase_pairs(
     {
         if faces_b.len() <= faces_a.len() {
             // Build BVH on B and query A.
+            let aabbs_b: Vec<Aabb> = faces_b.iter().map(|f| triangle_aabb(f, pool_b)).collect();
             with_bvh(&aabbs_b, |tree, token| {
                 let mut hits = Vec::new();
-                for (i, aabb_a) in aabbs_a.iter().enumerate() {
+                for (i, face_a) in faces_a.iter().enumerate() {
+                    let aabb_a = triangle_aabb(face_a, pool_a);
                     hits.clear();
-                    tree.query_overlapping(aabb_a, &token, &mut hits);
+                    tree.query_overlapping(&aabb_a, &token, &mut hits);
                     hits.sort_unstable();
                     for &j in &hits {
                         pairs.push(CandidatePair {
@@ -238,11 +228,13 @@ pub fn broad_phase_pairs(
             });
         } else {
             // Build BVH on A and query B.
+            let aabbs_a: Vec<Aabb> = faces_a.iter().map(|f| triangle_aabb(f, pool_a)).collect();
             with_bvh(&aabbs_a, |tree, token| {
                 let mut hits = Vec::new();
-                for (j, aabb_b) in aabbs_b.iter().enumerate() {
+                for (j, face_b) in faces_b.iter().enumerate() {
+                    let aabb_b = triangle_aabb(face_b, pool_b);
                     hits.clear();
-                    tree.query_overlapping(aabb_b, &token, &mut hits);
+                    tree.query_overlapping(&aabb_b, &token, &mut hits);
                     for &i in &hits {
                         pairs.push(CandidatePair {
                             face_a: i,

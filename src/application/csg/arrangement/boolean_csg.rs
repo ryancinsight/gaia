@@ -244,12 +244,10 @@ fn execute_arrangement_pass(
 ) -> MeshResult<Vec<FaceData>> {
     let n_meshes = meshes.len();
 
-    // ── Pre-compute global Mesh AABBs and face AABBs in a single pass ─────────────
+    // ── Pre-compute global Mesh AABBs in a single pass ───────────────────────────
     let mut mesh_aabbs: Vec<Aabb> = Vec::with_capacity(n_meshes);
-    let mut aabbs: Vec<Vec<Aabb>> = Vec::with_capacity(n_meshes);
     for m in meshes {
         let mut bb = Aabb::empty();
-        let mut face_aabbs = Vec::with_capacity(m.len());
         for f in m {
             let a = pool.position(f.vertices[0]);
             let b = pool.position(f.vertices[1]);
@@ -258,12 +256,6 @@ fn execute_arrangement_pass(
             bb.expand(a);
             bb.expand(b);
             bb.expand(c);
-
-            let mut aabb = Aabb::empty();
-            aabb.expand(a);
-            aabb.expand(b);
-            aabb.expand(c);
-            face_aabbs.push(aabb);
         }
         // Expand AABB relative to its diagonal to defeat floating-point
         // precision misses on snapped vertices.  Scale-correct: see
@@ -273,21 +265,46 @@ fn execute_arrangement_pass(
         bb.min -= crate::domain::core::scalar::Vector3r::new(eps, eps, eps);
         bb.max += crate::domain::core::scalar::Vector3r::new(eps, eps, eps);
         mesh_aabbs.push(bb);
-        aabbs.push(face_aabbs);
     }
 
     let total_face_count: usize = meshes.iter().map(Vec::len).sum();
-    let mut pairs = Vec::with_capacity(estimate_candidate_pair_capacity(&aabbs));
+    let mut pairs = Vec::with_capacity(estimate_candidate_pair_capacity(meshes));
     for i in 0..n_meshes {
-        with_bvh(&aabbs[i], |tree, token| {
+        if meshes[i].is_empty() {
+            continue;
+        }
+
+        // On-demand face AABBs for mesh i (the BVH build target)
+        let mut face_aabbs_i = Vec::with_capacity(meshes[i].len());
+        for f in &meshes[i] {
+            let a = pool.position(f.vertices[0]);
+            let b = pool.position(f.vertices[1]);
+            let c = pool.position(f.vertices[2]);
+            let mut aabb = Aabb::empty();
+            aabb.expand(a);
+            aabb.expand(b);
+            aabb.expand(c);
+            face_aabbs_i.push(aabb);
+        }
+
+        with_bvh(&face_aabbs_i, |tree, token| {
             let mut hits = Vec::new();
             for j in (i + 1)..n_meshes {
                 if !mesh_aabbs[i].intersects(&mesh_aabbs[j]) {
                     continue;
                 }
-                for (fb, aabb_b) in aabbs[j].iter().enumerate() {
+                for (fb, f_b) in meshes[j].iter().enumerate() {
+                    // Compute AABB for f_b on-the-fly
+                    let a = pool.position(f_b.vertices[0]);
+                    let b = pool.position(f_b.vertices[1]);
+                    let c = pool.position(f_b.vertices[2]);
+                    let mut aabb_b = Aabb::empty();
+                    aabb_b.expand(a);
+                    aabb_b.expand(b);
+                    aabb_b.expand(c);
+
                     hits.clear();
-                    tree.query_overlapping(aabb_b, &token, &mut hits);
+                    tree.query_overlapping(&aabb_b, &token, &mut hits);
                     for &fa in &hits {
                         pairs.push(BooleanCandidatePair {
                             mesh_a: i,
@@ -384,12 +401,12 @@ fn execute_arrangement_pass(
     Ok(result_faces)
 }
 
-fn estimate_candidate_pair_capacity(face_aabbs: &[Vec<Aabb>]) -> usize {
+fn estimate_candidate_pair_capacity(meshes: &[Vec<FaceData>]) -> usize {
     let mut estimate = 0usize;
-    for (i, face_aabbs_i) in face_aabbs.iter().enumerate() {
-        let count_i = face_aabbs_i.len();
-        for face_aabbs_j in &face_aabbs[(i + 1)..] {
-            let count_j = face_aabbs_j.len();
+    for (i, m_i) in meshes.iter().enumerate() {
+        let count_i = m_i.len();
+        for m_j in &meshes[(i + 1)..] {
+            let count_j = m_j.len();
             estimate = estimate.saturating_add(count_i.min(count_j));
         }
     }
@@ -399,17 +416,16 @@ fn estimate_candidate_pair_capacity(face_aabbs: &[Vec<Aabb>]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::estimate_candidate_pair_capacity;
-    use crate::domain::geometry::aabb::Aabb;
+    use crate::infrastructure::storage::face_store::FaceData;
 
     #[test]
     fn candidate_pair_capacity_sums_pairwise_minima() {
-        let face_aabbs = vec![
-            Vec::new(),
-            vec![Aabb::empty(); 4],
-            vec![Aabb::empty(); 7],
-            vec![Aabb::empty(); 2],
-        ];
+        let dummy = FaceData {
+            vertices: [crate::domain::core::index::VertexId::default(); 3],
+            region: crate::domain::core::index::RegionId::INVALID,
+        };
+        let meshes = vec![Vec::new(), vec![dummy; 4], vec![dummy; 7], vec![dummy; 2]];
 
-        assert_eq!(estimate_candidate_pair_capacity(&face_aabbs), 8);
+        assert_eq!(estimate_candidate_pair_capacity(&meshes), 8);
     }
 }
