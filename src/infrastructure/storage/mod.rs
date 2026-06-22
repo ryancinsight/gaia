@@ -26,4 +26,4 @@ pub use edge_store::EdgeStore;
 pub use face_store::FaceStore;
 pub use pool::Pool;
 pub use slotmap_pool::{GhostSlotPool, SlotPool};
-pub use vertex_pool::VertexPool;
+pub use vertex_pool::{CellIndices, VertexPool};

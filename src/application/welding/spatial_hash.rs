@@ -9,6 +9,7 @@
 use hashbrown::HashMap;
 
 use crate::domain::core::scalar::{Point3r, Real};
+use crate::infrastructure::storage::CellIndices;
 
 /// Canonical 3-D grid cell key — re-exported from [`snap::GridCell`].
 ///
@@ -18,7 +19,7 @@ pub use super::snap::GridCell;
 /// A spatial hash grid mapping 3D points to bucket indices.
 pub struct SpatialHashGrid {
     /// Buckets: grid cell → list of indices.
-    buckets: HashMap<GridCell, Vec<u32>>,
+    buckets: HashMap<GridCell, CellIndices>,
     /// Reciprocal of cell size.
     inv_cell_size: Real,
 }
@@ -41,8 +42,8 @@ impl SpatialHashGrid {
         let cell = GridCell::from_point(point, self.inv_cell_size);
         self.buckets
             .entry(cell)
-            .or_insert_with(|| Vec::with_capacity(4))
-            .push(index);
+            .and_modify(|indices| indices.push(index))
+            .or_insert(CellIndices::One(index));
     }
 
     /// Query: find all indices within `radius` of `point`.

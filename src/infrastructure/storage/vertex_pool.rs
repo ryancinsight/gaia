@@ -118,6 +118,83 @@ impl CellKey {
     }
 }
 
+// ── CellIndices ──────────────────────────────────────────────────────────────
+
+/// Stack-allocated, inline representation for spatial hash cell indices.
+///
+/// Avoids heap allocations for cells containing a single index (the most common case),
+/// falling back to a boxed slice for cells containing multiple indices.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CellIndices {
+    /// Exactly 1 index (inline stack-allocated).
+    One(u32),
+    /// Multiple indices (heap-allocated fallback).
+    Many(Box<[u32]>),
+}
+
+impl CellIndices {
+    /// Get the first index in the cell.
+    #[inline]
+    #[must_use]
+    pub fn first(&self) -> u32 {
+        match self {
+            Self::One(idx) => *idx,
+            Self::Many(ref slice) => slice[0],
+        }
+    }
+
+    /// Push a new index to the cell.
+    pub fn push(&mut self, idx: u32) {
+        let current = std::mem::replace(self, Self::One(idx));
+        *self = match current {
+            Self::One(i0) => {
+                let v = vec![i0, idx];
+                Self::Many(v.into_boxed_slice())
+            }
+            Self::Many(slice) => {
+                let mut v = slice.into_vec();
+                v.push(idx);
+                Self::Many(v.into_boxed_slice())
+            }
+        };
+    }
+
+    /// Access the indices as a slice of `u32`.
+    #[inline]
+    #[must_use]
+    pub fn as_slice(&self) -> &[u32] {
+        match self {
+            Self::One(ref idx) => std::slice::from_ref(idx),
+            Self::Many(ref slice) => slice,
+        }
+    }
+
+    /// Iterate over indices in this cell.
+    #[inline]
+    pub fn iter(&self) -> std::slice::Iter<'_, u32> {
+        self.as_slice().iter()
+    }
+}
+
+impl std::ops::Deref for CellIndices {
+    type Target = [u32];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl<'a> IntoIterator for &'a CellIndices {
+    type Item = &'a u32;
+    type IntoIter = std::slice::Iter<'a, u32>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 // ── VertexPool<T> ─────────────────────────────────────────────────────────────
 
 /// A pool of deduplicated vertices backed by a spatial hash grid.
@@ -141,7 +218,7 @@ pub struct VertexPool<T: Scalar = f64> {
     /// Contiguous vertex storage.
     vertices: Vec<VertexData<T>>,
     /// Spatial hash: grid cell → list of vertex indices in that cell.
-    spatial_hash: HashMap<CellKey, Vec<u32>>,
+    spatial_hash: HashMap<CellKey, CellIndices>,
     /// Inverse of the quantization cell size (1 / `cell_size`).
     inv_cell_size: T,
     /// When `Some(tol_sq)`, `insert_or_weld` performs a distance check in the
@@ -333,7 +410,7 @@ impl<T: Scalar> VertexPool<T> {
         } else {
             // Snap-rounding mode: single cell lookup.
             if let Some(indices) = self.spatial_hash.get(&key) {
-                return VertexId::new(indices[0]);
+                return VertexId::new(indices.first());
             }
         }
 
@@ -342,8 +419,8 @@ impl<T: Scalar> VertexPool<T> {
         self.vertices.push(VertexData::new(position, normal));
         self.spatial_hash
             .entry(key)
-            .or_insert_with(|| Vec::with_capacity(2))
-            .push(idx);
+            .and_modify(|indices| indices.push(idx))
+            .or_insert(CellIndices::One(idx));
         VertexId::new(idx)
     }
 
@@ -354,8 +431,8 @@ impl<T: Scalar> VertexPool<T> {
         self.vertices.push(VertexData::new(position, normal));
         self.spatial_hash
             .entry(key)
-            .or_insert_with(|| Vec::with_capacity(2))
-            .push(idx);
+            .and_modify(|indices| indices.push(idx))
+            .or_insert(CellIndices::One(idx));
         VertexId::new(idx)
     }
 

@@ -60,6 +60,7 @@
 use hashbrown::HashMap;
 
 use crate::domain::core::scalar::{Point3r, Real};
+use crate::infrastructure::storage::CellIndices;
 
 // ── GridCell ─────────────────────────────────────────────────────────────────
 
@@ -165,7 +166,7 @@ impl GridCell {
 /// parallel insertion is required.
 pub struct SnappingGrid {
     /// Grid cell → list of `positions` indices stored in that cell.
-    buckets: HashMap<GridCell, Vec<u32>>,
+    buckets: HashMap<GridCell, CellIndices>,
     /// Flat array of all accepted (snapped) positions.
     positions: Vec<Point3r>,
     /// Snap tolerance ε.
@@ -266,7 +267,7 @@ impl SnappingGrid {
     /// both previously contained an identical loop body.
     #[inline]
     fn find_nearest_in_27(
-        buckets: &HashMap<GridCell, Vec<u32>>,
+        buckets: &HashMap<GridCell, CellIndices>,
         positions: &[Point3r],
         home: GridCell,
         query: &Point3r,
@@ -321,8 +322,8 @@ impl SnappingGrid {
         self.positions.push(snapped);
         self.buckets
             .entry(home)
-            .or_insert_with(|| Vec::with_capacity(4))
-            .push(new_idx);
+            .and_modify(|indices| indices.push(new_idx))
+            .or_insert(CellIndices::One(new_idx));
         (new_idx, true)
     }
 
