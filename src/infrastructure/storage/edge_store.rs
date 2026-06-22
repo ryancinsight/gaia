@@ -9,13 +9,182 @@ use hashbrown::HashMap;
 use crate::domain::core::index::{EdgeId, FaceId, VertexId};
 use crate::infrastructure::storage::face_store::FaceData;
 
+/// Stack-allocated, inline representation for edge-adjacent faces.
+///
+/// Avoids heap allocations for boundary (valence 1) and manifold (valence 2) edges,
+/// falling back to a boxed slice only for non-manifold edges.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AdjacentFaces {
+    /// No adjacent faces (e.g. during construction/clear).
+    Zero,
+    /// Shared by exactly 1 face (boundary edge).
+    One(FaceId),
+    /// Shared by exactly 2 faces (manifold edge).
+    Two(FaceId, FaceId),
+    /// Shared by >2 faces (non-manifold edge).
+    Many(Box<[FaceId]>),
+}
+
+impl AdjacentFaces {
+    /// Create an empty list of adjacent faces.
+    #[inline]
+    #[must_use]
+    pub fn new() -> Self {
+        Self::Zero
+    }
+
+    /// Valence: number of adjacent faces.
+    #[inline]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Zero => 0,
+            Self::One(_) => 1,
+            Self::Two(_, _) => 2,
+            Self::Many(ref slice) => slice.len(),
+        }
+    }
+
+    /// Is it empty?
+    #[inline]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Self::Zero)
+    }
+
+    /// Push a face ID to the list of adjacent faces.
+    pub fn push(&mut self, face: FaceId) {
+        let current = std::mem::replace(self, Self::Zero);
+        *self = match current {
+            Self::Zero => Self::One(face),
+            Self::One(f0) => Self::Two(f0, face),
+            Self::Two(f0, f1) => {
+                let v = vec![f0, f1, face];
+                Self::Many(v.into_boxed_slice())
+            }
+            Self::Many(slice) => {
+                let mut v = slice.into_vec();
+                v.push(face);
+                Self::Many(v.into_boxed_slice())
+            }
+        };
+    }
+
+    /// Iterate over adjacent face IDs.
+    #[inline]
+    pub fn iter(&self) -> AdjacentFacesIter<'_> {
+        AdjacentFacesIter {
+            faces: self,
+            index: 0,
+        }
+    }
+}
+
+impl Default for AdjacentFaces {
+    #[inline]
+    fn default() -> Self {
+        Self::Zero
+    }
+}
+
+/// Iterator over `AdjacentFaces`.
+pub struct AdjacentFacesIter<'a> {
+    faces: &'a AdjacentFaces,
+    index: usize,
+}
+
+impl<'a> Iterator for AdjacentFacesIter<'a> {
+    type Item = &'a FaceId;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.faces {
+            AdjacentFaces::Zero => None,
+            AdjacentFaces::One(ref f0) => {
+                if self.index == 0 {
+                    self.index += 1;
+                    Some(f0)
+                } else {
+                    None
+                }
+            }
+            AdjacentFaces::Two(ref f0, ref f1) => {
+                if self.index == 0 {
+                    self.index += 1;
+                    Some(f0)
+                } else if self.index == 1 {
+                    self.index += 1;
+                    Some(f1)
+                } else {
+                    None
+                }
+            }
+            AdjacentFaces::Many(ref slice) => {
+                if self.index < slice.len() {
+                    let item = &slice[self.index];
+                    self.index += 1;
+                    Some(item)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.faces.len() - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+impl ExactSizeIterator for AdjacentFacesIter<'_> {}
+
+impl<'a> IntoIterator for &'a AdjacentFaces {
+    type Item = &'a FaceId;
+    type IntoIter = AdjacentFacesIter<'a>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl std::ops::Index<usize> for AdjacentFaces {
+    type Output = FaceId;
+
+    #[inline]
+    fn index(&self, index: usize) -> &Self::Output {
+        match self {
+            AdjacentFaces::Zero => panic!("index out of bounds: 0 for empty"),
+            AdjacentFaces::One(ref f0) => {
+                if index == 0 {
+                    f0
+                } else {
+                    panic!("index out of bounds: {index} for length 1")
+                }
+            }
+            AdjacentFaces::Two(ref f0, ref f1) => {
+                if index == 0 {
+                    f0
+                } else if index == 1 {
+                    f1
+                } else {
+                    panic!("index out of bounds: {index} for length 2")
+                }
+            }
+            AdjacentFaces::Many(ref slice) => &slice[index],
+        }
+    }
+}
+
 /// Data stored per edge.
 #[derive(Clone, Debug)]
 pub struct EdgeData {
     /// The two endpoint vertex IDs (canonical: v0 < v1).
     pub vertices: (VertexId, VertexId),
     /// Faces sharing this edge (0 = boundary, 1 = boundary, 2 = manifold, >2 = non-manifold).
-    pub faces: Vec<FaceId>,
+    pub faces: AdjacentFaces,
 }
 
 impl EdgeData {
@@ -123,8 +292,7 @@ impl EdgeStore {
             self.edges[edge_id.as_usize()].faces.push(face);
         } else {
             let edge_id = EdgeId::from_usize(self.edges.len());
-            // Pre-allocate capacity 2: manifold edges have exactly 2 adjacent faces.
-            let mut faces = Vec::with_capacity(2);
+            let mut faces = AdjacentFaces::new();
             faces.push(face);
             self.edges.push(EdgeData {
                 vertices: key,
