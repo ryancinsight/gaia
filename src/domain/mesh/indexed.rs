@@ -990,6 +990,17 @@ impl<T: Scalar> MeshBuilder<T> {
         self.mesh.add_vertex_pos(pos)
     }
 
+    /// Add a vertex from explicit coordinates; returns its [`VertexId`].
+    pub fn vertex_xyz(&mut self, x: T, y: T, z: T) -> VertexId {
+        self.vertex(Point3::new(x, y, z))
+    }
+
+    /// Add a vertex from a coordinate array; returns its [`VertexId`].
+    pub fn vertex_array(&mut self, pos: [T; 3]) -> VertexId {
+        let [x, y, z] = pos;
+        self.vertex_xyz(x, y, z)
+    }
+
     /// Add a triangle from three vertex IDs.
     pub fn triangle(&mut self, v0: VertexId, v1: VertexId, v2: VertexId) -> FaceId {
         self.mesh.add_face(v0, v1, v2)
@@ -1001,6 +1012,16 @@ impl<T: Scalar> MeshBuilder<T> {
             let va = self.mesh.add_vertex_pos(*a);
             let vb = self.mesh.add_vertex_pos(*b);
             let vc = self.mesh.add_vertex_pos(*c);
+            self.mesh.add_face(va, vb, vc);
+        }
+    }
+
+    /// Add raw triangle soup from coordinate arrays; each triple is `(p0, p1, p2)`.
+    pub fn add_triangle_soup_arrays(&mut self, triangles: &[([T; 3], [T; 3], [T; 3])]) {
+        for &(a, b, c) in triangles {
+            let va = self.vertex_array(a);
+            let vb = self.vertex_array(b);
+            let vc = self.vertex_array(c);
             self.mesh.add_face(va, vb, vc);
         }
     }
@@ -1077,6 +1098,36 @@ mod tests {
             n1, n2,
             "Tolerance must be preserved after retain_largest_component"
         );
+    }
+
+    #[test]
+    fn mesh_builder_vertex_array_welds_duplicate_coordinates() {
+        let mut builder = MeshBuilder::<f64>::new();
+        let a = builder.vertex_array([0.0, 0.0, 0.0]);
+        let b = builder.vertex_array([0.0, 0.0, 0.0]);
+        let c = builder.vertex_xyz(1.0, 0.0, 0.0);
+        let d = builder.vertex_xyz(0.0, 1.0, 0.0);
+        builder.triangle(a, c, d);
+
+        let mesh = builder.build();
+
+        assert_eq!(a, b);
+        assert_eq!(mesh.vertex_count(), 3);
+        assert_eq!(mesh.face_count(), 1);
+    }
+
+    #[test]
+    fn mesh_builder_triangle_soup_arrays_adds_faces() {
+        let mut builder = MeshBuilder::<f64>::new();
+        builder.add_triangle_soup_arrays(&[
+            ([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]),
+            ([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]),
+        ]);
+
+        let mesh = builder.build();
+
+        assert_eq!(mesh.vertex_count(), 4);
+        assert_eq!(mesh.face_count(), 2);
     }
 
     // ── orient_outward adversarial tests ──────────────────────────────────
