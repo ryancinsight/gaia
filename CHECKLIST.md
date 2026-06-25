@@ -1,5 +1,17 @@
 # Checklist
 
+- [x] **Phase 17: RITK MeshBuilder Array API Provider Slice**
+    - [x] Add `MeshBuilder::vertex_xyz`, `vertex_array`, and `add_triangle_soup_arrays`
+      so consumers can build Gaia meshes without importing `nalgebra::Point3`.
+    - [x] Add value-semantic tests for duplicate-coordinate welding and array-backed
+      triangle soup face construction.
+    - [x] Verify provider gates: `cargo fmt --check`, `cargo check --all-targets`,
+      `cargo clippy --all-targets --all-features -- -D warnings`, `cargo nextest run`
+      (922 passed, 1 skipped), `cargo test --doc` (5 passed, 39 ignored), and
+      `cargo doc --no-deps`.
+    - [x] Land before the RITK consumer branch that removes mesh-only direct `nalgebra`
+      dependencies from `ritk-filter`, `ritk-vtk`, and `ritk-io`.
+
 - [x] **Phase 1: Diagnosis & Analysis**
     - [x] Run `examples/csg_cube_sphere.rs` and capture output/error.
     - [x] Audit `src/application/csg/bsp.rs` for correct plane classification logic.
