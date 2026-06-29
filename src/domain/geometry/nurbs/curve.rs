@@ -44,7 +44,7 @@
 //! ```rust,no_run
 //! use gaia::domain::geometry::nurbs::knot::KnotVector;
 //! use gaia::domain::geometry::nurbs::curve::NurbsCurve;
-//! use nalgebra::SVector;
+//! use leto::geometry::Vector as SVector;
 //!
 //! // Quadratic NURBS arc (quarter circle in XY plane)
 //! let ctrl = vec![
@@ -66,7 +66,7 @@ use thiserror::Error as ThisError;
 use super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::knot::{KnotError, KnotVector};
 use crate::domain::core::scalar::Real;
-use nalgebra::SVector;
+use leto::geometry::Vector as SVector;
 
 // ── Errors ────────────────────────────────────────────────────────────────────
 
@@ -546,7 +546,7 @@ impl NurbsCurve<3> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nalgebra::SVector;
+    use leto::geometry::Vector as SVector;
 
     type V3 = SVector<Real, 3>;
     type V2 = SVector<Real, 2>;

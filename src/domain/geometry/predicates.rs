@@ -41,7 +41,7 @@
 //! [shewchuk]: https://www.cs.cmu.edu/~quake/robust.html
 
 use geometry_predicates as gp;
-use nalgebra::Point2;
+use leto::geometry::Point2;
 
 use crate::domain::core::scalar::Real;
 
@@ -125,7 +125,7 @@ fn r(v: Real) -> f64 {
 /// # Example
 /// ```rust
 /// use gaia::domain::geometry::predicates::{orient_2d, Orientation};
-/// use nalgebra::Point2;
+/// use leto::geometry::Point2;
 ///
 /// let a = Point2::new(0.0_f64, 0.0);
 /// let b = Point2::new(1.0, 0.0);
@@ -185,14 +185,14 @@ pub fn orient_3d(a: [Real; 3], b: [Real; 3], c: [Real; 3], d: [Real; 3]) -> Orie
     Orientation::from_det(det)
 }
 
-/// Convenience wrapper: accept `nalgebra::Point3<Real>`.
+/// Convenience wrapper: accept `leto::geometry::Point3<Real>`.
 #[inline]
 #[must_use]
 pub fn orient_3d_pts(
-    a: &nalgebra::Point3<Real>,
-    b: &nalgebra::Point3<Real>,
-    c: &nalgebra::Point3<Real>,
-    d: &nalgebra::Point3<Real>,
+    a: &leto::geometry::Point3<Real>,
+    b: &leto::geometry::Point3<Real>,
+    c: &leto::geometry::Point3<Real>,
+    d: &leto::geometry::Point3<Real>,
 ) -> Orientation {
     orient_3d(
         [a.x, a.y, a.z],
@@ -267,7 +267,7 @@ pub fn insphere(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nalgebra::Point2;
+    use leto::geometry::Point2;
 
     // ── orient_2d ──────────────────────────────────────────────────────────
 

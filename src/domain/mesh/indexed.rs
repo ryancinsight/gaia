@@ -1,4 +1,4 @@
-use nalgebra::{Point3, Vector3};
+use leto::geometry::{Point3, Vector3};
 // =========================================================================
 // IndexedMesh<T> — watertight-first surface mesh, generic over precision
 // =========================================================================
@@ -540,7 +540,7 @@ impl<T: Scalar> IndexedMesh<T> {
             // centroid X.  Computed on-the-fly to avoid a dedicated
             // `face_centroid_x` allocation.
             let seed_fi = {
-                let mut best_x = <T as num_traits::Float>::neg_infinity();
+                let mut best_x = <T as eunomia::NumericElement>::neg_infinity();
                 let mut best: Option<usize> = None;
                 let third = <T as Scalar>::from_f64(3.0);
                 for fi in 0..n_faces {
@@ -568,7 +568,7 @@ impl<T: Scalar> IndexedMesh<T> {
             // Seed orientation: the outward normal of the extremal face must
             // have a non-negative X component.
             let seed_normal = face_normals[seed_fi].expect("invariant: seed_fi is the extremal face whose normal was computed in the face_normals pass");
-            orientation[seed_fi] = Some(seed_normal.x >= T::zero());
+            orientation[seed_fi] = Some(seed_normal.x >= <T as eunomia::NumericElement>::ZERO);
             component_id[seed_fi] = current_component;
 
             queue.push_back(seed_fi);
@@ -714,14 +714,14 @@ impl<T: Scalar> IndexedMesh<T> {
                 };
 
                 let normal_len = corrected_normal.norm();
-                if normal_len <= T::zero() {
+                if normal_len <= <T as eunomia::NumericElement>::ZERO {
                     continue;
                 }
 
                 let a = self.vertices.position(seed_face.vertices[0]);
                 let b = self.vertices.position(seed_face.vertices[1]);
                 let c = self.vertices.position(seed_face.vertices[2]);
-                let centroid = nalgebra::Point3::new(
+                let centroid = leto::geometry::Point3::new(
                     (a.x + b.x + c.x) / <T as Scalar>::from_f64(3.0),
                     (a.y + b.y + c.y) / <T as Scalar>::from_f64(3.0),
                     (a.z + b.z + c.z) / <T as Scalar>::from_f64(3.0),
@@ -755,7 +755,7 @@ impl<T: Scalar> IndexedMesh<T> {
                     }
 
                     let contains_probe =
-                        component_aabbs[other].contains_point(&nalgebra::Point3::new(
+                        component_aabbs[other].contains_point(&leto::geometry::Point3::new(
                             <T as Scalar>::from_f64(probe.x),
                             <T as Scalar>::from_f64(probe.y),
                             <T as Scalar>::from_f64(probe.z),
@@ -811,7 +811,7 @@ impl<T: Scalar> IndexedMesh<T> {
                 )
             }),
         );
-        if signed_vol < T::zero() {
+        if signed_vol < <T as eunomia::NumericElement>::ZERO {
             for face in self.faces.iter_mut() {
                 face.flip();
             }

@@ -201,14 +201,14 @@ impl<K: Key, V> std::ops::IndexMut<K> for SlotPool<K, V> {
 ///
 /// with_mesh(|_mesh, mut token| {
 ///     let mut pool: GhostSlotPool<VertexKey, VertexData> = GhostSlotPool::new();
-///     let data = VertexData::new(nalgebra::Point3::origin());
+///     let data = VertexData::new(leto::geometry::Point3::origin());
 ///     let key = pool.insert(gaia::infrastructure::permission::GhostCell::new(data));
 ///
 ///     // Read requires shared token reference
 ///     let _pos = pool[key].borrow(&token).position;
 ///
 ///     // Write requires mutable token reference
-///     pool[key].borrow_mut(&mut token).position = nalgebra::Point3::new(1.0, 0.0, 0.0);
+///     pool[key].borrow_mut(&mut token).position = leto::geometry::Point3::new(1.0, 0.0, 0.0);
 /// });
 /// ```
 pub type GhostSlotPool<'id, K, V> = SlotPool<K, GhostCell<'id, V>>;

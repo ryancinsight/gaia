@@ -58,7 +58,7 @@
 
 use crate::domain::core::index::{FaceKey, HalfEdgeKey, PatchKey, VertexKey};
 use crate::domain::core::scalar::Real;
-use nalgebra::{Point3, UnitVector3, Vector3};
+use leto::geometry::{Point3, UnitVector3, Vector3};
 
 // ── Boundary patch types ──────────────────────────────────────────────────────
 

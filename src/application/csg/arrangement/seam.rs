@@ -14,7 +14,7 @@ use crate::domain::core::scalar::Real;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
-fn cell_key(p: &nalgebra::Point3<Real>, inv_cell: Real) -> (i64, i64, i64) {
+fn cell_key(p: &leto::geometry::Point3<Real>, inv_cell: Real) -> (i64, i64, i64) {
     (
         (p.x * inv_cell + 0.5).floor() as i64,
         (p.y * inv_cell + 0.5).floor() as i64,

@@ -1,7 +1,7 @@
 //! Area and volume measurements — generic over scalar precision `T: Scalar`.
 
 use crate::domain::core::scalar::Scalar;
-use nalgebra::Point3;
+use leto::geometry::Point3;
 
 /// Area of a triangle.
 #[inline]
@@ -26,7 +26,7 @@ pub fn total_surface_area<'a, T: Scalar + 'a>(
 ) -> T {
     triangles
         .map(|(a, b, c)| triangle_area(a, b, c))
-        .fold(T::zero(), |acc, v| acc + v)
+        .fold(<T as eunomia::NumericElement>::ZERO, |acc, v| acc + v)
 }
 
 /// Total signed volume from an iterator of triangle vertex triples.
@@ -37,5 +37,5 @@ pub fn total_signed_volume<'a, T: Scalar + 'a>(
 ) -> T {
     triangles
         .map(|(a, b, c)| signed_triangle_volume(a, b, c))
-        .fold(T::zero(), |acc, v| acc + v)
+        .fold(<T as eunomia::NumericElement>::ZERO, |acc, v| acc + v)
 }

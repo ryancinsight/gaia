@@ -8,7 +8,7 @@ use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
 use hashbrown::HashMap;
-use nalgebra::Point3;
+use leto::geometry::Point3;
 
 /// Converts a P1 (linear) mesh to a refined mesh by 1:4 triangle subdivision.
 ///
@@ -76,7 +76,7 @@ impl P2MeshConverter {
         *edge_mid.entry(key).or_insert_with(|| {
             let va = mesh.vertices.position(a);
             let vb = mesh.vertices.position(b);
-            let two = T::one() + T::one();
+            let two = <T as eunomia::NumericElement>::ONE + <T as eunomia::NumericElement>::ONE;
             let mid = Point3::new(
                 (va.x + vb.x) / two,
                 (va.y + vb.y) / two,

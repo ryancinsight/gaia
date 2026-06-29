@@ -118,7 +118,7 @@ fn symmetric_parallel_cylinders(segments: usize) -> (IndexedMesh, IndexedMesh) {
 
 fn planar_branch(angle_from_x: f64, radius: f64, height: f64, segments: usize) -> IndexedMesh {
     use crate::application::csg::CsgNode;
-    use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+    use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
     let raw = Cylinder {
         base_center: Point3r::new(0.0, 0.0, 0.0),
@@ -142,7 +142,7 @@ fn planar_branch(angle_from_x: f64, radius: f64, height: f64, segments: usize) -
 
 fn planar_trunk(radius: f64, height: f64, extension: f64, segments: usize) -> IndexedMesh {
     use crate::application::csg::CsgNode;
-    use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+    use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
     let raw = Cylinder {
         base_center: Point3r::new(0.0, 0.0, 0.0),
@@ -420,7 +420,7 @@ fn cylinder_difference_normals_check() {
     use crate::application::quality::normals::analyze_normals;
     use crate::domain::core::scalar::Point3r;
     use crate::domain::geometry::primitives::{Cylinder, PrimitiveMesh};
-    use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+    use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
     use std::f64::consts::FRAC_PI_2;
 
     const R: f64 = 0.5;

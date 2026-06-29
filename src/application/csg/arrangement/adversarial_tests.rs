@@ -54,7 +54,7 @@ mod tests {
     /// Build a unit-cube reference mesh for GWN tests.
     fn unit_cube_faces() -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let s = 0.5_f64;
         let mut v = |x, y, z| pool.insert_or_weld(Point3r::new(x, y, z), n);
         let c000 = v(-s, -s, -s);
@@ -195,7 +195,7 @@ mod tests {
     #[test]
     fn self_intersection_detection_finds_crossing_triangles() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
 
         // Triangle A: (0,0,0)-(2,0,0)-(1,2,0) in XY plane
         let a0 = pool.insert_or_weld(Point3r::new(0.0, 0.0, 0.0), n);
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn self_intersection_adjacent_faces_not_reported() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         // Two adjacent triangles forming a quad (0,0)-(1,0)-(1,1)-(0,1).
         let v0 = pool.insert_or_weld(Point3r::new(0.0, 0.0, 0.0), n);
         let v1 = pool.insert_or_weld(Point3r::new(1.0, 0.0, 0.0), n);
@@ -2158,7 +2158,7 @@ mod tests {
         use crate::application::csg::boolean::csg_boolean_nary;
         use crate::application::csg::CsgNode;
         use crate::application::watertight::check::check_watertight;
-        use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+        use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
         let radius = 0.4;
         let height = 3.0;
@@ -2216,7 +2216,7 @@ mod tests {
         use crate::application::csg::boolean::csg_boolean_nary;
         use crate::application::csg::CsgNode;
         use crate::application::watertight::check::check_watertight;
-        use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+        use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
         let radius = 0.4;
         let height = 3.0;
@@ -2281,7 +2281,7 @@ mod tests {
         use crate::application::csg::boolean::csg_boolean_nary;
         use crate::application::csg::CsgNode;
         use crate::application::watertight::check::check_watertight;
-        use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+        use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
         let radius = 0.3;
         let height = 3.0;

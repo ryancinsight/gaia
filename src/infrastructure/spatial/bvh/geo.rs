@@ -35,7 +35,7 @@ pub(super) fn axis_min(aabb: &Aabb, axis: usize) -> f64 {
 
 /// Coordinate of a point along one axis.
 #[inline]
-pub(super) fn axis_value(p: &nalgebra::Point3<f64>, axis: usize) -> f64 {
+pub(super) fn axis_value(p: &leto::geometry::Point3<f64>, axis: usize) -> f64 {
     match axis {
         0 => p.x,
         1 => p.y,
@@ -61,7 +61,7 @@ pub(super) fn longest_axis(aabb: &Aabb) -> (usize, f64) {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
-    use nalgebra::Point3;
+    use leto::geometry::Point3;
 
     fn pt(x: f64, y: f64, z: f64) -> Point3<f64> {
         Point3::new(x, y, z)

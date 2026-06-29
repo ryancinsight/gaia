@@ -44,7 +44,7 @@ mod tests {
     use crate::infrastructure::storage::vertex_pool::VertexPool;
 
     fn make_tri(pool: &mut VertexPool, pts: [[f64; 3]; 3]) -> FaceData {
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let v0 = pool.insert_or_weld(Point3r::new(pts[0][0], pts[0][1], pts[0][2]), n);
         let v1 = pool.insert_or_weld(Point3r::new(pts[1][0], pts[1][1], pts[1][2]), n);
         let v2 = pool.insert_or_weld(Point3r::new(pts[2][0], pts[2][1], pts[2][2]), n);

@@ -375,7 +375,7 @@ mod tests {
     /// Build a unit cube mesh for GWN testing.
     fn unit_cube_faces() -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let s = 0.5_f64;
         let mut v = |x, y, z| pool.insert_or_weld(Point3r::new(x, y, z), n);
         let c000 = v(-s, -s, -s);

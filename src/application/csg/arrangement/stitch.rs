@@ -265,13 +265,13 @@ pub(crate) fn cdt_fill_loop(
         return 0;
     }
     let inv_nlen = 1.0 / nlen_sq.sqrt();
-    let normal = nalgebra::Vector3::new(nx * inv_nlen, ny * inv_nlen, nz * inv_nlen);
+    let normal = leto::geometry::Vector3::new(nx * inv_nlen, ny * inv_nlen, nz * inv_nlen);
 
     // Build orthogonal 2D basis from normal (Gram-Schmidt).
     let seed = if normal.x.abs() < 0.9 {
-        nalgebra::Vector3::new(1.0, 0.0, 0.0)
+        leto::geometry::Vector3::new(1.0, 0.0, 0.0)
     } else {
-        nalgebra::Vector3::new(0.0, 1.0, 0.0)
+        leto::geometry::Vector3::new(0.0, 1.0, 0.0)
     };
     let u_axis = (seed - normal * seed.dot(&normal)).normalize();
     let v_axis = normal.cross(&u_axis);
@@ -281,7 +281,7 @@ pub(crate) fn cdt_fill_loop(
     let cx: Real = positions.iter().map(|p| p.x).sum::<Real>() * inv_n;
     let cy: Real = positions.iter().map(|p| p.y).sum::<Real>() * inv_n;
     let cz: Real = positions.iter().map(|p| p.z).sum::<Real>() * inv_n;
-    let centroid = nalgebra::Vector3::new(cx, cy, cz);
+    let centroid = leto::geometry::Vector3::new(cx, cy, cz);
 
     // Project loop vertices to 2D.
     let pts2d: Vec<[Real; 2]> = positions
@@ -411,13 +411,13 @@ pub(crate) fn ear_clip_fill(
         return 0; // Degenerate (collinear) polygon — cannot triangulate.
     }
     let inv_nlen = 1.0 / nlen_sq.sqrt();
-    let normal = nalgebra::Vector3::new(nx * inv_nlen, ny * inv_nlen, nz * inv_nlen);
+    let normal = leto::geometry::Vector3::new(nx * inv_nlen, ny * inv_nlen, nz * inv_nlen);
 
     // Build orthogonal 2D basis from normal (Gram-Schmidt).
     let seed = if normal.x.abs() < 0.9 {
-        nalgebra::Vector3::new(1.0, 0.0, 0.0)
+        leto::geometry::Vector3::new(1.0, 0.0, 0.0)
     } else {
-        nalgebra::Vector3::new(0.0, 1.0, 0.0)
+        leto::geometry::Vector3::new(0.0, 1.0, 0.0)
     };
     let u_axis = (seed - normal * seed.dot(&normal)).normalize();
     let v_axis = normal.cross(&u_axis);
@@ -427,7 +427,7 @@ pub(crate) fn ear_clip_fill(
     let cx: Real = positions.iter().map(|p| p.x).sum::<Real>() * inv_n;
     let cy: Real = positions.iter().map(|p| p.y).sum::<Real>() * inv_n;
     let cz: Real = positions.iter().map(|p| p.z).sum::<Real>() * inv_n;
-    let centroid = nalgebra::Vector3::new(cx, cy, cz);
+    let centroid = leto::geometry::Vector3::new(cx, cy, cz);
 
     // Project to 2D.
     let pts2d: Vec<[Real; 2]> = positions
@@ -565,7 +565,7 @@ pub(crate) fn ear_clip_fill(
 
 /// Compute polygon normal via Newell's method (numerically stable for
 /// non-planar polygons).
-fn newell_normal(positions: &[nalgebra::Point3<Real>]) -> (Real, Real, Real) {
+fn newell_normal(positions: &[leto::geometry::Point3<Real>]) -> (Real, Real, Real) {
     let n = positions.len();
     let mut nx: Real = 0.0;
     let mut ny: Real = 0.0;

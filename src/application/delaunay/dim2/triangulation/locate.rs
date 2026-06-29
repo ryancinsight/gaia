@@ -45,7 +45,7 @@
 
 use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{orient_2d, Orientation};
-use nalgebra::Point2;
+use leto::geometry::Point2;
 
 use super::triangle::{TriangleId, GHOST_TRIANGLE};
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertex;

@@ -9,7 +9,7 @@
 //! we insert them directly into the `VertexPool` with a tight tolerance.
 //! The spatial-hash deduplication in `VertexPool` ensures no duplicates.
 
-use nalgebra::{Point3, Vector3};
+use leto::geometry::{Point3, Vector3};
 
 use crate::application::delaunay::dim2::triangulation::bowyer_watson::DelaunayTriangulation;
 use crate::domain::core::index::VertexId;

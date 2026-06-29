@@ -22,7 +22,7 @@ use super::curve::NurbsCurve;
 use super::surface::NurbsSurface;
 use crate::domain::core::scalar::{Point3r, Real};
 use crate::domain::mesh::IndexedMesh;
-use nalgebra::UnitVector3;
+use leto::geometry::UnitVector3;
 
 // ---------------------------------------------------------------------------
 // TessellationOptions
@@ -89,7 +89,7 @@ fn angle_deg(a: UnitVector3<Real>, b: UnitVector3<Real>) -> Real {
 /// Returns 0.0 if fewer than 2 normals could be computed (degenerate surface).
 fn quad_max_angle_deg(surf: &NurbsSurface, u0: Real, v0: Real, u1: Real, v1: Real) -> Real {
     let corners = [(u0, v0), (u1, v0), (u0, v1), (u1, v1)];
-    let mut normals = [UnitVector3::new_normalize(nalgebra::Vector3::z()); 4];
+    let mut normals = [UnitVector3::new_normalize(leto::geometry::Vector3::z()); 4];
     let mut count = 0;
     for &(u, v) in &corners {
         if let Some(n) = surf.normal(u, v) {
@@ -283,7 +283,7 @@ mod tests {
     use super::super::knot::KnotVector;
     use super::super::surface::{ControlGrid, NurbsSurface};
     use super::*;
-    use nalgebra::SVector;
+    use leto::geometry::Vector as SVector;
 
     type V3 = SVector<Real, 3>;
     fn v3(x: Real, y: Real, z: Real) -> V3 {

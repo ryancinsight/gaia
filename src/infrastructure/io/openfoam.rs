@@ -260,7 +260,7 @@ pub fn write_openfoam_polymesh(
 
 fn write_points_file(
     dir: &Path,
-    positions: impl Iterator<Item = nalgebra::Point3<crate::domain::core::scalar::Real>>,
+    positions: impl Iterator<Item = leto::geometry::Point3<crate::domain::core::scalar::Real>>,
     n_points: usize,
 ) -> MeshResult<()> {
     let path = dir.join("points");

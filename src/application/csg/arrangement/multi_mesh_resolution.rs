@@ -220,7 +220,7 @@ fn lies_on_resolved_coplanar_plane(
 /// centroid falls outside the mesh's AABB (fast rejection).
 fn classify_fragment_against_mesh(
     centroid: &Point3r,
-    frag_normal: &nalgebra::Vector3<f64>,
+    frag_normal: &leto::geometry::Vector3<f64>,
     aabb_contains_centroid: bool,
     prepared_faces: &[super::classify::PreparedFace],
 ) -> FragmentClass {

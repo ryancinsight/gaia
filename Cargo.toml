@@ -39,7 +39,8 @@ anyhow = "1.0"
 # Data structures
 indexmap = "2.0"
 slotmap = "1.0"
-leto = { path = "../leto/crates/leto", default-features = false, features = ["std"] }
+leto = { path = "../leto/crates/leto", default-features = false, features = ["std", "serde"] }
+eunomia = { path = "../eunomia/crates/eunomia", default-features = false, features = ["std"] }
 melinoe = { version = "0.7.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false }
 
 # Mesh / geometry — state-of-the-art kernel

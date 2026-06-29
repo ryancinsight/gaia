@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn coplanarity_pool_outward_normal_votes_exterior() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let v0 = pool.insert_or_weld(Point3r::new(-0.5, -0.5, 0.5), n);
         let v1 = pool.insert_or_weld(Point3r::new(0.5, -0.5, 0.5), n);
         let v2 = pool.insert_or_weld(Point3r::new(0.0, 0.5, 0.5), n);

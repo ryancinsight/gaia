@@ -337,7 +337,7 @@ fn apply_centroid_splits(
         let p1 = *pool.position(v1);
         let p2 = *pool.position(v2);
 
-        let centroid_pos = nalgebra::Point3::new(
+        let centroid_pos = leto::geometry::Point3::new(
             (p0.x + p1.x + p2.x) / 3.0,
             (p0.y + p1.y + p2.y) / 3.0,
             (p0.z + p1.z + p2.z) / 3.0,

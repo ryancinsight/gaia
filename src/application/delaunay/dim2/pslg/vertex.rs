@@ -58,11 +58,11 @@ impl PslgVertex {
         }
     }
 
-    /// Convert to a `nalgebra::Point2<Real>` for predicate calls.
+    /// Convert to a `leto::geometry::Point2<Real>` for predicate calls.
     #[inline]
     #[must_use]
-    pub fn to_point2(&self) -> nalgebra::Point2<Real> {
-        nalgebra::Point2::new(self.x, self.y)
+    pub fn to_point2(&self) -> leto::geometry::Point2<Real> {
+        leto::geometry::Point2::new(self.x, self.y)
     }
 }
 

@@ -414,7 +414,7 @@ mod tests {
 
         // Cell size scaled to geometry: 1 nm = 1e-6 mm.
         let mut pool = VertexPool::new(1e-6);
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let s = 0.01; // 10 µm = 0.01 mm
 
         // Triangle A: in XY plane at z=0.
@@ -458,7 +458,7 @@ mod tests {
         use crate::infrastructure::storage::vertex_pool::VertexPool;
 
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let s = 1000.0; // 1 km
 
         // Triangle A: in XY plane.

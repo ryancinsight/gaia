@@ -623,6 +623,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "eunomia"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "half",
+ "libm",
+]
+
+[[package]]
+name = "eunomia"
+version = "0.1.0"
+source = "git+https://github.com/ryancinsight/eunomia#a7cd203bb2892fa3c42e26fe747c2ac80a7eabb8"
+dependencies = [
+ "bytemuck",
+ "half",
+ "libm",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -837,6 +856,7 @@ dependencies = [
  "aquamarine",
  "cfd-schematics",
  "criterion",
+ "eunomia 0.1.0",
  "geometry-predicates",
  "hashbrown 0.15.5",
  "indexmap",
@@ -1242,9 +1262,9 @@ name = "leto"
 version = "0.35.1"
 dependencies = [
  "bytemuck",
+ "eunomia 0.1.0 (git+https://github.com/ryancinsight/eunomia)",
  "half",
- "num-complex",
- "num-traits",
+ "serde",
  "thiserror 2.0.18",
 ]
 
@@ -1451,6 +1471,7 @@ dependencies = [
 name = "moirai-core"
 version = "0.2.0"
 dependencies = [
+ "bytemuck",
  "libc",
  "mnemosyne",
  "moirai-utils",
@@ -1514,6 +1535,7 @@ dependencies = [
 name = "moirai-transport"
 version = "0.2.0"
 dependencies = [
+ "bytemuck",
  "moirai-core",
  "moirai-scheduler",
  "moirai-utils",
@@ -3140,6 +3162,10 @@ dependencies = [
 ]
 
 [[patch.unused]]
+name = "mnemosyne-heap"
+version = "0.1.0"
+
+[[patch.unused]]
 name = "moirai-async"
 version = "0.2.0"
 
@@ -3162,7 +3188,3 @@ version = "0.2.0"
 [[patch.unused]]
 name = "moirai-tls"
 version = "0.2.0"
-
-[[patch.unused]]
-name = "mnemosyne-heap"
-version = "0.1.0"

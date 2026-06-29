@@ -25,7 +25,7 @@ mod tests {
     /// Build a unit cube (edge = 1, centred at origin) with 12 triangles.
     fn unit_cube_mesh() -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let s = 0.5_f64;
         let mut v = |x, y, z| pool.insert_or_weld(Point3r::new(x, y, z), n);
         let c000 = v(-s, -s, -s);
@@ -57,7 +57,7 @@ mod tests {
     /// Build a scaled cube with given half-edge length.
     fn scaled_cube_mesh(half: f64) -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let mut v = |x, y, z| pool.insert_or_weld(Point3r::new(x, y, z), n);
         let c000 = v(-half, -half, -half);
         let c100 = v(half, -half, -half);
@@ -88,7 +88,7 @@ mod tests {
     /// Build a tessellated unit sphere with `n_lat` latitude bands.
     fn sphere_mesh(n_lat: usize) -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let n_lon = 2 * n_lat;
         let mut vids = Vec::new();
 
@@ -287,7 +287,7 @@ mod tests {
     #[test]
     fn gwn_degenerate_face_contributes_zero() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let v0 = pool.insert_or_weld(Point3r::new(0.0, 0.0, 0.0), n);
         let v1 = pool.insert_or_weld(Point3r::new(1.0, 0.0, 0.0), n);
         let v2 = pool.insert_or_weld(Point3r::new(2.0, 0.0, 0.0), n); // collinear
@@ -493,7 +493,7 @@ mod tests {
     #[test]
     fn gwn_open_mesh_never_fully_inside() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let v0 = pool.insert_or_weld(Point3r::new(-1.0, -1.0, 0.0), n);
         let v1 = pool.insert_or_weld(Point3r::new(1.0, -1.0, 0.0), n);
         let v2 = pool.insert_or_weld(Point3r::new(0.0, 1.0, 0.0), n);
@@ -521,7 +521,7 @@ mod tests {
     #[test]
     fn gwn_sliver_triangle_no_corruption() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         // Sliver: very long and very narrow
         let v0 = pool.insert_or_weld(Point3r::new(0.0, 0.0, 0.0), n);
         let v1 = pool.insert_or_weld(Point3r::new(1.0, 0.0, 0.0), n);

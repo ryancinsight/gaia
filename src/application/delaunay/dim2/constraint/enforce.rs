@@ -35,7 +35,7 @@ use hashbrown::HashSet;
 
 use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{incircle, orient_2d, Orientation};
-use nalgebra::Point2;
+use leto::geometry::Point2;
 
 use crate::application::delaunay::dim2::pslg::graph::Pslg;
 use crate::application::delaunay::dim2::pslg::graph::PslgValidationError;

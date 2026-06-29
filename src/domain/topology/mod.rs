@@ -15,7 +15,7 @@ pub use halfedge::{BoundaryPatch, FaceData, HalfEdgeData, PatchType, VertexData}
 
 // ── Mesh-element types needed by cfd-3d ──────────────────────────────────────
 
-use nalgebra::Point3;
+use leto::geometry::Point3;
 
 /// Element type of a mesh cell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,12 +36,12 @@ pub enum ElementType {
 
 /// A mesh vertex carrying a 3-D position.
 #[derive(Debug, Clone)]
-pub struct Vertex<T: nalgebra::Scalar + Copy> {
+pub struct Vertex<T: eunomia::RealField> {
     /// 3-D position in space.
     pub position: Point3<T>,
 }
 
-impl<T: nalgebra::Scalar + Copy + nalgebra::RealField> Vertex<T> {
+impl<T: eunomia::RealField> Vertex<T> {
     /// Create a vertex at `position`.
     pub fn new(position: Point3<T>) -> Self {
         Self { position }

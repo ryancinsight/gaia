@@ -10,7 +10,7 @@ use crate::domain::core::index::VertexId;
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::Cell;
 use hashbrown::HashMap;
-use nalgebra::Point3;
+use leto::geometry::Point3;
 
 /// Error type for grid building.
 #[derive(Debug)]
