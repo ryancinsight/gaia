@@ -50,8 +50,7 @@
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Scalar;
 use hashbrown::HashMap;
-use nalgebra::{Point3, Vector3};
-use num_traits::ToPrimitive;
+use leto::geometry::{Point3, Vector3};
 
 // ── VertexData<T> ────────────────────────────────────────────────────────────
 
@@ -82,11 +81,11 @@ impl<T: Scalar> VertexData<T> {
     ///
     /// Position is linearly interpolated; normal is renormalised.
     pub fn lerp(&self, other: &Self, t: T) -> Self {
-        let one_minus_t = T::one() - t;
+        let one_minus_t = <T as eunomia::NumericElement>::ONE - t;
         let position = Point3::from(self.position.coords * one_minus_t + other.position.coords * t);
         let n = self.normal * one_minus_t + other.normal * t;
         let len = n.norm();
-        let normal = if len > T::zero() {
+        let normal = if len > <T as eunomia::NumericElement>::ZERO {
             n / len
         } else {
             Vector3::zeros()
@@ -107,9 +106,9 @@ struct CellKey {
 
 impl CellKey {
     fn from_point<T: Scalar>(p: &Point3<T>, inv_cell_size: T) -> Self {
-        let fx = num_traits::Float::floor(p.x * inv_cell_size);
-        let fy = num_traits::Float::floor(p.y * inv_cell_size);
-        let fz = num_traits::Float::floor(p.z * inv_cell_size);
+        let fx = eunomia::NumericElement::floor(p.x * inv_cell_size);
+        let fy = eunomia::NumericElement::floor(p.y * inv_cell_size);
+        let fz = eunomia::NumericElement::floor(p.z * inv_cell_size);
         Self {
             x: <T as ToPrimitive>::to_i64(&fx).unwrap_or(0),
             y: <T as ToPrimitive>::to_i64(&fy).unwrap_or(0),
@@ -232,7 +231,7 @@ impl<T: Scalar> VertexPool<T> {
         Self {
             vertices: Vec::new(),
             spatial_hash: HashMap::new(),
-            inv_cell_size: T::one() / cell_size,
+            inv_cell_size: <T as eunomia::NumericElement>::ONE / cell_size,
             tolerance_sq: None,
         }
     }
@@ -246,7 +245,7 @@ impl<T: Scalar> VertexPool<T> {
         Self {
             vertices: Vec::new(),
             spatial_hash: HashMap::new(),
-            inv_cell_size: T::one() / cell_size,
+            inv_cell_size: <T as eunomia::NumericElement>::ONE / cell_size,
             tolerance_sq: Some(tolerance * tolerance),
         }
     }
@@ -256,7 +255,7 @@ impl<T: Scalar> VertexPool<T> {
         Self {
             vertices: Vec::with_capacity(capacity),
             spatial_hash: HashMap::with_capacity(capacity),
-            inv_cell_size: T::one() / cell_size,
+            inv_cell_size: <T as eunomia::NumericElement>::ONE / cell_size,
             tolerance_sq: None,
         }
     }
@@ -266,7 +265,7 @@ impl<T: Scalar> VertexPool<T> {
         Self {
             vertices: Vec::with_capacity(capacity),
             spatial_hash: HashMap::with_capacity(capacity),
-            inv_cell_size: T::one() / cell_size,
+            inv_cell_size: <T as eunomia::NumericElement>::ONE / cell_size,
             tolerance_sq: Some(tolerance * tolerance),
         }
     }
@@ -492,13 +491,13 @@ impl<T: Scalar> VertexPool<T> {
     /// Return the exact weld grid cell size.
     #[must_use]
     pub fn cell_size(&self) -> T {
-        T::one() / self.inv_cell_size
+        <T as eunomia::NumericElement>::ONE / self.inv_cell_size
     }
 
     /// Return the weld tolerance, if tolerance-based welding is enabled.
     #[must_use]
     pub fn tolerance(&self) -> Option<T> {
-        self.tolerance_sq.map(num_traits::Float::sqrt)
+        self.tolerance_sq.map(eunomia::NumericElement::sqrt)
     }
 
     /// Update the exact position of a previously inserted vertex.

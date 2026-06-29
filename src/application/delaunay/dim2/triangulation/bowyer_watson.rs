@@ -207,7 +207,7 @@ impl DelaunayTriangulation {
         qx: Real,
         qy: Real,
     ) -> Option<Location> {
-        use nalgebra::Point2;
+        use leto::geometry::Point2;
 
         self.locate_gen = self.locate_gen.wrapping_add(1);
         if self.locate_gen == 0 {

@@ -163,7 +163,7 @@ mod tests {
 
     fn unit_cube_mesh() -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let s = 0.5_f64;
         let mut v = |x, y, z| pool.insert_or_weld(Point3r::new(x, y, z), n);
         let c000 = v(-s, -s, -s);
@@ -217,7 +217,7 @@ mod tests {
     #[test]
     fn classify_coplanar_same_fragment() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let v0 = pool.insert_or_weld(Point3r::new(-0.5, -0.5, 0.5), n);
         let v1 = pool.insert_or_weld(Point3r::new(0.5, -0.5, 0.5), n);
         let v2 = pool.insert_or_weld(Point3r::new(-0.5, 0.5, 0.5), n);

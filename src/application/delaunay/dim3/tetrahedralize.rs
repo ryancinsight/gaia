@@ -17,19 +17,18 @@
 //! fresh allocations, yielding guaranteed zero-allocation O(1) memory overhead during mesh generation.
 
 use hashbrown::{HashMap, HashSet};
-use nalgebra::{Point3, Vector3};
-use num_traits::Float;
+use leto::geometry::{Point3, Vector3};
 
 use crate::domain::core::scalar::Scalar;
 
 #[inline]
 fn point_to_f64_arr<T: Scalar>(pt: &Point3<T>) -> [f64; 3] {
     [
-        num_traits::ToPrimitive::to_f64(&pt.x)
+        eunomia::NumericElement::to_f64(&pt.x)
             .expect("invariant: real scalar can always be cast to f64"),
-        num_traits::ToPrimitive::to_f64(&pt.y)
+        eunomia::NumericElement::to_f64(&pt.y)
             .expect("invariant: real scalar can always be cast to f64"),
-        num_traits::ToPrimitive::to_f64(&pt.z)
+        eunomia::NumericElement::to_f64(&pt.z)
             .expect("invariant: real scalar can always be cast to f64"),
     ]
 }
@@ -219,7 +218,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
         let d_max = Float::max(Float::max(d.x, d.y), d.z) * <T as Scalar>::from_f64(5.0);
         let center = min + d / <T as Scalar>::from_f64(2.0);
 
-        let p0 = center + Vector3::new(T::zero(), d_max, -d_max / <T as Scalar>::from_f64(3.0));
+        let p0 = center + Vector3::new(<T as eunomia::NumericElement>::ZERO, d_max, -d_max / <T as Scalar>::from_f64(3.0));
         let p1 = center
             + Vector3::new(
                 d_max * Float::sin(<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)),
@@ -233,7 +232,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
                 -d_max / <T as Scalar>::from_f64(3.0),
             );
         // The peak point goes upwards to enclose +Z, completing the regular tetrahedron mathematically
-        let p3 = center + Vector3::new(T::zero(), T::zero(), d_max);
+        let p3 = center + Vector3::new(<T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ZERO, d_max);
 
         // Record the anchor index so we can delete super-vertices in O(1) time
         self.super_idx = self.vertices.len();

@@ -63,8 +63,7 @@ pub struct MeshValidator {
 /// Hoisted from the per-face closure in `MeshValidator::validate` to eliminate
 /// closure re-creation overhead on every loop iteration.
 #[inline]
-fn point_to_p3r<T: Scalar>(p: &nalgebra::Point3<T>) -> Point3r {
-    use num_traits::ToPrimitive as TP;
+fn point_to_p3r<T: Scalar>(p: &leto::geometry::Point3<T>) -> Point3r {
     Point3r::new(
         TP::to_f64(&p.x).unwrap_or(0.0),
         TP::to_f64(&p.y).unwrap_or(0.0),

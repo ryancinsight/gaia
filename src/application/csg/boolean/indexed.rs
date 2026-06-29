@@ -1426,7 +1426,7 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
         {
             let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
                 hashbrown::HashMap::with_capacity(bv.len());
-            let bv_pos: Vec<nalgebra::Point3<f64>> =
+            let bv_pos: Vec<leto::geometry::Point3<f64>> =
                 bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
             for i in 0..bv.len() {
                 let p = &bv_pos[i];
@@ -1679,7 +1679,7 @@ fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     // Build spatial hash: cell → list of vertex indices.
     let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
         hashbrown::HashMap::with_capacity(n);
-    let positions: Vec<nalgebra::Point3<f64>> = (0..n)
+    let positions: Vec<leto::geometry::Point3<f64>> = (0..n)
         .map(|i| *mesh.vertices.position(VertexId(i as u32)))
         .collect();
     for i in 0..n {
@@ -1897,7 +1897,7 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
 
 /// Compute the unit normal of a face, or `None` if degenerate.
 #[inline]
-fn face_normal_of(face: &FaceData, vertices: &VertexPool) -> Option<nalgebra::Vector3<f64>> {
+fn face_normal_of(face: &FaceData, vertices: &VertexPool) -> Option<leto::geometry::Vector3<f64>> {
     crate::domain::geometry::normal::triangle_normal(
         vertices.position(face.vertices[0]),
         vertices.position(face.vertices[1]),
@@ -1932,7 +1932,7 @@ fn remove_fin_faces(mesh: &mut IndexedMesh) {
     }
 
     // Compute per-face normals.
-    let face_normals: Vec<Option<nalgebra::Vector3<f64>>> = face_list
+    let face_normals: Vec<Option<leto::geometry::Vector3<f64>>> = face_list
         .iter()
         .map(|f| {
             let a = mesh.vertices.position(f.vertices[0]);

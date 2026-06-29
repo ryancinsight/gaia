@@ -31,7 +31,7 @@ use slotmap::SlotMap;
 /// use gaia::with_mesh;
 ///
 /// let result = with_mesh(|mut mesh, mut token| {
-///     let vk = mesh.add_vertex(nalgebra::Point3::origin(), &mut token);
+///     let vk = mesh.add_vertex(leto::geometry::Point3::origin(), &mut token);
 ///     mesh.vertex_count()
 /// });
 /// assert_eq!(result, 1);
@@ -221,7 +221,7 @@ mod tests {
     use super::*;
     use crate::domain::core::index::HalfEdgeKey;
     use crate::domain::topology::halfedge::{FaceData, HalfEdgeData, VertexData};
-    use nalgebra::{Point3, UnitVector3, Vector3};
+    use leto::geometry::{Point3, UnitVector3, Vector3};
 
     #[test]
     fn empty_mesh_invariants() {

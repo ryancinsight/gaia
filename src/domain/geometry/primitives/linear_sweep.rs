@@ -64,7 +64,7 @@ use crate::domain::mesh::IndexedMesh;
 
 // Re-use nalgebra's 2-D point via f64 scalars.
 /// 2-D point in the XZ plane.
-pub type Point2 = nalgebra::Point2<f64>;
+pub type Point2 = leto::geometry::Point2<f64>;
 
 /// Builds a watertight prismatic solid by linearly sweeping a 2D polygon
 /// profile along the +Y axis.

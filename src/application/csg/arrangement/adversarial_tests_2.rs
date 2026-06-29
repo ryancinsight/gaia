@@ -273,7 +273,7 @@ mod tests {
     #[test]
     fn sharp_dihedral_intersection_stable() {
         use crate::application::csg::CsgNode;
-        use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+        use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
         let cube_a = unit_cube();
         let angle_rad = 2.0_f64.to_radians(); // 2° rotation
@@ -533,7 +533,7 @@ mod tests {
     #[test]
     fn crossing_triangles_detected() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         // Triangle A in z=0 plane, centred at origin.
         let a0 = pool.insert_or_weld(Point3r::new(-2.0, -2.0, 0.0), n);
         let a1 = pool.insert_or_weld(Point3r::new(2.0, -2.0, 0.0), n);
@@ -559,7 +559,7 @@ mod tests {
     #[test]
     fn bowtie_crossing_detected() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         // Two triangles in the XZ plane.
         let a0 = pool.insert_or_weld(Point3r::new(-1.0, 0.0, -1.0), n);
         let a1 = pool.insert_or_weld(Point3r::new(1.0, 0.0, -1.0), n);

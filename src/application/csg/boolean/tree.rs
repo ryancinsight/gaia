@@ -19,7 +19,7 @@ use crate::domain::core::error::MeshResult;
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::Real;
 use crate::domain::mesh::IndexedMesh;
-use nalgebra::Isometry3;
+use leto::geometry::Isometry3;
 
 /// A composable CSG expression tree over [`IndexedMesh`] operands.
 pub enum CsgNode {

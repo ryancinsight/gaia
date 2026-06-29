@@ -1,7 +1,7 @@
 //! Axis-Aligned Bounding Box — generic over scalar precision `T: Scalar`.
 
 use crate::domain::core::scalar::Scalar;
-use nalgebra::Point3;
+use leto::geometry::Point3;
 
 /// Axis-aligned bounding box generic over scalar precision.
 ///
@@ -179,7 +179,7 @@ impl<T: Scalar> Default for Aabb<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nalgebra::Point3;
+    use leto::geometry::Point3;
 
     #[test]
     fn empty_aabb_grows_on_expand_f64() {

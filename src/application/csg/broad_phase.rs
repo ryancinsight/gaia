@@ -265,7 +265,7 @@ mod tests {
 
     fn make_pool_and_face(pts: [[f64; 3]; 3]) -> (VertexPool, FaceData) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let v0 = pool.insert_or_weld(Point3r::new(pts[0][0], pts[0][1], pts[0][2]), n);
         let v1 = pool.insert_or_weld(Point3r::new(pts[1][0], pts[1][1], pts[1][2]), n);
         let v2 = pool.insert_or_weld(Point3r::new(pts[2][0], pts[2][1], pts[2][2]), n);
@@ -304,7 +304,7 @@ mod tests {
 
         // Build a synthetic combined pool and face list for B
         let mut combined_b = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
 
         let mut map_b1 = [crate::domain::core::index::VertexId::default(); 3];
         for (k, &vid) in fb1.vertices.iter().enumerate() {
@@ -337,7 +337,7 @@ mod tests {
 
     fn make_faces_from_raw(raw: &[[i16; 9]]) -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let mut faces = Vec::with_capacity(raw.len());
         for tri in raw {
             let p = |k: usize| -> Point3r {

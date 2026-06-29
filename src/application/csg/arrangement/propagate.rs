@@ -268,7 +268,7 @@ fn propagate_seam_vertices_impl(
                         continue;
                     }
 
-                    let sp: nalgebra::Vector3<f64> = p - pa;
+                    let sp: leto::geometry::Vector3<f64> = p - pa;
                     let sp_len_sq = sp.norm_squared();
                     if sp_len_sq < 1e-30 {
                         continue;
@@ -314,7 +314,7 @@ fn propagate_seam_vertices_impl(
                 }
                 let x_edge = pa + edge_vec * best_t;
                 let x_seg = seg.start + sv * best_s;
-                if nalgebra::distance_squared(&x_edge, &x_seg) > 1e-6 * edge_len_sq {
+                if (x_edge).distance_squared(x_seg) > 1e-6 * edge_len_sq {
                     let _ = proper_segment_intersection_params_projected_exact(
                         &pa, &pb, &seg.start, &seg.end, &face_n,
                     );
@@ -713,10 +713,10 @@ mod tests {
     ) -> bool {
         let x = a + (b - a) * t;
         segs.iter().any(|s| {
-            (nalgebra::distance_squared(&s.start, &a) < tol
-                && nalgebra::distance_squared(&s.end, &x) < tol)
-                || (nalgebra::distance_squared(&s.start, &x) < tol
-                    && nalgebra::distance_squared(&s.end, &b) < tol)
+            ((s.start).distance_squared(a) < tol
+                && (s.end).distance_squared(x) < tol)
+                || ((s.start).distance_squared(x) < tol
+                    && (s.end).distance_squared(b) < tol)
         })
     }
 

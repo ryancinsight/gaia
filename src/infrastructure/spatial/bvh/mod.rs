@@ -211,7 +211,7 @@ fn build_tree<'brand, 'a>(aabbs: &'a [Aabb]) -> BvhTree<'brand, 'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nalgebra::Point3;
+    use leto::geometry::Point3;
 
     fn pt(x: f64, y: f64, z: f64) -> Point3<f64> {
         Point3::new(x, y, z)

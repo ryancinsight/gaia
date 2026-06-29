@@ -15,8 +15,7 @@
 //! converge to the lowest-energy isosurface, guaranteeing mathematically watertight
 //! boundary closure for volumetric grids.
 
-use nalgebra::{Point3, Vector3};
-use num_traits::Float;
+use leto::geometry::{Point3, Vector3};
 
 use crate::domain::core::scalar::Scalar;
 
@@ -35,9 +34,9 @@ pub trait Sdf3D<T: Scalar> {
     /// difference formulation.
     fn gradient(&self, p: &Point3<T>) -> Vector3<T> {
         let eps = T::tolerance() * <T as Scalar>::from_f64(10.0);
-        let dx = Vector3::new(eps, T::zero(), T::zero());
-        let dy = Vector3::new(T::zero(), eps, T::zero());
-        let dz = Vector3::new(T::zero(), T::zero(), eps);
+        let dx = Vector3::new(eps, <T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ZERO);
+        let dy = Vector3::new(<T as eunomia::NumericElement>::ZERO, eps, <T as eunomia::NumericElement>::ZERO);
+        let dz = Vector3::new(<T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ZERO, eps);
 
         let df_dx = self.eval(&(p + dx)) - self.eval(&(p - dx));
         let df_dy = self.eval(&(p + dy)) - self.eval(&(p - dy));
@@ -97,7 +96,7 @@ impl<T: Scalar> CylinderSdf<T> {
         if norm > T::tolerance() {
             axis /= norm;
         } else {
-            axis = Vector3::new(T::one(), T::zero(), T::zero());
+            axis = Vector3::new(<T as eunomia::NumericElement>::ONE, <T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ZERO);
         }
         Self {
             point,
@@ -146,7 +145,7 @@ impl<T: Scalar> Sdf3D<T> for CapsuleSdf<T> {
     fn eval(&self, p: &Point3<T>) -> T {
         let pa = p - self.a;
         let ba = self.b - self.a;
-        let h = Float::clamp(pa.dot(&ba) / ba.norm_squared(), T::zero(), T::one());
+        let h = Float::clamp(pa.dot(&ba) / ba.norm_squared(), <T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ONE);
         (pa - ba * h).norm() - self.radius
     }
 
@@ -201,10 +200,10 @@ impl<T: Scalar> Sdf3D<T> for FiniteCylinderSdf<T> {
         let half = <T as Scalar>::from_f64(0.5);
         let axial_dist = Float::abs(h - half) * Float::sqrt(baba) - Float::sqrt(baba) * half;
 
-        let interior_dist = Float::min(Float::max(radial_dist, axial_dist), T::zero());
+        let interior_dist = Float::min(Float::max(radial_dist, axial_dist), <T as eunomia::NumericElement>::ZERO);
 
-        let radial_ext = Float::max(radial_dist, T::zero());
-        let axial_ext = Float::max(axial_dist, T::zero());
+        let radial_ext = Float::max(radial_dist, <T as eunomia::NumericElement>::ZERO);
+        let axial_ext = Float::max(axial_dist, <T as eunomia::NumericElement>::ZERO);
         let exterior_dist = Float::sqrt(radial_ext * radial_ext + axial_ext * axial_ext);
 
         interior_dist + exterior_dist
@@ -296,7 +295,7 @@ impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> Sdf3D<T> for SmoothUnionSdf<T, A, B> {
         let b = self.secondary.eval(p);
 
         let diff = Float::abs(a - b);
-        let h = Float::max(self.k - diff, T::zero()) / self.k;
+        let h = Float::max(self.k - diff, <T as eunomia::NumericElement>::ZERO) / self.k;
         let quarter = <T as Scalar>::from_f64(0.25);
 
         Float::min(a, b) - h * h * self.k * quarter

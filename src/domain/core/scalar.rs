@@ -14,14 +14,14 @@
 //! **Statement**: `Scalar` covers exactly the floating-point types that
 //! support all mesh-geometry operations required by `gaia`.
 //!
-//! **Proof sketch**: `nalgebra::RealField` provides a complete ordered field
+//! **Proof sketch**: `eunomia::RealField` provides a complete ordered field
 //! with algebraic/trigonometric operations needed for nalgebra vector maths.
 //! `num_traits::Float` adds `infinity`, `neg_infinity`, `is_finite`, `floor`,
 //! `sqrt`, and `min`/`max`.  `num_traits::ToPrimitive` enables lossless
 //! conversion to `f64` for human-readable outputs.  The sealed super-trait
 //! restricts the impl set to `{f32, f64}`, matching IEEE 754 hardware support.
 
-use nalgebra::{Matrix4, Point3, Vector3};
+use leto::geometry::{Point3, Vector3};
 
 // ── Sealed trait ──────────────────────────────────────────────────────────────
 // Prevents downstream crates from implementing `Scalar` for arbitrary types.
@@ -52,9 +52,7 @@ mod private {
 /// let lo: IndexedMesh<f32> = IndexedMesh::new();
 /// ```
 pub trait Scalar:
-    nalgebra::RealField
-    + num_traits::Float
-    + num_traits::ToPrimitive
+    eunomia::RealField
     + Copy
     + Default
     + std::fmt::Debug
@@ -122,7 +120,6 @@ pub type Point3r = Point3<Real>;
 pub type Vector3r = Vector3<Real>;
 
 /// 4×4 homogeneous transform at default (`f64`) precision.
-pub type Matrix4r = Matrix4<Real>;
 
 /// Absolute geometry tolerance at default precision (1 nm).
 pub const TOLERANCE: Real = 1e-9;
@@ -135,10 +132,10 @@ pub const TOLERANCE_SQ: Real = TOLERANCE * TOLERANCE;
 /// Replace NaN or ±Inf with zero — generic over any `T: Scalar`.
 #[inline]
 pub fn sanitize<T: Scalar>(v: T) -> T {
-    if <T as num_traits::Float>::is_finite(v) {
+    if <T as eunomia::NumericElement>::is_finite(v) {
         v
     } else {
-        T::zero()
+        <T as eunomia::NumericElement>::ZERO
     }
 }
 

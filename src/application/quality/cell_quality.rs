@@ -10,7 +10,7 @@
 //! where **d** is the owner→neighbour centroid vector, **fc** is the face
 //! centre, and **Pi** is the point where **d** intersects the face plane.
 
-use nalgebra::Point3;
+use leto::geometry::Point3;
 
 use crate::application::quality::metrics::QualityMetric;
 use crate::domain::core::index::{CellId, FaceId};
@@ -172,13 +172,13 @@ pub fn cell_centroid(cell_id: CellId, mesh: &IndexedMesh) -> Point3<Real> {
 
     // Prefer vertex_ids if populated; fall back to face-vertex union.
     if !cell.vertex_ids.is_empty() {
-        let sum: nalgebra::Vector3<Real> = cell.vertex_ids.iter()
+        let sum: leto::geometry::Vector3<Real> = cell.vertex_ids.iter()
             .map(|&vi| mesh.vertices.position(vi).coords)
             .sum();
         return Point3::from(sum / cell.vertex_ids.len() as Real);
     }
 
-    let mut sum = nalgebra::Vector3::<Real>::zeros();
+    let mut sum = leto::geometry::Vector3::<Real>::zeros();
     let mut count = 0usize;
     // hashbrown::HashSet gives O(1) amortised membership test vs O(n) Vec::contains.
     let mut seen: hashbrown::HashSet<_> =

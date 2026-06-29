@@ -1,7 +1,7 @@
 //! Normal computation for triangles and polygon fans — generic over `T: Scalar`.
 
 use crate::domain::core::scalar::Scalar;
-use nalgebra::{Point3, Vector3};
+use leto::geometry::{Point3, Vector3};
 
 /// Compute the face normal of a triangle (CCW winding → outward).
 ///

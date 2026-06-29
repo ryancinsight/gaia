@@ -119,7 +119,7 @@ impl SparseVoxelDag<8, OctreeSubdivision> {
         // Leaf level: evaluate exact GWN at the cell centre.
         if depth >= max_depth {
             let center = current_aabb.center();
-            let p = nalgebra::Point3::new(
+            let p = leto::geometry::Point3::new(
                 <T as Scalar>::from_f64(center.x),
                 <T as Scalar>::from_f64(center.y),
                 <T as Scalar>::from_f64(center.z),
@@ -221,7 +221,7 @@ mod tests {
         let mesh = Cube::centred(1.0).build().unwrap();
 
         // Interior: (0,0,0) is the cube centre → winding number ≈ +1.
-        let p_in = nalgebra::Point3::new(0.0_f64, 0.0, 0.0);
+        let p_in = leto::geometry::Point3::new(0.0_f64, 0.0, 0.0);
         let wn_in = gwn(&p_in, mesh.faces.as_slice(), &mesh.vertices);
         assert!(
             wn_in.abs() > 0.5,
@@ -229,7 +229,7 @@ mod tests {
         );
 
         // Exterior: (5,5,5) is far outside → winding number ≈ 0.
-        let p_out = nalgebra::Point3::new(5.0_f64, 5.0, 5.0);
+        let p_out = leto::geometry::Point3::new(5.0_f64, 5.0, 5.0);
         let wn_out = gwn(&p_out, mesh.faces.as_slice(), &mesh.vertices);
         assert!(
             wn_out.abs() < 0.1,

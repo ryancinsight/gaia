@@ -135,8 +135,7 @@ pub fn prepare_classification_faces(
 /// Vector norms (|a|, |b|, |c|) appear only in the denominator and are
 /// computed exactly once per vertex.  The near-vertex guard uses
 /// `norm_squared() < ε²` (no sqrt) for efficiency.
-pub fn gwn<T: Scalar>(query: &nalgebra::Point3<T>, faces: &[FaceData], pool: &VertexPool<T>) -> T {
-    use num_traits::Float;
+pub fn gwn<T: Scalar>(query: &leto::geometry::Point3<T>, faces: &[FaceData], pool: &VertexPool<T>) -> T {
     let mut solid_angle_sum = <T as Scalar>::from_f64(0.0);
     let near_sq = <T as Float>::min_positive_value();
     let one_e_30 = <T as Scalar>::from_f64(GWN_DENOMINATOR_GUARD);
@@ -148,9 +147,9 @@ pub fn gwn<T: Scalar>(query: &nalgebra::Point3<T>, faces: &[FaceData], pool: &Ve
         let b = pool.position(face.vertices[1]);
         let c = pool.position(face.vertices[2]);
 
-        let va = nalgebra::Vector3::new(a.x - query.x, a.y - query.y, a.z - query.z);
-        let vb = nalgebra::Vector3::new(b.x - query.x, b.y - query.y, b.z - query.z);
-        let vc = nalgebra::Vector3::new(c.x - query.x, c.y - query.y, c.z - query.z);
+        let va = leto::geometry::Vector3::new(a.x - query.x, a.y - query.y, a.z - query.z);
+        let vb = leto::geometry::Vector3::new(b.x - query.x, b.y - query.y, b.z - query.z);
+        let vc = leto::geometry::Vector3::new(c.x - query.x, c.y - query.y, c.z - query.z);
 
         if va.norm_squared() < near_sq || vb.norm_squared() < near_sq || vc.norm_squared() < near_sq
         {
@@ -169,7 +168,7 @@ pub fn gwn<T: Scalar>(query: &nalgebra::Point3<T>, faces: &[FaceData], pool: &Ve
             solid_angle_sum += two * Float::atan2(num, den);
         }
     }
-    use num_traits::clamp;
+    use eunomia::RealField::clamp;
     clamp(
         solid_angle_sum / four_pi,
         <T as Scalar>::from_f64(-1.0),
@@ -179,9 +178,9 @@ pub fn gwn<T: Scalar>(query: &nalgebra::Point3<T>, faces: &[FaceData], pool: &Ve
 
 #[inline(always)]
 fn solid_angle_f64(
-    va: nalgebra::Vector3<f64>,
-    vb: nalgebra::Vector3<f64>,
-    vc: nalgebra::Vector3<f64>,
+    va: leto::geometry::Vector3<f64>,
+    vb: leto::geometry::Vector3<f64>,
+    vc: leto::geometry::Vector3<f64>,
 ) -> f64 {
     let la = va.norm();
     let lb = vb.norm();
@@ -204,13 +203,13 @@ fn vertex_offsets(
     query: &Point3r,
     face: &PreparedFace,
 ) -> Option<(
-    nalgebra::Vector3<f64>,
-    nalgebra::Vector3<f64>,
-    nalgebra::Vector3<f64>,
+    leto::geometry::Vector3<f64>,
+    leto::geometry::Vector3<f64>,
+    leto::geometry::Vector3<f64>,
 )> {
-    let va = nalgebra::Vector3::new(face.a.x - query.x, face.a.y - query.y, face.a.z - query.z);
-    let vb = nalgebra::Vector3::new(face.b.x - query.x, face.b.y - query.y, face.b.z - query.z);
-    let vc = nalgebra::Vector3::new(face.c.x - query.x, face.c.y - query.y, face.c.z - query.z);
+    let va = leto::geometry::Vector3::new(face.a.x - query.x, face.a.y - query.y, face.a.z - query.z);
+    let vb = leto::geometry::Vector3::new(face.b.x - query.x, face.b.y - query.y, face.b.z - query.z);
+    let vc = leto::geometry::Vector3::new(face.c.x - query.x, face.c.y - query.y, face.c.z - query.z);
     if va.norm_squared() < f64::MIN_POSITIVE
         || vb.norm_squared() < f64::MIN_POSITIVE
         || vc.norm_squared() < f64::MIN_POSITIVE
@@ -381,7 +380,7 @@ mod tests {
 
     fn unit_cube_mesh() -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let s = 0.5_f64;
         let mut v = |x, y, z| pool.insert_or_weld(Point3r::new(x, y, z), n);
         let c000 = v(-s, -s, -s);
@@ -460,12 +459,12 @@ mod tests {
     #[test]
     fn gwn_f32_near_vertex_does_not_nan() {
         let mut pool: VertexPool<f32> = VertexPool::<f32>::default_millifluidic();
-        let n = nalgebra::Vector3::<f32>::zeros();
-        let v0 = pool.insert_or_weld(nalgebra::Point3::new(0.0_f32, 0.0, 0.0), n);
-        let v1 = pool.insert_or_weld(nalgebra::Point3::new(1.0_f32, 0.0, 0.0), n);
-        let v2 = pool.insert_or_weld(nalgebra::Point3::new(0.0_f32, 1.0, 0.0), n);
+        let n = leto::geometry::Vector3::<f32>::zeros();
+        let v0 = pool.insert_or_weld(leto::geometry::Point3::new(0.0_f32, 0.0, 0.0), n);
+        let v1 = pool.insert_or_weld(leto::geometry::Point3::new(1.0_f32, 0.0, 0.0), n);
+        let v2 = pool.insert_or_weld(leto::geometry::Point3::new(0.0_f32, 1.0, 0.0), n);
         let faces = vec![FaceData::untagged(v0, v1, v2)];
-        let query = nalgebra::Point3::new(0.0_f32, 0.0, 0.0);
+        let query = leto::geometry::Point3::new(0.0_f32, 0.0, 0.0);
         let wn = gwn::<f32>(&query, &faces, &pool);
         assert!(
             wn.is_finite(),
@@ -481,7 +480,7 @@ mod tests {
     #[test]
     fn gwn_degenerate_zero_area_triangle_is_finite() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = nalgebra::Vector3::zeros();
+        let n = leto::geometry::Vector3::zeros();
         let v0 = pool.insert_unique(Point3r::new(1.0, 0.0, 0.0), n);
         let v1 = pool.insert_unique(Point3r::new(1.0, 0.0, 0.0), n);
         let v2 = pool.insert_unique(Point3r::new(1.0, 0.0, 0.0), n);

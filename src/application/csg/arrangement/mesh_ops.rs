@@ -128,11 +128,11 @@ mod tests {
         use crate::domain::core::scalar::Real;
 
         let mut pool = VertexPool::new(1.0 as Real);
-        let up = nalgebra::Vector3::<Real>::new(0.0, 0.0, 1.0);
-        let v0 = pool.insert_unique(nalgebra::Point3::new(0.0, 0.0, 0.0), up);
-        let v1 = pool.insert_unique(nalgebra::Point3::new(1.0, 0.0, 0.0), up);
-        let v2 = pool.insert_unique(nalgebra::Point3::new(0.0, 1.0, 0.0), up);
-        let v3 = pool.insert_unique(nalgebra::Point3::new(0.0, 2.0, 0.0), up);
+        let up = leto::geometry::Vector3::<Real>::new(0.0, 0.0, 1.0);
+        let v0 = pool.insert_unique(leto::geometry::Point3::new(0.0, 0.0, 0.0), up);
+        let v1 = pool.insert_unique(leto::geometry::Point3::new(1.0, 0.0, 0.0), up);
+        let v2 = pool.insert_unique(leto::geometry::Point3::new(0.0, 1.0, 0.0), up);
+        let v3 = pool.insert_unique(leto::geometry::Point3::new(0.0, 2.0, 0.0), up);
 
         let mut faces = vec![
             FaceData::untagged(v0, v1, v2),
@@ -154,12 +154,12 @@ mod tests {
         use crate::domain::core::scalar::Real;
 
         let mut pool = VertexPool::new(1.0 as Real);
-        let up = nalgebra::Vector3::<Real>::new(0.0, 0.0, 1.0);
-        let v0 = pool.insert_unique(nalgebra::Point3::new(0.0, 0.0, 0.0), up);
-        let v1 = pool.insert_unique(nalgebra::Point3::new(1.0, 0.0, 0.0), up);
-        let v2 = pool.insert_unique(nalgebra::Point3::new(0.5, 0.0, 0.0), up);
+        let up = leto::geometry::Vector3::<Real>::new(0.0, 0.0, 1.0);
+        let v0 = pool.insert_unique(leto::geometry::Point3::new(0.0, 0.0, 0.0), up);
+        let v1 = pool.insert_unique(leto::geometry::Point3::new(1.0, 0.0, 0.0), up);
+        let v2 = pool.insert_unique(leto::geometry::Point3::new(0.5, 0.0, 0.0), up);
         // v0, v1, v2 are collinear — face area = 0
-        let v3 = pool.insert_unique(nalgebra::Point3::new(2.0, 0.0, 0.0), up);
+        let v3 = pool.insert_unique(leto::geometry::Point3::new(2.0, 0.0, 0.0), up);
 
         // Merge v3 -> v1 so the merge map is non-empty (triggers filtering).
         let mut merge = HashMap::new();

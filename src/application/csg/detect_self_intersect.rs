@@ -237,7 +237,7 @@ fn tri_tri_intersects(ta: &[Point3r; 3], tb: &[Point3r; 3]) -> bool {
 
 /// Axis (0=X, 1=Y, 2=Z) along which `v` has its maximum absolute component.
 #[inline]
-fn dominant_axis(v: &nalgebra::Vector3<Real>) -> usize {
+fn dominant_axis(v: &leto::geometry::Vector3<Real>) -> usize {
     let ax = v[0].abs();
     let ay = v[1].abs();
     let az = v[2].abs();

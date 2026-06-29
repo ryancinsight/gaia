@@ -59,7 +59,7 @@ use crate::domain::geometry::predicates::{orient_3d, Orientation};
 ///
 /// ```rust
 /// # use gaia::application::csg::clip::clip_polygon_to_halfplane;
-/// # use nalgebra::Point3;
+/// # use leto::geometry::Point3;
 /// let square: Vec<Point3<f64>> = vec![
 ///     Point3::new(0.0, 0.0, 0.0),
 ///     Point3::new(2.0, 0.0, 0.0),

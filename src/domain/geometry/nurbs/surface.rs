@@ -7,7 +7,7 @@
 use super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::knot::KnotVector;
 use crate::domain::core::scalar::Real;
-use nalgebra::{Point3, UnitVector3, Vector3};
+use leto::geometry::{Point3, UnitVector3, Vector3};
 
 // ---------------------------------------------------------------------------
 // Type aliases

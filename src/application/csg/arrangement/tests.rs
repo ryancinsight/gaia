@@ -333,7 +333,7 @@ fn t_junction_volume_and_watertightness() {
     use crate::application::csg::CsgNode;
     use crate::domain::core::scalar::Real;
     use crate::domain::geometry::primitives::{Cylinder, PrimitiveMesh};
-    use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+    use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
     let r: Real = 0.5;
     let h: Real = 3.0;
@@ -640,7 +640,7 @@ fn l_shape_compound_union_is_watertight() {
     use crate::application::csg::CsgNode;
     use crate::domain::core::scalar::Real;
     use crate::domain::geometry::primitives::{Cylinder, Elbow, PrimitiveMesh};
-    use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+    use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
     let r = 0.5_f64;
     let r_bend = 1.0_f64;
@@ -730,7 +730,7 @@ fn v_shape_right_branch_is_watertight() {
     use crate::application::csg::CsgNode;
     use crate::domain::core::scalar::Real;
     use crate::domain::geometry::primitives::{Cylinder, Elbow, PrimitiveMesh};
-    use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+    use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
     let r = 0.5_f64;
     let r_bend = 2.0 * r; // = 1.0 mm
@@ -856,7 +856,7 @@ fn v_shape_right_branch_is_watertight() {
 fn elbow_cylinder_union_is_watertight() {
     use crate::domain::core::scalar::Real;
     use crate::domain::geometry::primitives::{Cylinder, Elbow, PrimitiveMesh};
-    use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+    use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
     let r = 0.5_f64;
     let r_bend = 1.0_f64;
@@ -967,7 +967,7 @@ fn v_shape_right_branch_64x32_is_watertight() {
     use crate::application::csg::CsgNode;
     use crate::domain::core::scalar::Real;
     use crate::domain::geometry::primitives::{Cylinder, Elbow, PrimitiveMesh};
-    use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+    use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
     let r: Real = 0.5;
     let h: Real = 3.0;

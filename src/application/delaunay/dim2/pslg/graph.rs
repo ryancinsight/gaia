@@ -24,7 +24,7 @@
 
 use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{orient_2d, Orientation};
-use nalgebra::Point2;
+use leto::geometry::Point2;
 
 use super::segment::{PslgSegment, PslgSegmentId};
 use super::vertex::{PslgVertex, PslgVertexId};

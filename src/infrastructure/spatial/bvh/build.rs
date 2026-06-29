@@ -11,7 +11,7 @@
 use super::geo::{axis_extent, axis_min, axis_value, longest_axis, surface_area};
 use super::node::{BvhNodeKind, MAX_LEAF_PRIMITIVES, SAH_N_BINS, SAH_TRAVERSAL_COST};
 use crate::domain::geometry::aabb::Aabb;
-use nalgebra::Point3;
+use leto::geometry::Point3;
 
 // ── Public build entry ────────────────────────────────────────────────────────
 
@@ -274,7 +274,7 @@ pub(super) fn build_centroids(aabbs: &[Aabb]) -> Vec<Point3<f64>> {
 mod tests {
     use super::*;
     use hashbrown::HashSet;
-    use nalgebra::Point3;
+    use leto::geometry::Point3;
     use proptest::prelude::*;
 
     fn pt(x: f64, y: f64, z: f64) -> Point3<f64> {
