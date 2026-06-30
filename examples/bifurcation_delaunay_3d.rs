@@ -11,7 +11,7 @@ use gaia::application::watertight::check::check_watertight;
 use gaia::domain::core::VertexId;
 use gaia::infrastructure::io::stl;
 use gaia::infrastructure::storage::edge_store::EdgeStore;
-use nalgebra::Point3;
+use leto::geometry::Point3;
 use std::fs;
 use std::io::BufWriter;
 
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .coords;
 
             // Volume = |(A - D) ⋅ ((B - D) × (C - D))| / 6.0
-            let dot_val: f64 = (a - d).dot(&(b - d).cross(&(c - d)));
+            let dot_val: f64 = (a - d).dot((b - d).cross(c - d));
             let v = dot_val.abs() / 6.0;
             interior_volume += v;
         }

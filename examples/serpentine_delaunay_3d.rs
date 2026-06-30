@@ -11,7 +11,7 @@ use gaia::application::delaunay::dim3::sdf::{CapsuleSdf, SmoothUnionSdf};
 use gaia::application::watertight::check::check_watertight;
 use gaia::infrastructure::io::stl;
 use gaia::infrastructure::storage::edge_store::EdgeStore;
-use nalgebra::Point3;
+use leto::geometry::Point3;
 use std::fs;
 use std::io::BufWriter;
 

@@ -318,7 +318,7 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
             / 3.0;
         let l = avg_n.norm();
         if l > 1e-12 {
-            let al = face_n.dot(&(avg_n / l));
+            let al = face_n.dot(avg_n / l);
             asum += al;
             acnt += 1;
             amin = amin.min(al);

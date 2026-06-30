@@ -19,7 +19,7 @@ static ALLOCATOR: mnemosyne::Mnemosyne = mnemosyne::Mnemosyne;
 
 fn unit_cube_faces() -> (VertexPool, Vec<FaceData>) {
     let mut pool = VertexPool::default_millifluidic();
-    let n = nalgebra::Vector3::zeros();
+    let n = leto::geometry::Vector3::zeros();
     let s = 0.5_f64;
     let mut v = |x, y, z| pool.insert_or_weld(Point3r::new(x, y, z), n);
     let c000 = v(-s, -s, -s);
@@ -109,7 +109,7 @@ fn bench_classify_prepared(c: &mut Criterion) {
     let (pool, faces) = build_sphere_faces(40, 60);
     let prepared = prepare_classification_faces(&faces, &pool);
     let q = Point3r::new(0.0, 0.0, 0.0);
-    let n = nalgebra::Vector3::new(0.0_f64, 0.0, 1.0);
+    let n = leto::geometry::Vector3::new(0.0_f64, 0.0, 1.0);
     c.bench_function("classify_prepared_2400f", |b| {
         b.iter(|| classify_fragment_prepared(black_box(&q), black_box(&n), black_box(&prepared)))
     });
@@ -168,7 +168,7 @@ fn bench_csg_intersection_cylinders(c: &mut Criterion) {
 
 fn bench_detect_self_intersect_flat(c: &mut Criterion) {
     let mut pool = VertexPool::default_millifluidic();
-    let n = nalgebra::Vector3::zeros();
+    let n = leto::geometry::Vector3::zeros();
     let ns = 10_usize;
     let mut verts = vec![vec![gaia::domain::core::index::VertexId::new(0); ns + 1]; ns + 1];
     for (i, row) in verts.iter_mut().enumerate().take(ns + 1) {

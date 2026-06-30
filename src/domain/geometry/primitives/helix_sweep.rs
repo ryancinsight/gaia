@@ -145,7 +145,7 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
         // Principal normal N (centripetal, toward helix axis)
         let n = Vector3r::new(-ct, 0.0, -st);
         // Binormal B = T × N
-        let b = t.cross(&n);
+        let b = t.cross(n);
         (t, n, b, centre)
     };
 

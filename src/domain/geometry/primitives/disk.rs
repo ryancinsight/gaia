@@ -183,7 +183,7 @@ mod tests {
                 let c = mesh.vertices.position(f.vertices[2]);
                 let ab = b - a;
                 let ac = c - a;
-                ab.cross(&ac).norm() * 0.5
+                ab.cross(ac).norm() * 0.5
             })
             .sum();
         let expected = std::f64::consts::PI * r * r;

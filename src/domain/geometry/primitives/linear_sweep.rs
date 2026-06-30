@@ -62,7 +62,7 @@ use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
-// Re-use nalgebra's 2-D point via f64 scalars.
+// Re-use the 2-D point via f64 scalars.
 /// 2-D point in the XZ plane.
 pub type Point2 = leto::geometry::Point2<f64>;
 

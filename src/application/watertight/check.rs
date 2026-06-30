@@ -77,7 +77,7 @@ pub fn check_watertight<T: Scalar>(
             vertex_pool.position(face.vertices[2]),
         )
     }));
-    let signed_vol_f64 = eunomia::NumericElement::to_f64(&signed_vol).unwrap_or(0.0);
+    let signed_vol_f64 = eunomia::NumericElement::to_f64(signed_vol);
 
     // Euler characteristic: V - E + F = 2 for a closed genus-0 manifold.
     // Delegated to the canonical SSOT implementation (counts only referenced

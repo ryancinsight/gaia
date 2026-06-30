@@ -54,7 +54,7 @@ use std::fs;
 use std::io::BufWriter;
 use std::time::Instant;
 
-use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
 use gaia::application::csg::boolean::BooleanOp;
 use gaia::application::csg::CsgNode;
@@ -260,7 +260,7 @@ fn build_y_junction(
         // (0,0,0) → (H_TRUNK+EPS, 0, 0) along +X.
         // Translate (−H_TRUNK, 0, 0) so the inlet end is at (−H_TRUNK, 0, 0)
         // and the extended tip is at (EPS, 0, 0).
-        let rot = UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), -FRAC_PI_2);
+        let rot = UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), -FRAC_PI_2);
         let iso = Isometry3::from_parts(Translation3::new(-H_TRUNK, 0.0, 0.0), rot);
         CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw))),
@@ -280,7 +280,7 @@ fn build_y_junction(
         .build()?;
         // Rotate (θ − π/2) about Z.  At θ = π/2, no rotation (+Y stays +Y).
         // At θ = 0, rotation = −π/2 (+Y → +X, collinear with trunk — avoid!).
-        let rot = UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), theta - FRAC_PI_2);
+        let rot = UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), theta - FRAC_PI_2);
         let iso = Isometry3::from_parts(Translation3::new(0.0, 0.0, 0.0), rot);
         CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw))),
@@ -299,7 +299,7 @@ fn build_y_junction(
         }
         .build()?;
         // Rotate (−θ − π/2) about Z.
-        let rot = UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), -theta - FRAC_PI_2);
+        let rot = UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), -theta - FRAC_PI_2);
         let iso = Isometry3::from_parts(Translation3::new(0.0, 0.0, 0.0), rot);
         CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw))),

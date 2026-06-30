@@ -183,9 +183,9 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
                 // For upper lobe: outward = dP/dtheta × dP/drho (gives +Y bias at centre)
                 // For lower lobe: we need outward = dP/drho × dP/dtheta (gives -Y bias at centre)
                 let raw_n = if sign > 0.0 {
-                    dt.cross(&dr)
+                    dt.cross(dr)
                 } else {
-                    dr.cross(&dt)
+                    dr.cross(dt)
                 };
                 let len = raw_n.norm();
                 let n = if len < 1e-14 {

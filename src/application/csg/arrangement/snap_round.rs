@@ -247,14 +247,14 @@ pub(crate) fn snap_round_tjunctions(faces: &mut Vec<FaceData>, pool: &VertexPool
                     let av = pv - pa;
 
                     // Projection parameter: t = dot(AV, AB) / |AB|²
-                    t = av.dot(&ab) / edge_len_sq;
+                    t = av.dot(ab) / edge_len_sq;
                     // V must be strictly interior to edge (not at endpoints).
                     if t <= SNAP_EDGE_PARAM_EPS || t >= 1.0 - SNAP_EDGE_PARAM_EPS {
                         continue;
                     }
 
                     // Perpendicular distance: |cross(AB, AV)|² / |AB|²
-                    let cross = ab.cross(&av);
+                    let cross = ab.cross(av);
                     let dist_sq = cross.norm_squared() / edge_len_sq;
                     if dist_sq > SNAP_TOL_SQ * edge_len_sq {
                         continue;

@@ -52,11 +52,11 @@ pub(crate) fn point_on_segment_exact(a: &Point3r, b: &Point3r, p: &Point3r) -> O
         return None;
     }
     let edge = *b - *a;
-    let edge_len_sq = edge.dot(&edge);
+    let edge_len_sq = edge.dot(edge);
     if edge_len_sq <= 0.0 {
         return None;
     }
-    let t = (*p - *a).dot(&edge) / edge_len_sq;
+    let t = (*p - *a).dot(edge) / edge_len_sq;
     if t > 0.0 && t < 1.0 {
         Some(t)
     } else {

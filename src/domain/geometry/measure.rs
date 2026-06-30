@@ -8,7 +8,7 @@ use leto::geometry::Point3;
 pub fn triangle_area<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> T {
     let ab = b - a;
     let ac = c - a;
-    ab.cross(&ac).norm() * <T as Scalar>::from_f64(0.5)
+    ab.cross(ac).norm() * <T as Scalar>::from_f64(0.5)
 }
 
 /// Signed volume contribution of one triangle (divergence theorem).
@@ -17,7 +17,7 @@ pub fn triangle_area<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> 
 /// Formula: `V_i = (1/6) · v0 · (v1 × v2)`.
 #[inline]
 pub fn signed_triangle_volume<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> T {
-    a.coords.dot(&b.coords.cross(&c.coords)) / <T as Scalar>::from_f64(6.0)
+    a.coords.dot(b.coords.cross(c.coords)) / <T as Scalar>::from_f64(6.0)
 }
 
 /// Total surface area from an iterator of triangle vertex triples.

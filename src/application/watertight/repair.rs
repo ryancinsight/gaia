@@ -45,7 +45,7 @@ impl MeshRepair {
             let a = vertex_pool.position(face.vertices[0]);
             let b = vertex_pool.position(face.vertices[1]);
             let c = vertex_pool.position(face.vertices[2]);
-            let area = 0.5 * (b - a).cross(&(c - a)).norm();
+            let area = 0.5 * (b - a).cross(c - a).norm();
 
             if area < crate::domain::core::scalar::TOLERANCE {
                 degenerate.push(fid);

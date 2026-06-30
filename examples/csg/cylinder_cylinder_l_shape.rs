@@ -81,7 +81,7 @@ use std::fs;
 use std::io::BufWriter;
 use std::time::Instant;
 
-use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
 use gaia::application::csg::boolean::BooleanOp;
 use gaia::application::csg::CsgNode;
@@ -175,7 +175,7 @@ fn run_sharp() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
         // Rotate −90° about Z: +Y → +X.
         let rot = UnitQuaternion::<Real>::from_axis_angle(
-            &Vector3::z_axis(),
+            Vector3::z_axis(),
             -std::f64::consts::FRAC_PI_2,
         );
         // Translate to corner: (0, H, 0).
@@ -301,7 +301,7 @@ fn run_rounded() -> Result<(), Box<dyn std::error::Error>> {
         }
         .build()?;
         let rot = UnitQuaternion::<Real>::from_axis_angle(
-            &Vector3::x_axis(),
+            Vector3::x_axis(),
             -std::f64::consts::FRAC_PI_2, // +Z → +Y, +X → +X
         );
         let iso = Isometry3::from_parts(Translation3::new(0.0, straight_len, 0.0), rot);
@@ -325,7 +325,7 @@ fn run_rounded() -> Result<(), Box<dyn std::error::Error>> {
         }
         .build()?;
         let rot = UnitQuaternion::<Real>::from_axis_angle(
-            &Vector3::z_axis(),
+            Vector3::z_axis(),
             -std::f64::consts::FRAC_PI_2, // +Y → +X
         );
         // Start eps before the elbow outlet so arm base pierces the elbow barrel.

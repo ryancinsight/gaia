@@ -14,11 +14,11 @@ pub(crate) fn compute_segment(
     e: &Point3r,
     f: &Point3r,
 ) -> IntersectionType {
-    let n1 = (b - a).cross(&(c - a));
-    let n2 = (e - d).cross(&(f - d));
+    let n1 = (b - a).cross(c - a);
+    let n2 = (e - d).cross(f - d);
 
     // Direction of the intersection line (L = n1 × n2).
-    let dir = n1.cross(&n2);
+    let dir = n1.cross(n2);
     // Scale-relative: ‖n₁×n₂‖² vs ‖n₁‖²·‖n₂‖² detects near-parallel.
     let n1sq = n1.norm_squared();
     let n2sq = n2.norm_squared();
@@ -45,13 +45,13 @@ pub(crate) fn compute_segment(
     };
 
     // Signed distances of T1 vertices to T2's plane (un-normalised).
-    let da = n2.dot(&(a - d));
-    let db = n2.dot(&(b - d));
-    let dc = n2.dot(&(c - d));
+    let da = n2.dot(a - d);
+    let db = n2.dot(b - d);
+    let dc = n2.dot(c - d);
     // Signed distances of T2 vertices to T1's plane.
-    let dd = n1.dot(&(d - a));
-    let de = n1.dot(&(e - a));
-    let df = n1.dot(&(f - a));
+    let dd = n1.dot(d - a);
+    let de = n1.dot(e - a);
+    let df = n1.dot(f - a);
 
     // 1-D projections onto the intersection line (max-axis coordinate).
     let (pa, pb, pc) = (coord(a), coord(b), coord(c));

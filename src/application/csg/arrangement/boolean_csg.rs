@@ -103,8 +103,8 @@ fn resolve_short_circuit_boolean(
         {
             if let Some(ref ref_basis) = reference_basis {
                 let origin_diff = basis.origin.coords - ref_basis.origin.coords;
-                let cross = basis.normal.cross(&ref_basis.normal).norm();
-                let dot_offset = origin_diff.dot(&ref_basis.normal).abs();
+                let cross = basis.normal.cross(ref_basis.normal).norm();
+                let dot_offset = origin_diff.dot(ref_basis.normal).abs();
                 // cross threshold is scale-free (unit normals); dot_offset is
                 // scale-relative to the distance between the two origins.
                 let origin_scale = origin_diff.norm().max(1e-30);

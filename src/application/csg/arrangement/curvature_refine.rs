@@ -234,7 +234,7 @@ fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<
         let e01 = p1 - p0;
         let e02 = p2 - p0;
 
-        let face_area = 0.5 * e01.cross(&e02).norm();
+        let face_area = 0.5 * e01.cross(e02).norm();
         if face_area < Real::MIN_POSITIVE {
             continue;
         }
@@ -267,8 +267,8 @@ fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<
             // Angle at vk opposite edge (vi, vj).
             let eki = pi - pk;
             let ekj = pj - pk;
-            let cos_k = eki.dot(&ekj);
-            let sin_k = eki.cross(&ekj).norm();
+            let cos_k = eki.dot(ekj);
+            let sin_k = eki.cross(ekj).norm();
             // Clamp cotangent to avoid instability at degenerate angles.
             let cot_k = if sin_k > Real::MIN_POSITIVE {
                 (cos_k / sin_k).clamp(-100.0, 100.0)
@@ -353,7 +353,7 @@ fn apply_centroid_splits(
                 avg / len
             } else {
                 // Fallback: use face normal from cross product.
-                let face_n = (p1 - p0).cross(&(p2 - p0));
+                let face_n = (p1 - p0).cross(p2 - p0);
                 let fn_len = face_n.norm();
                 if fn_len > Real::MIN_POSITIVE {
                     face_n / fn_len

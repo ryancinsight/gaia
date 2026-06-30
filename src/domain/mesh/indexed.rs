@@ -540,7 +540,7 @@ impl<T: Scalar> IndexedMesh<T> {
             // centroid X.  Computed on-the-fly to avoid a dedicated
             // `face_centroid_x` allocation.
             let seed_fi = {
-                let mut best_x = <T as eunomia::NumericElement>::neg_infinity();
+                let mut best_x = <T as eunomia::RealField>::neg_infinity();
                 let mut best: Option<usize> = None;
                 let third = <T as Scalar>::from_f64(3.0);
                 for fi in 0..n_faces {
@@ -669,23 +669,23 @@ impl<T: Scalar> IndexedMesh<T> {
                             let b = self.vertices.position(face.vertices[1]);
                             let c = self.vertices.position(face.vertices[2]);
                             let a = crate::domain::core::scalar::Point3r::new(
-                                a.x.to_f64().unwrap_or_default(),
-                                a.y.to_f64().unwrap_or_default(),
-                                a.z.to_f64().unwrap_or_default(),
+                                a.x.to_f64(),
+                                a.y.to_f64(),
+                                a.z.to_f64(),
                             );
                             let b = crate::domain::core::scalar::Point3r::new(
-                                b.x.to_f64().unwrap_or_default(),
-                                b.y.to_f64().unwrap_or_default(),
-                                b.z.to_f64().unwrap_or_default(),
+                                b.x.to_f64(),
+                                b.y.to_f64(),
+                                b.z.to_f64(),
                             );
                             let c = crate::domain::core::scalar::Point3r::new(
-                                c.x.to_f64().unwrap_or_default(),
-                                c.y.to_f64().unwrap_or_default(),
-                                c.z.to_f64().unwrap_or_default(),
+                                c.x.to_f64(),
+                                c.y.to_f64(),
+                                c.z.to_f64(),
                             );
                             let ab = b - a;
                             let ac = c - a;
-                            let normal = ab.cross(&ac);
+                            let normal = ab.cross(ac);
                             let centroid = crate::domain::core::scalar::Point3r::new(
                                 (a.x + b.x + c.x) / 3.0,
                                 (a.y + b.y + c.y) / 3.0,
@@ -729,23 +729,22 @@ impl<T: Scalar> IndexedMesh<T> {
 
                 let diag = (component_aabbs[comp].max - component_aabbs[comp].min)
                     .norm()
-                    .to_f64()
-                    .unwrap_or(0.0);
+                    .to_f64();
                 let probe_eps =
-                    (diag * 1.0e-6).max(T::tolerance().to_f64().unwrap_or(1.0e-9) * 10.0);
+                    (diag * 1.0e-6).max(T::tolerance().to_f64() * 10.0);
                 let inward = corrected_normal / normal_len;
                 let probe = crate::domain::core::scalar::Point3r::new(
-                    centroid.x.to_f64().unwrap_or_default()
-                        - inward.x.to_f64().unwrap_or_default() * probe_eps,
-                    centroid.y.to_f64().unwrap_or_default()
-                        - inward.y.to_f64().unwrap_or_default() * probe_eps,
-                    centroid.z.to_f64().unwrap_or_default()
-                        - inward.z.to_f64().unwrap_or_default() * probe_eps,
+                    centroid.x.to_f64()
+                        - inward.x.to_f64() * probe_eps,
+                    centroid.y.to_f64()
+                        - inward.y.to_f64() * probe_eps,
+                    centroid.z.to_f64()
+                        - inward.z.to_f64() * probe_eps,
                 );
                 let probe_normal = crate::domain::core::scalar::Vector3r::new(
-                    inward.x.to_f64().unwrap_or_default(),
-                    inward.y.to_f64().unwrap_or_default(),
-                    inward.z.to_f64().unwrap_or_default(),
+                    inward.x.to_f64(),
+                    inward.y.to_f64(),
+                    inward.z.to_f64(),
                 );
 
                 let mut nesting_depth = 0usize;

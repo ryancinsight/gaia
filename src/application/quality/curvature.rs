@@ -78,17 +78,17 @@ pub fn vertex_mean_curvature(mesh: &IndexedMesh) -> Vec<Real> {
         let vc = pc.coords;
 
         // Cotangent at each vertex: cot(θ) = dot(e1, e2) / |e1 × e2|
-        let cross_a = (vb - va).cross(&(vc - va));
-        let cross_b = (va - vb).cross(&(vc - vb));
-        let cross_c = (va - vc).cross(&(vb - vc));
+        let cross_a = (vb - va).cross(vc - va);
+        let cross_b = (va - vb).cross(vc - vb);
+        let cross_c = (va - vc).cross(vb - vc);
 
         let denom_a = cross_a.norm().max(Real::MIN_POSITIVE);
         let denom_b = cross_b.norm().max(Real::MIN_POSITIVE);
         let denom_c = cross_c.norm().max(Real::MIN_POSITIVE);
 
-        let cot_a = (vb - va).dot(&(vc - va)) / denom_a;
-        let cot_b = (va - vb).dot(&(vc - vb)) / denom_b;
-        let cot_c = (va - vc).dot(&(vb - vc)) / denom_c;
+        let cot_a = (vb - va).dot(vc - va) / denom_a;
+        let cot_b = (va - vb).dot(vc - vb) / denom_b;
+        let cot_c = (va - vc).dot(vb - vc) / denom_c;
 
         let face_area = 0.5 * denom_a; // area of triangle from cross at vertex a
 
@@ -98,16 +98,16 @@ pub fn vertex_mean_curvature(mesh: &IndexedMesh) -> Vec<Real> {
         area[ic] += face_area / 3.0;
 
         // Edge (b, c) — opposite vertex a contributes cot_a.
-        laplacian[ib] += cot_a * (vc - vb);
-        laplacian[ic] += cot_a * (vb - vc);
+        laplacian[ib] += (vc - vb) * cot_a;
+        laplacian[ic] += (vb - vc) * cot_a;
 
         // Edge (a, c) — opposite vertex b contributes cot_b.
-        laplacian[ia] += cot_b * (vc - va);
-        laplacian[ic] += cot_b * (va - vc);
+        laplacian[ia] += (vc - va) * cot_b;
+        laplacian[ic] += (va - vc) * cot_b;
 
         // Edge (a, b) — opposite vertex c contributes cot_c.
-        laplacian[ia] += cot_c * (vb - va);
-        laplacian[ib] += cot_c * (va - vb);
+        laplacian[ia] += (vb - va) * cot_c;
+        laplacian[ib] += (va - vb) * cot_c;
     }
 
     // Mean curvature magnitude: H = |K| / 2,  K = laplacian / (2 * A)

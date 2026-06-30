@@ -53,11 +53,11 @@ fn emit_one(
 ) {
     let ab = p1 - p0;
     let ac = p2 - p0;
-    let fn_ = ab.cross(&ac);
+    let fn_ = ab.cross(ac);
     if fn_.norm() < 1e-20 {
         return;
     }
-    let flip = fn_.dot(&basis.normal) < 0.0;
+    let flip = fn_.dot(basis.normal) < 0.0;
     let (o0, o1, o2) = if flip { (p0, p2, p1) } else { (p0, p1, p2) };
     let v0 = pool.insert_or_weld(o0, basis.normal);
     let v1 = pool.insert_or_weld(o1, basis.normal);
@@ -458,7 +458,7 @@ mod tests {
                 let a = mesh.vertices.position(f.vertices[0]);
                 let b = mesh.vertices.position(f.vertices[1]);
                 let c = mesh.vertices.position(f.vertices[2]);
-                (b - a).cross(&(c - a)).norm() * 0.5
+                (b - a).cross(c - a).norm() * 0.5
             })
             .sum()
     }

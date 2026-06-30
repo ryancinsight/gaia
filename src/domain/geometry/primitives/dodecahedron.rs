@@ -157,7 +157,7 @@ fn build(d: &Dodecahedron) -> Result<IndexedMesh, PrimitiveError> {
             let n = match triangle_normal(p0, p1, p2) {
                 Some(n) => {
                     // Flip if pointing toward the centre rather than outward.
-                    if n.dot(&centroid.coords) < 0.0 {
+                    if n.dot(centroid.coords) < 0.0 {
                         -n
                     } else {
                         n

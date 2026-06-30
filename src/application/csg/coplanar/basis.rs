@@ -35,7 +35,7 @@ impl PlaneBasis {
     pub(crate) fn from_triangle(a: &Point3r, b: &Point3r, c: &Point3r) -> Option<Self> {
         let ab = b - a;
         let ac = c - a;
-        let n = ab.cross(&ac);
+        let n = ab.cross(ac);
         let nl = n.norm();
         if nl < 1e-20 {
             return None;
@@ -46,7 +46,7 @@ impl PlaneBasis {
         }
         let u = ab / ul;
         let normal = n / nl;
-        let v = normal.cross(&u).normalize();
+        let v = normal.cross(u).normalize();
         Some(Self {
             origin: *a,
             u,
@@ -58,7 +58,7 @@ impl PlaneBasis {
     #[inline]
     pub(crate) fn project(&self, p: &Point3r) -> [Real; 2] {
         let d = p - self.origin;
-        [d.dot(&self.u), d.dot(&self.v)]
+        [d.dot(self.u), d.dot(self.v)]
     }
 
     /// Lift a 2-D point (u,v) back to 3-D.

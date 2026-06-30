@@ -106,13 +106,13 @@ struct CellKey {
 
 impl CellKey {
     fn from_point<T: Scalar>(p: &Point3<T>, inv_cell_size: T) -> Self {
-        let fx = eunomia::NumericElement::floor(p.x * inv_cell_size);
-        let fy = eunomia::NumericElement::floor(p.y * inv_cell_size);
-        let fz = eunomia::NumericElement::floor(p.z * inv_cell_size);
+        let fx = (p.x * inv_cell_size).floor();
+        let fy = (p.y * inv_cell_size).floor();
+        let fz = (p.z * inv_cell_size).floor();
         Self {
-            x: <T as ToPrimitive>::to_i64(&fx).unwrap_or(0),
-            y: <T as ToPrimitive>::to_i64(&fy).unwrap_or(0),
-            z: <T as ToPrimitive>::to_i64(&fz).unwrap_or(0),
+            x: eunomia::NumericElement::to_f64(fx) as i64,
+            y: eunomia::NumericElement::to_f64(fy) as i64,
+            z: eunomia::NumericElement::to_f64(fz) as i64,
         }
     }
 }

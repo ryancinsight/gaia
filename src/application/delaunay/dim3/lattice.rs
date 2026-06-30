@@ -45,9 +45,9 @@ impl<T: Scalar> SdfMesher<T> {
         let half_h = h / <T as Scalar>::from_f64(2.0);
         let sr = self.snap_radius * h;
 
-        let w_x = eunomia::NumericElement::to_f64(&((max.x - min.x) / h)).unwrap();
-        let w_y = eunomia::NumericElement::to_f64(&((max.y - min.y) / h)).unwrap();
-        let w_z = eunomia::NumericElement::to_f64(&((max.z - min.z) / h)).unwrap();
+        let w_x = eunomia::NumericElement::to_f64((max.x - min.x) / h);
+        let w_y = eunomia::NumericElement::to_f64((max.y - min.y) / h);
+        let w_z = eunomia::NumericElement::to_f64((max.z - min.z) / h);
         let num_x = w_x.ceil() as isize + 2;
         let num_y = w_y.ceil() as isize + 2;
         let num_z = w_z.ceil() as isize + 2;
@@ -138,15 +138,15 @@ impl<T: Scalar> SdfMesher<T> {
         let weld_tol = <T as Scalar>::from_f64(1e-4) * h;
         let weld_tol_sq = weld_tol * weld_tol;
         let cell_s = weld_tol * <T as Scalar>::from_f64(2.0);
-        let c_s_f64: f64 = eunomia::NumericElement::to_f64(&cell_s).unwrap();
+        let c_s_f64: f64 = eunomia::NumericElement::to_f64(cell_s);
 
         let mut grid: HashMap<[isize; 3], Vec<usize>> = HashMap::with_capacity(raw_points.len());
         let mut unique_points = Vec::with_capacity(raw_points.len());
 
         for p in raw_points {
-            let px: f64 = eunomia::NumericElement::to_f64(&p.x).unwrap();
-            let py: f64 = eunomia::NumericElement::to_f64(&p.y).unwrap();
-            let pz: f64 = eunomia::NumericElement::to_f64(&p.z).unwrap();
+            let px: f64 = eunomia::NumericElement::to_f64(p.x);
+            let py: f64 = eunomia::NumericElement::to_f64(p.y);
+            let pz: f64 = eunomia::NumericElement::to_f64(p.z);
             let cx = (px / c_s_f64).floor() as isize;
             let cy = (py / c_s_f64).floor() as isize;
             let cz = (pz / c_s_f64).floor() as isize;
@@ -159,7 +159,7 @@ impl<T: Scalar> SdfMesher<T> {
                         if let Some(indices) = grid.get(&key) {
                             for &idx in indices {
                                 let other = &unique_points[idx];
-                                if (p).distance_squared(other) < weld_tol_sq {
+                                if (p).distance_squared(*other) < weld_tol_sq {
                                     duplicate = true;
                                     break 'outer;
                                 }
@@ -183,8 +183,7 @@ impl<T: Scalar> SdfMesher<T> {
             // Use a geometry-derived deterministic seed so repeated meshing of
             // the same SDF produces identical insertion order and perturbation.
             let seed_component = |value: T| {
-                eunomia::NumericElement::to_f64(&value)
-                    .expect("finite SDF mesher bounds")
+                eunomia::NumericElement::to_f64(value)
                     .to_bits()
             };
             let seed = seed_component(min.x)
@@ -199,14 +198,14 @@ impl<T: Scalar> SdfMesher<T> {
             // Spatial macro-block sorting restores O(1) BFS locality while retaining pseudo-random insertion
             // to definitively break incremental Delaunay collinear degeneracies.
             let macro_h =
-                eunomia::NumericElement::to_f64(&(<T as Scalar>::from_f64(5.0) * h)).unwrap();
+                eunomia::NumericElement::to_f64(<T as Scalar>::from_f64(5.0) * h);
             let mut blocks: HashMap<[isize; 3], Vec<Point3<T>>> =
                 HashMap::with_capacity((unique_points.len() / 32).max(16));
 
             for p in unique_points {
-                let px: f64 = eunomia::NumericElement::to_f64(&p.x).unwrap();
-                let py: f64 = eunomia::NumericElement::to_f64(&p.y).unwrap();
-                let pz: f64 = eunomia::NumericElement::to_f64(&p.z).unwrap();
+                let px: f64 = eunomia::NumericElement::to_f64(p.x);
+                let py: f64 = eunomia::NumericElement::to_f64(p.y);
+                let pz: f64 = eunomia::NumericElement::to_f64(p.z);
                 let cx = (px / macro_h).floor() as isize;
                 let cy = (py / macro_h).floor() as isize;
                 let cz = (pz / macro_h).floor() as isize;
@@ -413,7 +412,7 @@ impl<T: Scalar> SdfMesher<T> {
                 let c = mesh.vertices.position(face_data.vertices[2]);
                 let face_centroid = (a.coords + b.coords + c.coords) / third;
 
-                let unorm = (b.coords - a.coords).cross(&(c.coords - a.coords));
+                let unorm = (b.coords - a.coords).cross(c.coords - a.coords);
 
                 let mut cell_sum = Vector3::zeros();
                 for &vid in &cell.vertex_ids {
@@ -423,7 +422,7 @@ impl<T: Scalar> SdfMesher<T> {
                     cell_sum / <T as Scalar>::from_f64(cell.vertex_ids.len() as f64);
 
                 let out_vec = face_centroid - cell_centroid;
-                if out_vec.dot(&unorm) < <T as eunomia::NumericElement>::ZERO {
+                if out_vec.dot(unorm) < <T as eunomia::NumericElement>::ZERO {
                     mesh.faces.get_mut(fid).flip();
                 }
             }

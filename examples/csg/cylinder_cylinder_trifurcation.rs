@@ -50,7 +50,7 @@ use std::fs;
 use std::io::BufWriter;
 use std::time::Instant;
 
-use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
 use gaia::application::csg::boolean::BooleanOp;
 use gaia::application::csg::CsgNode;
@@ -240,7 +240,7 @@ fn build_trifurcation(
         // After rotation the cylinder spans (0,0,0) → (H_TRUNK+EPS, 0, 0).
         // Translate (−H_TRUNK, 0, 0) so the inlet is at (−H_TRUNK, 0, 0)
         // and the extended tip is at (EPS, 0, 0).
-        let rot = UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), -FRAC_PI_2);
+        let rot = UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), -FRAC_PI_2);
         let iso = Isometry3::from_parts(Translation3::new(-H_TRUNK, 0.0, 0.0), rot);
         CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw))),
@@ -281,7 +281,7 @@ fn make_branch_planar(angle_from_x: f64) -> Result<IndexedMesh, Box<dyn std::err
         segments: SEGS,
     }
     .build()?;
-    let rot = UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), angle_from_x - FRAC_PI_2);
+    let rot = UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), angle_from_x - FRAC_PI_2);
     let iso = Isometry3::from_parts(Translation3::new(0.0, 0.0, 0.0), rot);
     Ok(CsgNode::Transform {
         node: Box::new(CsgNode::Leaf(Box::new(raw))),

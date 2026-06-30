@@ -80,9 +80,9 @@ impl ChannelPath {
             }
 
             // local X (normal) is perpendicular to tangent and up
-            let normal = up.cross(&tangent).normalize();
+            let normal = up.cross(tangent).normalize();
             // local Y (binormal) is perpendicular to normal and tangent, pointing "up"
-            let binormal = tangent.cross(&normal).normalize();
+            let binormal = tangent.cross(normal).normalize();
 
             frames.push(FrenetFrame {
                 position: self.points[i],

@@ -147,7 +147,7 @@ impl PlaneEquation {
         self.normal
     }
 
-    /// The unnormalised normal as a nalgebra `Vector3r`.
+    /// The unnormalised normal as a `Vector3r`.
     #[inline]
     #[must_use]
     pub fn normal_vec(&self) -> Vector3r {

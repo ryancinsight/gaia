@@ -65,9 +65,9 @@ pub struct MeshValidator {
 #[inline]
 fn point_to_p3r<T: Scalar>(p: &leto::geometry::Point3<T>) -> Point3r {
     Point3r::new(
-        TP::to_f64(&p.x).unwrap_or(0.0),
-        TP::to_f64(&p.y).unwrap_or(0.0),
-        TP::to_f64(&p.z).unwrap_or(0.0),
+        eunomia::NumericElement::to_f64(p.x),
+        eunomia::NumericElement::to_f64(p.y),
+        eunomia::NumericElement::to_f64(p.z),
     )
 }
 

@@ -271,7 +271,7 @@ pub fn build_seam_vertex_map(
             *pool.position(face.vertices[1]),
             *pool.position(face.vertices[2]),
         ];
-        let face_n = (pts[1] - pts[0]).cross(&(pts[2] - pts[0]));
+        let face_n = (pts[1] - pts[0]).cross(pts[2] - pts[0]);
         let edge1_sq = (pts[1] - pts[0]).norm_squared();
         let edge2_sq = (pts[2] - pts[0]).norm_squared();
         if face_n.norm_squared() < DEGENERATE_NORMAL_REL_SQ * edge1_sq * edge2_sq {
@@ -293,7 +293,7 @@ pub fn build_seam_vertex_map(
                     if edge_sq < DEGENERATE_NORMAL_REL_SQ * max_edge_sq {
                         continue;
                     }
-                    let t = (p3d - va).dot(&edge) / edge_sq;
+                    let t = (p3d - va).dot(edge) / edge_sq;
                     if t <= EDGE_EPS || t >= 1.0 - EDGE_EPS {
                         continue;
                     }
@@ -356,7 +356,7 @@ pub(crate) fn corefine_face(
     let b = *pool.position(face.vertices[1]);
     let c = *pool.position(face.vertices[2]);
 
-    let face_n = (b - a).cross(&(c - a));
+    let face_n = (b - a).cross(c - a);
     // Scale-relative degeneracy: ‖n‖² vs ‖edge₁‖²·‖edge₂‖² (see constants.rs).
     let edge1_sq = (b - a).norm_squared();
     let edge2_sq = (c - a).norm_squared();
@@ -441,7 +441,7 @@ pub(crate) fn corefine_face(
                 if edge_sq < DEGENERATE_NORMAL_REL_SQ * max_edge_sq {
                     continue;
                 }
-                let t = (p3d - va).dot(&edge) / edge_sq;
+                let t = (p3d - va).dot(edge) / edge_sq;
                 if t <= EDGE_EPS || t >= 1.0 - EDGE_EPS {
                     continue;
                 }
@@ -555,13 +555,13 @@ pub(crate) fn corefine_face(
             let d1 = s1.end - s1.start;
             let d2 = s2.end - s2.start;
             let r = s2.start - s1.start;
-            let denom = d1.cross(&d2).dot(&face_n);
+            let denom = d1.cross(d2).dot(face_n);
             let min_d = 1e-14 * n_sq.sqrt() * (d1.norm() + d2.norm());
             if denom.abs() < min_d {
                 continue;
             }
-            let t_param = r.cross(&d2).dot(&face_n) / denom;
-            let s_param = r.cross(&d1).dot(&face_n) / denom;
+            let t_param = r.cross(d2).dot(face_n) / denom;
+            let s_param = r.cross(d1).dot(face_n) / denom;
             if t_param <= EDGE_EPS || t_param >= 1.0 - EDGE_EPS {
                 continue;
             }
@@ -814,14 +814,14 @@ pub(crate) fn corefine_face(
         let p0 = *pool.position(v0);
         let p1 = *pool.position(v1);
         let p2 = *pool.position(v2);
-        let tri_n = (p1 - p0).cross(&(p2 - p0));
+        let tri_n = (p1 - p0).cross(p2 - p0);
         // Scale-relative: compare ‖n‖² against ‖edge₁‖²·‖edge₂‖².
         let e1sq = (p1 - p0).norm_squared();
         let e2sq = (p2 - p0).norm_squared();
         if tri_n.norm_squared() < DEGENERATE_NORMAL_REL_SQ * e1sq * e2sq {
             continue;
         }
-        if tri_n.dot(&face_n) >= 0.0 {
+        if tri_n.dot(face_n) >= 0.0 {
             triangles.push(FaceData::new(v0, v1, v2, face.region));
         } else {
             triangles.push(FaceData::new(v0, v2, v1, face.region));
@@ -942,9 +942,9 @@ fn inside_triangle_exact_projected(
 #[inline]
 fn inside_triangle_eps(p: Point3r, a: Point3r, b: Point3r, c: Point3r, face_n: Vector3r) -> bool {
     const EPS: Real = 1e-9;
-    let d0 = (b - a).cross(&(p - a)).dot(&face_n);
-    let d1 = (c - b).cross(&(p - b)).dot(&face_n);
-    let d2 = (a - c).cross(&(p - c)).dot(&face_n);
+    let d0 = (b - a).cross(p - a).dot(face_n);
+    let d1 = (c - b).cross(p - b).dot(face_n);
+    let d2 = (a - c).cross(p - c).dot(face_n);
     d0 >= -EPS && d1 >= -EPS && d2 >= -EPS
 }
 
@@ -1003,14 +1003,14 @@ fn midpoint_subdivide(
         }
         let pa = *pool.position(va);
         let pb = *pool.position(vb);
-        let tri_n = (pa - p0).cross(&(pb - p0));
+        let tri_n = (pa - p0).cross(pb - p0);
         // Scale-relative degenerate check.
         let e1s = (pa - p0).norm_squared();
         let e2s = (pb - p0).norm_squared();
         if tri_n.norm_squared() < DEGENERATE_NORMAL_REL_SQ * e1s * e2s {
             continue;
         }
-        if tri_n.dot(&face_n) >= 0.0 {
+        if tri_n.dot(face_n) >= 0.0 {
             result.push(FaceData::new(v0, va, vb, face.region));
         } else {
             result.push(FaceData::new(v0, vb, va, face.region));
@@ -1037,7 +1037,7 @@ mod tests {
         let a = p(0.0, 0.0, 0.0);
         let b = p(1.0, 0.0, 0.0);
         let c = p(0.0, 1.0, 0.0);
-        let n = (b - a).cross(&(c - a));
+        let n = (b - a).cross(c - a);
         let (axis_u, axis_v) = dominant_normal_axes(n / n.norm());
 
         let edge_point = p(0.5, 0.5, 0.0); // on edge b-c
@@ -1049,7 +1049,7 @@ mod tests {
         let a = p(0.0, 0.0, 0.0);
         let b = p(1.0, 0.0, 0.0);
         let c = p(0.0, 1.0, 0.0);
-        let n = (b - a).cross(&(c - a));
+        let n = (b - a).cross(c - a);
         let (axis_u, axis_v) = dominant_normal_axes(n / n.norm());
 
         let outside = p(1.1, 0.2, 0.0);
@@ -1061,7 +1061,7 @@ mod tests {
         let a = p(0.0, 0.0, 0.0);
         let b = p(0.0, 1.0, 0.0);
         let c = p(1.0, 0.0, 0.0); // reversed orientation vs CCW XY
-        let n = (b - a).cross(&(c - a));
+        let n = (b - a).cross(c - a);
         let (axis_u, axis_v) = dominant_normal_axes(n / n.norm());
 
         let inside = p(0.2, 0.2, 0.0);

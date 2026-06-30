@@ -54,9 +54,9 @@ pub(crate) fn resolve_oriented_coplanar_group(
             let p0 = *pool.position(face.vertices[0]);
             let p1 = *pool.position(face.vertices[1]);
             let p2 = *pool.position(face.vertices[2]);
-            let normal = (p1 - p0).cross(&(p2 - p0));
+            let normal = (p1 - p0).cross(p2 - p0);
 
-            if normal.dot(&basis.normal) > 0.0 {
+            if normal.dot(basis.normal) > 0.0 {
                 same_by_mesh[mesh_idx].push(*face);
             } else {
                 let mut flipped = *face;

@@ -198,7 +198,7 @@ fn analyze_mesh(
         let e1 = p1 - p0;
         let e2 = p2 - p0;
         let e3 = p2 - p1;
-        let cross = e1.cross(&e2);
+        let cross = e1.cross(e2);
         let area = cross.norm() * 0.5;
         stats.area += area;
 
@@ -207,7 +207,7 @@ fn analyze_mesh(
         }
 
         // Signed volume contribution (Gauss divergence theorem).
-        stats.volume += p0.coords.dot(&p1.coords.cross(&p2.coords)) / 6.0;
+        stats.volume += p0.coords.dot(p1.coords.cross(p2.coords)) / 6.0;
 
         // Centroid accumulation (weighted by area).
         let fc = (p0.coords + p1.coords + p2.coords) / 3.0;
@@ -267,11 +267,11 @@ fn analyze_mesh(
         let p0 = *pool.position(v[0]);
         let p1 = *pool.position(v[1]);
         let p2 = *pool.position(v[2]);
-        let geom_normal = (p1 - p0).cross(&(p2 - p0));
+        let geom_normal = (p1 - p0).cross(p2 - p0);
         let face_centroid = (p0.coords + p1.coords + p2.coords) / 3.0;
         let to_centroid = stats.centroid.coords - face_centroid;
         // Inward facing: normal points toward mesh centroid.
-        if geom_normal.dot(&to_centroid) > 0.0 {
+        if geom_normal.dot(to_centroid) > 0.0 {
             stats.inward_facing_faces += 1;
         }
     }

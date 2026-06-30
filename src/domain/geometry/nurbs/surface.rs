@@ -365,7 +365,7 @@ impl BSplineSurface {
     #[must_use]
     pub fn normal(&self, u: Real, v: Real) -> Option<UnitVector3<Real>> {
         let (_, du, dv) = self.point_and_derivs(u, v);
-        UnitVector3::try_new(du.cross(&dv), 1e-15)
+        UnitVector3::try_new(du.cross(dv), 1e-15)
     }
 }
 
@@ -541,7 +541,7 @@ impl NurbsSurface {
     #[must_use]
     pub fn normal(&self, u: Real, v: Real) -> Option<UnitVector3<Real>> {
         let (_, du, dv) = self.point_and_derivs(u, v);
-        UnitVector3::try_new(du.cross(&dv), 1e-15)
+        UnitVector3::try_new(du.cross(dv), 1e-15)
     }
 
     /// Axis-aligned bounding box from a resolution x resolution sample grid.
@@ -662,7 +662,7 @@ mod tests {
         ];
         let surf = BSplineSurface::clamped(grid_2x2(&pts), 1, 1).unwrap();
         let n = surf.normal(0.5, 0.5).expect("should have valid normal");
-        assert!((n.dot(&Vec3::new(0.0, 0.0, 1.0)) - 1.0).abs() < 1e-10);
+        assert!((n.into_inner().dot(Vec3::new(0.0, 0.0, 1.0)) - 1.0).abs() < 1e-10);
     }
 
     #[test]
