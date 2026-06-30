@@ -1,7 +1,7 @@
 //! # NURBS and B-Spline Curves
 //!
 //! Provides `BSplineCurve` (non-rational) and `NurbsCurve` (rational) for any
-//! embedding dimension.  Dimension `D` is a [`nalgebra::Const`] type parameter
+//! embedding dimension.  Dimension `D` is a const-generic type parameter
 //! so all allocations are stack-based for D ≤ 4.
 //!
 //! ## Mathematical Foundation
@@ -588,7 +588,7 @@ mod tests {
         let (_, tan) = curve.point_and_tangent(0.5);
         // Tangent direction is (1,1,1), magnitude = degree * (P1-P0) / knot diff
         assert!(
-            tan.dot(&v3(1.0, 1.0, 1.0)) > 0.0,
+            tan.dot(v3(1.0, 1.0, 1.0)) > 0.0,
             "tangent must point in positive direction"
         );
     }

@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let c = mesh.vertices.position(f.vertices[2]);
             let ab = b - a;
             let ac = c - a;
-            ab.cross(&ac).norm() * 0.5
+            ab.cross(ac).norm() * 0.5
         })
         .sum();
     let a_mesh_err = (a_mesh - a_expected).abs() / a_expected * 100.0;

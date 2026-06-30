@@ -632,16 +632,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eunomia"
-version = "0.1.0"
-source = "git+https://github.com/ryancinsight/eunomia#a7cd203bb2892fa3c42e26fe747c2ac80a7eabb8"
-dependencies = [
- "bytemuck",
- "half",
- "libm",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -856,7 +846,7 @@ dependencies = [
  "aquamarine",
  "cfd-schematics",
  "criterion",
- "eunomia 0.1.0",
+ "eunomia",
  "geometry-predicates",
  "hashbrown 0.15.5",
  "indexmap",
@@ -864,8 +854,6 @@ dependencies = [
  "melinoe",
  "mnemosyne",
  "moirai",
- "nalgebra",
- "num-traits",
  "proptest",
  "rand 0.8.5",
  "serde",
@@ -1262,7 +1250,7 @@ name = "leto"
 version = "0.35.1"
 dependencies = [
  "bytemuck",
- "eunomia 0.1.0 (git+https://github.com/ryancinsight/eunomia)",
+ "eunomia",
  "half",
  "serde",
  "thiserror 2.0.18",

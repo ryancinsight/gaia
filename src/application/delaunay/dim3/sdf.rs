@@ -109,7 +109,7 @@ impl<T: Scalar> CylinderSdf<T> {
 impl<T: Scalar> Sdf3D<T> for CylinderSdf<T> {
     fn eval(&self, p: &Point3<T>) -> T {
         let pb = p - self.point;
-        let proj = pb.dot(&self.axis);
+        let proj = pb.dot(self.axis);
         let radial_vec = pb - self.axis * proj;
         radial_vec.norm() - self.radius
     }
@@ -145,21 +145,21 @@ impl<T: Scalar> Sdf3D<T> for CapsuleSdf<T> {
     fn eval(&self, p: &Point3<T>) -> T {
         let pa = p - self.a;
         let ba = self.b - self.a;
-        let h = Float::clamp(pa.dot(&ba) / ba.norm_squared(), <T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ONE);
+        let h = (pa.dot(ba) / ba.norm_squared()).clamp(<T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ONE);
         (pa - ba * h).norm() - self.radius
     }
 
     fn bounds(&self) -> (Point3<T>, Point3<T>) {
         let r_vec = Vector3::new(self.radius, self.radius, self.radius);
         let min_pt = Point3::new(
-            Float::min(self.a.x, self.b.x),
-            Float::min(self.a.y, self.b.y),
-            Float::min(self.a.z, self.b.z),
+            (self.a.x).min_scalar(self.b.x),
+            (self.a.y).min_scalar(self.b.y),
+            (self.a.z).min_scalar(self.b.z),
         ) - r_vec;
         let max_pt = Point3::new(
-            Float::max(self.a.x, self.b.x),
-            Float::max(self.a.y, self.b.y),
-            Float::max(self.a.z, self.b.z),
+            (self.a.x).max_scalar(self.b.x),
+            (self.a.y).max_scalar(self.b.y),
+            (self.a.z).max_scalar(self.b.z),
         ) + r_vec;
         (min_pt, max_pt)
     }
@@ -192,19 +192,19 @@ impl<T: Scalar> Sdf3D<T> for FiniteCylinderSdf<T> {
             return (p - self.a).norm() - self.radius; // Degenerate point cylinder is a sphere
         }
 
-        let paba = pa.dot(&ba);
+        let paba = pa.dot(ba);
         let h = paba / baba; // fractional projection along cylinder
         let radial_vec = pa - ba * h;
 
         let radial_dist = radial_vec.norm() - self.radius;
         let half = <T as Scalar>::from_f64(0.5);
-        let axial_dist = Float::abs(h - half) * Float::sqrt(baba) - Float::sqrt(baba) * half;
+        let axial_dist = (h - half).abs() * (baba).sqrt() - (baba).sqrt() * half;
 
-        let interior_dist = Float::min(Float::max(radial_dist, axial_dist), <T as eunomia::NumericElement>::ZERO);
+        let interior_dist = (radial_dist).max_scalar(axial_dist).min_scalar(<T as eunomia::NumericElement>::ZERO);
 
-        let radial_ext = Float::max(radial_dist, <T as eunomia::NumericElement>::ZERO);
-        let axial_ext = Float::max(axial_dist, <T as eunomia::NumericElement>::ZERO);
-        let exterior_dist = Float::sqrt(radial_ext * radial_ext + axial_ext * axial_ext);
+        let radial_ext = (radial_dist).max_scalar(<T as eunomia::NumericElement>::ZERO);
+        let axial_ext = (axial_dist).max_scalar(<T as eunomia::NumericElement>::ZERO);
+        let exterior_dist = (radial_ext * radial_ext + axial_ext * axial_ext).sqrt();
 
         interior_dist + exterior_dist
     }
@@ -212,14 +212,14 @@ impl<T: Scalar> Sdf3D<T> for FiniteCylinderSdf<T> {
     fn bounds(&self) -> (Point3<T>, Point3<T>) {
         let r_vec = Vector3::new(self.radius, self.radius, self.radius);
         let min_pt = Point3::new(
-            Float::min(self.a.x, self.b.x),
-            Float::min(self.a.y, self.b.y),
-            Float::min(self.a.z, self.b.z),
+            (self.a.x).min_scalar(self.b.x),
+            (self.a.y).min_scalar(self.b.y),
+            (self.a.z).min_scalar(self.b.z),
         ) - r_vec;
         let max_pt = Point3::new(
-            Float::max(self.a.x, self.b.x),
-            Float::max(self.a.y, self.b.y),
-            Float::max(self.a.z, self.b.z),
+            (self.a.x).max_scalar(self.b.x),
+            (self.a.y).max_scalar(self.b.y),
+            (self.a.z).max_scalar(self.b.z),
         ) + r_vec;
         (min_pt, max_pt)
     }
@@ -246,7 +246,7 @@ impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> UnionSdf<T, A, B> {
 
 impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> Sdf3D<T> for UnionSdf<T, A, B> {
     fn eval(&self, p: &Point3<T>) -> T {
-        Float::min(self.primary.eval(p), self.secondary.eval(p))
+        (self.primary.eval(p)).min_scalar(self.secondary.eval(p))
     }
 
     fn bounds(&self) -> (Point3<T>, Point3<T>) {
@@ -254,14 +254,14 @@ impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> Sdf3D<T> for UnionSdf<T, A, B> {
         let (min2, max2) = self.secondary.bounds();
         (
             Point3::new(
-                Float::min(min1.x, min2.x),
-                Float::min(min1.y, min2.y),
-                Float::min(min1.z, min2.z),
+                (min1.x).min_scalar(min2.x),
+                (min1.y).min_scalar(min2.y),
+                (min1.z).min_scalar(min2.z),
             ),
             Point3::new(
-                Float::max(max1.x, max2.x),
-                Float::max(max1.y, max2.y),
-                Float::max(max1.z, max2.z),
+                (max1.x).max_scalar(max2.x),
+                (max1.y).max_scalar(max2.y),
+                (max1.z).max_scalar(max2.z),
             ),
         )
     }
@@ -294,11 +294,11 @@ impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> Sdf3D<T> for SmoothUnionSdf<T, A, B> {
         let a = self.primary.eval(p);
         let b = self.secondary.eval(p);
 
-        let diff = Float::abs(a - b);
-        let h = Float::max(self.k - diff, <T as eunomia::NumericElement>::ZERO) / self.k;
+        let diff = (a - b).abs();
+        let h = (self.k - diff).max_scalar(<T as eunomia::NumericElement>::ZERO) / self.k;
         let quarter = <T as Scalar>::from_f64(0.25);
 
-        Float::min(a, b) - h * h * self.k * quarter
+        (a).min_scalar(b) - h * h * self.k * quarter
     }
 
     fn bounds(&self) -> (Point3<T>, Point3<T>) {
@@ -307,14 +307,14 @@ impl<T: Scalar, A: Sdf3D<T>, B: Sdf3D<T>> Sdf3D<T> for SmoothUnionSdf<T, A, B> {
         let k_vec = Vector3::new(self.k, self.k, self.k);
         (
             Point3::new(
-                Float::min(min1.x, min2.x),
-                Float::min(min1.y, min2.y),
-                Float::min(min1.z, min2.z),
+                (min1.x).min_scalar(min2.x),
+                (min1.y).min_scalar(min2.y),
+                (min1.z).min_scalar(min2.z),
             ) - k_vec,
             Point3::new(
-                Float::max(max1.x, max2.x),
-                Float::max(max1.y, max2.y),
-                Float::max(max1.z, max2.z),
+                (max1.x).max_scalar(max2.x),
+                (max1.y).max_scalar(max2.y),
+                (max1.z).max_scalar(max2.z),
             ) + k_vec,
         )
     }

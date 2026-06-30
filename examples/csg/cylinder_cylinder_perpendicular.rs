@@ -40,7 +40,7 @@ use std::fs;
 use std::io::BufWriter;
 use std::time::Instant;
 
-use nalgebra::{Isometry3, UnitQuaternion, Vector3};
+use leto::geometry::{Isometry3, UnitQuaternion, Vector3};
 
 use gaia::application::csg::boolean::BooleanOp;
 use gaia::application::csg::CsgNode;
@@ -109,12 +109,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         .build()?;
         let rot = UnitQuaternion::<Real>::from_axis_angle(
-            &Vector3::z_axis(),
+            Vector3::z_axis(),
             -std::f64::consts::FRAC_PI_2, // +Y → +X
         );
         CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw))),
-            iso: Isometry3::from_parts(nalgebra::Translation3::identity(), rot),
+            iso: Isometry3::from_parts(leto::geometry::Translation3::new(0.0, 0.0, 0.0), rot),
         }
         .evaluate()?
     };

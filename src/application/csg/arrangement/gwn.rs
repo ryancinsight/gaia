@@ -82,7 +82,7 @@ pub fn prepare_classification_faces(
             let c = *pool.position(face.vertices[2]);
             let ab = b - a;
             let ac = c - a;
-            let normal = ab.cross(&ac);
+            let normal = ab.cross(ac);
             let area = 0.5 * normal.norm();
             let centroid = triangle_centroid::<f64>(&a, &b, &c);
             PreparedFace {
@@ -104,7 +104,7 @@ pub fn prepare_classification_faces(
             let c = *pool.position(face.vertices[2]);
             let ab = b - a;
             let ac = c - a;
-            let normal = ab.cross(&ac);
+            let normal = ab.cross(ac);
             let area = 0.5 * normal.norm();
             let centroid = triangle_centroid::<f64>(&a, &b, &c);
             prepared.push(PreparedFace {
@@ -137,7 +137,7 @@ pub fn prepare_classification_faces(
 /// `norm_squared() < ε²` (no sqrt) for efficiency.
 pub fn gwn<T: Scalar>(query: &leto::geometry::Point3<T>, faces: &[FaceData], pool: &VertexPool<T>) -> T {
     let mut solid_angle_sum = <T as Scalar>::from_f64(0.0);
-    let near_sq = <T as Float>::min_positive_value();
+    let near_sq = <T as Scalar>::from_f64(f64::MIN_POSITIVE);
     let one_e_30 = <T as Scalar>::from_f64(GWN_DENOMINATOR_GUARD);
     let two = <T as Scalar>::from_f64(2.0);
     let four_pi = <T as Scalar>::from_f64(4.0 * std::f64::consts::PI);
@@ -160,17 +160,14 @@ pub fn gwn<T: Scalar>(query: &leto::geometry::Point3<T>, faces: &[FaceData], poo
         let lb = vb.norm();
         let lc = vc.norm();
 
-        let num = va.dot(&vb.cross(&vc));
-        let den = la * lb * lc + va.dot(&vb) * lc + vb.dot(&vc) * la + vc.dot(&va) * lb;
+        let num = va.dot(vb.cross(vc));
+        let den = la * lb * lc + va.dot(vb) * lc + vb.dot(vc) * la + vc.dot(va) * lb;
 
-        use num_traits::Float;
-        if Float::abs(den) > one_e_30 || Float::abs(num) > one_e_30 {
-            solid_angle_sum += two * Float::atan2(num, den);
+        if (den).abs() > one_e_30 || (num).abs() > one_e_30 {
+            solid_angle_sum += two * (num).atan2(den);
         }
     }
-    use eunomia::RealField::clamp;
-    clamp(
-        solid_angle_sum / four_pi,
+    (solid_angle_sum / four_pi).clamp(
         <T as Scalar>::from_f64(-1.0),
         <T as Scalar>::from_f64(1.0),
     )
@@ -185,8 +182,8 @@ fn solid_angle_f64(
     let la = va.norm();
     let lb = vb.norm();
     let lc = vc.norm();
-    let num = va.dot(&vb.cross(&vc));
-    let den = la * lb * lc + va.dot(&vb) * lc + vb.dot(&vc) * la + vc.dot(&va) * lb;
+    let num = va.dot(vb.cross(vc));
+    let den = la * lb * lc + va.dot(vb) * lc + vb.dot(vc) * la + vc.dot(va) * lb;
     if den.abs() > GWN_DENOMINATOR_GUARD || num.abs() > GWN_DENOMINATOR_GUARD {
         2.0 * num.atan2(den)
     } else {
@@ -295,8 +292,8 @@ pub(crate) fn gwn_gradient_prepared(query: &Point3r, faces: &[PreparedFace]) -> 
         let lc = vc.norm();
 
         // Numerator and Denominator — shared kernel (see solid_angle_f64)
-        let num = va.dot(&vb.cross(&vc));
-        let den = la * lb * lc + va.dot(&vb) * lc + vb.dot(&vc) * la + vc.dot(&va) * lb;
+        let num = va.dot(vb.cross(vc));
+        let den = la * lb * lc + va.dot(vb) * lc + vb.dot(vc) * la + vc.dot(va) * lb;
 
         let den_sq = den * den + num * num;
         if den_sq < 1e-60 {
@@ -313,14 +310,14 @@ pub(crate) fn gwn_gradient_prepared(query: &Point3r, faces: &[PreparedFace]) -> 
         }
 
         // Analytical derivatives
-        let k_a = (lb * lc + vb.dot(&vc)) / la + lb + lc;
-        let k_b = (la * lc + va.dot(&vc)) / lb + la + lc;
-        let k_c = (la * lb + va.dot(&vb)) / lc + la + lb;
+        let k_a = (lb * lc + vb.dot(vc)) / la + lb + lc;
+        let k_b = (la * lc + va.dot(vc)) / lb + la + lc;
+        let k_c = (la * lb + va.dot(vb)) / lc + la + lb;
 
         let grad_n = -face.normal;
         let grad_d = -(va * k_a + vb * k_b + vc * k_c);
 
-        let grad_omega = 2.0 * (den * grad_n - num * grad_d) / den_sq;
+        let grad_omega = (grad_n * den - grad_d * num) * 2.0 / den_sq;
         grad_sum += grad_omega;
     }
     grad_sum / (4.0 * std::f64::consts::PI)
@@ -366,7 +363,7 @@ pub fn wnnc_score(point: &Point3r, normal: &Vector3r, faces: &[PreparedFace]) ->
     }
     // Score = cos(angle between -∇GWN and normal)
     //       = dot(-grad, normal) / (|grad| × |normal|)
-    let neg_grad_dot_n = -grad.dot(normal);
+    let neg_grad_dot_n = -grad.dot(*normal);
     neg_grad_dot_n / (grad_norm_sq.sqrt() * normal_norm_sq.sqrt())
 }
 

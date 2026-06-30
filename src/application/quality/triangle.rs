@@ -47,9 +47,9 @@ pub(crate) fn triangle_angles(a: &Point3r, b: &Point3r, c: &Point3r) -> [Real; 3
     }
 
     [
-        angle(ab.dot(&ac), lab, lac),       // angle at A
-        angle((-ab).dot(&bc), lab, lbc),    // angle at B
-        angle((-ac).dot(&(-bc)), lac, lbc), // angle at C
+        angle(ab.dot(ac), lab, lac),       // angle at A
+        angle((-ab).dot(bc), lab, lbc),    // angle at B
+        angle((-ac).dot(-bc), lac, lbc), // angle at C
     ]
 }
 
@@ -68,7 +68,7 @@ pub fn aspect_ratio(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
     let edges = [ab.norm(), bc.norm(), ca.norm()];
     let longest = edges.iter().copied().fold(0.0, Real::max);
     // ab already computed — reuse for cross product to avoid a second subtraction.
-    let area = 0.5 * ab.cross(&(-ca)).norm();
+    let area = 0.5 * ab.cross(-ca).norm();
 
     if area < Real::EPSILON {
         return Real::INFINITY; // Degenerate

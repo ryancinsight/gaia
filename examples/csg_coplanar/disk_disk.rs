@@ -161,7 +161,7 @@ fn mesh_area(mesh: &IndexedMesh) -> f64 {
             let c = mesh.vertices.position(f.vertices[2]);
             let ab = b - a;
             let ac = c - a;
-            ab.cross(&ac).norm() * 0.5
+            ab.cross(ac).norm() * 0.5
         })
         .sum()
 }

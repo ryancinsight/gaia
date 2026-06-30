@@ -62,12 +62,12 @@ pub(super) fn coplanarity_tiebreak_pool(
         if orient3d(pa, pb, pc, centroid) != Sign::Zero {
             continue;
         }
-        let n_face = Vector3r::new(pb.x - pa.x, pb.y - pa.y, pb.z - pa.z).cross(&Vector3r::new(
+        let n_face = Vector3r::new(pb.x - pa.x, pb.y - pa.y, pb.z - pa.z).cross(Vector3r::new(
             pc.x - pa.x,
             pc.y - pa.y,
             pc.z - pa.z,
         ));
-        let dot = n_face.dot(frag_normal);
+        let dot = n_face.dot(*frag_normal);
         if dot > 0.0 {
             exterior += 1;
         } else if dot < 0.0 {
@@ -89,7 +89,7 @@ pub(super) fn coplanarity_tiebreak_prepared(
         if orient3d(&face.a, &face.b, &face.c, centroid) != Sign::Zero {
             continue;
         }
-        let dot = face.normal.dot(frag_normal);
+        let dot = face.normal.dot(*frag_normal);
         if dot > 0.0 {
             exterior += 1;
         } else if dot < 0.0 {
@@ -136,13 +136,13 @@ pub(super) fn nearest_face_tiebreak_pool(
         let dist_sq = d.0 * d.0 + d.1 * d.1 + d.2 * d.2;
         if dist_sq < best_dist_sq {
             best_dist_sq = dist_sq;
-            let n = Vector3r::new(pb.x - pa.x, pb.y - pa.y, pb.z - pa.z).cross(&Vector3r::new(
+            let n = Vector3r::new(pb.x - pa.x, pb.y - pa.y, pb.z - pa.z).cross(Vector3r::new(
                 pc.x - pa.x,
                 pc.y - pa.y,
                 pc.z - pa.z,
             ));
             let cp = Vector3r::new(centroid.x - pa.x, centroid.y - pa.y, centroid.z - pa.z);
-            best_sign = cp.dot(&n);
+            best_sign = cp.dot(n);
             best_normal_norm_sq = n.norm_squared();
         }
     }
@@ -171,7 +171,7 @@ pub(super) fn nearest_face_tiebreak_prepared(
                 centroid.y - face.a.y,
                 centroid.z - face.a.z,
             );
-            best_sign = cp.dot(&face.normal);
+            best_sign = cp.dot(face.normal);
             best_normal_norm_sq = face.normal.norm_squared();
         }
     }

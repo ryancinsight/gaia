@@ -88,7 +88,7 @@ pub(crate) fn apply_vertex_merge(
         let p0 = pool.position(f.vertices[0]);
         let p1 = pool.position(f.vertices[1]);
         let p2 = pool.position(f.vertices[2]);
-        (p1 - p0).cross(&(p2 - p0)).norm_squared() > 1e-30
+        (p1 - p0).cross(p2 - p0).norm_squared() > 1e-30
     });
     dedup_faces_unordered(faces);
 }

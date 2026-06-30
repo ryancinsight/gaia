@@ -1072,7 +1072,7 @@ mod tests {
         );
         // All triangle normals must point in the same direction (+Z for CCW hex)
         for tri in &tris {
-            let n = (tri[1] - tri[0]).cross(&(tri[2] - tri[0]));
+            let n = (tri[1] - tri[0]).cross(tri[2] - tri[0]);
             assert!(n.z > 0.0, "fan triangle normal must be +Z, got {n:?}");
         }
     }
@@ -2176,7 +2176,7 @@ mod tests {
             .build()
             .expect("cylinder");
             let rotation = UnitQuaternion::<f64>::from_axis_angle(
-                &Vector3::z_axis(),
+                Vector3::z_axis(),
                 angle_deg.to_radians() - std::f64::consts::FRAC_PI_2,
             );
             let m = CsgNode::Transform {
@@ -2232,7 +2232,7 @@ mod tests {
             .build()
             .expect("cross cylinder");
             let rotation = UnitQuaternion::<f64>::from_axis_angle(
-                &Vector3::z_axis(),
+                Vector3::z_axis(),
                 angle_deg.to_radians() - std::f64::consts::FRAC_PI_2,
             );
             let m = CsgNode::Transform {
@@ -2298,7 +2298,7 @@ mod tests {
             .build()
             .expect("star cylinder");
             let rotation = UnitQuaternion::<f64>::from_axis_angle(
-                &Vector3::z_axis(),
+                Vector3::z_axis(),
                 angle_deg.to_radians() - std::f64::consts::FRAC_PI_2,
             );
             let m = CsgNode::Transform {

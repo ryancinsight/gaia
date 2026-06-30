@@ -89,7 +89,7 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
         let e01 = p1 - p0;
         let e02 = p2 - p0;
         let e12 = p2 - p1;
-        let area_sq = e01.cross(&e02).norm_squared();
+        let area_sq = e01.cross(e02).norm_squared();
         let max_edge_sq = e01
             .norm_squared()
             .max(e02.norm_squared())
@@ -129,14 +129,14 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
                 let p0 = pool.position(f.vertices[0]);
                 let p1 = pool.position(f.vertices[1]);
                 let p2 = pool.position(f.vertices[2]);
-                (p1 - p0).cross(&(p2 - p0)).norm_squared()
+                (p1 - p0).cross(p2 - p0).norm_squared()
             };
             for &fi in &face_indices[1..] {
                 let f = &faces[fi];
                 let p0 = pool.position(f.vertices[0]);
                 let p1 = pool.position(f.vertices[1]);
                 let p2 = pool.position(f.vertices[2]);
-                let area_sq = (p1 - p0).cross(&(p2 - p0)).norm_squared();
+                let area_sq = (p1 - p0).cross(p2 - p0).norm_squared();
                 if area_sq > best_area {
                     remove_set.insert(best_fi);
                     best_fi = fi;
@@ -212,7 +212,7 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
             for j in (i + 1)..n {
                 let pi = pool.position(poly[i]);
                 let pj = pool.position(poly[j]);
-                let a = (pi - p0).cross(&(pj - p0)).norm_squared();
+                let a = (pi - p0).cross(pj - p0).norm_squared();
                 if a > max_area_sq {
                     max_area_sq = a;
                 }

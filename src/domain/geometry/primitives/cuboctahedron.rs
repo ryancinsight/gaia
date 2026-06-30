@@ -141,7 +141,7 @@ fn build(co: &Cuboctahedron) -> Result<IndexedMesh, PrimitiveError> {
         let raw_n = triangle_normal(&verts[ia], &verts[ib], &verts[ic]);
         let n = match raw_n {
             Some(n) => {
-                if n.dot(&centroid) < 0.0 {
+                if n.dot(centroid) < 0.0 {
                     -n
                 } else {
                     n
@@ -153,7 +153,7 @@ fn build(co: &Cuboctahedron) -> Result<IndexedMesh, PrimitiveError> {
         let vi1 = mesh.add_vertex(verts[ib], n);
         let vi2 = mesh.add_vertex(verts[ic], n);
         // Ensure face winding matches outward normal direction.
-        if raw_n.is_some_and(|n| n.dot(&centroid) < 0.0) {
+        if raw_n.is_some_and(|n| n.dot(centroid) < 0.0) {
             mesh.add_face_with_region(vi0, vi2, vi1, region); // flipped
         } else {
             mesh.add_face_with_region(vi0, vi1, vi2, region); // normal
@@ -169,7 +169,7 @@ fn build(co: &Cuboctahedron) -> Result<IndexedMesh, PrimitiveError> {
             let raw_n = triangle_normal(&verts[ia], &verts[ib], &verts[ic]);
             let n = match raw_n {
                 Some(n) => {
-                    if n.dot(&centroid) < 0.0 {
+                    if n.dot(centroid) < 0.0 {
                         -n
                     } else {
                         n
@@ -180,7 +180,7 @@ fn build(co: &Cuboctahedron) -> Result<IndexedMesh, PrimitiveError> {
             let vi0 = mesh.add_vertex(verts[ia], n);
             let vi1 = mesh.add_vertex(verts[ib], n);
             let vi2 = mesh.add_vertex(verts[ic], n);
-            if raw_n.is_some_and(|n| n.dot(&centroid) < 0.0) {
+            if raw_n.is_some_and(|n| n.dot(centroid) < 0.0) {
                 mesh.add_face_with_region(vi0, vi2, vi1, region);
             } else {
                 mesh.add_face_with_region(vi0, vi1, vi2, region);
@@ -191,7 +191,7 @@ fn build(co: &Cuboctahedron) -> Result<IndexedMesh, PrimitiveError> {
             let raw_n = triangle_normal(&verts[ia], &verts[ic], &verts[id]);
             let n = match raw_n {
                 Some(n) => {
-                    if n.dot(&centroid) < 0.0 {
+                    if n.dot(centroid) < 0.0 {
                         -n
                     } else {
                         n
@@ -202,7 +202,7 @@ fn build(co: &Cuboctahedron) -> Result<IndexedMesh, PrimitiveError> {
             let vi0 = mesh.add_vertex(verts[ia], n);
             let vi1 = mesh.add_vertex(verts[ic], n);
             let vi2 = mesh.add_vertex(verts[id], n);
-            if raw_n.is_some_and(|n| n.dot(&centroid) < 0.0) {
+            if raw_n.is_some_and(|n| n.dot(centroid) < 0.0) {
                 mesh.add_face_with_region(vi0, vi2, vi1, region);
             } else {
                 mesh.add_face_with_region(vi0, vi1, vi2, region);

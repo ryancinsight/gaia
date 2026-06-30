@@ -39,7 +39,7 @@ impl Plane {
     #[must_use]
     pub fn from_normal_and_point(normal: Vector3r, point: &Point3r) -> Self {
         let n = normal.normalize();
-        let w = -n.dot(&point.coords);
+        let w = -n.dot(point.coords);
         Self { normal: n, w }
     }
 
@@ -49,13 +49,13 @@ impl Plane {
     pub fn from_three_points(a: &Point3r, b: &Point3r, c: &Point3r) -> Option<Self> {
         let ab = b - a;
         let ac = c - a;
-        let cross = ab.cross(&ac);
+        let cross = ab.cross(ac);
         let len = cross.norm();
         if len < TOLERANCE {
             return None; // Degenerate (collinear points)
         }
         let normal = cross / len;
-        let w = -normal.dot(&a.coords);
+        let w = -normal.dot(a.coords);
         Some(Self { normal, w })
     }
 
@@ -65,7 +65,7 @@ impl Plane {
     #[inline]
     #[must_use]
     pub fn signed_distance(&self, point: &Point3r) -> Real {
-        self.normal.dot(&point.coords) + self.w
+        self.normal.dot(point.coords) + self.w
     }
 
     /// Classify a point relative to this plane (using the default TOLERANCE).

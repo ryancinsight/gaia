@@ -229,7 +229,7 @@ fn propagate_seam_vertices_impl(
         let p0 = *pool.position(v[0]);
         let p1 = *pool.position(v[1]);
         let p2 = *pool.position(v[2]);
-        let face_n = (p1 - p0).cross(&(p2 - p0));
+        let face_n = (p1 - p0).cross(p2 - p0);
 
         for i in 0..3_usize {
             let va_id = v[i];
@@ -238,7 +238,7 @@ fn propagate_seam_vertices_impl(
             let pb = *pool.position(vb_id);
 
             let edge_vec = pb - pa;
-            let edge_len_sq = edge_vec.dot(&edge_vec);
+            let edge_len_sq = edge_vec.dot(edge_vec);
             if edge_len_sq < 1e-20 {
                 continue;
             }
@@ -273,9 +273,9 @@ fn propagate_seam_vertices_impl(
                     if sp_len_sq < 1e-30 {
                         continue;
                     }
-                    let cross_v = edge_vec.cross(&sp);
+                    let cross_v = edge_vec.cross(sp);
                     if cross_v.norm_squared() <= COLLINEAR_TOL_SQ * edge_len_sq * sp_len_sq {
-                        let t = sp.dot(&edge_vec) / edge_len_sq;
+                        let t = sp.dot(edge_vec) / edge_len_sq;
                         if t > MARGIN && t < 1.0 - MARGIN {
                             t_params.push(t);
                         }
@@ -523,7 +523,7 @@ pub fn inject_cap_seam_into_barrels(
     segs_out: &mut [Vec<SnapSegment>],
     pool: &VertexPool,
 ) {
-    let plane_n_len_sq = plane_n.dot(plane_n);
+    let plane_n_len_sq = plane_n.dot(*plane_n);
     if plane_n_len_sq < 1e-20 || seam_positions.is_empty() {
         return;
     }
@@ -551,9 +551,9 @@ pub fn inject_cap_seam_into_barrels(
         let v0 = *pool.position(face.vertices[0]);
         let v1 = *pool.position(face.vertices[1]);
         let v2 = *pool.position(face.vertices[2]);
-        let d0 = (v0 - plane_pt).dot(plane_n);
-        let d1 = (v1 - plane_pt).dot(plane_n);
-        let d2 = (v2 - plane_pt).dot(plane_n);
+        let d0 = (v0 - plane_pt).dot(*plane_n);
+        let d1 = (v1 - plane_pt).dot(*plane_n);
+        let d2 = (v2 - plane_pt).dot(*plane_n);
         let on0 = d0.abs() < tol;
         let on1 = d1.abs() < tol;
         let on2 = d2.abs() < tol;
@@ -635,7 +635,7 @@ pub fn inject_cap_seam_into_barrels(
             let s = &seam_positions[i];
 
             // Guard: s must lie on the cap plane.
-            let ds = (*s - plane_pt).dot(plane_n);
+            let ds = (*s - plane_pt).dot(*plane_n);
             if ds.abs() > tol * 10.0 {
                 continue;
             }
@@ -655,9 +655,9 @@ pub fn inject_cap_seam_into_barrels(
             if sp_len_sq < 1e-30 {
                 continue; // s ≈ pa, skip (t ≈ 0, not interior)
             }
-            let cross = edge.cross(&sp);
+            let cross = edge.cross(sp);
             if cross.norm_squared() <= COLLINEAR_TOL_SQ * edge_len_sq * sp_len_sq {
-                let t = sp.dot(&edge) / edge_len_sq;
+                let t = sp.dot(edge) / edge_len_sq;
                 if t > SEG_MARGIN && t < 1.0 - SEG_MARGIN {
                     cut_params.push(t);
                 }

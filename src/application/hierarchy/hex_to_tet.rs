@@ -164,7 +164,7 @@ impl HexToTetConverter {
         let p1 = mesh.vertices.position(nodes[1]).coords;
         let p2 = mesh.vertices.position(nodes[2]).coords;
         let p3 = mesh.vertices.position(nodes[3]).coords;
-        eunomia::NumericElement::abs((p1 - p0).cross(&(p2 - p0)).dot(&(p3 - p0)))
+        eunomia::NumericElement::abs((p1 - p0).cross(p2 - p0).dot(p3 - p0))
     }
 
     fn is_non_degenerate_tet<T: Scalar>(
@@ -421,7 +421,7 @@ impl HexToTetConverter {
                     .iter()
                     .map(|nodes| Self::tet_six_volume(mesh, *nodes))
                     .fold(
-                        eunomia::NumericElement::max_value(),
+                        eunomia::RealField::max_value(),
                         |a, b| if a < b { a } else { b },
                     );
 
@@ -487,7 +487,7 @@ mod tests {
         let p1 = mesh.vertices.position(vertices[1]).coords;
         let p2 = mesh.vertices.position(vertices[2]).coords;
         let p3 = mesh.vertices.position(vertices[3]).coords;
-        (p1 - p0).cross(&(p2 - p0)).dot(&(p3 - p0)).abs()
+        (p1 - p0).cross(p2 - p0).dot(p3 - p0).abs()
     }
 
     fn assert_no_degenerate_tets(mesh: &IndexedMesh<f64>) {

@@ -15,11 +15,11 @@
 //! support all mesh-geometry operations required by `gaia`.
 //!
 //! **Proof sketch**: `eunomia::RealField` provides a complete ordered field
-//! with algebraic/trigonometric operations needed for nalgebra vector maths.
-//! `num_traits::Float` adds `infinity`, `neg_infinity`, `is_finite`, `floor`,
-//! `sqrt`, and `min`/`max`.  `num_traits::ToPrimitive` enables lossless
-//! conversion to `f64` for human-readable outputs.  The sealed super-trait
-//! restricts the impl set to `{f32, f64}`, matching IEEE 754 hardware support.
+//! with the algebraic/trigonometric operations needed for vector maths over the
+//! `leto` geometry types, plus `infinity`/`neg_infinity`/`floor`/`sqrt`/
+//! `min_scalar`/`max_scalar` and lossless `to_f64` conversion for human-readable
+//! outputs.  The sealed super-trait restricts the impl set to `{f32, f64}`,
+//! matching IEEE 754 hardware support.
 
 use leto::geometry::{Point3, Vector3};
 

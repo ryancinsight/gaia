@@ -205,8 +205,8 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
                         let da = verts[a] - verts[nxt];
                         let db = verts[b] - verts[nxt];
                         // Most CCW = most negative cross product z (when projected onto face plane).
-                        let ca = dir.cross(&da).dot(&outward);
-                        let cb = dir.cross(&db).dot(&outward);
+                        let ca = dir.cross(da).dot(outward);
+                        let cb = dir.cross(db).dot(outward);
                         ca.total_cmp(&cb)
                     })
                     .copied();
@@ -242,7 +242,7 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
             let p2 = &verts[face_indices[k + 1]];
             let n = match triangle_normal(p0, p1, p2) {
                 Some(n) => {
-                    if n.dot(&n_outward) < 0.0 {
+                    if n.dot(n_outward) < 0.0 {
                         -n
                     } else {
                         n

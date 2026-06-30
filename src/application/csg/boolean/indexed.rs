@@ -659,7 +659,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
                 let pc = mesh.vertices.position(face.vertices[2]);
                 let ab = pb - pa;
                 let ac = pc - pa;
-                let cross = ab.cross(&ac);
+                let cross = ab.cross(ac);
                 let cross_sq = cross.norm_squared();
                 let d01 = ab.norm_squared();
                 let d12 = (pc - pb).norm_squared();
@@ -801,7 +801,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
             let pc = mesh.vertices.position(face.vertices[2]);
             let ab = pb - pa;
             let ac = pc - pa;
-            let cross = ab.cross(&ac);
+            let cross = ab.cross(ac);
             let cross_sq = cross.norm_squared();
             let d01 = ab.norm_squared();
             let d12 = (pc - pb).norm_squared();
@@ -927,7 +927,7 @@ fn collapse_degenerate_faces(mesh: &mut IndexedMesh) {
                     let post_n = triangle_normal(q0, q1, q2);
 
                     if let (Some(pn), Some(qn)) = (pre_n, post_n) {
-                        if pn.dot(&qn) < 0.0 {
+                        if pn.dot(qn) < 0.0 {
                             would_invert_normal = true;
                             break;
                         }
@@ -1845,7 +1845,7 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
             for &fi_rev in &reverse {
                 let n_rev = face_normal_of(&face_list[fi_rev], &mesh.vertices);
                 let dot = match (n_fwd, n_rev) {
-                    (Some(a), Some(b)) => a.dot(&b),
+                    (Some(a), Some(b)) => a.dot(b),
                     _ => f64::NEG_INFINITY,
                 };
                 let better = match best_pair {
@@ -1984,7 +1984,7 @@ fn remove_fin_faces(mesh: &mut IndexedMesh) {
         // Find the maximum agreement with any neighbor.
         let max_dot = neighbors
             .iter()
-            .filter_map(|&nfi| face_normals[nfi].map(|n_g| n_f.dot(&n_g)))
+            .filter_map(|&nfi| face_normals[nfi].map(|n_g| n_f.dot(n_g)))
             .fold(f64::NEG_INFINITY, f64::max);
 
         if max_dot < cos_threshold {

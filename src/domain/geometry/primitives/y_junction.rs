@@ -93,8 +93,8 @@ impl PrimitiveMesh for YJunction {
 /// Orthonormal frame perpendicular to `tangent`.
 fn perp_frame(tangent: Vector3r) -> (Vector3r, Vector3r) {
     let hint = if tangent.z.abs() < 0.9 { Vector3r::z() } else { Vector3r::x() };
-    let e1 = (hint - hint.dot(&tangent) * tangent).normalize();
-    let e2 = tangent.cross(&e1).normalize();
+    let e1 = (hint - hint.dot(tangent) * tangent).normalize();
+    let e2 = tangent.cross(e1).normalize();
     (e1, e2)
 }
 

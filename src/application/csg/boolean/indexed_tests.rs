@@ -129,7 +129,7 @@ fn planar_branch(angle_from_x: f64, radius: f64, height: f64, segments: usize) -
     .build()
     .expect("branch build");
     let rotation = UnitQuaternion::<f64>::from_axis_angle(
-        &Vector3::z_axis(),
+        Vector3::z_axis(),
         angle_from_x - std::f64::consts::FRAC_PI_2,
     );
     CsgNode::Transform {
@@ -153,7 +153,7 @@ fn planar_trunk(radius: f64, height: f64, extension: f64, segments: usize) -> In
     .build()
     .expect("trunk build");
     let rotation =
-        UnitQuaternion::<f64>::from_axis_angle(&Vector3::z_axis(), -std::f64::consts::FRAC_PI_2);
+        UnitQuaternion::<f64>::from_axis_angle(Vector3::z_axis(), -std::f64::consts::FRAC_PI_2);
     CsgNode::Transform {
         node: Box::new(CsgNode::Leaf(Box::new(raw))),
         iso: Isometry3::from_parts(Translation3::new(-height, 0.0, 0.0), rotation),
@@ -439,7 +439,7 @@ fn cylinder_difference_normals_check() {
         }
         .build()
         .unwrap();
-        let rot = UnitQuaternion::<f64>::from_axis_angle(&Vector3::z_axis(), -FRAC_PI_2);
+        let rot = UnitQuaternion::<f64>::from_axis_angle(Vector3::z_axis(), -FRAC_PI_2);
         let iso = Isometry3::from_parts(Translation3::new(-H_TRUNK, 0.0, 0.0), rot);
         CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw))),
@@ -457,7 +457,7 @@ fn cylinder_difference_normals_check() {
         }
         .build()
         .unwrap();
-        let rot = UnitQuaternion::<f64>::from_axis_angle(&Vector3::z_axis(), theta - FRAC_PI_2);
+        let rot = UnitQuaternion::<f64>::from_axis_angle(Vector3::z_axis(), theta - FRAC_PI_2);
         let iso = Isometry3::from_parts(Translation3::new(0.0, 0.0, 0.0), rot);
         CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw))),
@@ -475,7 +475,7 @@ fn cylinder_difference_normals_check() {
         }
         .build()
         .unwrap();
-        let rot = UnitQuaternion::<f64>::from_axis_angle(&Vector3::z_axis(), -theta - FRAC_PI_2);
+        let rot = UnitQuaternion::<f64>::from_axis_angle(Vector3::z_axis(), -theta - FRAC_PI_2);
         let iso = Isometry3::from_parts(Translation3::new(0.0, 0.0, 0.0), rot);
         CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw))),

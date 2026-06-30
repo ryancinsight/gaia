@@ -35,7 +35,7 @@ pub fn face_non_orthogonality(
     let b = mesh.vertices.position(vb);
     let c = mesh.vertices.position(vc);
 
-    let n = (b - a).cross(&(c - a));
+    let n = (b - a).cross((c - a));
     if n.norm_squared() < 1e-30 {
         return 0.0;
     }
@@ -49,7 +49,7 @@ pub fn face_non_orthogonality(
     }
     let d = d.normalize();
 
-    let cos_theta = n.dot(&d).abs().min(1.0);
+    let cos_theta = n.dot(d).abs().min(1.0);
     cos_theta.acos().to_degrees()
 }
 
@@ -73,7 +73,7 @@ pub fn face_skewness(
     let fc = Point3::from((a.coords + b.coords + c.coords) / 3.0);
 
     // Face normal (unnormalised; used for plane intersection).
-    let n = (b - a).cross(&(c - a));
+    let n = (b - a).cross((c - a));
     if n.norm_squared() < 1e-30 {
         return 0.0;
     }
@@ -84,11 +84,11 @@ pub fn face_skewness(
     // Parametric intersection of the d-line with the face plane:
     //   P(t) = c_owner + t * d,  and  n · (P(t) - fc) = 0
     let d = c_neigh - c_owner;
-    let denom = n.dot(&d);
+    let denom = n.dot(d);
     if denom.abs() < 1e-30 {
         return 0.0;
     }
-    let t = n.dot(&(fc - c_owner)) / denom;
+    let t = n.dot((fc - c_owner)) / denom;
     let p_i = c_owner + d * t; // intersection point on face plane
 
     let deviation = (fc - p_i).norm();

@@ -28,8 +28,6 @@ parallel = ["dep:moirai"]
 
 [dependencies]
 # Math
-nalgebra = { version = "0.33", features = ["serde-serialize"] }
-num-traits = "0.2"
 approx = "0.5"
 
 # Error handling
@@ -73,7 +71,6 @@ moirai = { version = "0.2.0", git = "https://github.com/ryancinsight/Moirai.git"
 approx = "0.5"
 proptest = "1.4"
 criterion = "0.5"
-nalgebra = { version = "0.33", features = ["serde-serialize"] }
 mnemosyne = { version = "0.2.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
 moirai = { version = "0.2.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
@@ -396,3 +393,6 @@ moirai-metrics = { path = "../moirai/moirai-metrics" }
 moirai-utils = { path = "../moirai/moirai-utils" }
 moirai-gpu = { path = "../moirai/moirai-gpu" }
 
+
+[patch."https://github.com/ryancinsight/eunomia"]
+eunomia = { path = "../eunomia/crates/eunomia" }

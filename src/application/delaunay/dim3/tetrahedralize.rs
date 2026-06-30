@@ -24,12 +24,9 @@ use crate::domain::core::scalar::Scalar;
 #[inline]
 fn point_to_f64_arr<T: Scalar>(pt: &Point3<T>) -> [f64; 3] {
     [
-        eunomia::NumericElement::to_f64(&pt.x)
-            .expect("invariant: real scalar can always be cast to f64"),
-        eunomia::NumericElement::to_f64(&pt.y)
-            .expect("invariant: real scalar can always be cast to f64"),
-        eunomia::NumericElement::to_f64(&pt.z)
-            .expect("invariant: real scalar can always be cast to f64"),
+        eunomia::NumericElement::to_f64(pt.x),
+        eunomia::NumericElement::to_f64(pt.y),
+        eunomia::NumericElement::to_f64(pt.z),
     ]
 }
 
@@ -215,19 +212,19 @@ impl<T: Scalar> BowyerWatson3D<T> {
     /// do not hit the degenerate corners.
     fn inject_super_tetrahedron(&mut self, min: Point3<T>, max: Point3<T>) {
         let d = max - min;
-        let d_max = Float::max(Float::max(d.x, d.y), d.z) * <T as Scalar>::from_f64(5.0);
+        let d_max = (d.x).max_scalar(d.y).max_scalar(d.z) * <T as Scalar>::from_f64(5.0);
         let center = min + d / <T as Scalar>::from_f64(2.0);
 
         let p0 = center + Vector3::new(<T as eunomia::NumericElement>::ZERO, d_max, -d_max / <T as Scalar>::from_f64(3.0));
         let p1 = center
             + Vector3::new(
-                d_max * Float::sin(<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)),
+                d_max * (<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)).sin(),
                 -d_max / <T as Scalar>::from_f64(2.0),
                 -d_max / <T as Scalar>::from_f64(3.0),
             );
         let p2 = center
             + Vector3::new(
-                -d_max * Float::sin(<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)),
+                -d_max * (<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)).sin(),
                 -d_max / <T as Scalar>::from_f64(2.0),
                 -d_max / <T as Scalar>::from_f64(3.0),
             );

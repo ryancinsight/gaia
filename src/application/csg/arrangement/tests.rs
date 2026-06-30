@@ -358,7 +358,7 @@ fn t_junction_volume_and_watertightness() {
 
     // +Y -> +X, then translate crossbar to the stem top cap.
     let rot =
-        UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), -std::f64::consts::FRAC_PI_2);
+        UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), -std::f64::consts::FRAC_PI_2);
     let iso = Isometry3::from_parts(Translation3::new(0.0, h / 2.0, 0.0), rot);
     let crossbar = CsgNode::Transform {
         node: Box::new(CsgNode::Leaf(Box::new(crossbar_raw))),
@@ -669,7 +669,7 @@ fn l_shape_compound_union_is_watertight() {
     .expect("elbow build");
     // L-shape example uses -90° about X (not Y): +Z → +Y, +X → +X
     let rot_elbow =
-        UnitQuaternion::<Real>::from_axis_angle(&Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
+        UnitQuaternion::<Real>::from_axis_angle(Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
     let elbow = CsgNode::Transform {
         node: Box::new(CsgNode::Leaf(Box::new(elbow_raw))),
         iso: Isometry3::from_parts(Translation3::new(0.0, stem_len, 0.0), rot_elbow),
@@ -686,7 +686,7 @@ fn l_shape_compound_union_is_watertight() {
     .build()
     .expect("arm build");
     let rot_arm =
-        UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), -std::f64::consts::FRAC_PI_2);
+        UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), -std::f64::consts::FRAC_PI_2);
     let arm_y = h; // arm_y = R_BEND + straight_len = r_bend + stem_len = 1 + 2 = 3
     let arm = CsgNode::Transform {
         node: Box::new(CsgNode::Leaf(Box::new(arm_raw))),
@@ -757,7 +757,7 @@ fn v_shape_right_branch_is_watertight() {
     // Elbow isometry: -90Ã‚Â° about X + translate to elbow inlet y = -H + stem_len = -axial_reach
     let elbow_inlet_y = -h + stem_len;
     let rot_base =
-        UnitQuaternion::<Real>::from_axis_angle(&Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
+        UnitQuaternion::<Real>::from_axis_angle(Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
     let right_elbow = CsgNode::Transform {
         node: Box::new(CsgNode::Leaf(Box::new(elbow_raw))),
         iso: Isometry3::from_parts(Translation3::new(0.0, elbow_inlet_y, 0.0), rot_base),
@@ -774,7 +774,7 @@ fn v_shape_right_branch_is_watertight() {
     }
     .build()
     .expect("arm build");
-    let rot_arm = UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), -theta);
+    let rot_arm = UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), -theta);
     let tx = radial_reach - eps * s_th;
     let ty = -eps * c_th;
     let right_arm = CsgNode::Transform {
@@ -884,7 +884,7 @@ fn elbow_cylinder_union_is_watertight() {
     // Apply elbow isometry: -90Ã‚Â° about X, then translate to elbow inlet position.
     let elbow_inlet_y = -(h - axial_reach);
     let rot_base =
-        UnitQuaternion::<Real>::from_axis_angle(&Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
+        UnitQuaternion::<Real>::from_axis_angle(Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
     use crate::application::csg::CsgNode;
     let elbow = CsgNode::Transform {
         node: Box::new(CsgNode::Leaf(Box::new(elbow))),
@@ -905,7 +905,7 @@ fn elbow_cylinder_union_is_watertight() {
     .expect("arm build");
 
     // Rotate arm: +Y Ã¢â€ â€™ right branch direction (sinÃŽÂ¸, cosÃŽÂ¸, 0)
-    let rot = UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), -theta);
+    let rot = UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), -theta);
     let tx = radial_reach - eps * s_th;
     let ty = -eps * c_th;
     let iso = Isometry3::from_parts(Translation3::new(tx, ty, 0.0), rot);
@@ -992,7 +992,7 @@ fn v_shape_right_branch_64x32_is_watertight() {
     .build()
     .expect("elbow build");
     let rot_base =
-        UnitQuaternion::<Real>::from_axis_angle(&Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
+        UnitQuaternion::<Real>::from_axis_angle(Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
     let right_elbow = CsgNode::Transform {
         node: Box::new(CsgNode::Leaf(Box::new(right_elbow_raw))),
         iso: Isometry3::from_parts(Translation3::new(0.0, elbow_inlet_y, 0.0), rot_base),
@@ -1009,7 +1009,7 @@ fn v_shape_right_branch_64x32_is_watertight() {
     }
     .build()
     .expect("arm build");
-    let rot_arm = UnitQuaternion::<Real>::from_axis_angle(&Vector3::z_axis(), -theta);
+    let rot_arm = UnitQuaternion::<Real>::from_axis_angle(Vector3::z_axis(), -theta);
     let tx = radial_reach - eps * s_th;
     let ty = -eps * c_th;
     let right_arm = CsgNode::Transform {

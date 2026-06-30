@@ -81,7 +81,7 @@ impl TessellationOptions {
 /// Angle in degrees between two unit vectors (clamped to [0, 180]).
 #[inline]
 fn angle_deg(a: UnitVector3<Real>, b: UnitVector3<Real>) -> Real {
-    let cos_t = a.dot(&b).clamp(-1.0, 1.0);
+    let cos_t = a.into_inner().dot(b.into_inner()).clamp(-1.0, 1.0);
     cos_t.acos().to_degrees()
 }
 

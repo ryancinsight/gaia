@@ -15,7 +15,7 @@ pub fn triangle_normal<T: Scalar>(
 ) -> Option<Vector3<T>> {
     let ab = b - a;
     let ac = c - a;
-    let cross = ab.cross(&ac);
+    let cross = ab.cross(ac);
     let len = cross.norm();
     if len < T::tolerance() {
         return None;
@@ -32,7 +32,7 @@ pub fn triangle_normal<T: Scalar>(
 pub fn triangle_area_normal<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> Vector3<T> {
     let ab = b - a;
     let ac = c - a;
-    ab.cross(&ac)
+    ab.cross(ac)
 }
 
 /// Centroid (arithmetic mean) of a triangle.
@@ -85,7 +85,7 @@ pub fn average_normal<'a, T: Scalar + 'a>(
     let mut sum = Vector3::<T>::zeros();
     let mut count = 0usize;
     for n in face_normals {
-        sum += n;
+        sum += *n;
         count += 1;
     }
     if count == 0 {

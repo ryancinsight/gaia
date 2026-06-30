@@ -280,7 +280,7 @@ mod tests {
 
         // Rotate cube B by 2° around the Z axis — creates a thin wedge overlap.
         let raw_b = unit_cube();
-        let rotation = UnitQuaternion::<f64>::from_axis_angle(&Vector3::z_axis(), angle_rad);
+        let rotation = UnitQuaternion::<f64>::from_axis_angle(Vector3::z_axis(), angle_rad);
         let cube_b = CsgNode::Transform {
             node: Box::new(CsgNode::Leaf(Box::new(raw_b))),
             iso: Isometry3::from_parts(Translation3::new(0.0, 0.0, 0.0), rotation),

@@ -50,7 +50,7 @@ impl SparseVoxelDag<8, OctreeSubdivision> {
         }
 
         // Helper: losslessly convert a T scalar to f64.
-        let to_f = |v: T| v.to_f64().unwrap_or(0.0);
+        let to_f = |v: T| v.to_f64();
 
         // Expand root by 1% to avoid exactly splitting surface triangles at the octree
         // root boundary (which would make the root-level GWN ambiguous).
@@ -125,7 +125,7 @@ impl SparseVoxelDag<8, OctreeSubdivision> {
                 <T as Scalar>::from_f64(center.z),
             );
             let wn = gwn(&p, mesh.faces.as_slice(), &mesh.vertices);
-            let is_solid = wn.to_f64().unwrap_or(0.0).abs() > 0.5;
+            let is_solid = wn.to_f64().abs() > 0.5;
             return Self::leaf_index(is_solid);
         }
 

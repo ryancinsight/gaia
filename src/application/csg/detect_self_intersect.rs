@@ -188,14 +188,14 @@ pub fn detect_self_intersections(faces: &[FaceData], pool: &VertexPool) -> Vec<(
 #[must_use]
 fn tri_tri_intersects(ta: &[Point3r; 3], tb: &[Point3r; 3]) -> bool {
     // ── Plane of ta ──────────────────────────────────────────────────────────
-    let n1 = (ta[1] - ta[0]).cross(&(ta[2] - ta[0]));
-    let d1 = -n1.dot(&ta[0].coords);
+    let n1 = (ta[1] - ta[0]).cross(ta[2] - ta[0]);
+    let d1 = -n1.dot(ta[0].coords);
 
     // Signed distances of tb vertices to plane of ta.
     let db = [
-        n1.dot(&tb[0].coords) + d1,
-        n1.dot(&tb[1].coords) + d1,
-        n1.dot(&tb[2].coords) + d1,
+        n1.dot(tb[0].coords) + d1,
+        n1.dot(tb[1].coords) + d1,
+        n1.dot(tb[2].coords) + d1,
     ];
     // All same strict sign → tb on one side → no intersection.
     if (db[0] > 0.0 && db[1] > 0.0 && db[2] > 0.0) || (db[0] < 0.0 && db[1] < 0.0 && db[2] < 0.0) {
@@ -203,21 +203,21 @@ fn tri_tri_intersects(ta: &[Point3r; 3], tb: &[Point3r; 3]) -> bool {
     }
 
     // ── Plane of tb ──────────────────────────────────────────────────────────
-    let n2 = (tb[1] - tb[0]).cross(&(tb[2] - tb[0]));
-    let d2 = -n2.dot(&tb[0].coords);
+    let n2 = (tb[1] - tb[0]).cross(tb[2] - tb[0]);
+    let d2 = -n2.dot(tb[0].coords);
 
     // Signed distances of ta vertices to plane of tb.
     let da = [
-        n2.dot(&ta[0].coords) + d2,
-        n2.dot(&ta[1].coords) + d2,
-        n2.dot(&ta[2].coords) + d2,
+        n2.dot(ta[0].coords) + d2,
+        n2.dot(ta[1].coords) + d2,
+        n2.dot(ta[2].coords) + d2,
     ];
     if (da[0] > 0.0 && da[1] > 0.0 && da[2] > 0.0) || (da[0] < 0.0 && da[1] < 0.0 && da[2] < 0.0) {
         return false;
     }
 
     // ── Intersection line ─────────────────────────────────────────────────────
-    let l_dir = n1.cross(&n2);
+    let l_dir = n1.cross(n2);
     if l_dir.norm_squared() < LINE_DIR_SQ_EPS {
         // Near-coplanar planes: conservatively report no intersection.
         return false;

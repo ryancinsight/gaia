@@ -247,7 +247,7 @@ pub(crate) fn cdt_fill_loop(
         let pa = pool.position(va);
         let pb = pool.position(vb);
         let pc = pool.position(vc);
-        if (pb - pa).cross(&(pc - pa)).norm_squared() > 1e-30
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
             && !would_create_nm(va, vb, vc, valence)
         {
             out.push(FaceData::untagged(va, vb, vc));
@@ -273,8 +273,8 @@ pub(crate) fn cdt_fill_loop(
     } else {
         leto::geometry::Vector3::new(0.0, 1.0, 0.0)
     };
-    let u_axis = (seed - normal * seed.dot(&normal)).normalize();
-    let v_axis = normal.cross(&u_axis);
+    let u_axis = (seed - normal * seed.dot(normal)).normalize();
+    let v_axis = normal.cross(u_axis);
 
     // Centroid for projection origin.
     let inv_n = 1.0 / n as Real;
@@ -288,7 +288,7 @@ pub(crate) fn cdt_fill_loop(
         .iter()
         .map(|p| {
             let d = p.coords - centroid;
-            [d.dot(&u_axis), d.dot(&v_axis)]
+            [d.dot(u_axis), d.dot(v_axis)]
         })
         .collect();
     let poly_ccw = match polygon_winding_ccw(&pts2d) {
@@ -355,7 +355,7 @@ pub(crate) fn cdt_fill_loop(
         let pa = pool.position(va);
         let pb = pool.position(vb);
         let pc = pool.position(vc);
-        if (pb - pa).cross(&(pc - pa)).norm_squared() > 1e-30
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
             && !would_create_nm(va, vb, vc, valence)
         {
             out.push(FaceData::untagged(va, vb, vc));
@@ -393,7 +393,7 @@ pub(crate) fn ear_clip_fill(
         let pa = pool.position(va);
         let pb = pool.position(vb);
         let pc = pool.position(vc);
-        if (pb - pa).cross(&(pc - pa)).norm_squared() > 1e-30
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
             && !would_create_nm(va, vb, vc, valence)
         {
             out.push(FaceData::untagged(va, vb, vc));
@@ -419,8 +419,8 @@ pub(crate) fn ear_clip_fill(
     } else {
         leto::geometry::Vector3::new(0.0, 1.0, 0.0)
     };
-    let u_axis = (seed - normal * seed.dot(&normal)).normalize();
-    let v_axis = normal.cross(&u_axis);
+    let u_axis = (seed - normal * seed.dot(normal)).normalize();
+    let v_axis = normal.cross(u_axis);
 
     // Centroid for projection origin.
     let inv_n = 1.0 / n as Real;
@@ -434,7 +434,7 @@ pub(crate) fn ear_clip_fill(
         .iter()
         .map(|p| {
             let d = p.coords - centroid;
-            [d.dot(&u_axis), d.dot(&v_axis)]
+            [d.dot(u_axis), d.dot(v_axis)]
         })
         .collect();
 
@@ -491,7 +491,7 @@ pub(crate) fn ear_clip_fill(
                 let pa = pool.position(va);
                 let pb = pool.position(vb);
                 let pc = pool.position(vc);
-                if (pb - pa).cross(&(pc - pa)).norm_squared() > 1e-30
+                if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
                     && !would_create_nm(va, vb, vc, valence)
                 {
                     out.push(FaceData::untagged(va, vb, vc));
@@ -530,9 +530,9 @@ pub(crate) fn ear_clip_fill(
                 let pa = pool.position(va);
                 let pb = pool.position(vb);
                 let pc = pool.position(vc);
-                let cross = (pb - pa).cross(&(pc - pa));
+                let cross = (pb - pa).cross(pc - pa);
                 if cross.norm_squared() > 1e-30 && !would_create_nm(va, vb, vc, valence) {
-                    if cross.dot(&normal) >= 0.0 {
+                    if cross.dot(normal) >= 0.0 {
                         out.push(FaceData::untagged(va, vb, vc));
                     } else {
                         out.push(FaceData::untagged(va, vc, vb));
@@ -551,7 +551,7 @@ pub(crate) fn ear_clip_fill(
         let pa = pool.position(va);
         let pb = pool.position(vb);
         let pc = pool.position(vc);
-        if (pb - pa).cross(&(pc - pa)).norm_squared() > 1e-30
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
             && !would_create_nm(va, vb, vc, valence)
         {
             out.push(FaceData::untagged(va, vb, vc));

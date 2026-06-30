@@ -55,7 +55,7 @@ use std::fs;
 use std::io::BufWriter;
 use std::time::Instant;
 
-use nalgebra::{Isometry3, Translation3, UnitQuaternion, Vector3};
+use leto::geometry::{Isometry3, Translation3, UnitQuaternion, Vector3};
 
 use gaia::application::csg::boolean::BooleanOp;
 use gaia::application::csg::CsgNode;
@@ -130,7 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Rotate −90° about Z: +Y → +X (crossbar axis becomes +X).
         let rot = UnitQuaternion::<Real>::from_axis_angle(
-            &Vector3::z_axis(),
+            Vector3::z_axis(),
             -std::f64::consts::FRAC_PI_2, // +Y → +X
         );
         // After rotation the cylinder is already centred at origin on the X axis.

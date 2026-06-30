@@ -86,7 +86,7 @@ pub fn clip_polygon_to_halfplane(
         return Vec::new();
     }
 
-    let plane_normal = (pb - pa).cross(&(pc - pa));
+    let plane_normal = (pb - pa).cross(pc - pa);
 
     let is_inside = |p: &Point3r| -> bool {
         let arr = |q: &Point3r| [q.x, q.y, q.z];
@@ -95,8 +95,8 @@ pub fn clip_polygon_to_halfplane(
 
     // Plane-edge intersection parameter t ∈ `[0,1]` along S→E.
     let clip_point = |s: &Point3r, e: &Point3r| -> Point3r {
-        let ds = plane_normal.dot(&(s - pa));
-        let de = plane_normal.dot(&(e - pa));
+        let ds = plane_normal.dot(s - pa);
+        let de = plane_normal.dot(e - pa);
         let denom = ds - de;
         if denom.abs() < 1e-20 {
             return *s; // Edge is parallel to the plane.
@@ -201,7 +201,7 @@ pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {
     let p0 = deduplicated[0];
     let p1 = deduplicated[1];
     let p2 = deduplicated[2];
-    let normal = (p1 - p0).cross(&(p2 - p0));
+    let normal = (p1 - p0).cross(p2 - p0);
     if normal.norm_squared() < 1e-30 {
         return Vec::new();
     }
@@ -285,8 +285,8 @@ pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {
         let v1 = deduplicated[pv1.idx()];
         let v2 = deduplicated[pv2.idx()];
 
-        let tn = (v1 - v0).cross(&(v2 - v0));
-        if tn.dot(&normal) >= 0.0 {
+        let tn = (v1 - v0).cross(v2 - v0);
+        if tn.dot(normal) >= 0.0 {
             faces.push([v0, v1, v2]);
         } else {
             faces.push([v0, v2, v1]);
