@@ -1,5 +1,13 @@
 # Checklist
 
+- [x] **Melinoe 0.9 provider refresh [patch]**
+    - [x] Raise Gaia's Melinoe contract to the validated executor-capability
+      generation; Gaia does not consume the changed registration API.
+    - [x] Refresh the lock and pass metadata, library check, Clippy, 949/949
+      library nextest (one cfg-gated test skipped), and rustfmt verification.
+      The gate also replaced the stale Leto `normalize_mut` call with native
+      value-returning `normalize` and normalized pre-existing format drift.
+
 - [x] **Phase 17: RITK MeshBuilder Array API Provider Slice**
     - [x] Add `MeshBuilder::vertex_xyz`, `vertex_array`, and `add_triangle_soup_arrays`
       so consumers can build Gaia meshes without importing `nalgebra::Point3`.

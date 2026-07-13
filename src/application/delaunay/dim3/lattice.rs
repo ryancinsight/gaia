@@ -119,7 +119,8 @@ impl<T: Scalar> SdfMesher<T> {
                                     p -= grad * dist;
                                 }
                                 dist = sdf.eval(&p);
-                                if eunomia::NumericElement::abs(dist) < <T as Scalar>::from_f64(1e-6) * h
+                                if eunomia::NumericElement::abs(dist)
+                                    < <T as Scalar>::from_f64(1e-6) * h
                                 {
                                     break;
                                 }
@@ -182,10 +183,7 @@ impl<T: Scalar> SdfMesher<T> {
 
             // Use a geometry-derived deterministic seed so repeated meshing of
             // the same SDF produces identical insertion order and perturbation.
-            let seed_component = |value: T| {
-                eunomia::NumericElement::to_f64(value)
-                    .to_bits()
-            };
+            let seed_component = |value: T| eunomia::NumericElement::to_f64(value).to_bits();
             let seed = seed_component(min.x)
                 ^ seed_component(min.y).rotate_left(7)
                 ^ seed_component(min.z).rotate_left(13)
@@ -197,8 +195,7 @@ impl<T: Scalar> SdfMesher<T> {
 
             // Spatial macro-block sorting restores O(1) BFS locality while retaining pseudo-random insertion
             // to definitively break incremental Delaunay collinear degeneracies.
-            let macro_h =
-                eunomia::NumericElement::to_f64(<T as Scalar>::from_f64(5.0) * h);
+            let macro_h = eunomia::NumericElement::to_f64(<T as Scalar>::from_f64(5.0) * h);
             let mut blocks: HashMap<[isize; 3], Vec<Point3<T>>> =
                 HashMap::with_capacity((unique_points.len() / 32).max(16));
 

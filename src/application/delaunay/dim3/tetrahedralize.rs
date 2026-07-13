@@ -215,7 +215,12 @@ impl<T: Scalar> BowyerWatson3D<T> {
         let d_max = (d.x).max_scalar(d.y).max_scalar(d.z) * <T as Scalar>::from_f64(5.0);
         let center = min + d / <T as Scalar>::from_f64(2.0);
 
-        let p0 = center + Vector3::new(<T as eunomia::NumericElement>::ZERO, d_max, -d_max / <T as Scalar>::from_f64(3.0));
+        let p0 = center
+            + Vector3::new(
+                <T as eunomia::NumericElement>::ZERO,
+                d_max,
+                -d_max / <T as Scalar>::from_f64(3.0),
+            );
         let p1 = center
             + Vector3::new(
                 d_max * (<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)).sin(),
@@ -229,7 +234,12 @@ impl<T: Scalar> BowyerWatson3D<T> {
                 -d_max / <T as Scalar>::from_f64(3.0),
             );
         // The peak point goes upwards to enclose +Z, completing the regular tetrahedron mathematically
-        let p3 = center + Vector3::new(<T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ZERO, d_max);
+        let p3 = center
+            + Vector3::new(
+                <T as eunomia::NumericElement>::ZERO,
+                <T as eunomia::NumericElement>::ZERO,
+                d_max,
+            );
 
         // Record the anchor index so we can delete super-vertices in O(1) time
         self.super_idx = self.vertices.len();

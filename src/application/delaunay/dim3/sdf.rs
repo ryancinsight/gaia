@@ -34,9 +34,21 @@ pub trait Sdf3D<T: Scalar> {
     /// difference formulation.
     fn gradient(&self, p: &Point3<T>) -> Vector3<T> {
         let eps = T::tolerance() * <T as Scalar>::from_f64(10.0);
-        let dx = Vector3::new(eps, <T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ZERO);
-        let dy = Vector3::new(<T as eunomia::NumericElement>::ZERO, eps, <T as eunomia::NumericElement>::ZERO);
-        let dz = Vector3::new(<T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ZERO, eps);
+        let dx = Vector3::new(
+            eps,
+            <T as eunomia::NumericElement>::ZERO,
+            <T as eunomia::NumericElement>::ZERO,
+        );
+        let dy = Vector3::new(
+            <T as eunomia::NumericElement>::ZERO,
+            eps,
+            <T as eunomia::NumericElement>::ZERO,
+        );
+        let dz = Vector3::new(
+            <T as eunomia::NumericElement>::ZERO,
+            <T as eunomia::NumericElement>::ZERO,
+            eps,
+        );
 
         let df_dx = self.eval(&(p + dx)) - self.eval(&(p - dx));
         let df_dy = self.eval(&(p + dy)) - self.eval(&(p - dy));
@@ -96,7 +108,11 @@ impl<T: Scalar> CylinderSdf<T> {
         if norm > T::tolerance() {
             axis /= norm;
         } else {
-            axis = Vector3::new(<T as eunomia::NumericElement>::ONE, <T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ZERO);
+            axis = Vector3::new(
+                <T as eunomia::NumericElement>::ONE,
+                <T as eunomia::NumericElement>::ZERO,
+                <T as eunomia::NumericElement>::ZERO,
+            );
         }
         Self {
             point,
@@ -145,7 +161,10 @@ impl<T: Scalar> Sdf3D<T> for CapsuleSdf<T> {
     fn eval(&self, p: &Point3<T>) -> T {
         let pa = p - self.a;
         let ba = self.b - self.a;
-        let h = (pa.dot(ba) / ba.norm_squared()).clamp(<T as eunomia::NumericElement>::ZERO, <T as eunomia::NumericElement>::ONE);
+        let h = (pa.dot(ba) / ba.norm_squared()).clamp(
+            <T as eunomia::NumericElement>::ZERO,
+            <T as eunomia::NumericElement>::ONE,
+        );
         (pa - ba * h).norm() - self.radius
     }
 
@@ -200,7 +219,9 @@ impl<T: Scalar> Sdf3D<T> for FiniteCylinderSdf<T> {
         let half = <T as Scalar>::from_f64(0.5);
         let axial_dist = (h - half).abs() * (baba).sqrt() - (baba).sqrt() * half;
 
-        let interior_dist = (radial_dist).max_scalar(axial_dist).min_scalar(<T as eunomia::NumericElement>::ZERO);
+        let interior_dist = (radial_dist)
+            .max_scalar(axial_dist)
+            .min_scalar(<T as eunomia::NumericElement>::ZERO);
 
         let radial_ext = (radial_dist).max_scalar(<T as eunomia::NumericElement>::ZERO);
         let axial_ext = (axial_dist).max_scalar(<T as eunomia::NumericElement>::ZERO);

@@ -730,16 +730,12 @@ impl<T: Scalar> IndexedMesh<T> {
                 let diag = (component_aabbs[comp].max - component_aabbs[comp].min)
                     .norm()
                     .to_f64();
-                let probe_eps =
-                    (diag * 1.0e-6).max(T::tolerance().to_f64() * 10.0);
+                let probe_eps = (diag * 1.0e-6).max(T::tolerance().to_f64() * 10.0);
                 let inward = corrected_normal / normal_len;
                 let probe = crate::domain::core::scalar::Point3r::new(
-                    centroid.x.to_f64()
-                        - inward.x.to_f64() * probe_eps,
-                    centroid.y.to_f64()
-                        - inward.y.to_f64() * probe_eps,
-                    centroid.z.to_f64()
-                        - inward.z.to_f64() * probe_eps,
+                    centroid.x.to_f64() - inward.x.to_f64() * probe_eps,
+                    centroid.y.to_f64() - inward.y.to_f64() * probe_eps,
+                    centroid.z.to_f64() - inward.z.to_f64() * probe_eps,
                 );
                 let probe_normal = crate::domain::core::scalar::Vector3r::new(
                     inward.x.to_f64(),

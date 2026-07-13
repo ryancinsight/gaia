@@ -713,10 +713,8 @@ mod tests {
     ) -> bool {
         let x = a + (b - a) * t;
         segs.iter().any(|s| {
-            ((s.start).distance_squared(a) < tol
-                && (s.end).distance_squared(x) < tol)
-                || ((s.start).distance_squared(x) < tol
-                    && (s.end).distance_squared(b) < tol)
+            ((s.start).distance_squared(a) < tol && (s.end).distance_squared(x) < tol)
+                || ((s.start).distance_squared(x) < tol && (s.end).distance_squared(b) < tol)
         })
     }
 

@@ -247,8 +247,7 @@ pub(crate) fn cdt_fill_loop(
         let pa = pool.position(va);
         let pb = pool.position(vb);
         let pc = pool.position(vc);
-        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
-            && !would_create_nm(va, vb, vc, valence)
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30 && !would_create_nm(va, vb, vc, valence)
         {
             out.push(FaceData::untagged(va, vb, vc));
             record_triangle(va, vb, vc, valence);
@@ -355,8 +354,7 @@ pub(crate) fn cdt_fill_loop(
         let pa = pool.position(va);
         let pb = pool.position(vb);
         let pc = pool.position(vc);
-        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
-            && !would_create_nm(va, vb, vc, valence)
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30 && !would_create_nm(va, vb, vc, valence)
         {
             out.push(FaceData::untagged(va, vb, vc));
             record_triangle(va, vb, vc, valence);
@@ -393,8 +391,7 @@ pub(crate) fn ear_clip_fill(
         let pa = pool.position(va);
         let pb = pool.position(vb);
         let pc = pool.position(vc);
-        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
-            && !would_create_nm(va, vb, vc, valence)
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30 && !would_create_nm(va, vb, vc, valence)
         {
             out.push(FaceData::untagged(va, vb, vc));
             record_triangle(va, vb, vc, valence);
@@ -551,8 +548,7 @@ pub(crate) fn ear_clip_fill(
         let pa = pool.position(va);
         let pb = pool.position(vb);
         let pc = pool.position(vc);
-        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
-            && !would_create_nm(va, vb, vc, valence)
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30 && !would_create_nm(va, vb, vc, valence)
         {
             out.push(FaceData::untagged(va, vb, vc));
             record_triangle(va, vb, vc, valence);
