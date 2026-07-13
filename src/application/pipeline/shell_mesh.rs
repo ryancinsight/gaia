@@ -141,7 +141,7 @@ impl ShellMeshPipeline {
             if len <= 1e-6 {
                 continue;
             }
-            dir.normalize_mut();
+            dir = dir.normalize();
 
             // Extend slightly inwards by 0.5 mm for a clean CSG union interface.
             let p2_extended = p2 + dir * 0.5;
