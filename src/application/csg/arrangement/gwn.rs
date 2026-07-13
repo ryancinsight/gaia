@@ -135,7 +135,11 @@ pub fn prepare_classification_faces(
 /// Vector norms (|a|, |b|, |c|) appear only in the denominator and are
 /// computed exactly once per vertex.  The near-vertex guard uses
 /// `norm_squared() < ε²` (no sqrt) for efficiency.
-pub fn gwn<T: Scalar>(query: &leto::geometry::Point3<T>, faces: &[FaceData], pool: &VertexPool<T>) -> T {
+pub fn gwn<T: Scalar>(
+    query: &leto::geometry::Point3<T>,
+    faces: &[FaceData],
+    pool: &VertexPool<T>,
+) -> T {
     let mut solid_angle_sum = <T as Scalar>::from_f64(0.0);
     let near_sq = <T as Scalar>::from_f64(f64::MIN_POSITIVE);
     let one_e_30 = <T as Scalar>::from_f64(GWN_DENOMINATOR_GUARD);
@@ -167,10 +171,7 @@ pub fn gwn<T: Scalar>(query: &leto::geometry::Point3<T>, faces: &[FaceData], poo
             solid_angle_sum += two * (num).atan2(den);
         }
     }
-    (solid_angle_sum / four_pi).clamp(
-        <T as Scalar>::from_f64(-1.0),
-        <T as Scalar>::from_f64(1.0),
-    )
+    (solid_angle_sum / four_pi).clamp(<T as Scalar>::from_f64(-1.0), <T as Scalar>::from_f64(1.0))
 }
 
 #[inline(always)]
@@ -204,9 +205,12 @@ fn vertex_offsets(
     leto::geometry::Vector3<f64>,
     leto::geometry::Vector3<f64>,
 )> {
-    let va = leto::geometry::Vector3::new(face.a.x - query.x, face.a.y - query.y, face.a.z - query.z);
-    let vb = leto::geometry::Vector3::new(face.b.x - query.x, face.b.y - query.y, face.b.z - query.z);
-    let vc = leto::geometry::Vector3::new(face.c.x - query.x, face.c.y - query.y, face.c.z - query.z);
+    let va =
+        leto::geometry::Vector3::new(face.a.x - query.x, face.a.y - query.y, face.a.z - query.z);
+    let vb =
+        leto::geometry::Vector3::new(face.b.x - query.x, face.b.y - query.y, face.b.z - query.z);
+    let vc =
+        leto::geometry::Vector3::new(face.c.x - query.x, face.c.y - query.y, face.c.z - query.z);
     if va.norm_squared() < f64::MIN_POSITIVE
         || vb.norm_squared() < f64::MIN_POSITIVE
         || vc.norm_squared() < f64::MIN_POSITIVE
