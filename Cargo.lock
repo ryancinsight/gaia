@@ -629,6 +629,7 @@ dependencies = [
  "bytemuck",
  "half",
  "libm",
+ "num-traits",
 ]
 
 [[package]]
@@ -1247,7 +1248,7 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "leto"
-version = "0.35.1"
+version = "0.36.0"
 dependencies = [
  "bytemuck",
  "eunomia",
@@ -1339,7 +1340,7 @@ dependencies = [
 
 [[package]]
 name = "melinoe"
-version = "0.7.0"
+version = "0.9.0"
 
 [[package]]
 name = "memchr"
@@ -1375,6 +1376,7 @@ dependencies = [
 [[package]]
 name = "mnemosyne"
 version = "0.2.0"
+source = "git+https://github.com/ryancinsight/Mnemosyne.git#622a4113b60d91523301c7f1707cfd3fd7a75e6d"
 dependencies = [
  "mnemosyne-arena",
  "mnemosyne-backend",
@@ -1396,10 +1398,14 @@ dependencies = [
 
 [[package]]
 name = "mnemosyne-backend"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "mnemosyne-core",
 ]
+
+[[package]]
+name = "mnemosyne-build-util"
+version = "0.1.0"
 
 [[package]]
 name = "mnemosyne-core"
@@ -1428,6 +1434,7 @@ dependencies = [
  "melinoe",
  "mnemosyne-arena",
  "mnemosyne-backend",
+ "mnemosyne-build-util",
  "mnemosyne-core",
  "mnemosyne-decay",
  "mnemosyne-prof",
@@ -1439,6 +1446,7 @@ name = "mnemosyne-prof"
 version = "0.1.0"
 dependencies = [
  "backtrace",
+ "mnemosyne-build-util",
  "mnemosyne-core",
 ]
 
@@ -3150,10 +3158,6 @@ dependencies = [
 ]
 
 [[patch.unused]]
-name = "mnemosyne-heap"
-version = "0.1.0"
-
-[[patch.unused]]
 name = "moirai-async"
 version = "0.2.0"
 
@@ -3176,3 +3180,11 @@ version = "0.2.0"
 [[patch.unused]]
 name = "moirai-tls"
 version = "0.2.0"
+
+[[patch.unused]]
+name = "mnemosyne"
+version = "0.3.0"
+
+[[patch.unused]]
+name = "mnemosyne-heap"
+version = "0.1.0"
