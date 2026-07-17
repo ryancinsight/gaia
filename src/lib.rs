@@ -165,6 +165,10 @@ pub use domain::geometry::Orientation;
 /// Directed half-line with a normalized direction and its construction error.
 pub use domain::geometry::{Ray, RayError};
 
+/// Axis-aligned bounding box — the ray/voxel traversal companion to [`Ray`]
+/// (`Ray::intersect_aabb`), consumed by downstream imaging and dose ray-tracers.
+pub use domain::geometry::Aabb;
+
 /// Analytic mesh primitives (26 builders from tetrahedron to truncated icosahedron).
 pub use domain::geometry::primitives;
 
