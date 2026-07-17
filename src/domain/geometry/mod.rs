@@ -5,11 +5,13 @@ pub mod measure;
 pub mod normal;
 pub mod plane;
 pub mod predicates;
+pub mod ray;
 
 pub use aabb::Aabb;
 pub use normal::{triangle_area_normal, triangle_centroid, triangle_normal};
 pub use plane::Plane;
 pub use predicates::Orientation;
+pub use ray::{Ray, RayError};
 
 pub mod nurbs;
 pub use nurbs::{NurbsCurve, NurbsSurface, TessellationOptions};

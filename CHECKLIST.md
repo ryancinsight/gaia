@@ -1,5 +1,21 @@
 # Checklist
 
+- [ ] **Ray provider refresh takeover [minor]**
+    - [x] Reclaim the stale five-file Ray/provider work after its last source
+      update remained uncommitted for more than one hour.
+    - [x] Encode the ray's finite-origin and unit-direction invariants with
+      Leto's `UnitVector3` and typed construction errors, including native
+      `f32` and `f64` contract coverage.
+    - [x] Verify the Leto `Ray<T>` geometry contract and its finite-direction
+      boundary cases with warnings-denied compilation, 923/923 nextest,
+      doctest (5 passed, 39 ignored), and rustdoc gates.
+    - [x] Run the explicit-feature SemVer comparison against `origin/main`
+      (196 checks passed, 57 skipped). The unrestricted all-feature comparison
+      remains externally blocked until CFDrs publishes its Moirai 0.4 pin:
+      the published CFDrs graph still requests Themis `^0.6` while the merged
+      provider is 0.10.1.
+    - [ ] Commit, push, and merge the validated provider refresh to `main`.
+
 - [x] **Melinoe 0.9 provider refresh [patch]**
     - [x] Raise Gaia's Melinoe contract to the validated executor-capability
       generation; Gaia does not consume the changed registration API.
