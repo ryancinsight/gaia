@@ -162,6 +162,9 @@ pub use domain::topology::halfedge::PatchType;
 /// Exact Shewchuk orientation result.
 pub use domain::geometry::Orientation;
 
+/// Directed half-line with a normalized direction and its construction error.
+pub use domain::geometry::{Ray, RayError};
+
 /// Analytic mesh primitives (26 builders from tetrahedron to truncated icosahedron).
 pub use domain::geometry::primitives;
 

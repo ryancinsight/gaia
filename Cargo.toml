@@ -1,6 +1,6 @@
 [package]
 name = "gaia"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Ryan Clanton <ryan@clanton.dev>"]
 license = "MIT OR Apache-2.0"
@@ -64,15 +64,15 @@ aquamarine = "0.5"
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
-mnemosyne = { version = "0.2.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
-moirai = { version = "0.2.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
+mnemosyne = { version = "0.5.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
+moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
 approx = "0.5"
 proptest = "1.4"
 criterion = "0.5"
-mnemosyne = { version = "0.2.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
-moirai = { version = "0.2.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
+mnemosyne = { version = "0.5.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
+moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 
@@ -365,7 +365,6 @@ mnemosyne          = { path = "../mnemosyne/crates/mnemosyne" }
 mnemosyne-core     = { path = "../mnemosyne/crates/mnemosyne-core" }
 mnemosyne-arena    = { path = "../mnemosyne/crates/mnemosyne-arena" }
 mnemosyne-local    = { path = "../mnemosyne/crates/mnemosyne-local" }
-mnemosyne-heap     = { path = "../mnemosyne/crates/mnemosyne-heap" }
 mnemosyne-backend  = { path = "../mnemosyne/crates/mnemosyne-backend" }
 mnemosyne-decay    = { path = "../mnemosyne/crates/mnemosyne-decay" }
 mnemosyne-hardened = { path = "../mnemosyne/crates/mnemosyne-hardened" }
@@ -383,15 +382,9 @@ moirai-core = { path = "../moirai/moirai-core" }
 moirai-scheduler = { path = "../moirai/moirai-scheduler" }
 moirai-parallel = { path = "../moirai/moirai-parallel" }
 moirai-executor = { path = "../moirai/moirai-executor" }
-moirai-iter = { path = "../moirai/moirai-iter" }
 moirai-sync = { path = "../moirai/moirai-sync" }
-moirai-async = { path = "../moirai/moirai-async" }
 moirai-pal = { path = "../moirai/moirai-pal" }
-moirai-tls = { path = "../moirai/moirai-tls" }
-moirai-http = { path = "../moirai/moirai-http" }
-moirai-metrics = { path = "../moirai/moirai-metrics" }
 moirai-utils = { path = "../moirai/moirai-utils" }
-moirai-gpu = { path = "../moirai/moirai-gpu" }
 
 
 [patch."https://github.com/ryancinsight/eunomia"]
