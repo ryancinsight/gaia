@@ -129,7 +129,7 @@ They remain useful for theorem/test rationale and architectural intent, but earl
                        └──────────────────────────────────┘
 ```
 
-### Mermaid (rendered in rustdoc via `aquamarine`)
+### Mermaid (rendered by Markdown documentation hosts)
 
 ```mermaid
 graph TB
@@ -611,7 +611,7 @@ Every `pub` item must have:
 1. **One-sentence summary** (rustdoc first line)
 2. **`# Invariants`** section for types and mutation methods
 3. **`# Examples`** block with working code
-4. **Mermaid diagram** via `aquamarine` for types with non-trivial relationships
+4. **Mermaid diagram** in Markdown design documentation for types with non-trivial relationships
 5. **ASCII art** for data layouts and algorithm flows
 6. **`# Theorem`** + **`**Proof sketch**`** for geometric/topological functions
 
@@ -705,7 +705,7 @@ proptest! {
 | **6** Builders | ✅ DONE | `geometry/venturi.rs`, `serpentine.rs`, `branching.rs` | Added `build_surface() → IndexedMesh` to all three builders; deprecated legacy `build() → Mesh<T>`; cleaned warnings; removed dead `welding/snapping_grid.rs`; replaced `#![allow(unused)]` with `#![allow(dead_code)]` in lib.rs |
 | **7** I/O | ✅ DONE | `io/stl.rs`, `io/vtk.rs` | `read_binary_stl` low-level reader; `read_stl`/`write_stl_ascii`/`write_stl_binary` high-level IndexedMesh helpers; `read_stl_he`/`write_stl_ascii_he`/`write_stl_binary_he` for HalfEdgeMesh; `fuzz_read_stl` entry point; `write_vtk_indexed`/`write_vtk_he`; cargo-fuzz harness in `fuzz/` with targets `fuzz_read_stl` + `fuzz_read_stl_he`; 6 new unit tests (round-trip ASCII, binary, half-edge, fuzz smoke tests); 83 tests pass |
 | **8** Boolean | ✅ DONE | `csg/broad_phase.rs`, `csg/intersect.rs`, `csg/clip.rs`, `csg/reconstruct.rs`, `csg/boolean.rs`, `csg/mod.rs`, `csg/classify.rs` | Exact Boolean ops: AABB broad phase in `broad_phase.rs`; Möller-Trumbore + Shewchuk `orient_3d` exact T-T intersection in `intersect.rs`; Sutherland-Hodgman polygon clipping with exact predicates in `clip.rs`; fragment reconstruction with vertex welding in `reconstruct.rs`; `CsgNode` expression tree + `csg_boolean_indexed()` IndexedMesh API + `transform_mesh()` in `boolean.rs`; `classify_triangle_exact()` (no epsilon) in `classify.rs`; 107 tests pass |
-| **9** Docs | ✅ DONE | `lib.rs` + all modules | Rustdoc + aquamarine architecture diagram + crate invariants; removed `#![allow(missing_docs)]` + `#![allow(dead_code)]`; fixed 4 unused-import warnings; documented all 18 previously-missing items (ElementType variants, SurfaceError fields, CsgNode fields); 107 tests pass, 0 warnings |
+| **9** Docs | ✅ DONE | `lib.rs` + all modules | Rustdoc + Markdown architecture diagram + crate invariants; removed `#![allow(missing_docs)]` + `#![allow(dead_code)]`; fixed 4 unused-import warnings; documented all 18 previously-missing items (ElementType variants, SurfaceError fields, CsgNode fields); 107 tests pass, 0 warnings |
 | **10** OpenFOAM I/O | ✅ DONE | `io/openfoam.rs`, `io/mod.rs`, `mesh.rs` | `write_openfoam_polymesh()` for `IndexedMesh` + `write_openfoam_polymesh_he()` for `HalfEdgeMesh`; writes `points`/`faces`/`owner`/`neighbour`/`boundary` polyMesh files; `PatchType → OF type` mapping (`wall`, `symmetry`, `cyclicAMI`, `patch` + `physicalType` for inlet/outlet); `PatchSpec` public struct; `face_patch()` + `patch_info()` accessors added to `HalfEdgeMesh`; 6 new unit tests (5-file creation, vertex count, face count, default patch, named patches, empty-mesh error); 113 tests pass, 0 new warnings |
 | **11** Quality & Welding | ✅ DONE | `quality/triangle.rs`, `welding/welder.rs` | Tightened quality angle formulas via vector norms; optimized welding vertex adjacency with low-valence arrays. |
 | **12** Delaunay & Hashing | ✅ DONE | `delaunay/dim3/tetrahedralize.rs`, `domain/mesh/indexed.rs`, `domain/grid.rs` | Eliminated BowyerWatson3D BFS seed allocations; completed BTreeMap/BTreeSet migration to HashMap/HashSet; hoisted CSG edge-use map cache. |
@@ -737,7 +737,7 @@ proptest! {
 | `kiddo` | **NEW** | k-d tree for nearest-neighbor vertex queries (validation) |
 | `bvh` | **NEW** | BVH with SAH for Boolean broad phase triangle pair culling |
 | `spade` | **NEW** | 2D constrained Delaunay triangulation for face re-triangulation after intersection |
-| `aquamarine` | **NEW** | Mermaid diagrams in rustdoc |
+| `aquamarine` | **REMOVED** | No Rust source consumed the procedural macro; Markdown hosts render the repository diagrams directly. |
 | `nalgebra` | existing | Linear algebra, vectors, matrices |
 | `hashbrown` | existing | Fast hash map for SnappingGrid (keep `0.15` pin for millifluidic tolerances) |
 | `geometry-predicates` vs `robust` | prefer `geometry-predicates` | Full suite (orient2d/3d + incircle + insphere) in pure Rust |
