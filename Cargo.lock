@@ -1211,7 +1211,7 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 [[package]]
 name = "leto"
 version = "0.39.0"
-source = "git+https://github.com/ryancinsight/leto?rev=d21081d6da7a4c02c402ded5d776ee5d5f64c7ca#d21081d6da7a4c02c402ded5d776ee5d5f64c7ca"
+source = "git+https://github.com/ryancinsight/leto#ccc4545d21b52406cf17b21f3eebb80962ea57d2"
 dependencies = [
  "bytemuck",
  "eunomia",

@@ -38,9 +38,9 @@ anyhow = "1.0"
 indexmap = "2.0"
 slotmap = "1.0"
 # Gaia is consumed as a Git dependency, so every non-dev dependency must resolve
-# from a standalone checkout. Atlas meta-workspaces may still patch this source
-# to their synchronized local Leto checkout.
-leto = { git = "https://github.com/ryancinsight/leto", rev = "d21081d6da7a4c02c402ded5d776ee5d5f64c7ca", default-features = false, features = ["std", "serde"] }
+# from a standalone checkout. Cargo.lock pins the revision while the canonical
+# source URL preserves Leto type identity across Atlas consumers.
+leto = { git = "https://github.com/ryancinsight/leto", default-features = false, features = ["std", "serde"] }
 eunomia = { git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
 melinoe = { version = "0.9.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false }
 
