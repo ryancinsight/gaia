@@ -59,8 +59,7 @@ cfd-schematics = { git = "https://github.com/ryancinsight/CFDrs.git", package = 
 # Logging
 tracing = "0.1"
 
-# Documentation diagrams
-aquamarine = "0.5"
+# Randomness
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
