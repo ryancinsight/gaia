@@ -624,12 +624,10 @@ dependencies = [
 
 [[package]]
 name = "eunomia"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "bytemuck",
- "half",
  "libm",
- "num-traits",
 ]
 
 [[package]]
@@ -1003,10 +1001,8 @@ version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ea2d84b969582b4b1864a92dc5d27cd2b77b622a8d79306834f1be5ba20d84b"
 dependencies = [
- "bytemuck",
  "cfg-if",
  "crunchy",
- "num-traits",
  "zerocopy",
 ]
 
@@ -1248,11 +1244,10 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "leto"
-version = "0.38.0"
+version = "0.39.0"
 dependencies = [
  "bytemuck",
  "eunomia",
- "half",
  "serde",
  "thiserror 2.0.18",
 ]
@@ -1654,7 +1649,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
- "libm",
 ]
 
 [[package]]
