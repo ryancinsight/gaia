@@ -610,7 +610,7 @@ dependencies = [
 
 [[package]]
 name = "eunomia"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "bytemuck",
  "libm",
@@ -827,7 +827,6 @@ name = "gaia"
 version = "0.3.0"
 dependencies = [
  "anyhow",
- "approx",
  "cfd-schematics",
  "criterion",
  "eunomia",

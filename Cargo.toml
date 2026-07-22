@@ -28,7 +28,6 @@ parallel = ["dep:moirai"]
 
 [dependencies]
 # Math
-approx = "0.5"
 
 # Error handling
 thiserror = "1.0"
@@ -70,7 +69,6 @@ mnemosyne = { version = "0.5.0", git = "https://github.com/ryancinsight/Mnemosyn
 moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
-approx = "0.5"
 proptest = "1.4"
 criterion = "0.5"
 mnemosyne = { version = "0.5.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }

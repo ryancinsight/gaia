@@ -120,7 +120,7 @@ mod tests {
     use super::*;
     use crate::application::watertight::check::check_watertight;
     use crate::infrastructure::storage::edge_store::EdgeStore;
-    use approx::assert_relative_eq;
+    use eunomia::assert_relative_eq;
 
     #[test]
     fn octahedron_is_watertight() {

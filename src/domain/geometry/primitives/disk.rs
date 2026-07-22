@@ -127,7 +127,7 @@ impl PrimitiveMesh for Disk {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use approx::assert_relative_eq;
+    use eunomia::assert_relative_eq;
 
     fn build_disk(r: f64, n: usize) -> IndexedMesh {
         Disk {
