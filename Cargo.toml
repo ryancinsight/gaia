@@ -65,13 +65,13 @@ tracing = "0.1"
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
-mnemosyne = { version = "0.5.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
+mnemosyne = { version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
 moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
 proptest = "1.4"
 criterion = "0.5"
-mnemosyne = { version = "0.5.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
+mnemosyne = { version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
 moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
