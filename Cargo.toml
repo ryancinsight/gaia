@@ -36,12 +36,9 @@ anyhow = "1.0"
 # Data structures
 indexmap = "2.0"
 slotmap = "1.0"
-# Gaia is consumed as a Git dependency, so every non-dev dependency must resolve
-# from a standalone checkout. Cargo.lock pins the revision while the canonical
-# source URL preserves Leto type identity across Atlas consumers.
-leto = { git = "https://github.com/ryancinsight/leto", default-features = false, features = ["std", "serde"] }
-eunomia = { git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
-melinoe = { version = "0.9.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false }
+leto = { path = "../leto/crates/leto", default-features = false, features = ["std", "serde"] }
+eunomia = { path = "../eunomia/crates/eunomia", default-features = false, features = ["std"] }
+melinoe = { path = "../melinoe", default-features = false }
 
 # Mesh / geometry — state-of-the-art kernel
 geometry-predicates = "0.3"
@@ -56,7 +53,7 @@ hashbrown = "0.15"
 zip = { version = "2.0", optional = true, default-features = false, features = ["deflate"] }
 
 # CFDrs integration crates
-cfd-schematics = { git = "https://github.com/ryancinsight/CFDrs.git", package = "cfd-schematics", optional = true }
+cfd-schematics = { path = "../CFDrs/crates/cfd-schematics", optional = true }
 
 # Logging
 tracing = "0.1"
@@ -65,14 +62,14 @@ tracing = "0.1"
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
-mnemosyne = { version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
-moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
+mnemosyne = { path = "../mnemosyne/crates/mnemosyne", optional = true, default-features = false }
+moirai = { path = "../moirai/moirai", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
 proptest = "1.4"
 criterion = "0.5"
-mnemosyne = { version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
-moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
+mnemosyne = { path = "../mnemosyne/crates/mnemosyne", default-features = false }
+moirai = { path = "../moirai/moirai", default-features = false, features = ["parallel"] }
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 
@@ -360,32 +357,12 @@ path = "examples/bifurcation_delaunay_3d.rs"
 name = "serpentine_delaunay_3d"
 path = "examples/serpentine_delaunay_3d.rs"
 
-[patch."https://github.com/ryancinsight/Mnemosyne.git"]
-mnemosyne          = { path = "../mnemosyne/crates/mnemosyne" }
-mnemosyne-core     = { path = "../mnemosyne/crates/mnemosyne-core" }
-mnemosyne-arena    = { path = "../mnemosyne/crates/mnemosyne-arena" }
-mnemosyne-local    = { path = "../mnemosyne/crates/mnemosyne-local" }
-mnemosyne-backend  = { path = "../mnemosyne/crates/mnemosyne-backend" }
-mnemosyne-decay    = { path = "../mnemosyne/crates/mnemosyne-decay" }
-mnemosyne-hardened = { path = "../mnemosyne/crates/mnemosyne-hardened" }
-mnemosyne-prof     = { path = "../mnemosyne/crates/mnemosyne-prof" }
-
-[patch."https://github.com/ryancinsight/themis"]
-themis = { path = "../themis" }
-
-[patch."https://github.com/ryancinsight/melinoe.git"]
-melinoe = { path = "../melinoe" }
-
-[patch."https://github.com/ryancinsight/Moirai.git"]
-moirai = { path = "../moirai/moirai" }
-moirai-core = { path = "../moirai/moirai-core" }
-moirai-scheduler = { path = "../moirai/moirai-scheduler" }
-moirai-parallel = { path = "../moirai/moirai-parallel" }
-moirai-executor = { path = "../moirai/moirai-executor" }
-moirai-sync = { path = "../moirai/moirai-sync" }
-moirai-pal = { path = "../moirai/moirai-pal" }
-moirai-utils = { path = "../moirai/moirai-utils" }
 
 
-[patch."https://github.com/ryancinsight/eunomia"]
-eunomia = { path = "../eunomia/crates/eunomia" }
+# ATLAS-PATH-DEP-AUDIT-2: redirect git+https sibling pulls to local working
+# copies so the entire dep graph uses a single version of each Atlas
+# foundation crate. Unused patches emit warnings only; cargo treats the
+# block as defense-in-depth.
+# Last delivery: 2026-07-27 closure cycle.
+
+# ATLAS-PATH-DEP-AUDIT-2 round-4 closure
