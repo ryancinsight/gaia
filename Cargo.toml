@@ -36,9 +36,9 @@ anyhow = "1.0"
 # Data structures
 indexmap = "2.0"
 slotmap = "1.0"
-leto = { path = "../leto/crates/leto", default-features = false, features = ["std", "serde"] }
-eunomia = { path = "../eunomia/crates/eunomia", default-features = false, features = ["std"] }
-melinoe = { path = "../melinoe", default-features = false }
+leto = { version = "0.40.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
+eunomia = { version = "0.7.0", git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
+melinoe = { version = "0.9.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false }
 
 # Mesh / geometry — state-of-the-art kernel
 geometry-predicates = "0.3"
@@ -62,14 +62,14 @@ tracing = "0.1"
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
-mnemosyne = { path = "../mnemosyne/crates/mnemosyne", optional = true, default-features = false }
-moirai = { path = "../moirai/moirai", optional = true, default-features = false, features = ["parallel"] }
+mnemosyne = { version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
+moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
 proptest = "1.4"
 criterion = "0.5"
-mnemosyne = { path = "../mnemosyne/crates/mnemosyne", default-features = false }
-moirai = { path = "../moirai/moirai", default-features = false, features = ["parallel"] }
+mnemosyne = { version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
+moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 
