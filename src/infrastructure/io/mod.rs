@@ -2,8 +2,7 @@
 //!
 //! Each format is feature-gated to avoid pulling in unnecessary dependencies,
 //! except for formats with no external dependencies (OBJ, PLY, glTF, DXF,
-//! OpenFOAM, STL). The CFDrs `scheme` bridge is available behind
-//! `feature = "cfdrs-integration"`.
+//! OpenFOAM, STL).
 
 pub mod stl;
 
@@ -23,5 +22,3 @@ pub mod three_mf;
 #[cfg(feature = "vtk-io")]
 pub mod vtk;
 
-#[cfg(feature = "cfdrs-integration")]
-pub mod scheme;
