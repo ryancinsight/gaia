@@ -49,8 +49,6 @@ hashbrown = "0.15"
 # 3MF export (optional)
 zip = { version = "2.0", optional = true, default-features = false, features = ["deflate"] }
 
-# CFDrs integration crates
-
 # Logging
 tracing = "0.1"
 
