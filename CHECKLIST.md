@@ -3,9 +3,9 @@
 - [ ] **RITK tractography polyline provider [minor]**
     - [x] Reclaim the ownerless `Polyline` implementation required by RITK's
       tractography geometry boundary.
-    - [ ] Complete finite-input, allocation, and arc-length contracts and split
+    - [x] Complete finite-input, immutable-storage, and arc-length contracts and split
       the overlong source into canonical implementation and test modules.
-    - [ ] Verify focused value tests, formatting, warning-denied Clippy,
+    - [x] Verify five focused value tests, source formatting, warning-denied Clippy,
       doctests, Rustdoc, and SemVer compatibility.
     - [ ] Commit, push, merge, and update RITK to the merged provider revision.
 

@@ -159,6 +159,12 @@ pub use domain::topology::halfedge::BoundaryPatch;
 /// CFD boundary patch type discriminant.
 pub use domain::topology::halfedge::PatchType;
 
+/// Open polyline — the canonical curve type for tractography streamlines.
+pub use domain::geometry::Polyline;
+
+/// Polyline construction and operation errors.
+pub use domain::geometry::PolylineError;
+
 /// Exact Shewchuk orientation result.
 pub use domain::geometry::Orientation;
 
