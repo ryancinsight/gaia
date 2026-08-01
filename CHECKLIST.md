@@ -1,5 +1,15 @@
 # Checklist
 
+- [ ] **RITK tractography polyline provider [minor]**
+    - [x] Reclaim the ownerless `Polyline` implementation required by RITK's
+      tractography geometry boundary.
+    - [x] Complete finite-input, immutable-storage, and arc-length contracts and split
+      the overlong source into canonical implementation and test modules.
+    - [x] Verify generic f32/f64 finite-coordinate and range-stable arc-length
+      value tests, source formatting, warning-denied Clippy, doctests, Rustdoc,
+      and SemVer compatibility against the merged Leto correction.
+    - [ ] Commit, push, merge, and update RITK to the merged provider revision.
+
 - [ ] **Ray provider refresh takeover [minor]**
     - [x] Reclaim the stale five-file Ray/provider work after its last source
       update remained uncommitted for more than one hour.
