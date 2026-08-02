@@ -343,3 +343,11 @@
       statistically significant runtime change; the delivered claim remains
       fixture correctness plus allocation/codegen structure.
 
+- [ ] **Phase 34: Share Orient-Outward Face Topology [patch]**
+    - [ ] Owner: Codex; scope: `src/domain/mesh/indexed.rs`.
+    - [ ] Extract scalar-independent undirected face-edge construction from
+      `IndexedMesh::orient_outward` into one non-generic helper.
+    - [ ] Preserve orientation, nesting, signed-volume, and normal contracts.
+    - [ ] Verify focused orientation tests, full library gates, and release
+      LLVM output for the generic-code reduction.
+
