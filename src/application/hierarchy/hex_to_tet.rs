@@ -9,9 +9,39 @@ use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::{Cell, ElementType};
-use hashbrown::{HashMap, HashSet};
+use crate::infrastructure::storage::face_store::FaceStore;
+use hashbrown::{hash_map::Entry, HashMap};
 
 type TriKey = [VertexId; 3];
+
+/// Stack-resident decomposition storage for the two supported hexahedron
+/// patterns. A hexahedron produces at most six tetrahedra, so a fixed buffer
+/// removes one heap allocation per converted cell without changing the public
+/// cell representation.
+#[derive(Clone, Copy)]
+struct TetDecomposition {
+    tets: [[VertexId; 4]; 6],
+    len: usize,
+}
+
+impl TetDecomposition {
+    fn from_five(tets: [[VertexId; 4]; 5]) -> Self {
+        let mut storage = [[VertexId::default(); 4]; 6];
+        storage[..5].copy_from_slice(&tets);
+        Self {
+            tets: storage,
+            len: 5,
+        }
+    }
+
+    fn from_six(tets: [[VertexId; 4]; 6]) -> Self {
+        Self { tets, len: 6 }
+    }
+
+    fn as_slice(&self) -> &[[VertexId; 4]] {
+        &self.tets[..self.len]
+    }
+}
 
 /// Canonicalize a triangle vertex triplet for orientation-invariant hashing.
 ///
@@ -24,8 +54,24 @@ type TriKey = [VertexId; 3];
 #[inline]
 fn canonical_tri_key(nodes: [VertexId; 3]) -> TriKey {
     let mut key = nodes;
-    key.sort_unstable_by_key(|vid| vid.as_usize());
+    if key[0] > key[1] {
+        key.swap(0, 1);
+    }
+    if key[1] > key[2] {
+        key.swap(1, 2);
+    }
+    if key[0] > key[1] {
+        key.swap(0, 1);
+    }
     key
+}
+
+#[inline]
+fn all_unique<const N: usize>(values: &[VertexId; N]) -> bool {
+    values
+        .iter()
+        .enumerate()
+        .all(|(index, value)| !values[..index].contains(value))
 }
 
 /// Converter for decomposing hexahedral meshes into tetrahedral ones
@@ -48,8 +94,7 @@ impl HexToTetConverter {
         // 3. Process cells
         for c in &mesh.cells {
             if c.element_type == ElementType::Hexahedron {
-                let hex_vertices = Self::collect_unique_hex_vertices(c, mesh);
-                if hex_vertices.len() == 8 {
+                if let Some(hex_vertices) = Self::collect_unique_hex_vertices(c, &mesh.faces) {
                     let length_scale = Self::characteristic_length(mesh, &hex_vertices);
                     let tol_factor = <T as Scalar>::from_f64(1e-12);
                     let volume_tol = length_scale * length_scale * length_scale * tol_factor;
@@ -64,7 +109,7 @@ impl HexToTetConverter {
                         if let Some(tets) =
                             Self::select_hex_decomposition(mesh, recovered_order, volume_tol)
                         {
-                            for nodes in tets {
+                            for &nodes in tets.as_slice() {
                                 Self::add_tet(&mut new_mesh, &mut face_map, nodes);
                             }
                             decomposed = true;
@@ -72,32 +117,28 @@ impl HexToTetConverter {
                     }
 
                     if !decomposed {
-                        if let Ok(raw_order) = <[VertexId; 8]>::try_from(hex_vertices.as_slice()) {
-                            if let Some(tets) =
-                                Self::select_hex_decomposition(mesh, raw_order, volume_tol)
-                            {
-                                for nodes in tets {
-                                    Self::add_tet(&mut new_mesh, &mut face_map, nodes);
-                                }
-                                decomposed = true;
+                        if let Some(tets) =
+                            Self::select_hex_decomposition(mesh, hex_vertices, volume_tol)
+                        {
+                            for &nodes in tets.as_slice() {
+                                Self::add_tet(&mut new_mesh, &mut face_map, nodes);
                             }
+                            decomposed = true;
                         }
                     }
 
                     if !decomposed {
                         // Final safeguard: keep only non-degenerate tetrahedra.
-                        if let Ok(raw_order) = <[VertexId; 8]>::try_from(hex_vertices.as_slice()) {
-                            for nodes in Self::hex_six_tet_pattern(raw_order) {
-                                if Self::is_non_degenerate_tet(mesh, nodes, volume_tol) {
-                                    Self::add_tet(&mut new_mesh, &mut face_map, nodes);
-                                }
+                        for nodes in Self::hex_six_tet_pattern(hex_vertices) {
+                            if Self::is_non_degenerate_tet(mesh, nodes, volume_tol) {
+                                Self::add_tet(&mut new_mesh, &mut face_map, nodes);
                             }
                         }
                     }
                 }
             } else {
                 // Keep other cells (e.g. already tetrahedra), remapping faces
-                let mut new_faces = Vec::new();
+                let mut new_faces = Vec::with_capacity(c.faces.len());
                 for &f_idx_raw in &c.faces {
                     let f_idx = FaceId::from_usize(f_idx_raw);
                     let face = mesh.faces.get(f_idx);
@@ -129,19 +170,22 @@ impl HexToTetConverter {
         new_mesh
     }
 
-    fn collect_unique_hex_vertices<T: Scalar>(cell: &Cell, mesh: &IndexedMesh<T>) -> Vec<VertexId> {
-        let mut vertices = Vec::with_capacity(8);
-        let mut seen: HashSet<VertexId> = HashSet::with_capacity(8);
+    fn collect_unique_hex_vertices(cell: &Cell, faces: &FaceStore) -> Option<[VertexId; 8]> {
+        let mut vertices = [VertexId::default(); 8];
+        let mut vertex_count = 0;
         for &f_idx_raw in &cell.faces {
             let f_idx = FaceId::from_usize(f_idx_raw);
-            let face = mesh.faces.get(f_idx);
+            let face = faces.get(f_idx);
             for &v_idx in &face.vertices {
-                if seen.insert(v_idx) {
-                    vertices.push(v_idx);
+                if vertices[..vertex_count].contains(&v_idx) {
+                    continue;
                 }
+                let slot = vertices.get_mut(vertex_count)?;
+                *slot = v_idx;
+                vertex_count += 1;
             }
         }
-        vertices
+        (vertex_count == vertices.len()).then_some(vertices)
     }
 
     fn characteristic_length<T: Scalar>(mesh: &IndexedMesh<T>, vertices: &[VertexId]) -> T {
@@ -244,7 +288,7 @@ impl HexToTetConverter {
         mesh: &IndexedMesh<T>,
         order: [VertexId; 8],
         volume_tol: T,
-    ) -> Option<Vec<[VertexId; 4]>> {
+    ) -> Option<TetDecomposition> {
         let five = Self::hex_five_tet_pattern(order);
         let six = Self::hex_six_tet_pattern(order);
         let q5 = Self::decomposition_min_volume(mesh, &five, volume_tol);
@@ -253,13 +297,13 @@ impl HexToTetConverter {
         match (q5, q6) {
             (Some(v5), Some(v6)) => {
                 if v5 >= v6 {
-                    Some(five.to_vec())
+                    Some(TetDecomposition::from_five(five))
                 } else {
-                    Some(six.to_vec())
+                    Some(TetDecomposition::from_six(six))
                 }
             }
-            (Some(_), None) => Some(five.to_vec()),
-            (None, Some(_)) => Some(six.to_vec()),
+            (Some(_), None) => Some(TetDecomposition::from_five(five)),
+            (None, Some(_)) => Some(TetDecomposition::from_six(six)),
             (None, None) => None,
         }
     }
@@ -304,10 +348,7 @@ impl HexToTetConverter {
         mesh: &IndexedMesh<T>,
         volume_tol: T,
     ) -> Option<[VertexId; 8]> {
-        let vertices = Self::collect_unique_hex_vertices(cell, mesh);
-        if vertices.len() != 8 {
-            return None;
-        }
+        let vertices = Self::collect_unique_hex_vertices(cell, &mesh.faces)?;
 
         let mut adjacency: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(8);
         for &f_idx_raw in &cell.faces {
@@ -407,10 +448,7 @@ impl HexToTetConverter {
                 };
 
                 let order = [v0, v1, v2, v3, v4, v5, v6, v7];
-                let mut unique = order.to_vec();
-                unique.sort_unstable_by_key(|vid| vid.as_usize());
-                unique.dedup();
-                if unique.len() != 8 {
+                if !all_unique(&order) {
                     continue;
                 }
 
@@ -418,6 +456,7 @@ impl HexToTetConverter {
                     continue;
                 };
                 let quality = tets
+                    .as_slice()
                     .iter()
                     .map(|nodes| Self::tet_six_volume(mesh, *nodes))
                     .fold(
@@ -441,12 +480,13 @@ impl HexToTetConverter {
         nodes: [VertexId; 3],
     ) -> FaceId {
         let key = canonical_tri_key(nodes);
-        if let Some(&idx) = map.get(&key) {
-            idx
-        } else {
-            let idx = mesh.add_face(nodes[0], nodes[1], nodes[2]);
-            map.insert(key, idx);
-            idx
+        match map.entry(key) {
+            Entry::Occupied(entry) => *entry.get(),
+            Entry::Vacant(entry) => {
+                let idx = mesh.add_face(nodes[0], nodes[1], nodes[2]);
+                entry.insert(idx);
+                idx
+            }
         }
     }
 

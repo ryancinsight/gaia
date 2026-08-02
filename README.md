@@ -36,6 +36,7 @@ Gaia implements exactly-computable geometry and topologically-safe mesh represen
 ### 4. Allocation-Free & Pre-allocated Subdivisions
 - **Midpoint Node Pre-sizing**: `P2MeshConverter` (P1-to-P2 triangle subdivision) pre-allocates target mesh capacity via `empty_clone_with_capacity` and pre-sizes edge midpoint maps.
 - **Decomposition Pre-sizing**: `HexToTetConverter` pre-sizes target cell storage and reuses vertex adjacency vectors to avoid dynamic heap allocations during 3D hexahedral decomposition.
+- **Fixed-Capacity Hex Decomposition**: hexahedral conversion keeps the eight-vertex scratch set and five/six-tetrahedron selection on the stack, while three-vertex face keys use direct compare-swap canonicalization.
 - **Boundary Relaxation**: `SdfMesher` pre-sizes boundary vertex sets and hoists Jacobi relaxation buffers, eliminating per-iteration vector re-allocations.
 
 ### 5. Zero-Allocation Seam Propagation

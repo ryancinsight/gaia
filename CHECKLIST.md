@@ -311,11 +311,17 @@
     - [x] Verify documentation compilation (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`).
     - [x] Run benchmark verification tests.
 
-- [ ] **Phase 32: Hex-to-tet Fixed-Capacity Decomposition [patch]**
-    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`.
-    - [ ] Replace per-cell unique-vertex, decomposition, and face-key
+- [x] **Phase 32: Hex-to-tet Fixed-Capacity Decomposition [patch]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`.
+    - [x] Replace per-cell unique-vertex, decomposition, and face-key
       allocations with fixed-capacity storage and direct canonical ordering.
-    - [ ] Preserve native-precision volume validation and converted topology.
-    - [ ] Verify focused conversion tests, full library gates, and release
-      LLVM output for the removed allocation paths.
+    - [x] Preserve native-precision volume validation and converted topology.
+    - [x] Verify 4/4 focused conversion tests, 932/932 all-feature library
+      tests, formatting, Clippy, 6/6 doctests, and warning-denied rustdoc.
+    - [x] Verify release LLVM output drops the library from 400,041 to 398,569
+      lines and the canonical triangle key from general-sort expansion to a
+      57-line compare-swap helper.
+    - [x] Record residual: no runtime throughput claim is made without a
+      matched Criterion baseline; the evidence is allocation and codegen
+      structure for this slice.
 
