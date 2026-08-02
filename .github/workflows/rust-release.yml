@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: crates-release-\${{ github.event.release.tag_name || inputs.package }}
+  group: crates-release-${{ github.event.release.tag_name || inputs.package }}
   cancel-in-progress: false
 
 env:
@@ -35,35 +35,35 @@ jobs:
     permissions:
       contents: read
     outputs:
-      package: \${{ steps.release.outputs.package }}
-      version: \${{ steps.release.outputs.version }}
+      package: ${{ steps.release.outputs.package }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Check out the release revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: \${{ github.event.release.tag_name || github.sha }}
+          ref: ${{ github.event.release.tag_name || github.sha }}
 
       - name: Install the pinned Rust toolchain
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
-          toolchain: \${{ env.RUST_TOOLCHAIN }}
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Resolve and validate release identity
         id: release
         shell: bash
         env:
-          EVENT_NAME: \${{ github.event_name }}
-          INPUT_PACKAGE: \${{ inputs.package }}
-          INPUT_VERSION: \${{ inputs.version }}
-          RELEASE_TAG: \${{ github.event.release.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PACKAGE: ${{ inputs.package }}
+          INPUT_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
 
           if [[ "$EVENT_NAME" == "release" ]]; then
             if [[ "$RELEASE_TAG" =~ ^crate-(.+)-v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?)$ ]]; then
-              package="\${BASH_REMATCH[1]}"
-              version="\${BASH_REMATCH[2]}"
+              package="${BASH_REMATCH[1]}"
+              version="${BASH_REMATCH[2]}"
             else
               echo "release tag must be crate-<package>-v<version>" >&2
               exit 1
@@ -103,7 +103,7 @@ jobs:
       - name: Package and verify without publishing
         shell: bash
         env:
-          RELEASE_PACKAGE: \${{ steps.release.outputs.package }}
+          RELEASE_PACKAGE: ${{ steps.release.outputs.package }}
         run: cargo publish --locked --package "$RELEASE_PACKAGE" --dry-run
 
   publish:
@@ -114,7 +114,7 @@ jobs:
     timeout-minutes: 30
     environment:
       name: crates-io
-      url: https://crates.io/crates/\${{ needs.validate.outputs.package }}
+      url: https://crates.io/crates/${{ needs.validate.outputs.package }}
     permissions:
       contents: read
       id-token: write
@@ -123,12 +123,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: \${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Install the pinned Rust toolchain
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
-          toolchain: \${{ env.RUST_TOOLCHAIN }}
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Request a short-lived crates.io token
         id: auth
@@ -137,6 +137,6 @@ jobs:
       - name: Publish the validated package
         shell: bash
         env:
-          CARGO_REGISTRY_TOKEN: \${{ steps.auth.outputs.token }}
-          RELEASE_PACKAGE: \${{ needs.validate.outputs.package }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          RELEASE_PACKAGE: ${{ needs.validate.outputs.package }}
         run: cargo publish --locked --package "$RELEASE_PACKAGE"
