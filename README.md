@@ -29,6 +29,8 @@ Gaia implements exactly-computable geometry and topologically-safe mesh represen
 - **Structured-grid reuse**: `StructuredGridBuilder` uses the same builder as
   downstream FEM consumers, so face sharing and cell orientation have one
   implementation.
+- **Hexahedral source grids**: `StructuredHexGridBuilder` emits triangulated
+  boundary faces and hexahedral cells for the `HexToTetConverter` path.
 - **Monomorphized numeric kernel**: coordinate access and native-precision
   orientation remain generic over `T`; scalar-independent topology bookkeeping
   is kept in non-generic helpers.

@@ -501,7 +501,7 @@ mod tests {
     use super::HexToTetConverter;
     use crate::domain::core::index::FaceId;
     use crate::domain::core::index::VertexId;
-    use crate::domain::grid::StructuredGridBuilder;
+    use crate::domain::grid::StructuredHexGridBuilder;
     use crate::domain::mesh::IndexedMesh;
     use crate::domain::topology::ElementType;
 
@@ -549,10 +549,10 @@ mod tests {
 
     #[test]
     fn structured_hex_mesh_converts_to_non_degenerate_tets() {
-        let hex_mesh = StructuredGridBuilder::new(4, 4, 4).build().unwrap();
+        let hex_mesh = StructuredHexGridBuilder::new(4, 4, 4).build();
         let tet_mesh = HexToTetConverter::convert(&hex_mesh);
 
-        assert!(tet_mesh.cell_count() > 0);
+        assert_eq!(tet_mesh.cell_count(), 4 * 4 * 4 * 5);
         assert!(tet_mesh
             .cells()
             .iter()
@@ -563,10 +563,14 @@ mod tests {
     #[test]
     fn branching_mesh_conversion_avoids_degenerate_tets() {
         // Use a larger structured grid to exercise non-trivial tet conversion.
-        let hex_mesh = StructuredGridBuilder::new(6, 4, 4).build().unwrap();
+        let hex_mesh = StructuredHexGridBuilder::new(6, 4, 4).build();
         let tet_mesh = HexToTetConverter::convert(&hex_mesh);
 
-        assert!(tet_mesh.cell_count() > 0);
+        assert_eq!(tet_mesh.cell_count(), 6 * 4 * 4 * 5);
+        assert!(tet_mesh
+            .cells()
+            .iter()
+            .all(|c| c.element_type == ElementType::Tetrahedron));
         assert_no_degenerate_tets(&tet_mesh);
     }
 

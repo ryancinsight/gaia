@@ -325,13 +325,21 @@
       matched Criterion baseline; the evidence is allocation and codegen
       structure for this slice.
 
-- [ ] **Phase 33: Exercise Real Hexahedral Conversion [patch]**
-    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
-      `benches/hex_to_tet_performance.rs`, and benchmark registration.
-    - [ ] Replace tetrahedral-only conversion fixtures with a triangulated
+- [x] **Phase 33: Exercise Real Hexahedral Conversion [patch]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+      `src/domain/grid.rs`, `benches/hex_to_tet_performance.rs`,
+      `Cargo.toml`, and `README.md`.
+    - [x] Replace tetrahedral-only conversion fixtures with a triangulated
       hexahedral fixture that reaches the conversion branch.
-    - [ ] Add value-semantic coverage for converted cell count, topology, and
+    - [x] Add value-semantic coverage for converted cell count, topology, and
       non-degenerate tetrahedral volumes.
-    - [ ] Add a bounded Criterion target for the real conversion workload and
-      compare the current implementation against its parent revision.
+    - [x] Add a bounded Criterion target for the real conversion workload and
+      compare the current implementation against its parent revision: 1.0689 ms
+      current versus 1.0987 ms parent for 512 cells, with overlapping ranges.
+    - [x] Verify 4/4 focused tests, 932/932 all-feature library tests,
+      benchmark smoke, formatting, Clippy, 6/6 doctests, and warning-denied
+      rustdoc.
+    - [x] Record residual: the matched benchmark does not establish a
+      statistically significant runtime change; the delivered claim remains
+      fixture correctness plus allocation/codegen structure.
 
