@@ -29,6 +29,9 @@ Gaia implements exactly-computable geometry and topologically-safe mesh represen
 - **Structured-grid reuse**: `StructuredGridBuilder` uses the same builder as
   downstream FEM consumers, so face sharing and cell orientation have one
   implementation.
+- **Monomorphized numeric kernel**: coordinate access and native-precision
+  orientation remain generic over `T`; scalar-independent topology bookkeeping
+  is kept in non-generic helpers.
 
 ### 4. Allocation-Free & Pre-allocated Subdivisions
 - **Midpoint Node Pre-sizing**: `P2MeshConverter` (P1-to-P2 triangle subdivision) pre-allocates target mesh capacity via `empty_clone_with_capacity` and pre-sizes edge midpoint maps.

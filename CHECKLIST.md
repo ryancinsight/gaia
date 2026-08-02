@@ -12,6 +12,12 @@
     - [x] Synchronize the public mesh documentation and record the residual
       mixed-cell/polygonal-face boundary as out of the current consumer scope.
 
+- [x] **Scalar-independent tetrahedral topology [patch]**
+    - [x] Extract face identity, validation, and cell construction from the
+      scalar-parameterized tetrahedral kernel.
+    - [x] Preserve native-precision orientation and value-semantic behavior.
+    - [x] Verify release LLVM output keeps topology helpers non-generic.
+
 - [ ] **crates.io release automation [patch]**
     - [x] Correct the Mnemosyne and Moirai facade package identities and retain
       their public dependency keys.

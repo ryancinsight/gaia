@@ -7,8 +7,6 @@
 //! their outward orientation, so [`crate::domain::mesh::IndexedMesh::extract_boundary_mesh`]
 //! can produce a watertight surface without reconstructing cell topology.
 
-use std::collections::HashMap;
-
 use leto::geometry::Point3;
 
 use crate::domain::core::error::{MeshError, MeshResult};
@@ -16,6 +14,89 @@ use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::Cell;
+use crate::infrastructure::storage::face_store::FaceStore;
+
+/// Scalar-independent face identity and insertion state.
+///
+/// Keeping the registry separate from `IndexedMesh<T>` prevents the hash-table
+/// and face-construction path from being copied into every scalar
+/// monomorphization. The only generic work remains coordinate access and
+/// native-precision orientation.
+struct FaceRegistry {
+    face_ids: hashbrown::HashMap<[VertexId; 3], FaceId>,
+}
+
+impl FaceRegistry {
+    fn with_capacity(cell_capacity: usize) -> Self {
+        Self {
+            face_ids: hashbrown::HashMap::with_capacity(cell_capacity.saturating_mul(4)),
+        }
+    }
+
+    fn insert_or_get(&mut self, faces: &mut FaceStore, vertices: [VertexId; 3]) -> FaceId {
+        let key = canonical_face(vertices);
+        if let Some(&face) = self.face_ids.get(&key) {
+            return face;
+        }
+
+        let face = faces.add_triangle(vertices[0], vertices[1], vertices[2]);
+        self.face_ids.insert(key, face);
+        face
+    }
+}
+
+#[inline]
+fn canonical_face(mut vertices: [VertexId; 3]) -> [VertexId; 3] {
+    if vertices[0] > vertices[1] {
+        vertices.swap(0, 1);
+    }
+    if vertices[1] > vertices[2] {
+        vertices.swap(1, 2);
+    }
+    if vertices[0] > vertices[1] {
+        vertices.swap(0, 1);
+    }
+    vertices
+}
+
+fn validate_vertex_ids(
+    cell_index: usize,
+    vertices: [VertexId; 4],
+    vertex_count: usize,
+) -> MeshResult<()> {
+    for &vertex in &vertices {
+        if vertex.as_usize() >= vertex_count {
+            return Err(invalid_cell(
+                cell_index,
+                format!("references vertex {vertex} outside the vertex store"),
+            ));
+        }
+    }
+
+    if vertices
+        .iter()
+        .enumerate()
+        .any(|(index, vertex)| vertices[..index].contains(vertex))
+    {
+        return Err(invalid_cell(
+            cell_index,
+            "contains duplicate vertex identifiers",
+        ));
+    }
+
+    Ok(())
+}
+
+fn tetrahedral_cell(faces: [FaceId; 4], vertices: [VertexId; 4]) -> Cell {
+    let mut cell = Cell::tetrahedron(
+        faces[0].as_usize(),
+        faces[1].as_usize(),
+        faces[2].as_usize(),
+        faces[3].as_usize(),
+    );
+    cell.vertex_ids = vertices.map(VertexId::as_usize).to_vec();
+    cell
+}
 
 /// Builder for tetrahedral volume meshes backed by [`IndexedMesh`].
 ///
@@ -27,7 +108,7 @@ use crate::domain::topology::Cell;
 /// tetrahedral volume cells plus triangular surface meshes.
 pub struct TetrahedralMeshBuilder<T: Scalar = f64> {
     mesh: IndexedMesh<T>,
-    face_map: HashMap<[VertexId; 3], FaceId>,
+    face_registry: FaceRegistry,
 }
 
 impl<T: Scalar> TetrahedralMeshBuilder<T> {
@@ -47,7 +128,7 @@ impl<T: Scalar> TetrahedralMeshBuilder<T> {
                 cell_capacity.saturating_mul(4),
                 cell_capacity,
             ),
-            face_map: HashMap::with_capacity(cell_capacity.saturating_mul(4)),
+            face_registry: FaceRegistry::with_capacity(cell_capacity),
         }
     }
 
@@ -80,25 +161,7 @@ impl<T: Scalar> TetrahedralMeshBuilder<T> {
     /// tetrahedron has zero signed volume.
     pub fn tetrahedron(&mut self, vertices: [VertexId; 4]) -> MeshResult<usize> {
         let cell_index = self.mesh.cell_count();
-        for &vertex in &vertices {
-            if vertex.as_usize() >= self.mesh.vertex_count() {
-                return Err(invalid_cell(
-                    cell_index,
-                    format!("references vertex {vertex} outside the vertex store"),
-                ));
-            }
-        }
-
-        if vertices
-            .iter()
-            .enumerate()
-            .any(|(index, vertex)| vertices[..index].contains(vertex))
-        {
-            return Err(invalid_cell(
-                cell_index,
-                "contains duplicate vertex identifiers",
-            ));
-        }
+        validate_vertex_ids(cell_index, vertices, self.mesh.vertex_count())?;
 
         let points = vertices.map(|vertex| *self.mesh.vertices.position(vertex));
         if points.iter().any(|point| {
@@ -126,19 +189,16 @@ impl<T: Scalar> TetrahedralMeshBuilder<T> {
 
         let [a, b, c, d] = oriented;
         let faces = [
-            self.shared_face([a, c, b]),
-            self.shared_face([a, b, d]),
-            self.shared_face([a, d, c]),
-            self.shared_face([b, c, d]),
+            self.face_registry
+                .insert_or_get(&mut self.mesh.faces, [a, c, b]),
+            self.face_registry
+                .insert_or_get(&mut self.mesh.faces, [a, b, d]),
+            self.face_registry
+                .insert_or_get(&mut self.mesh.faces, [a, d, c]),
+            self.face_registry
+                .insert_or_get(&mut self.mesh.faces, [b, c, d]),
         ];
-        let mut cell = Cell::tetrahedron(
-            faces[0].as_usize(),
-            faces[1].as_usize(),
-            faces[2].as_usize(),
-            faces[3].as_usize(),
-        );
-        cell.vertex_ids = oriented.map(VertexId::as_usize).to_vec();
-        self.mesh.add_cell(cell);
+        self.mesh.add_cell(tetrahedral_cell(faces, oriented));
         Ok(cell_index)
     }
 
@@ -153,18 +213,6 @@ impl<T: Scalar> TetrahedralMeshBuilder<T> {
     pub fn build(mut self) -> IndexedMesh<T> {
         self.mesh.rebuild_edges();
         self.mesh
-    }
-
-    fn shared_face(&mut self, vertices: [VertexId; 3]) -> FaceId {
-        let mut key = vertices;
-        key.sort_unstable();
-        if let Some(&face) = self.face_map.get(&key) {
-            return face;
-        }
-
-        let face = self.mesh.add_face(vertices[0], vertices[1], vertices[2]);
-        self.face_map.insert(key, face);
-        face
     }
 }
 
