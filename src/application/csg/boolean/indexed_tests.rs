@@ -49,6 +49,47 @@ fn cube_b() -> IndexedMesh {
     .expect("cube_b build")
 }
 
+#[test]
+fn rectangular_prism_union_is_axis_independent() {
+    let a = Cube::unit().build().expect("unit prism");
+    let b = Cube {
+        origin: Point3r::new(0.0, 0.5, 0.0),
+        width: 1.0,
+        height: 1.0,
+        depth: 1.0,
+    }
+    .build()
+    .expect("offset prism");
+
+    let result = rectangular_prism_union(&a, &b).expect("the set union is one prism");
+    let expected_volume = 1.5_f64;
+    let tolerance = 64.0 * f64::EPSILON * expected_volume;
+    assert!((result.signed_volume() - expected_volume).abs() <= tolerance);
+    assert_eq!(result.faces.len(), 12);
+}
+
+#[test]
+fn rectangular_prism_union_does_not_fill_an_l_shaped_gap() {
+    let a = Cube::unit().build().expect("unit prism");
+    let b = Cube {
+        origin: Point3r::new(0.5, 0.5, 0.0),
+        width: 1.0,
+        height: 1.0,
+        depth: 1.0,
+    }
+    .build()
+    .expect("diagonally offset prism");
+
+    let result = csg_boolean(BooleanOp::Union, &a, &b).expect("L-shaped union");
+    let expected_volume = 1.75_f64;
+    let tolerance = 512.0 * f64::EPSILON * expected_volume;
+    assert!(
+        (result.signed_volume() - expected_volume).abs() <= tolerance,
+        "the union must preserve the L-shaped gap: expected {expected_volume}, got {}",
+        result.signed_volume(),
+    );
+}
+
 fn disk_a() -> IndexedMesh {
     Disk {
         center: Point3r::new(0.0, 0.0, 0.0),

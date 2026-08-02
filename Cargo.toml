@@ -2,7 +2,7 @@
 name = "gaia"
 version = "0.3.0"
 edition = "2021"
-authors = ["Ryan Clanton <ryan@clanton.dev>"]
+authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ryancinsight/gaia"
 homepage = "https://github.com/ryancinsight/gaia"
@@ -10,6 +10,7 @@ documentation = "https://docs.rs/gaia"
 description = "Watertight CFD mesh generation for millifluidic devices — GhostCell-permissioned, indexed, BSP-based"
 keywords = ["mesh", "cfd", "millifluidic", "watertight", "ghostcell"]
 categories = ["science", "simulation"]
+publish = true
 autoexamples = false
 
 [features]
@@ -56,14 +57,14 @@ tracing = "0.1"
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
-mnemosyne = { version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
-moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
+mnemosyne = { package = "mnemosyne-memory", version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
+moirai = { package = "moirai-runtime", version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
 proptest = "1.4"
 criterion = "0.5"
-mnemosyne = { version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
-moirai = { version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
+mnemosyne = { package = "mnemosyne-memory", version = "0.6.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
+moirai = { package = "moirai-runtime", version = "0.4.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 
@@ -334,13 +335,3 @@ path = "examples/bifurcation_delaunay_3d.rs"
 [[example]]
 name = "serpentine_delaunay_3d"
 path = "examples/serpentine_delaunay_3d.rs"
-
-
-
-# ATLAS-PATH-DEP-AUDIT-2: redirect git+https sibling pulls to local working
-# copies so the entire dep graph uses a single version of each Atlas
-# foundation crate. Unused patches emit warnings only; cargo treats the
-# block as defense-in-depth.
-# Last delivery: 2026-07-27 closure cycle.
-
-# ATLAS-PATH-DEP-AUDIT-2 round-4 closure

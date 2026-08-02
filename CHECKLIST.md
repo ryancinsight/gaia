@@ -1,5 +1,19 @@
 # Checklist
 
+- [ ] **crates.io release automation [patch]**
+    - [x] Correct the Mnemosyne and Moirai facade package identities and retain
+      their public dependency keys.
+    - [x] Add exact package/version validation and environment-gated crates.io
+      Trusted Publishing.
+    - [x] Repair the exposed progressive coplanar-union defect with a validated
+      rectangular-prism operation-boundary path; preserve L-shaped unions on
+      the general arrangement engine.
+    - [x] Pass 929/929 standalone library tests, 6/6 doctests, warning-denied
+      library Clippy, and formatting on the registry-ready dependency graph.
+    - [ ] Verify the standalone package, merge the exact hosted revision,
+      publish `gaia` 0.3.0, enforce trusted-publishing-only mode, and create the
+      matching GitHub Release.
+
 - [ ] **RITK tractography polyline provider [minor]**
     - [x] Reclaim the ownerless `Polyline` implementation required by RITK's
       tractography geometry boundary.

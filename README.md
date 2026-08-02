@@ -2,6 +2,13 @@
 
 Watertight CFD mesh generation and geometry topology kernel for millifluidic devices.
 
+## Distribution
+
+Gaia is published as [`gaia`](https://crates.io/crates/gaia). GitHub Releases
+tagged `crate-gaia-v<version>` validate the exact package and publish through
+the protected `crates-io` environment with a short-lived crates.io Trusted
+Publishing credential.
+
 ## Core Architecture
 
 Gaia implements exactly-computable geometry and topologically-safe mesh representations to eliminate non-manifold degeneracies typical of floating-point CAD kernels.
@@ -58,7 +65,11 @@ src/
 
 ## Features
 
-- **Constructive Solid Geometry (CSG)**: Watertight Union, Intersection, and Difference using BVH broad phase and exact intersection co-refinement.
+- **Constructive Solid Geometry (CSG)**: Watertight Union, Intersection, and
+  Difference using BVH broad phase and exact intersection co-refinement. When
+  two validated axis-aligned rectangular prisms form one rectangular prism,
+  the union reconstructs that closed-form boundary and avoids progressive
+  coplanar-subdivision error.
 - **NURBS Engine**: B-spline and NURBS boundary representations evaluated via Cox-de Boor recursion with curvature-adaptive surface tessellation.
 - **Delaunay Triangulation**: Bowyer-Watson triangulation with Ruppert refinement, using `total_cmp` float sorting for robust NaN handling.
 - **CFD I/O Exporters**:
