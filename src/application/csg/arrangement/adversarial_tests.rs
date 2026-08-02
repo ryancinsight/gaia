@@ -1015,22 +1015,18 @@ mod tests {
         .build()
         .expect("c");
 
-        let ab = csg_boolean(BooleanOp::Union, &a, &b);
-        let bc = csg_boolean(BooleanOp::Union, &b, &c);
+        let ab = csg_boolean(BooleanOp::Union, &a, &b).expect("A union B");
+        let bc = csg_boolean(BooleanOp::Union, &b, &c).expect("B union C");
+        let left = csg_boolean(BooleanOp::Union, &ab, &c).expect("(A union B) union C");
+        let right = csg_boolean(BooleanOp::Union, &a, &bc).expect("A union (B union C)");
 
-        if let (Ok(ab), Ok(bc)) = (ab, bc) {
-            let abc_left = csg_boolean(BooleanOp::Union, &ab, &c);
-            let abc_right = csg_boolean(BooleanOp::Union, &a, &bc);
-            if let (Ok(left), Ok(right)) = (abc_left, abc_right) {
-                let vol_l = signed_volume(&left);
-                let vol_r = signed_volume(&right);
-                let rel_err = (vol_l - vol_r).abs() / vol_l.max(1e-12);
-                assert!(
-                    rel_err < 0.05,
-                    "(A∪B)∪C ≠ A∪(B∪C) by volume: {vol_l:.6} vs {vol_r:.6}, err={rel_err:.4}"
-                );
-            }
-        }
+        let vol_l = signed_volume(&left);
+        let vol_r = signed_volume(&right);
+        let rel_err = (vol_l - vol_r).abs() / vol_l.max(1e-12);
+        assert!(
+            rel_err < 0.05,
+            "(A∪B)∪C ≠ A∪(B∪C) by volume: {vol_l:.6} vs {vol_r:.6}, err={rel_err:.4}"
+        );
     }
 
     /// GWN stability on the boundary face plane: a query exactly on a face
