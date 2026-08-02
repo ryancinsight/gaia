@@ -354,13 +354,17 @@
       LLVM lines, but the helper added 144 lines and total release output rose
       from 399,675 to 399,700 lines. No production code change is retained.
 
-- [ ] **Phase 35: Retain-Component Remap Memory Audit [patch]**
-    - [ ] Owner: Codex; scope: `src/domain/mesh/indexed.rs`.
-    - [ ] Avoid allocating reconstruction and remap storage when all connected
+- [x] **Phase 35: Retain-Component Remap Memory Audit [patch]**
+    - [x] Owner: Codex; scope: `src/domain/mesh/indexed.rs`.
+    - [x] Avoid allocating reconstruction and remap storage when all connected
       components meet the retention threshold.
-    - [ ] Replace `Option<*Id>` remap vectors with compact sentinel-backed
-      `u32` storage while preserving face, vertex, attribute, and label results.
-    - [ ] Verify focused component-retention tests, generic scalar coverage,
+    - [x] Replace `Option<VertexId>` and `Option<FaceId>` remap vectors with
+      compact sentinel-backed `u32` storage while preserving face, vertex,
+      attribute, and label results.
+    - [x] Verify focused component-retention tests, generic scalar coverage,
       full format/lint/test/doc gates, and release LLVM output against the
-      current baseline before claiming a codegen or memory improvement.
+      current baseline: 399,422 lines versus 399,675 before the slice.
+    - [x] Record residual: the change establishes no-op allocation avoidance,
+      compact remap storage, and lower release codegen; no runtime throughput
+      claim is made without a matched benchmark.
 
