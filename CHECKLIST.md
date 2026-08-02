@@ -1,13 +1,15 @@
 # Checklist
 
-- [ ] **Atlas tetrahedral volume-builder contract [minor]**
+- [x] **Atlas tetrahedral volume-builder contract [minor]**
     - [x] Audit current Gaia surface, volume-cell, boundary-label, and I/O
       contracts against CFDrs, Kwavers, Helios, and RITK consumers.
-    - [ ] Add one validated Gaia-owned tetrahedral builder and route the
+    - [x] Remove retired reverse CFDrs integration test targets after the
+      CFDrs → Gaia ownership boundary was established.
+    - [x] Add one validated Gaia-owned tetrahedral builder and route the
       structured-grid generator through it.
-    - [ ] Verify generic f32/f64 value semantics, shared-face deduplication,
+    - [x] Verify generic f32/f64 value semantics, shared-face deduplication,
       positive cell orientation, and rejection of invalid cells.
-    - [ ] Synchronize the public mesh documentation and record the residual
+    - [x] Synchronize the public mesh documentation and record the residual
       mixed-cell/polygonal-face boundary as out of the current consumer scope.
 
 - [ ] **crates.io release automation [patch]**

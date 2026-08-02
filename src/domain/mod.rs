@@ -11,7 +11,7 @@
 //! | [`core`] | Scalar types, indices, error taxonomy, constants |
 //! | [`geometry`] | Exact predicates, AABB, plane, NURBS, 26 primitive builders |
 //! | [`topology`] | Half-edge kernel, manifold predicates, adjacency, orientation |
-//! | [`mesh`] | `IndexedMesh`, `HalfEdgeMesh`, `MeshBuilder` |
+//! | [`mesh`] | `IndexedMesh`, `HalfEdgeMesh`, surface and volume builders |
 //! | [`grid`] | Structured volume grid |
 
 pub mod core;

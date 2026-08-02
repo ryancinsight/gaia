@@ -142,6 +142,9 @@ pub use domain::mesh::IndexedMesh;
 /// Ergonomic builder for `IndexedMesh`.
 pub use domain::mesh::MeshBuilder;
 
+/// Validated tetrahedral volume-mesh builder.
+pub use domain::mesh::TetrahedralMeshBuilder;
+
 /// Branded half-edge surface mesh.
 pub use domain::mesh::HalfEdgeMesh;
 

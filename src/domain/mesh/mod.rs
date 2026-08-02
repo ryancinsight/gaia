@@ -10,6 +10,8 @@
 pub mod halfedge;
 #[allow(missing_docs)]
 pub mod indexed;
+pub mod tetrahedral;
 
 pub use halfedge::{with_mesh, HalfEdgeMesh};
 pub use indexed::{IndexedMesh, MeshBuilder};
+pub use tetrahedral::TetrahedralMeshBuilder;

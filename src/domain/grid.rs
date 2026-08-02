@@ -7,10 +7,7 @@
 //! hexahedral cell topology and is exempt from the surface-mesh deprecation.
 
 use crate::domain::core::index::VertexId;
-use crate::domain::mesh::IndexedMesh;
-use crate::domain::topology::Cell;
-use hashbrown::HashMap;
-use leto::geometry::Point3;
+use crate::domain::mesh::{IndexedMesh, TetrahedralMeshBuilder};
 
 /// Error type for grid building.
 #[derive(Debug)]
@@ -55,28 +52,9 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     let vny = ny + 1;
     let vnz = nz + 1;
 
-    let mut mesh = IndexedMesh::<f64>::new();
+    let mut builder =
+        TetrahedralMeshBuilder::<f64>::with_capacity(vnx * vny * vnz, nx * ny * nz * 5);
     let mut v_ids = Vec::with_capacity(vnx * vny * vnz);
-
-    // HashMap for deterministic face deduplication order (since nesting loops are deterministic).
-    // Each hex creates five tetrahedra and each tetrahedron contributes four
-    // candidate faces before deduplication.
-    let mut face_map: HashMap<
-        [crate::domain::core::index::VertexId; 3],
-        crate::domain::core::index::FaceId,
-    > = HashMap::with_capacity(nx * ny * nz * 20);
-
-    let mut add_tri = |v0: crate::domain::core::index::VertexId,
-                       v1: crate::domain::core::index::VertexId,
-                       v2: crate::domain::core::index::VertexId,
-                       mesh: &mut IndexedMesh<f64>|
-     -> crate::domain::core::index::FaceId {
-        let mut key = [v0, v1, v2];
-        key.sort_unstable_by_key(|vid| vid.as_usize());
-        *face_map
-            .entry(key)
-            .or_insert_with(|| mesh.add_face(key[0], key[1], key[2]))
-    };
 
     // Create corner vertices on a regular grid.
     for iz in 0..vnz {
@@ -85,7 +63,7 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
                 let x = ix as f64 / nx as f64;
                 let y = iy as f64 / ny as f64;
                 let z = iz as f64 / nz as f64;
-                v_ids.push(mesh.add_vertex_pos(Point3::new(x, y, z)));
+                v_ids.push(builder.vertex_array([x, y, z]));
             }
         }
     }
@@ -117,12 +95,10 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
                         [v[4], v[7], v[6], v[3]],
                         [v[1], v[3], v[4], v[6]],
                     ];
-                    for tet in &tets_a {
-                        let f0 = add_tri(tet[0], tet[1], tet[2], &mut mesh).as_usize();
-                        let f1 = add_tri(tet[0], tet[1], tet[3], &mut mesh).as_usize();
-                        let f2 = add_tri(tet[0], tet[2], tet[3], &mut mesh).as_usize();
-                        let f3 = add_tri(tet[1], tet[2], tet[3], &mut mesh).as_usize();
-                        mesh.add_cell(Cell::tetrahedron(f0, f1, f2, f3));
+                    for tet in tets_a {
+                        builder
+                            .tetrahedron(tet)
+                            .map_err(|error| GridError(error.to_string()))?;
                     }
                 } else {
                     let tets_b: [[VertexId; 4]; 5] = [
@@ -132,21 +108,22 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
                         [v[6], v[2], v[5], v[7]],
                         [v[0], v[2], v[7], v[5]], // Swapped v5 and v7
                     ];
-                    for tet in &tets_b {
-                        let f0 = add_tri(tet[0], tet[1], tet[2], &mut mesh).as_usize();
-                        let f1 = add_tri(tet[0], tet[1], tet[3], &mut mesh).as_usize();
-                        let f2 = add_tri(tet[0], tet[2], tet[3], &mut mesh).as_usize();
-                        let f3 = add_tri(tet[1], tet[2], tet[3], &mut mesh).as_usize();
-                        mesh.add_cell(Cell::tetrahedron(f0, f1, f2, f3));
+                    for tet in tets_b {
+                        builder
+                            .tetrahedron(tet)
+                            .map_err(|error| GridError(error.to_string()))?;
                     }
                 }
             }
         }
     }
 
+    let mut mesh = builder.build();
+
     // Label boundary faces.
     let mut boundary_updates = Vec::with_capacity(mesh.faces.len());
-    for (f_idx, face) in mesh.faces.iter_enumerated() {
+    for f_idx in mesh.boundary_faces() {
+        let face = mesh.faces.get(f_idx);
         let [v0, v1, v2] = face.vertices;
         let p0 = mesh.vertices.position(v0);
         let p1 = mesh.vertices.position(v1);
