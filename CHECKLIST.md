@@ -311,3 +311,11 @@
     - [x] Verify documentation compilation (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`).
     - [x] Run benchmark verification tests.
 
+- [ ] **Phase 32: Hex-to-tet Fixed-Capacity Decomposition [patch]**
+    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`.
+    - [ ] Replace per-cell unique-vertex, decomposition, and face-key
+      allocations with fixed-capacity storage and direct canonical ordering.
+    - [ ] Preserve native-precision volume validation and converted topology.
+    - [ ] Verify focused conversion tests, full library gates, and release
+      LLVM output for the removed allocation paths.
+
