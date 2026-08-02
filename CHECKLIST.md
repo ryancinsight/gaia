@@ -325,3 +325,13 @@
       matched Criterion baseline; the evidence is allocation and codegen
       structure for this slice.
 
+- [ ] **Phase 33: Exercise Real Hexahedral Conversion [patch]**
+    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+      `benches/hex_to_tet_performance.rs`, and benchmark registration.
+    - [ ] Replace tetrahedral-only conversion fixtures with a triangulated
+      hexahedral fixture that reaches the conversion branch.
+    - [ ] Add value-semantic coverage for converted cell count, topology, and
+      non-degenerate tetrahedral volumes.
+    - [ ] Add a bounded Criterion target for the real conversion workload and
+      compare the current implementation against its parent revision.
+
