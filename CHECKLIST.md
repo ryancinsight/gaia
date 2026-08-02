@@ -368,3 +368,14 @@
       compact remap storage, and lower release codegen; no runtime throughput
       claim is made without a matched benchmark.
 
+- [ ] **Phase 36: Hex Vertex-Order Adjacency Storage [patch]**
+    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`.
+    - [ ] Replace per-cell `HashMap<VertexId, Vec<VertexId>>` adjacency
+      construction with bounded fixed storage for the eight-node topology.
+    - [ ] Keep adjacency construction and neighbor queries non-generic so
+      scalar-dependent recovery monomorphizes only the geometric kernel.
+    - [ ] Preserve recovered-order selection, decomposition validity, and
+      fallback behavior; verify codegen, conversion benchmark evidence, and
+      full format/lint/test/doc gates before claiming a performance or memory
+      improvement.
+
