@@ -343,11 +343,14 @@
       statistically significant runtime change; the delivered claim remains
       fixture correctness plus allocation/codegen structure.
 
-- [ ] **Phase 34: Share Orient-Outward Face Topology [patch]**
-    - [ ] Owner: Codex; scope: `src/domain/mesh/indexed.rs`.
-    - [ ] Extract scalar-independent undirected face-edge construction from
+- [x] **Phase 34: Share Orient-Outward Face Topology [audit]**
+    - [x] Owner: Codex; scope: `src/domain/mesh/indexed.rs`.
+    - [x] Evaluate extracting scalar-independent undirected face-edge
+      construction from
       `IndexedMesh::orient_outward` into one non-generic helper.
-    - [ ] Preserve orientation, nesting, signed-volume, and normal contracts.
-    - [ ] Verify focused orientation tests, full library gates, and release
-      LLVM output for the generic-code reduction.
+    - [x] Preserve orientation, nesting, signed-volume, and normal contracts
+      in the retained implementation; focused orientation tests remained 4/4.
+    - [x] Reject the candidate: `orient_outward` fell from 2,073 to 1,954
+      LLVM lines, but the helper added 144 lines and total release output rose
+      from 399,675 to 399,700 lines. No production code change is retained.
 
