@@ -388,3 +388,14 @@
       Residual: the benchmark result is workload-specific and the codegen
       output is 400 LLVM lines above Phase 35; no broader runtime claim is made.
 
+- [ ] **Phase 37: Pack Adjacency Rows [patch]**
+    - [x] Owner: Codex; scope: `src/domain/topology/adjacency.rs` and its
+      topology tests.
+    - [ ] Replace the three nested `Vec<Vec<...>>` adjacency families with
+      contiguous packed rows and offsets while preserving the public query
+      slices and invalid-ID behavior.
+    - [ ] Preserve duplicate-face defensive deduplication and connected-
+      component semantics.
+    - [ ] Verify memory-layout reduction, release codegen, focused topology
+      tests, full Gaia gates, and a bounded adjacency benchmark comparison.
+
