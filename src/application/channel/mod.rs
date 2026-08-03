@@ -9,10 +9,10 @@ pub mod profile;
 pub mod substrate;
 pub mod sweep;
 
-pub use path::ChannelPath;
+pub use path::{ChannelPath, ChannelPathError};
 pub use profile::ChannelProfile;
 pub use substrate::SubstrateBuilder;
-pub use sweep::SweepMesher;
+pub use sweep::{SweepError, SweepMesher};
 
 pub mod branching;
 pub mod serpentine;

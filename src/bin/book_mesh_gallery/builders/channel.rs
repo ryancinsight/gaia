@@ -93,7 +93,7 @@ pub(crate) fn cases() -> GalleryResult<(Vec<MeshCase>, Vec<BuildBlocker>)> {
         Point3r::new(0.01, 0.0, 0.0),
         Point3r::new(0.02, 0.006, 0.002),
         Point3r::new(0.03, 0.006, 0.002),
-    ]);
+    ])?;
     let profile = ChannelProfile::RoundedRectangular {
         width: 0.004,
         height: 0.002,

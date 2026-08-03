@@ -577,9 +577,15 @@
 - [ ] **Phase 48: Mesh Builder Input and Branch Stability [safety]**
     - [x] Owner: Codex; scope: `ChannelPath::new`,
       `SweepMesher::sweep_variable`, and branching Boolean composition.
-    - [ ] Replace the input-dependent `ChannelPath::new` assertion with a
-      typed construction error and make variable sweep length mismatch a
-      surfaced failure instead of an empty mesh.
+    - [x] Replace the input-dependent `ChannelPath::new` assertion with
+      `ChannelPathError`, validate finite/non-degenerate waypoints, freeze
+      waypoint storage as `Box<[Point3r]>`, and make `segment_direction` safe
+      for out-of-range indices.
+    - [x] Make variable sweep length mismatch a surfaced `SweepError` instead
+      of an empty mesh; the mismatch path leaves the vertex pool unchanged.
+      Focused nextest passes 4/4, including the matching-scale kernel path.
+    - [x] Verify library and gallery binary checks, `clippy --lib -D warnings`,
+      and warning-clean `cargo doc --no-deps` against the changed public API.
     - [ ] Repair or narrow the branching Boolean watertightness contract so the
       documented bifurcation and trifurcation representatives produce valid
       meshes; current errors are `NotWatertight { count: 6 }` and

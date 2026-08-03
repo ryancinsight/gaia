@@ -225,6 +225,6 @@ pub use domain::geometry::{
 
 /// Application-level channel builders.
 pub use application::channel::{
-    BranchingMeshBuilder, ChannelPath, ChannelProfile, SerpentineMeshBuilder, SubstrateBuilder,
-    SweepMesher, VenturiMeshBuilder,
+    BranchingMeshBuilder, ChannelPath, ChannelPathError, ChannelProfile, SerpentineMeshBuilder,
+    SubstrateBuilder, SweepError, SweepMesher, VenturiMeshBuilder,
 };

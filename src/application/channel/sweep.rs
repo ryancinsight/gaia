@@ -9,6 +9,21 @@ use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::Real;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
+use thiserror::Error as ThisError;
+
+/// Error returned when sweep inputs violate their structural contract.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ThisError)]
+#[non_exhaustive]
+pub enum SweepError {
+    /// Width scales must provide one value for each path station.
+    #[error("sweep width scale count {actual} does not match path station count {expected}")]
+    WidthScaleCountMismatch {
+        /// Number of path stations required by the sweep.
+        expected: usize,
+        /// Number of supplied width scales.
+        actual: usize,
+    },
+}
 
 /// Sweep mesher: sweeps a 2D profile along a 3D path.
 pub struct SweepMesher {
@@ -44,8 +59,13 @@ impl SweepMesher {
 
     /// Sweep a profile with variable width scaling along a path.
     ///
-    /// `width_scales` must have the same length as the path frames; returns
-    /// an empty `Vec` (and fires a `debug_assert`) if the lengths differ.
+    /// `width_scales` must have the same length as the path stations.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SweepError::WidthScaleCountMismatch`] when the number of
+    /// scales differs from the number of path stations. The vertex pool is
+    /// unchanged on this error.
     pub fn sweep_variable(
         &self,
         profile: &ChannelProfile,
@@ -53,19 +73,15 @@ impl SweepMesher {
         width_scales: &[Real],
         vertex_pool: &mut VertexPool,
         region: RegionId,
-    ) -> Vec<FaceData> {
-        let n_stations = path.compute_frames().len();
-        debug_assert_eq!(
-            width_scales.len(),
-            n_stations,
-            "sweep_variable: width_scales.len()={} != n_stations={}",
-            width_scales.len(),
-            n_stations
-        );
+    ) -> Result<Vec<FaceData>, SweepError> {
+        let n_stations = path.points().len();
         if width_scales.len() != n_stations {
-            return Vec::new();
+            return Err(SweepError::WidthScaleCountMismatch {
+                expected: n_stations,
+                actual: width_scales.len(),
+            });
         }
-        self.sweep_inner(profile, path, |i| width_scales[i], vertex_pool, region)
+        Ok(self.sweep_inner(profile, path, |i| width_scales[i], vertex_pool, region))
     }
 
     /// Canonical sweep kernel shared by `sweep` and `sweep_variable`.
@@ -140,5 +156,72 @@ impl SweepMesher {
 impl Default for SweepMesher {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::core::scalar::Point3r;
+
+    #[test]
+    fn reports_width_scale_count_mismatch_without_mutating_the_pool() {
+        let path = ChannelPath::new(vec![
+            Point3r::origin(),
+            Point3r::new(1.0, 0.0, 0.0),
+            Point3r::new(2.0, 0.0, 0.0),
+        ])
+        .expect("valid path");
+        let profile = ChannelProfile::Rectangular {
+            width: 1.0,
+            height: 1.0,
+        };
+        let mut vertex_pool = VertexPool::default_millifluidic();
+        let before = vertex_pool.len();
+        let error = SweepMesher::new()
+            .sweep_variable(
+                &profile,
+                &path,
+                &[1.0, 0.9],
+                &mut vertex_pool,
+                RegionId::from_usize(0),
+            )
+            .expect_err("mismatched scales must fail");
+
+        assert_eq!(
+            error,
+            SweepError::WidthScaleCountMismatch {
+                expected: 3,
+                actual: 2,
+            }
+        );
+        assert_eq!(vertex_pool.len(), before);
+    }
+
+    #[test]
+    fn matching_width_scales_reach_the_canonical_sweep_kernel() {
+        let path = ChannelPath::new(vec![
+            Point3r::origin(),
+            Point3r::new(1.0, 0.0, 0.0),
+            Point3r::new(2.0, 0.0, 0.0),
+        ])
+        .expect("valid path");
+        let profile = ChannelProfile::Rectangular {
+            width: 1.0,
+            height: 1.0,
+        };
+        let mut vertex_pool = VertexPool::default_millifluidic();
+        let faces = SweepMesher::new()
+            .sweep_variable(
+                &profile,
+                &path,
+                &[1.0, 0.9, 1.1],
+                &mut vertex_pool,
+                RegionId::from_usize(0),
+            )
+            .expect("matching scales must build");
+
+        assert_eq!(faces.len(), 24);
+        assert_eq!(vertex_pool.len(), 14);
     }
 }

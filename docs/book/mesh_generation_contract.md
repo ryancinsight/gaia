@@ -16,6 +16,12 @@ Gaia's primitive module and its public application builders:
 - the public one-operand CSG n-ary identity contract and SDF-driven
   tetrahedral volume generation.
 
+Channel paths are validated at construction and store frozen waypoint
+capacity. Variable-width sweeps report a typed station-count mismatch without
+mutating their vertex pool. These contracts keep malformed input out of the
+mesh kernel; the public API migration is recorded in
+`docs/migration/channel-path-validation.md`.
+
 “All possible meshes” is finite only at the family level. Each family accepts
 continuous dimensions, resolutions, profiles, or fields, so the gallery uses
 small deterministic representative parameters and records them in the
