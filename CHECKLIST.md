@@ -509,12 +509,16 @@
       (p < 0.05). No dynamic-dispatch, memory, or total-instantiation claim
       is made.
 
-- [ ] **Phase 44: Reuse Hex Decomposition Quality [perf]**
-    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+- [x] **Phase 44: Reuse Hex Decomposition Quality [perf]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
       its value-semantic tests, and the existing hex-to-tet benchmark lane.
-    - [ ] Return the selected decomposition quality from the existing selector
+    - [x] Return the selected decomposition quality from the existing selector
       so recovered-order ranking does not recompute tetrahedral volumes; keep
       the five-versus-six selection contract and native-scalar arithmetic.
-    - [ ] Retain only if the matched conversion benchmark improves without a
-      value-semantic regression or release-codegen expansion.
+    - [x] Retain on evidence: the confirmation benchmark is 453.55 us median
+      [441.51, 466.43] versus 549.17 us immediately before the change;
+      Criterion reports -37.835% against its stored baseline (p < 0.05).
+      Release codegen remains 397,145 LLVM lines / 7,555 copies. The first
+      sample was noisy at 730.60 us and is retained as a host-noise observation,
+      not as the performance claim. Full nextest is 939/939 with one skipped.
 

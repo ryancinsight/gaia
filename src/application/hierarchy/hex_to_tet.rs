@@ -170,7 +170,7 @@ impl HexToTetConverter {
                     if let Some(recovered_order) =
                         Self::recover_hex_vertex_order(c, mesh, volume_tol)
                     {
-                        if let Some(tets) =
+                        if let Some((tets, _)) =
                             Self::select_hex_decomposition(mesh, recovered_order, volume_tol)
                         {
                             for &nodes in tets.as_slice() {
@@ -181,7 +181,7 @@ impl HexToTetConverter {
                     }
 
                     if !decomposed {
-                        if let Some(tets) =
+                        if let Some((tets, _)) =
                             Self::select_hex_decomposition(mesh, hex_vertices, volume_tol)
                         {
                             for &nodes in tets.as_slice() {
@@ -280,14 +280,23 @@ impl HexToTetConverter {
         nodes: [VertexId; 4],
         volume_tol: T,
     ) -> bool {
+        Self::tet_six_volume_if_valid(mesh, nodes, volume_tol).is_some()
+    }
+
+    fn tet_six_volume_if_valid<T: Scalar>(
+        mesh: &IndexedMesh<T>,
+        nodes: [VertexId; 4],
+        volume_tol: T,
+    ) -> Option<T> {
         for i in 0..4 {
             for j in (i + 1)..4 {
                 if nodes[i] == nodes[j] {
-                    return false;
+                    return None;
                 }
             }
         }
-        Self::tet_six_volume(mesh, nodes) > volume_tol
+        let six_v = Self::tet_six_volume(mesh, nodes);
+        (six_v > volume_tol).then_some(six_v)
     }
 
     fn add_tet<T: Scalar>(
@@ -330,10 +339,7 @@ impl HexToTetConverter {
     ) -> Option<T> {
         let mut min_vol: Option<T> = None;
         for nodes in tets {
-            if !Self::is_non_degenerate_tet(mesh, *nodes, volume_tol) {
-                return None;
-            }
-            let six_v = Self::tet_six_volume(mesh, *nodes);
+            let six_v = Self::tet_six_volume_if_valid(mesh, *nodes, volume_tol)?;
             min_vol = Some(match min_vol {
                 Some(v) => {
                     if v < six_v {
@@ -352,7 +358,7 @@ impl HexToTetConverter {
         mesh: &IndexedMesh<T>,
         order: [VertexId; 8],
         volume_tol: T,
-    ) -> Option<TetDecomposition> {
+    ) -> Option<(TetDecomposition, T)> {
         let five = Self::hex_five_tet_pattern(order);
         let six = Self::hex_six_tet_pattern(order);
         let q5 = Self::decomposition_min_volume(mesh, &five, volume_tol);
@@ -361,13 +367,13 @@ impl HexToTetConverter {
         match (q5, q6) {
             (Some(v5), Some(v6)) => {
                 if v5 >= v6 {
-                    Some(TetDecomposition::from_five(five))
+                    Some((TetDecomposition::from_five(five), v5))
                 } else {
-                    Some(TetDecomposition::from_six(six))
+                    Some((TetDecomposition::from_six(six), v6))
                 }
             }
-            (Some(_), None) => Some(TetDecomposition::from_five(five)),
-            (None, Some(_)) => Some(TetDecomposition::from_six(six)),
+            (Some(v5), None) => Some((TetDecomposition::from_five(five), v5)),
+            (None, Some(v6)) => Some((TetDecomposition::from_six(six), v6)),
             (None, None) => None,
         }
     }
@@ -513,17 +519,10 @@ impl HexToTetConverter {
                     continue;
                 }
 
-                let Some(tets) = Self::select_hex_decomposition(mesh, order, volume_tol) else {
+                let Some((_, quality)) = Self::select_hex_decomposition(mesh, order, volume_tol)
+                else {
                     continue;
                 };
-                let quality = tets
-                    .as_slice()
-                    .iter()
-                    .map(|nodes| Self::tet_six_volume(mesh, *nodes))
-                    .fold(
-                        eunomia::RealField::max_value(),
-                        |a, b| if a < b { a } else { b },
-                    );
 
                 if best_quality.is_none_or(|best| quality > best) {
                     best_quality = Some(quality);
