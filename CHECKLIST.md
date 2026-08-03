@@ -451,14 +451,15 @@
       codegen/monomorphization improvement; no runtime-throughput or process-
       memory improvement is claimed without a matched benchmark.
 
-- [ ] **Phase 40: Hoist BCC Boundary Adjacency [patch]**
+- [x] **Phase 40: Hoist BCC Boundary Adjacency [patch]**
     - [x] Owner: Codex; scope: `src/application/delaunay/dim3/lattice.rs` and
       its BCC mesher tests.
-    - [ ] Move scalar-independent boundary vertex/neighbor construction out of
-      `SdfMesher<T>::build_volume` into one non-generic helper.
-    - [ ] Preserve boundary relaxation adjacency, deduplicated neighbors, and
-      all scalar-generic volume behavior.
-    - [ ] Measure release codegen and retain the hoist only if generic fan-out
-      decreases without a behavioral regression.
-    - [ ] Run the affected Gaia format, lint, test, doctest, and rustdoc gates.
+    - [x] Evaluate the non-generic boundary adjacency hoist; `cargo check
+      --lib --all-features` passed for the candidate.
+    - [x] Reject the hoist on release codegen: 400,983 LLVM lines versus the
+      399,937 Phase 39 baseline (+1,046). The helper and six closure bodies
+      outweighed the intended generic-fanout reduction.
+    - [x] Restore the original scalar-generic source. No runtime, allocation,
+      or process-memory improvement is claimed; the hoist remains a residual
+      for a future implementation with lower emitted helper cost.
 
