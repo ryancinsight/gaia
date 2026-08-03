@@ -588,6 +588,10 @@
       and warning-clean `cargo doc --no-deps` against the changed public API.
     - [ ] Repair or narrow the branching Boolean watertightness contract so the
       documented bifurcation and trifurcation representatives produce valid
-      meshes; current errors are `NotWatertight { count: 6 }` and
-      `NotWatertight { count: 14 }`, respectively.
+      meshes; the committed gallery representatives currently return
+      `NotWatertight { count: 4 }` and `NotWatertight { count: 15 }`,
+      respectively.
+    - [x] Audit sequential binary CSG and exact/smooth SDF alternatives. Both
+      remained invalid for the representative branch geometry (the SDF
+      boundary was non-manifold), so no approximation or fallback was shipped.
 
