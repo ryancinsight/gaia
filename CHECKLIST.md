@@ -551,3 +551,15 @@
       with inline topology would be a public contract change requiring an
       ADR and consumer migration rather than a local optimization slice.
 
+- [ ] **Phase 47: Public Mesh Family Book and Figure Gallery [docs]**
+    - [x] Owner: Codex; scope: `docs/book/`, the book gallery example, and
+      synchronized documentation/checklist entries.
+    - [ ] Add a Gaia-owned mdBook that defines the exhaustive-by-public-family
+      mesh coverage boundary and records Gaia as the Atlas mesh-generation SSOT.
+    - [ ] Generate deterministic SVG sheets and a manifest from real public
+      mesh builders for primitive, channel, and topology families.
+    - [ ] Convert every sheet to a review raster, inspect the rendered geometry,
+      and retain the review evidence and residuals in the checklist.
+    - [ ] Build the book and run the applicable Rust/example gates against the
+      exact generated revision.
+
