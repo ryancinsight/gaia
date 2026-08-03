@@ -6,11 +6,14 @@ use gaia::application::csg::arrangement::classify::{
 };
 use gaia::application::csg::boolean::{csg_boolean, BooleanOp};
 use gaia::application::csg::detect_self_intersect::detect_self_intersections;
+use gaia::domain::core::index::{RegionId, VertexId};
 use gaia::domain::core::scalar::Point3r;
 use gaia::domain::geometry::aabb::Aabb;
 use gaia::domain::geometry::primitives::{Cube, Cylinder, PrimitiveMesh, UvSphere};
+use gaia::domain::topology::AdjacencyGraph;
 use gaia::infrastructure::spatial::ssvdag::{OctreeSubdivision, SparseVoxelDag};
-use gaia::infrastructure::storage::face_store::FaceData;
+use gaia::infrastructure::storage::edge_store::EdgeStore;
+use gaia::infrastructure::storage::face_store::{FaceData, FaceStore};
 use gaia::infrastructure::storage::vertex_pool::VertexPool;
 
 #[cfg(feature = "mnemosyne-alloc")]
@@ -76,6 +79,29 @@ fn build_sphere_faces(stacks: usize, segments: usize) -> (VertexPool, Vec<FaceDa
         })
         .collect();
     (pool, faces)
+}
+
+/// Fixed workload covering the cache-resident and allocation-heavy adjacency
+/// construction path without making the benchmark an oversized mesh run.
+const ADJACENCY_GRID_SIDE: usize = 64;
+
+fn grid_faces(side: usize) -> FaceStore {
+    let width = side + 1;
+    let vertex = |x: usize, y: usize| VertexId::from_usize(y * width + x);
+    let mut faces = FaceStore::new();
+
+    for y in 0..side {
+        for x in 0..side {
+            let v00 = vertex(x, y);
+            let v10 = vertex(x + 1, y);
+            let v01 = vertex(x, y + 1);
+            let v11 = vertex(x + 1, y + 1);
+            faces.push(FaceData::new(v00, v10, v11, RegionId::INVALID));
+            faces.push(FaceData::new(v00, v11, v01, RegionId::INVALID));
+        }
+    }
+
+    faces
 }
 
 fn bench_gwn_linear_small(c: &mut Criterion) {
@@ -196,6 +222,22 @@ fn bench_detect_self_intersect_flat(c: &mut Criterion) {
     });
 }
 
+fn bench_adjacency_build(c: &mut Criterion) {
+    let faces = grid_faces(ADJACENCY_GRID_SIDE);
+    let edges = EdgeStore::from_face_store(&faces);
+
+    c.bench_function("adjacency_build_grid_64", |b| {
+        b.iter(|| {
+            let graph = AdjacencyGraph::build(black_box(&faces), black_box(&edges));
+            black_box((
+                graph.num_vertices(),
+                graph.num_faces(),
+                graph.vertex_valence(VertexId::new(0)),
+            ))
+        })
+    });
+}
+
 fn bench_svo_rasterize_cube(c: &mut Criterion) {
     let cube = Cube::centred(1.0).build().unwrap();
     c.bench_function("svo_rasterize_depth_6", |b| {
@@ -242,9 +284,16 @@ criterion_group!(
     bench_csg_intersection_cylinders
 );
 criterion_group!(detect_benches, bench_detect_self_intersect_flat);
+criterion_group!(adjacency_benches, bench_adjacency_build);
 criterion_group!(
     svo_benches,
     bench_svo_rasterize_cube,
     bench_svo_boolean_union
 );
-criterion_main!(gwn_benches, csg_benches, detect_benches, svo_benches);
+criterion_main!(
+    gwn_benches,
+    csg_benches,
+    detect_benches,
+    adjacency_benches,
+    svo_benches
+);

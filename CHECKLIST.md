@@ -391,11 +391,28 @@
 - [ ] **Phase 37: Pack Adjacency Rows [patch]**
     - [x] Owner: Codex; scope: `src/domain/topology/adjacency.rs` and its
       topology tests.
-    - [ ] Replace the three nested `Vec<Vec<...>>` adjacency families with
+    - [x] Replace the three nested `Vec<Vec<...>>` adjacency families with
       contiguous packed rows and offsets while preserving the public query
       slices and invalid-ID behavior.
-    - [ ] Preserve duplicate-face defensive deduplication and connected-
+    - [x] Preserve duplicate-face defensive deduplication and connected-
       component semantics.
-    - [ ] Verify memory-layout reduction, release codegen, focused topology
-      tests, full Gaia gates, and a bounded adjacency benchmark comparison.
+    - [x] Verify the packed layout analytically: the 64×64 benchmark mesh has
+      4,225 vertices and 8,192 faces, so the former three nested families
+      carried 16,642 inner `Vec` headers (399,408 bytes at 24 bytes each),
+      while packed offsets require 16,645 `usize` entries (133,160 bytes);
+      value buffers remain contiguous 4-byte index storage. This is a layout
+      bound, not a process-RSS measurement.
+    - [x] Verify the bounded benchmark: packed construction is 257.10 us
+      median ([232.53, 274.79] us) versus 680.11 us ([651.04, 702.11] us)
+      for the parent nested-row implementation on the same 64×64 grid. The
+      independent runs establish a workload-specific construction reduction;
+      the automatic cross-worktree Criterion delta was discarded after the
+      shared target reused the parent binary.
+    - [x] Run full Gaia gates: formatting, warning-denied all-target Clippy,
+      934/934 all-feature library nextest tests with one skipped, 6/6
+      doctests with 39 ignored, and warning-denied all-feature rustdoc.
+    - [x] Verify final release codegen at 400,732 LLVM lines versus 399,822
+      before the slice (+910); benchmark smoke passes. Residual: the codegen
+      increase is accepted for the measured construction and layout result,
+      and no broader throughput or process-RSS claim is made.
 
