@@ -52,6 +52,9 @@ use crate::domain::core::scalar::Scalar;
 use hashbrown::HashMap;
 use leto::geometry::{Point3, Vector3};
 
+/// Default snap-rounding cell for millifluidic surface meshes.
+pub const DEFAULT_MESH_CELL_SIZE: f64 = 1.0e-4;
+
 // ── VertexData<T> ────────────────────────────────────────────────────────────
 
 /// Data stored per vertex — position + surface normal.
@@ -275,7 +278,7 @@ impl<T: Scalar> VertexPool<T> {
     /// - `cell_size = 1e-4 mm` (100 nm) — points in the same cell are welded.
     #[must_use]
     pub fn default_millifluidic() -> Self {
-        Self::new(<T as Scalar>::from_f64(1e-4))
+        Self::new(<T as Scalar>::from_f64(DEFAULT_MESH_CELL_SIZE))
     }
 
     /// Pool for CSG boolean operations (tolerance-based welding).
@@ -506,6 +509,29 @@ impl<T: Scalar> VertexPool<T> {
     /// surface smoothing) where the spatial hash coherence is no longer required.
     pub fn set_position(&mut self, id: VertexId, new_pos: Point3<T>) {
         self.vertices[id.as_usize()].position = new_pos;
+    }
+
+    /// Rebuild the spatial hash after bulk position updates.
+    pub(crate) fn rebuild_spatial_hash(&mut self) {
+        self.spatial_hash.clear();
+        let vertex_count = self.vertices.len();
+        for index in 0..vertex_count {
+            let key = CellKey::from_point(&self.vertices[index].position, self.inv_cell_size);
+            self.spatial_hash
+                .entry(key)
+                .and_modify(|indices| indices.push(index as u32))
+                .or_insert(CellIndices::One(index as u32));
+        }
+    }
+
+    /// Rescale the spatial index when every stored position is multiplied by
+    /// `coordinate_scale`.
+    pub(crate) fn rescale_spatial_hash(&mut self, coordinate_scale: T) {
+        self.inv_cell_size = self.inv_cell_size / coordinate_scale;
+        if let Some(tolerance_sq) = &mut self.tolerance_sq {
+            *tolerance_sq = *tolerance_sq * coordinate_scale * coordinate_scale;
+        }
+        self.rebuild_spatial_hash();
     }
 
     /// Clear all vertices and the spatial hash.

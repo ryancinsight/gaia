@@ -379,7 +379,7 @@ pub(crate) fn diagnostic_sheet(
     let height = DIAGNOSTIC_PANEL_HEIGHT * rows as f64;
     let mut svg = String::with_capacity(panel_count * 25_000);
     svg.push_str("<svg xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-labelledby=\"diagnostic-title\">");
-    svg.push_str("<title id=\"diagnostic-title\">Gaia watertightness diagnostics</title><desc>Generated from Gaia mesh values. Red edges are boundary edges, orange edges are non-manifold edges, and rejected branch panels contain no fabricated geometry.</desc>");
+    svg.push_str("<title id=\"diagnostic-title\">Gaia watertightness diagnostics</title><desc>Generated from Gaia mesh values. Red edges are boundary edges, orange edges are non-manifold edges, and any rejection panels contain no fabricated geometry.</desc>");
     let _ = write!(
         svg,
         "<rect width=\"{width:.0}\" height=\"{height:.0}\" fill=\"white\"/>"
