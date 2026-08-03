@@ -647,8 +647,10 @@
       exact local book and full Rust gates on the final revision. The reviewed
       raster has no off-canvas geometry or clipped labels, includes every
       analytical failure highlight, and contains only validated branch output.
-    - [x] Verify the first `main` Pages deployment and live HTTP response after
-      merge commit `4ec3e946`: workflow run `30841921278` completed the Pages
-      deployment, and the root book, watertightness chapter, and diagnostics
-      SVG each return HTTP 200 at `https://ryancinsight.github.io/gaia/`.
+    - [x] Verify the final `main` Pages deployment and live HTTP response after
+      merge commit `94db9783`: workflow run `30851106193` completed the build
+      and `github-pages` deployment `5733331735` for that SHA. The root book,
+      watertightness chapter, and diagnostics SVG each return HTTP 200 at
+      `https://ryancinsight.github.io/gaia/`; the live chapter contains the
+      validated bifurcation/trifurcation counts.
 
