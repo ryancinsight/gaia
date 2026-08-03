@@ -522,3 +522,13 @@
       sample was noisy at 730.60 us and is retained as a host-noise observation,
       not as the performance claim. Full nextest is 939/939 with one skipped.
 
+- [ ] **Phase 45: Right-Size Hex-to-Tet Face Storage [perf]**
+    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+      its value-semantic tests, and the existing hex-to-tet benchmark lane.
+    - [ ] Replace the input-face multiplier reservation with a topology-derived
+      upper bound: six tetrahedra × four faces per hexahedral cell plus the
+      original face count for preserved non-hexahedral cells; keep capacity
+      arithmetic saturating and the map operation type-independent.
+    - [ ] Retain only if the matched conversion benchmark does not regress and
+      the reservation bound is proven sufficient for mixed cell inputs.
+
