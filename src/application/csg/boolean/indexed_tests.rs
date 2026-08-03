@@ -712,6 +712,30 @@ fn csg_boolean_nary_single_mesh_returns_clone() {
     assert!(csg_boolean_nary(BooleanOp::Difference, std::slice::from_ref(&a)).is_ok());
 }
 
+#[test]
+fn normalization_borrows_stable_operands_and_owns_scaled_operands() {
+    let stable = Cube::unit().build().expect("stable cube");
+    let stable_transform = normalization_transform([&stable]);
+    assert!(matches!(
+        normalize_operand(&stable, stable_transform),
+        NormalizedOperand::Borrowed(_)
+    ));
+
+    let scaled = Cube {
+        origin: Point3r::new(-100.0, -100.0, -100.0),
+        width: 200.0,
+        height: 200.0,
+        depth: 200.0,
+    }
+    .build()
+    .expect("scaled cube");
+    let scaled_transform = normalization_transform([&scaled]);
+    assert!(matches!(
+        normalize_operand(&scaled, scaled_transform),
+        NormalizedOperand::Owned(_)
+    ));
+}
+
 /// N-ary union of 3 cubes must produce the same volume as sequential
 /// binary unions (within tolerance).
 ///

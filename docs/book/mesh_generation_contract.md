@@ -62,11 +62,13 @@ The gallery exercises the representative branch-connection path through the
 real n-ary Boolean union. Operands outside Gaia's stable `0.5..=10.0` combined
 AABB-diagonal band are translated and scaled to a unit diagonal before
 numerical predicates, then mapped back afterward. Operands inside that band
-retain their original coordinates so exact decimal coplanarity in common
-axis-aligned solids is preserved. Tube walls use outward winding, and small
-circumferential edges select a smaller local snap cell so they cannot weld
-together. The resulting bifurcation and trifurcation meshes are watertight and
-retain every daughter outlet region.
+retain their original coordinates and are borrowed rather than cloned, so
+exact decimal coplanarity in common axis-aligned solids is preserved without
+an extra operand allocation. Only the out-of-band path owns transformed
+operand storage. Tube walls use outward winding, and small circumferential
+edges select a smaller local snap cell so they cannot weld together. The
+resulting bifurcation and trifurcation meshes are watertight and retain every
+daughter outlet region.
 
 A repeatability audit found unordered intermediate traversal in the
 tetrahedral and branching paths. Before the fix, re-running the same gallery

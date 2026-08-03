@@ -654,3 +654,28 @@
       `https://ryancinsight.github.io/gaia/`; the live chapter contains the
       validated bifurcation/trifurcation counts.
 
+- [ ] **Phase 51: CSG Normalization Ownership [perf]**
+    - [x] Audit the CSG normalization boundary for avoidable operand clones;
+      the prior direct-transform remap candidate was rejected after matched
+      Criterion runs reported a normalized n-ary regression of `+3.9%` to
+      `+26.8%`.
+    - [x] Keep the established normalized remap path for out-of-band geometry
+      and introduce a static borrowed/owned operand view. Stable
+      `0.5..=10.0` combined-diagonal inputs now borrow their original meshes;
+      only the scale-normalized path materializes transformed storage.
+    - [x] Add a value-semantic structural regression covering the borrowed
+      stable path and owned scaled path, plus the scaled n-ary CSG benchmark
+      workload. No runtime or RSS improvement is claimed from the noisy
+      shared-host reruns; the delivered claim is reduced common-path mesh and
+      spatial-hash clone work.
+    - [x] Synchronize the README and mesh-generation contract with the
+      normalization ownership rule.
+    - [x] Run the final Gaia format, clippy, nextest, doctest, rustdoc, and
+      benchmark smoke gates on the exact working revision. Scoped format and
+      `git diff --check` pass; clippy is warning-clean; nextest is 945/945
+      with one skipped; doctests are 6/6 with 39 ignored; rustdoc and mdBook
+      verification pass. The short scaled n-ary benchmark measures
+      `677.92 us [636.92, 706.76]`; shared-host variance prevents a runtime
+      improvement claim. The unrelated repository-wide Leto format residual
+      remains outside this Gaia scope.
+
