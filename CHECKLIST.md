@@ -593,5 +593,6 @@
       respectively.
     - [x] Audit sequential binary CSG and exact/smooth SDF alternatives. Both
       remained invalid for the representative branch geometry (the SDF
-      boundary was non-manifold), so no approximation or fallback was shipped.
+      boundary was non-manifold). Removing internal daughter start caps also
+      remained non-watertight, so no approximation or fallback was shipped.
 
