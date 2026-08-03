@@ -477,3 +477,12 @@
       a codegen/monomorphization result; no runtime-throughput or process-memory
       improvement is claimed without a matched benchmark.
 
+- [ ] **Phase 42: Pack Marching-Cubes Edge Cache [perf]**
+    - [ ] Owner: Codex; scope: `src/domain/geometry/tpms/marching_cubes.rs`,
+      its value-semantic tests, and a focused TPMS benchmark.
+    - [ ] Replace the hash-keyed per-edge cache with three bounded axis-aligned
+      edge arrays; preserve shared-edge identity, output topology, and normals.
+    - [ ] Retain only with a matched release benchmark and an explicit memory
+      representation accounting; do not claim RSS improvement without a process
+      measurement.
+
