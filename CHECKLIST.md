@@ -574,7 +574,7 @@
       `ritk-registration` manifest error requiring `example.name`; this is
       retained as verification residual rather than hidden.
 
-- [ ] **Phase 48: Mesh Builder Input and Branch Stability [safety]**
+- [x] **Phase 48: Mesh Builder Input and Branch Stability [safety]**
     - [x] Owner: Codex; scope: `ChannelPath::new`,
       `SweepMesher::sweep_variable`, and branching Boolean composition.
     - [x] Replace the input-dependent `ChannelPath::new` assertion with
@@ -633,7 +633,7 @@
       --offline`, `cargo test --doc --offline`, `mdbook build docs/book`, and
       `mdbook test docs/book` all pass on the delivered tree.
 
-- [ ] **Phase 50: Watertightness Evidence and Pages Publication [docs]**
+- [x] **Phase 50: Watertightness Evidence and Pages Publication [docs]**
     - [x] Generate a watertightness sheet from Gaia's canonical report using
       closed, open, non-manifold, and inconsistent-orientation concrete mesh
       cases; render successful branch Boolean unions as real panels and retain
@@ -654,7 +654,7 @@
       `https://ryancinsight.github.io/gaia/`; the live chapter contains the
       validated bifurcation/trifurcation counts.
 
-- [ ] **Phase 51: CSG Normalization Ownership [perf]**
+- [x] **Phase 51: CSG Normalization Ownership [perf]**
     - [x] Audit the CSG normalization boundary for avoidable operand clones;
       the prior direct-transform remap candidate was rejected after matched
       Criterion runs reported a normalized n-ary regression of `+3.9%` to
