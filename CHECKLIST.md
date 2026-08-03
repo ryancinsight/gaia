@@ -538,3 +538,16 @@
       claimed and no RSS or allocator-byte claim is made. Full nextest is
       940/940 with one skipped.
 
+- [x] **Phase 46: Tetrahedral and Generic Seam Audit [audit]**
+    - [x] Audit `TetrahedralMeshBuilder`, `P2MeshConverter`, and the public
+      `Cell` representation for a safe next monomorphization or storage slice.
+    - [x] Retain the existing design: face identity, validation, and cell
+      construction are already scalar-independent; the builder's release
+      artifact has one 404-LLVM-line `tetrahedron` specialization. Do not add
+      a registry seam to P2 conversion without a shipped Gaia instantiation
+      and matched benchmark.
+    - [x] Record residual: `Cell` stores public `Vec` fields consumed by
+      hierarchy, Delaunay, quality, and indexed-mesh code, so replacing them
+      with inline topology would be a public contract change requiring an
+      ADR and consumer migration rather than a local optimization slice.
+
