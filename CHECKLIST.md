@@ -586,6 +586,11 @@
       Focused nextest passes 4/4, including the matching-scale kernel path.
     - [x] Verify library and gallery binary checks, `clippy --lib -D warnings`,
       and warning-clean `cargo doc --no-deps` against the changed public API.
+    - [x] Validate branching dimensions, angle, daughter count, resolution,
+      and capacity arithmetic before mesh allocation. Pre-size each tube from
+      its topology and retain only first/previous rings, reducing temporary
+      ring-index storage from axial-by-angular to angular-only without a
+      runtime claim.
     - [ ] Repair or narrow the branching Boolean watertightness contract so the
       documented bifurcation and trifurcation representatives produce valid
       meshes; the committed gallery representatives currently return
@@ -595,4 +600,33 @@
       remained invalid for the representative branch geometry (the SDF
       boundary was non-manifold). Removing internal daughter start caps also
       remained non-watertight, so no approximation or fallback was shipped.
+
+- [x] **Phase 49: Deterministic Volume Gallery Regeneration [stability]**
+    - [x] Owner: Codex; scope: `src/application/delaunay/dim3/lattice.rs`,
+      `src/application/csg/boolean/indexed.rs`,
+      `src/application/csg/arrangement/boolean_csg.rs`,
+      `src/application/csg/arrangement/coplanar_dispatch.rs`,
+      `src/application/csg/arrangement/coplanar_groups.rs`,
+      `src/application/csg/arrangement/fragment_refinement.rs`,
+      `src/application/csg/arrangement/mod.rs`, focused regressions, gallery
+      artifacts, and synchronized book/PM entries.
+    - [x] Audit the same gallery inputs across fresh runs. SDF volume counts
+      changed from `V=158 F=1016 C=430` to `V=158 F=1062 C=453`; branching
+      errors changed from `4/15` to `7/14`. The unreviewed regeneration was
+      restored, preserving the previously inspected sheets.
+    - [x] Canonicalize SDF macro-block order, broad-phase candidates, CSG
+      arrangement/repair traversal, and union-find inputs. The focused
+      regression compares repeated same-process errors; two consecutive fresh
+      gallery runs have identical manifest and topology SVG SHA-256 hashes.
+      The stable manifest values are `V=158 F=1000 C=422` and branching
+      blocker counts `4/15`.
+    - [x] Keep the remaining CSG watertightness defect explicit: the branch
+      builders still return `NotWatertight { count: 4 }` and
+      `NotWatertight { count: 15 }`; no failed Boolean became a fabricated
+      gallery mesh.
+    - [x] Verification: `cargo fmt --check`, `git diff --check`, focused
+      `cargo nextest` (9/9), `cargo clippy --lib --offline -- -D warnings`,
+      `cargo check --bin book_mesh_gallery --offline`, `cargo doc --no-deps
+      --offline`, `cargo test --doc --offline`, `mdbook build docs/book`, and
+      `mdbook test docs/book` all pass on the delivered tree.
 

@@ -1189,7 +1189,10 @@ fn split_non_manifold_vertices(mesh: &mut IndexedMesh) {
     }
 
     let mut total_splits: usize = 0;
-    let vertices: Vec<VertexId> = vertex_faces.keys().copied().collect();
+    // The mesh is mutated while vertices are split. Hash-map key order would
+    // otherwise make allocation and face-rewrite order process-seed dependent.
+    let mut vertices: Vec<VertexId> = vertex_faces.keys().copied().collect();
+    vertices.sort_unstable();
 
     for v in vertices {
         let face_indices = match vertex_faces.get(&v) {
@@ -1360,7 +1363,10 @@ fn split_figure8_pinch_vertices(mesh: &mut IndexedMesh) -> usize {
     }
 
     let mut total_splits: usize = 0;
-    let vertices: Vec<VertexId> = vertex_faces.keys().copied().collect();
+    // The mesh is mutated while vertices are split. Hash-map key order would
+    // otherwise make allocation and face-rewrite order process-seed dependent.
+    let mut vertices: Vec<VertexId> = vertex_faces.keys().copied().collect();
+    vertices.sort_unstable();
 
     for v in vertices {
         let face_indices = match vertex_faces.get(&v) {
@@ -1540,7 +1546,10 @@ fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: 
             break;
         }
 
-        let bv: Vec<VertexId> = boundary_verts.iter().copied().collect();
+        // Candidate selection uses strict distance comparisons. Canonical
+        // vertex order makes equal-distance choices independent of hash order.
+        let mut bv: Vec<VertexId> = boundary_verts.iter().copied().collect();
+        bv.sort_unstable();
 
         // Phase 2: find closest boundary-boundary pair within tolerance,
         // skipping pairs that previously caused a χ decrease.
@@ -1944,7 +1953,10 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
     let mut faces_to_remove: hashbrown::HashSet<usize> =
         hashbrown::HashSet::with_capacity(face_list.len() / 8);
 
-    for (&(u, v), fis) in &edge_faces {
+    let mut edge_keys: Vec<(VertexId, VertexId)> = edge_faces.keys().copied().collect();
+    edge_keys.sort_unstable();
+    for (u, v) in edge_keys {
+        let fis = &edge_faces[&(u, v)];
         if fis.len() <= 2 {
             continue;
         }

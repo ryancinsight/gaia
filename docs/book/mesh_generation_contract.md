@@ -22,6 +22,13 @@ mutating their vertex pool. These contracts keep malformed input out of the
 mesh kernel; the public API migration is recorded in
 `docs/migration/channel-path-validation.md`.
 
+Branching builders reject non-finite or non-positive dimensions, angles outside
+`(0, π/2)`, unsupported daughter counts, undersized resolutions, and capacity
+overflow before constructing tube meshes. Tube construction reserves its
+topology-derived storage and retains only the first and previous axial rings;
+this bounds temporary ring-index storage by angular resolution rather than
+axial resolution without changing the emitted faces.
+
 “All possible meshes” is finite only at the family level. Each family accepts
 continuous dimensions, resolutions, profiles, or fields, so the gallery uses
 small deterministic representative parameters and records them in the
@@ -42,6 +49,17 @@ binary union/difference probe used during the audit returned
 `NotWatertight { count: 12 }` from the branch-connection path. The gallery uses
 the public one-operand n-ary identity only to keep the CSG family represented
 by a real Gaia output; binary Boolean repair remains an explicit audit item.
+
+A repeatability audit found unordered intermediate traversal in the
+tetrahedral and branching paths. Before the fix, re-running the same gallery
+inputs changed the SDF volume representative from `V=158 F=1016 C=430` to
+`V=158 F=1062 C=453`, and changed the branching errors from counts `4/15` to
+`7/14`. The lattice macro-block order, broad-phase candidate stream, CSG
+arrangement emission, and repair traversal are now canonicalized. The focused
+regression compares repeated same-process branching errors, and two
+consecutive fresh gallery runs have identical manifest and topology SVG
+SHA-256 hashes. The current stable values are SDF `V=158 F=1000 C=422` and
+branching error counts `4/15`.
 
 The same failure is currently returned by the public bifurcation and
 trifurcation channel builders because they compose their branch geometry with

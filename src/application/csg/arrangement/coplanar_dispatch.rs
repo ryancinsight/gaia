@@ -131,9 +131,15 @@ pub(crate) fn dispatch_boolean_coplanar(
         groups.entry(dsu.find(i)).or_default().push(key);
     }
 
+    let mut groups: Vec<_> = groups.into_iter().collect();
+    // Hash-map iteration is not part of the Boolean contract.  The DSU root
+    // is stable for a stable coplanar-pair stream, so use it as the emission
+    // key before representative and seam result construction.
+    groups.sort_unstable_by_key(|(root, _)| *root);
+
     let mut representative_faces = Vec::new();
     let mut result = Vec::new();
-    for group in groups.values() {
+    for (_, group) in groups {
         // Collect all faces to find a plane basis
         let all_faces: Vec<FaceData> = group.iter().map(|&(m, f)| meshes[m][f]).collect();
         if let Some(basis) = crate::application::csg::coplanar::detect_flat_plane(&all_faces, pool)
@@ -142,7 +148,7 @@ pub(crate) fn dispatch_boolean_coplanar(
             let mut faces_by_mesh: Vec<Vec<FaceData>> = vec![Vec::new(); n_meshes];
             representative_faces.push(all_faces[0]);
 
-            for &(mid, fid) in group {
+            for &(mid, fid) in &group {
                 faces_by_mesh[mid].push(meshes[mid][fid]);
                 skipped_faces_by_mesh[mid].insert(fid);
             }

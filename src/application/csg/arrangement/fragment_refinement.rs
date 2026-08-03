@@ -261,6 +261,12 @@ pub(crate) fn consolidate_cross_mesh_vertices(frags: &mut Vec<FragRecord>, pool:
         Vec::with_capacity(vids_b.len().saturating_sub(seam_vids.len()));
     pure_b.extend(vids_b.difference(&seam_vids).copied());
 
+    // The merge map is union-find based; preserve the lowest vertex ID as
+    // representative by making the operand traversal independent of hash
+    // iteration order.
+    pure_a.sort_unstable();
+    pure_b.sort_unstable();
+
     if pure_a.is_empty() || pure_b.is_empty() {
         return;
     }

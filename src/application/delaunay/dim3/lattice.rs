@@ -194,7 +194,8 @@ impl<T: Scalar> SdfMesher<T> {
             let mut rng = StdRng::seed_from_u64(seed);
 
             // Spatial macro-block sorting restores O(1) BFS locality while retaining pseudo-random insertion
-            // to definitively break incremental Delaunay collinear degeneracies.
+            // to definitively break incremental Delaunay collinear degeneracies.  The explicit key sort is
+            // required because the seeded RNG cannot make randomized hash-map iteration reproducible.
             let macro_h = eunomia::NumericElement::to_f64(<T as Scalar>::from_f64(5.0) * h);
             let mut blocks: HashMap<[isize; 3], Vec<Point3<T>>> =
                 HashMap::with_capacity((unique_points.len() / 32).max(16));
@@ -212,13 +213,14 @@ impl<T: Scalar> SdfMesher<T> {
                     .push(p);
             }
 
-            let mut block_list: Vec<_> = blocks.into_values().collect();
+            let mut block_list: Vec<_> = blocks.into_iter().collect();
+            block_list.sort_unstable_by_key(|(key, _)| *key);
 
             // Randomize global block progression
             block_list.shuffle(&mut rng);
 
             let mut sorted_points = Vec::with_capacity(total_points as usize);
-            for mut block in block_list {
+            for (_, mut block) in block_list {
                 // Randomize local cell insertion
                 block.shuffle(&mut rng);
                 sorted_points.extend(block);

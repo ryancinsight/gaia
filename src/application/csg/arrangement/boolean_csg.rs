@@ -318,6 +318,11 @@ fn execute_arrangement_pass(
         });
     }
 
+    // BVH traversal order is an implementation detail. Candidate order feeds
+    // seam propagation and coplanar grouping, so canonicalize the complete
+    // key before any stateful narrow-phase work.
+    pairs.sort_unstable_by_key(|pair| (pair.mesh_a, pair.face_a, pair.mesh_b, pair.face_b));
+
     // ── Phase 2: Narrow Segment Intersect ───────────────────────────────────────────
     let mut segs: Vec<Vec<Vec<SnapSegment>>> =
         meshes.iter().map(|m| vec![Vec::new(); m.len()]).collect();
