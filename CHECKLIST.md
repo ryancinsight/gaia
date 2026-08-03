@@ -509,3 +509,12 @@
       (p < 0.05). No dynamic-dispatch, memory, or total-instantiation claim
       is made.
 
+- [ ] **Phase 44: Reuse Hex Decomposition Quality [perf]**
+    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+      its value-semantic tests, and the existing hex-to-tet benchmark lane.
+    - [ ] Return the selected decomposition quality from the existing selector
+      so recovered-order ranking does not recompute tetrahedral volumes; keep
+      the five-versus-six selection contract and native-scalar arithmetic.
+    - [ ] Retain only if the matched conversion benchmark improves without a
+      value-semantic regression or release-codegen expansion.
+
