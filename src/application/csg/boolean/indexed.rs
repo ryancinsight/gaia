@@ -61,10 +61,15 @@ pub fn csg_boolean(
         }
     }
 
-    let (normalized_meshes, origin, scale) = normalize_operands(&[mesh_a, mesh_b]);
+    let transform = normalization_transform([mesh_a, mesh_b]);
+    let normalized_a = normalize_operand(mesh_a, transform);
+    let normalized_b = normalize_operand(mesh_b, transform);
     let mut combined = VertexPool::for_csg_with_scale(1.0);
-    let (faces_a, faces_b) =
-        remap_binary_face_soups(&normalized_meshes[0], &normalized_meshes[1], &mut combined);
+    let (faces_a, faces_b) = remap_binary_face_soups(
+        normalized_a.as_mesh(),
+        normalized_b.as_mesh(),
+        &mut combined,
+    );
     let is_coplanar = crate::application::csg::coplanar::detect_flat_plane(&faces_a, &combined)
         .is_some()
         && crate::application::csg::coplanar::detect_flat_plane(&faces_b, &combined).is_some();
@@ -74,7 +79,7 @@ pub fn csg_boolean(
         &mut combined,
     )?;
     postprocess_boolean_mesh(result_faces, &combined, is_coplanar)
-        .map(|mesh| denormalize_result(mesh, origin, scale))
+        .map(|mesh| denormalize_result(mesh, transform))
 }
 
 /// Return the exact union when two closed axis-aligned rectangular prisms
@@ -298,10 +303,13 @@ pub fn csg_boolean_nary(op: BooleanOp, meshes: &[IndexedMesh]) -> MeshResult<Ind
         return Ok(meshes[0].clone());
     }
 
-    let mesh_refs: Vec<&IndexedMesh> = meshes.iter().collect();
-    let (normalized_meshes, origin, scale) = normalize_operands(&mesh_refs);
+    let transform = normalization_transform(meshes.iter());
+    let normalized = meshes
+        .iter()
+        .map(|mesh| normalize_operand(mesh, transform))
+        .collect::<Vec<_>>();
     let mut combined = VertexPool::for_csg_with_scale(1.0);
-    let face_soups = remap_nary_face_soups(&normalized_meshes, &mut combined);
+    let face_soups = remap_nary_face_soups(&normalized, &mut combined);
     let is_coplanar = face_soups.iter().all(|faces| {
         crate::application::csg::coplanar::detect_flat_plane(faces, &combined).is_some()
     });
@@ -311,10 +319,63 @@ pub fn csg_boolean_nary(op: BooleanOp, meshes: &[IndexedMesh]) -> MeshResult<Ind
         &mut combined,
     )?;
     postprocess_boolean_mesh(result_faces, &combined, is_coplanar)
-        .map(|mesh| denormalize_result(mesh, origin, scale))
+        .map(|mesh| denormalize_result(mesh, transform))
 }
 
-/// Normalize operands only outside the stable unit-scale band.
+/// Coordinate transform used when arrangement predicates need normalized coordinates.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct CoordinateTransform {
+    origin: Point3r,
+    scale: f64,
+}
+
+impl CoordinateTransform {
+    fn identity() -> Self {
+        Self {
+            origin: Point3r::origin(),
+            scale: 1.0,
+        }
+    }
+
+    fn is_identity(self) -> bool {
+        self.origin == Point3r::origin() && self.scale == 1.0
+    }
+
+    #[inline]
+    fn apply(self, position: Point3r) -> Point3r {
+        Point3r::new(
+            (position.x - self.origin.x) * self.scale,
+            (position.y - self.origin.y) * self.scale,
+            (position.z - self.origin.z) * self.scale,
+        )
+    }
+
+    #[inline]
+    fn inverse(self, position: Point3r) -> Point3r {
+        let inverse_scale = 1.0 / self.scale;
+        Point3r::new(
+            self.origin.x + position.x * inverse_scale,
+            self.origin.y + position.y * inverse_scale,
+            self.origin.z + position.z * inverse_scale,
+        )
+    }
+}
+
+enum NormalizedOperand<'a> {
+    Borrowed(&'a IndexedMesh),
+    Owned(Box<IndexedMesh>),
+}
+
+impl NormalizedOperand<'_> {
+    fn as_mesh(&self) -> &IndexedMesh {
+        match self {
+            Self::Borrowed(mesh) => mesh,
+            Self::Owned(mesh) => mesh,
+        }
+    }
+}
+
+/// Normalize operand coordinates only outside the stable unit-scale band.
 ///
 /// Arrangement predicates contain absolute guards calibrated for ordinary
 /// unit-scale geometry. The `0.5..=10.0` band is the no-rescale contract for
@@ -323,7 +384,12 @@ pub fn csg_boolean_nary(op: BooleanOp, meshes: &[IndexedMesh]) -> MeshResult<Ind
 /// unit diagonal so those guards remain meaningful. Common-scale inputs stay
 /// in their original coordinates: this preserves exact decimal coplanarity in
 /// axis-aligned solids instead of replacing it with a rounded irrational scale.
-fn normalize_operands(meshes: &[&IndexedMesh]) -> (Vec<IndexedMesh>, Point3r, f64) {
+/// Stable operands are borrowed through [`NormalizedOperand`]; only the
+/// out-of-band path materializes a transformed mesh.
+fn normalization_transform<'a, I>(meshes: I) -> CoordinateTransform
+where
+    I: IntoIterator<Item = &'a IndexedMesh>,
+{
     let mut combined_bb = Aabb::empty();
     for mesh in meshes {
         combined_bb = combined_bb.union(&mesh.bounding_box());
@@ -332,70 +398,52 @@ fn normalize_operands(meshes: &[&IndexedMesh]) -> (Vec<IndexedMesh>, Point3r, f6
     let extent = combined_bb.max - combined_bb.min;
     let diagonal = extent.norm();
     if !diagonal.is_finite() || diagonal <= 0.0 {
-        return (
-            meshes.iter().map(|mesh| (*mesh).clone()).collect(),
-            Point3r::origin(),
-            1.0,
-        );
+        return CoordinateTransform::identity();
     }
 
     const STABLE_DIAGONAL_MIN: f64 = 0.5;
     const STABLE_DIAGONAL_MAX: f64 = 10.0;
     if (STABLE_DIAGONAL_MIN..=STABLE_DIAGONAL_MAX).contains(&diagonal) {
-        return (
-            meshes.iter().map(|mesh| (*mesh).clone()).collect(),
-            Point3r::origin(),
-            1.0,
-        );
+        return CoordinateTransform::identity();
     }
 
-    let origin = combined_bb.min;
-    let scale = 1.0 / diagonal;
-    let normalized = meshes
-        .iter()
-        .map(|mesh| {
-            let mut normalized = (*mesh).clone();
-            let vertex_count = normalized.vertices.len();
-            for index in 0..vertex_count {
-                let vertex_id = VertexId::new(index as u32);
-                let position = *normalized.vertices.position(vertex_id);
-                normalized.vertices.set_position(
-                    vertex_id,
-                    Point3r::new(
-                        (position.x - origin.x) * scale,
-                        (position.y - origin.y) * scale,
-                        (position.z - origin.z) * scale,
-                    ),
-                );
-            }
-            normalized.vertices.rescale_spatial_hash(scale);
-            normalized
-        })
-        .collect();
-
-    (normalized, origin, scale)
+    CoordinateTransform {
+        origin: combined_bb.min,
+        scale: 1.0 / diagonal,
+    }
 }
 
-fn denormalize_result(mut mesh: IndexedMesh, origin: Point3r, scale: f64) -> IndexedMesh {
-    if scale == 1.0 && origin == Point3r::origin() {
+fn normalize_operand(mesh: &IndexedMesh, transform: CoordinateTransform) -> NormalizedOperand<'_> {
+    if transform.is_identity() {
+        return NormalizedOperand::Borrowed(mesh);
+    }
+
+    let mut normalized = mesh.clone();
+    let vertex_count = normalized.vertices.len();
+    for index in 0..vertex_count {
+        let vertex_id = VertexId::new(index as u32);
+        let position = *normalized.vertices.position(vertex_id);
+        normalized
+            .vertices
+            .set_position(vertex_id, transform.apply(position));
+    }
+    normalized.vertices.rescale_spatial_hash(transform.scale);
+    NormalizedOperand::Owned(Box::new(normalized))
+}
+
+fn denormalize_result(mut mesh: IndexedMesh, transform: CoordinateTransform) -> IndexedMesh {
+    if transform.is_identity() {
         return mesh;
     }
 
-    let inverse_scale = 1.0 / scale;
     let vertex_count = mesh.vertices.len();
     for index in 0..vertex_count {
         let vertex_id = VertexId::new(index as u32);
         let position = *mesh.vertices.position(vertex_id);
-        mesh.vertices.set_position(
-            vertex_id,
-            Point3r::new(
-                origin.x + position.x * inverse_scale,
-                origin.y + position.y * inverse_scale,
-                origin.z + position.z * inverse_scale,
-            ),
-        );
+        mesh.vertices
+            .set_position(vertex_id, transform.inverse(position));
     }
-    mesh.vertices.rescale_spatial_hash(inverse_scale);
+    mesh.vertices.rescale_spatial_hash(1.0 / transform.scale);
     mesh
 }
 
@@ -440,9 +488,13 @@ fn remap_binary_face_soups(
     (faces_a, faces_b)
 }
 
-fn remap_nary_face_soups(meshes: &[IndexedMesh], combined: &mut VertexPool) -> Vec<Vec<FaceData>> {
+fn remap_nary_face_soups(
+    meshes: &[NormalizedOperand<'_>],
+    combined: &mut VertexPool,
+) -> Vec<Vec<FaceData>> {
     let mut face_soups = Vec::with_capacity(meshes.len());
-    for mesh in meshes {
+    for operand in meshes {
+        let mesh = operand.as_mesh();
         let mut remap: hashbrown::HashMap<VertexId, VertexId> =
             hashbrown::HashMap::with_capacity(mesh.vertices.len());
         for (old_id, _) in mesh.vertices.iter() {

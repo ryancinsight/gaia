@@ -44,6 +44,9 @@ Gaia implements exactly-computable geometry and topologically-safe mesh represen
 - **Decomposition Pre-sizing**: `HexToTetConverter` pre-sizes target cell storage and reuses vertex adjacency vectors to avoid dynamic heap allocations during 3D hexahedral decomposition.
 - **Fixed-Capacity Hex Decomposition**: hexahedral conversion keeps the eight-vertex scratch set and five/six-tetrahedron selection on the stack, while three-vertex face keys use direct compare-swap canonicalization.
 - **Boundary Relaxation**: `SdfMesher` pre-sizes boundary vertex sets and hoists Jacobi relaxation buffers, eliminating per-iteration vector re-allocations.
+- **CSG normalization views**: CSG keeps operands inside the stable coordinate
+  band borrowed through a static operand view; only scale-normalized operands
+  materialize transformed storage.
 
 ### 5. Zero-Allocation Seam Propagation
 - **Inline Edge Adjacency**: `propagate_seam_vertices_until_stable` builds the undirected edge-to-face adjacency map exactly once per stable convergence loop.

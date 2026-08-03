@@ -163,6 +163,45 @@ fn bench_csg_union_cube_cube(c: &mut Criterion) {
     });
 }
 
+fn bench_csg_nary_union_scaled(c: &mut Criterion) {
+    let meshes = [
+        Cube {
+            origin: Point3r::new(-100.0, -100.0, -100.0),
+            width: 200.0,
+            height: 200.0,
+            depth: 200.0,
+        }
+        .build()
+        .expect("scaled cube A"),
+        Cube {
+            origin: Point3r::new(-50.0, -50.0, -50.0),
+            width: 200.0,
+            height: 200.0,
+            depth: 200.0,
+        }
+        .build()
+        .expect("scaled cube B"),
+        Cube {
+            origin: Point3r::new(0.0, 0.0, 0.0),
+            width: 200.0,
+            height: 200.0,
+            depth: 200.0,
+        }
+        .build()
+        .expect("scaled cube C"),
+    ];
+    c.bench_function("csg_nary_union_scaled", |b| {
+        b.iter(|| {
+            let result = gaia::application::csg::boolean::csg_boolean_nary(
+                BooleanOp::Union,
+                black_box(&meshes),
+            )
+            .expect("scaled n-ary union");
+            black_box((result.vertex_count(), result.face_count()))
+        })
+    });
+}
+
 fn bench_csg_intersection_cylinders(c: &mut Criterion) {
     let cyl_a = Cylinder {
         base_center: Point3r::new(-2.0, 0.0, 0.0),
@@ -281,6 +320,7 @@ criterion_group!(
 criterion_group!(
     csg_benches,
     bench_csg_union_cube_cube,
+    bench_csg_nary_union_scaled,
     bench_csg_intersection_cylinders
 );
 criterion_group!(detect_benches, bench_detect_self_intersect_flat);
