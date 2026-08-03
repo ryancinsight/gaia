@@ -496,3 +496,14 @@
       397,595 lines / 7,555 copies versus Phase 41's 399,858 / 7,595; no
       unsupported runtime or RSS claim is made.
 
+- [ ] **Phase 43: Remove TPMS Closure Wrapper Instantiations [patch]**
+    - [ ] Owner: Codex; scope: `src/domain/geometry/tpms/mod.rs`,
+      `src/domain/geometry/tpms/marching_cubes.rs`, and the existing TPMS
+      semantic/benchmark lanes.
+    - [ ] Replace the two per-surface closure wrappers around the `Tpms` trait
+      with one direct statically-dispatched evaluator contract; preserve field,
+      gradient, topology, and public custom-`Tpms` behavior.
+    - [ ] Retain only if release LLVM-line/copy output improves without a
+      matched TPMS benchmark regression; no dynamic dispatch or runtime claim
+      is permitted without measurement.
+
