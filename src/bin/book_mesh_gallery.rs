@@ -8,6 +8,8 @@ mod manifest;
 mod model;
 #[path = "book_mesh_gallery/render.rs"]
 mod render;
+#[path = "book_mesh_gallery/watertightness.rs"]
+mod watertightness;
 
 use std::fs;
 use std::path::PathBuf;
@@ -37,11 +39,17 @@ fn main() -> GalleryResult<()> {
     let primitive_cases = builders::primitive::cases()?;
     let (channel_cases, blockers) = builders::channel::cases()?;
     let topology_cases = builders::topology::cases()?;
+    let (watertight_cases, watertight_rejections) = watertightness::cases()?;
 
     render::sheet(
         &primitive_cases,
         "Gaia analytic primitive mesh families",
         &figures.join("primitive-mesh-families.svg"),
+    )?;
+    render::diagnostic_sheet(
+        &watertight_cases,
+        &watertight_rejections,
+        &figures.join("watertightness-diagnostics.svg"),
     )?;
     render::sheet(
         &channel_cases,
@@ -60,12 +68,18 @@ fn main() -> GalleryResult<()> {
         &blockers,
         &root.join("figure_manifest.md"),
     )?;
+    watertightness::write_manifest(
+        &watertight_cases,
+        &watertight_rejections,
+        &root.join("watertightness_manifest.md"),
+    )?;
 
     println!(
-        "generated {} primitive, {} channel, and {} topology cases in {}",
+        "generated {} primitive, {} channel, {} topology, and {} watertightness cases in {}",
         primitive_cases.len(),
         channel_cases.len(),
         topology_cases.len(),
+        watertight_cases.len(),
         root.display()
     );
     Ok(())

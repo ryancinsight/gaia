@@ -35,6 +35,12 @@ analytical outlet center. A result that is topologically watertight but omits a
 daughter is rejected with a typed `BuildError`; the focused regression covers
 this false-positive class without publishing approximate geometry.
 
+The [watertightness diagnostics](watertightness.md) figure exercises the
+canonical report against a closed cube, a removed-face boundary, a duplicated
+face non-manifold edge, and an inconsistent face winding. The same sheet records
+the branch representatives as rejection panels when the Boolean path returns
+`NotWatertight`; no failed result is rendered as a valid channel.
+
 “All possible meshes” is finite only at the family level. Each family accepts
 continuous dimensions, resolutions, profiles, or fields, so the gallery uses
 small deterministic representative parameters and records them in the
@@ -50,9 +56,9 @@ to keep the figures inspectable. The figures are reviewed as rendered PNGs,
 but the raster review does not replace numerical mesh validation or topology
 tests.
 
-The gallery does not hide the current Boolean stability findings. A
-binary union/difference probe used during the audit returned
-`NotWatertight { count: 12 }` from the branch-connection path. The gallery uses
+The gallery does not hide the current Boolean stability findings. The
+representative branch-connection path returns `NotWatertight { count: 4 }` for
+bifurcation and `NotWatertight { count: 15 }` for trifurcation. The gallery uses
 the public one-operand n-ary identity only to keep the CSG family represented
 by a real Gaia output; binary Boolean repair remains an explicit audit item.
 

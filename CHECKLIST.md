@@ -634,3 +634,20 @@
       --offline`, `cargo test --doc --offline`, `mdbook build docs/book`, and
       `mdbook test docs/book` all pass on the delivered tree.
 
+- [ ] **Phase 50: Watertightness Evidence and Pages Publication [docs]**
+    - [x] Generate a watertightness sheet from Gaia's canonical report using
+      closed, open, non-manifold, and inconsistent-orientation concrete mesh
+      cases; render branch Boolean failures as typed rejection panels.
+    - [x] Add the watertightness chapter and generated manifest, documenting
+      the exact report values and the no-fabricated-geometry boundary.
+    - [x] Add the pinned GitHub Pages workflow. Pull requests regenerate and
+      verify the book; successful `main` builds deploy the exact mdBook HTML
+      artifact through the `github-pages` environment.
+    - [x] Convert and inspect the watertightness sheet raster, then run the
+      exact local book and focused Rust gates on the final revision. The
+      rejection text is wrapped inside its panels and all edge highlights stay
+      within the mesh panels.
+    - [ ] Verify the first `main` Pages deployment and live HTTP response after
+      the workflow is merged; a branch build cannot establish that remote
+      deployment state.
+

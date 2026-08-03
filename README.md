@@ -9,6 +9,10 @@ tagged `crate-gaia-v<version>` validate the exact package and publish through
 the protected `crates-io` environment with a short-lived crates.io Trusted
 Publishing credential.
 
+The generated [Gaia Mesh Book](https://ryancinsight.github.io/gaia/) is built
+from the public mesh builders and published by the `Gaia mesh book` GitHub
+Actions workflow after a successful `main` build.
+
 ## Core Architecture
 
 Gaia implements exactly-computable geometry and topologically-safe mesh representations to eliminate non-manifold degeneracies typical of floating-point CAD kernels.

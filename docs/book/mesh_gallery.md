@@ -21,3 +21,7 @@ Every sheet is converted to a raster during verification and inspected for
 projection failure, empty panels, clipped labels, collapsed geometry, and
 unexpected builder errors. A successful mdBook build alone is not visual
 evidence.
+
+The topology failure classes are documented separately in the
+[watertightness diagnostics](watertightness.md) chapter; that sheet is
+generated in the same run as these gallery figures.
