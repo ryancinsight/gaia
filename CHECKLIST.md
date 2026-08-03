@@ -551,15 +551,37 @@
       with inline topology would be a public contract change requiring an
       ADR and consumer migration rather than a local optimization slice.
 
-- [ ] **Phase 47: Public Mesh Family Book and Figure Gallery [docs]**
-    - [x] Owner: Codex; scope: `docs/book/`, the book gallery example, and
+- [x] **Phase 47: Public Mesh Family Book and Figure Gallery [docs]**
+    - [x] Owner: Codex; scope: `docs/book/`, the book gallery binary/modules, and
       synchronized documentation/checklist entries.
-    - [ ] Add a Gaia-owned mdBook that defines the exhaustive-by-public-family
+    - [x] Add a Gaia-owned mdBook that defines the exhaustive-by-public-family
       mesh coverage boundary and records Gaia as the Atlas mesh-generation SSOT.
-    - [ ] Generate deterministic SVG sheets and a manifest from real public
-      mesh builders for primitive, channel, and topology families.
-    - [ ] Convert every sheet to a review raster, inspect the rendered geometry,
-      and retain the review evidence and residuals in the checklist.
-    - [ ] Build the book and run the applicable Rust/example gates against the
-      exact generated revision.
+    - [x] Generate deterministic SVG sheets and a manifest from real public
+      mesh builders for 37 primitive, 4 successful channel, and 6 topology
+      cases. The manifest records two blocked branching builders with their
+      exact errors instead of treating them as successful figures.
+    - [x] Convert all three sheets with `rsvg-convert` and inspect the review
+      rasters: `outputs/book-review/primitive-mesh-families.png`,
+      `outputs/book-review/channel-mesh-families.png`, and
+      `outputs/book-review/topology-mesh-families.png`. No successful panel has
+      clipped labels, an empty mesh, or an off-canvas projection; TPMS panels
+      are dense but remain readable at the review scale.
+    - [x] Build the book with `mdbook build docs/book`; the HTML output contains
+      all three SVG assets and the linkcheck2 backend completes without errors.
+    - [x] The gallery generator compiles and runs through a direct `rustc`
+      supplementary check against the existing Gaia library artifact. A fresh
+      Cargo check is currently blocked before Gaia compilation by the peer
+      `ritk-registration` manifest error requiring `example.name`; this is
+      retained as verification residual rather than hidden.
+
+- [ ] **Phase 48: Mesh Builder Input and Branch Stability [safety]**
+    - [ ] Owner: Codex; scope: `ChannelPath::new`,
+      `SweepMesher::sweep_variable`, and branching Boolean composition.
+    - [ ] Replace the input-dependent `ChannelPath::new` assertion with a
+      typed construction error and make variable sweep length mismatch a
+      surfaced failure instead of an empty mesh.
+    - [ ] Repair or narrow the branching Boolean watertightness contract so the
+      documented bifurcation and trifurcation representatives produce valid
+      meshes; current errors are `NotWatertight { count: 6 }` and
+      `NotWatertight { count: 14 }`, respectively.
 

@@ -1,0 +1,23 @@
+[book]
+title = "Gaia Mesh Book"
+authors = ["Ryan Clanton"]
+description = "The mesh-generation contract, Atlas ownership boundary, and reviewed Gaia mesh gallery."
+language = "en"
+src = "."
+
+[build]
+build-dir = "../../target/book/gaia"
+create-missing = false
+
+[output.html]
+mathjax-support = true
+site-url = "/gaia/"
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/ryancinsight/gaia"
+edit-url-template = "https://github.com/ryancinsight/gaia/edit/main/docs/book/{path}"
+
+[output.linkcheck2]
+follow-web-links = false
+warning-policy = "ignore"
+exclude = ["^\\.\\./", "SUMMARY\\.md"]
