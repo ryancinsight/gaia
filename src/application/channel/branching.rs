@@ -16,6 +16,7 @@ use crate::application::channel::venturi::BuildError;
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 use crate::domain::mesh::IndexedMesh;
+use crate::infrastructure::storage::vertex_pool::DEFAULT_MESH_CELL_SIZE;
 
 /// Builds a branching (bifurcation) flow passage mesh.
 ///
@@ -99,6 +100,12 @@ impl BranchingMeshBuilder {
 }
 
 fn build_branching_surface(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildError> {
+    let mesh = build_branching_union(b)?;
+    validate_branching_result(&mesh, b)?;
+    Ok(mesh)
+}
+
+fn build_branching_union(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildError> {
     validate_parameters(b)?;
 
     let d_parent = b.d_parent;
@@ -140,7 +147,17 @@ fn build_branching_surface(b: &BranchingMeshBuilder) -> Result<IndexedMesh, Buil
                              is_parent: bool,
                              d_idx: usize|
      -> IndexedMesh {
-        let mut mesh = IndexedMesh::with_capacity(vertex_capacity, face_capacity, 0);
+        // Keep the default snap cell for ordinary channels.  When a
+        // circumferential edge is smaller than that cell, shrink only this
+        // operand's cell so adjacent ring vertices remain distinct.
+        let angular_edge = 2.0 * r * (std::f64::consts::PI / n_ang as Real).sin();
+        let cell_size = if angular_edge < DEFAULT_MESH_CELL_SIZE {
+            angular_edge * 0.25
+        } else {
+            DEFAULT_MESH_CELL_SIZE
+        };
+        let mut mesh =
+            IndexedMesh::with_capacity_and_cell_size(vertex_capacity, face_capacity, 0, cell_size);
         let (ox, oy, oz) = origin;
         let (dx, dy, dz) = dir;
         let len = (dx * dx + dy * dy + dz * dz).sqrt();
@@ -196,8 +213,11 @@ fn build_branching_surface(b: &BranchingMeshBuilder) -> Result<IndexedMesh, Buil
                     let v01 = previous_ring[ia1];
                     let v10 = ring[ia];
                     let v11 = ring[ia1];
-                    mesh.add_face_with_region(v00, v10, v01, wall_region);
-                    mesh.add_face_with_region(v01, v10, v11, wall_region);
+                    // `ex`, `fx`, and the axial direction form a right-handed
+                    // frame.  The ring edge therefore precedes the axial edge
+                    // for an outward lateral normal.
+                    mesh.add_face_with_region(v00, v01, v10, wall_region);
+                    mesh.add_face_with_region(v01, v11, v10, wall_region);
                 }
             }
             std::mem::swap(&mut previous_ring, &mut ring);
@@ -281,10 +301,8 @@ fn build_branching_surface(b: &BranchingMeshBuilder) -> Result<IndexedMesh, Buil
 
     // 3. Boolean Union across all branch bounds.
     use crate::application::csg::boolean::{csg_boolean_nary, BooleanOp};
-    let mesh = csg_boolean_nary(BooleanOp::Union, &meshes)
-        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))?;
-    validate_branching_result(&mesh, b)?;
-    Ok(mesh)
+    csg_boolean_nary(BooleanOp::Union, &meshes)
+        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))
 }
 
 fn validate_parameters(b: &BranchingMeshBuilder) -> Result<(), BuildError> {
@@ -408,43 +426,81 @@ mod tests {
     }
 
     #[test]
-    fn rejects_watertight_but_incomplete_branch_result() {
-        let builder = BranchingMeshBuilder::trifurcation(0.004, 0.020, 0.001, 0.010, 0.5, 4);
-        let error = match builder.build_surface() {
-            Ok(_) => panic!("incomplete Boolean result must not be published"),
-            Err(error) => error,
-        };
-        assert_eq!(
-            error.0,
-            "CSG Boolean omitted daughter outlet geometry for daughter 0"
+    fn small_daughter_trifurcation_builds_without_weld_collapse() {
+        let mut mesh = BranchingMeshBuilder::trifurcation(0.004, 0.020, 0.001, 0.010, 0.5, 4)
+            .build_surface()
+            .expect("small daughter trifurcation");
+        mesh.rebuild_edges();
+        let report = crate::application::watertight::check::check_watertight(
+            &mesh.vertices,
+            &mesh.faces,
+            mesh.edges_ref().expect("edges rebuilt"),
+        );
+        assert!(
+            report.is_watertight,
+            "small daughter mesh must be watertight"
+        );
+        assert!(
+            report.signed_volume > 0.0,
+            "small daughter volume must be positive"
         );
     }
 
     #[test]
-    fn representative_branching_failures_are_reproducible() {
-        fn error_text(builder: &BranchingMeshBuilder) -> String {
-            match builder.build_surface() {
-                Ok(_) => panic!("branching representative unexpectedly built a mesh"),
-                Err(error) => error.to_string(),
+    fn representative_branching_union_preserves_watertight_outlets() {
+        let builder = BranchingMeshBuilder::bifurcation(0.004, 0.020, 0.002, 0.015, 0.5, 4);
+        let mut mesh = build_branching_union(&builder).expect("branch union");
+        mesh.rebuild_edges();
+        let report = crate::application::watertight::check::check_watertight(
+            &mesh.vertices,
+            &mesh.faces,
+            mesh.edges_ref().expect("edges rebuilt"),
+        );
+        assert!(
+            report.is_watertight,
+            "branch union must be watertight: boundary={} non_manifold={}",
+            report.boundary_edge_count, report.non_manifold_edge_count,
+        );
+        for daughter in 0..builder.n_daughters {
+            let outlet_region = RegionId::from_usize(2 + daughter);
+            assert!(
+                mesh.faces.iter().any(|face| face.region == outlet_region),
+                "branch union omitted outlet region {daughter}",
+            );
+        }
+    }
+
+    #[test]
+    fn representative_branching_cases_build_watertight_meshes() {
+        let builders = [
+            BranchingMeshBuilder::bifurcation(0.004, 0.020, 0.002, 0.015, 0.5, 4),
+            BranchingMeshBuilder::trifurcation(0.004, 0.020, 0.002, 0.015, 0.5, 6),
+        ];
+        for builder in builders {
+            let mut mesh = builder
+                .build_surface()
+                .expect("representative branching mesh");
+            mesh.rebuild_edges();
+            let report = crate::application::watertight::check::check_watertight(
+                &mesh.vertices,
+                &mesh.faces,
+                mesh.edges_ref().expect("edges rebuilt"),
+            );
+            assert!(
+                report.is_watertight,
+                "representative branch must be watertight"
+            );
+            assert!(
+                report.signed_volume > 0.0,
+                "representative branch volume must be positive"
+            );
+            for daughter in 0..builder.n_daughters {
+                let outlet_region = RegionId::from_usize(2 + daughter);
+                assert!(
+                    mesh.faces.iter().any(|face| face.region == outlet_region),
+                    "representative branch omitted outlet region {daughter}",
+                );
             }
         }
-
-        let bifurcation = BranchingMeshBuilder::bifurcation(0.004, 0.020, 0.002, 0.015, 0.5, 4);
-        let trifurcation = BranchingMeshBuilder::trifurcation(0.004, 0.020, 0.002, 0.015, 0.5, 6);
-
-        let bifurcation_first = error_text(&bifurcation);
-        let trifurcation_first = error_text(&trifurcation);
-        assert_eq!(bifurcation_first, error_text(&bifurcation));
-        assert_eq!(trifurcation_first, error_text(&trifurcation));
-        assert_eq!(
-            bifurcation_first,
-            "mesh build error: CSG Boolean failed on branch connection: \
-             NotWatertight { count: 4 }"
-        );
-        assert_eq!(
-            trifurcation_first,
-            "mesh build error: CSG Boolean failed on branch connection: \
-             NotWatertight { count: 15 }"
-        );
     }
 }

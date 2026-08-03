@@ -11,6 +11,7 @@ use crate::infrastructure::storage::attribute::AttributeStore;
 use crate::infrastructure::storage::edge_store::EdgeStore;
 use crate::infrastructure::storage::face_store::FaceStore;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
+use crate::infrastructure::storage::vertex_pool::DEFAULT_MESH_CELL_SIZE;
 use hashbrown::HashMap;
 
 /// A deduplicated, indexed triangle surface mesh — generic over scalar `T`.
@@ -52,8 +53,8 @@ impl<T: Scalar> IndexedMesh<T> {
     pub fn new() -> Self {
         Self {
             vertices: VertexPool::with_tolerance(
-                <T as crate::domain::core::scalar::Scalar>::from_f64(1e-4),
-                <T as crate::domain::core::scalar::Scalar>::from_f64(1e-4),
+                <T as crate::domain::core::scalar::Scalar>::from_f64(DEFAULT_MESH_CELL_SIZE),
+                <T as crate::domain::core::scalar::Scalar>::from_f64(DEFAULT_MESH_CELL_SIZE),
             ),
             faces: FaceStore::new(),
             edges: None,
@@ -101,8 +102,26 @@ impl<T: Scalar> IndexedMesh<T> {
         Self {
             vertices: VertexPool::with_capacity(
                 vertex_capacity,
-                <T as crate::domain::core::scalar::Scalar>::from_f64(1e-4),
+                <T as crate::domain::core::scalar::Scalar>::from_f64(DEFAULT_MESH_CELL_SIZE),
             ),
+            faces: FaceStore::with_capacity(face_capacity),
+            edges: None,
+            attributes: AttributeStore::new(),
+            cells: Vec::with_capacity(cell_capacity),
+            boundary_labels: HashMap::new(),
+        }
+    }
+
+    /// Create an empty mesh with reserved capacity and an explicit spatial-hash cell size.
+    #[must_use]
+    pub fn with_capacity_and_cell_size(
+        vertex_capacity: usize,
+        face_capacity: usize,
+        cell_capacity: usize,
+        cell_size: T,
+    ) -> Self {
+        Self {
+            vertices: VertexPool::with_capacity(vertex_capacity, cell_size),
             faces: FaceStore::with_capacity(face_capacity),
             edges: None,
             attributes: AttributeStore::new(),

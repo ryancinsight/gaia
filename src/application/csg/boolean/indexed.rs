@@ -4,6 +4,7 @@ use crate::application::csg::boolean::BooleanOp;
 use crate::application::csg::reconstruct;
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::index::{FaceId, VertexId};
+use crate::domain::core::scalar::Point3r;
 use crate::domain::geometry::aabb::Aabb;
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::geometry::primitives::{Cube, PrimitiveMesh};
@@ -60,12 +61,10 @@ pub fn csg_boolean(
         }
     }
 
-    let bb_a = mesh_a.bounding_box();
-    let bb_b = mesh_b.bounding_box();
-    let combined_bb = bb_a.union(&bb_b);
-    let diag = (combined_bb.max - combined_bb.min).norm();
-    let mut combined = VertexPool::for_csg_with_scale(diag);
-    let (faces_a, faces_b) = remap_binary_face_soups(mesh_a, mesh_b, &mut combined);
+    let (normalized_meshes, origin, scale) = normalize_operands(&[mesh_a, mesh_b]);
+    let mut combined = VertexPool::for_csg_with_scale(1.0);
+    let (faces_a, faces_b) =
+        remap_binary_face_soups(&normalized_meshes[0], &normalized_meshes[1], &mut combined);
     let is_coplanar = crate::application::csg::coplanar::detect_flat_plane(&faces_a, &combined)
         .is_some()
         && crate::application::csg::coplanar::detect_flat_plane(&faces_b, &combined).is_some();
@@ -75,6 +74,7 @@ pub fn csg_boolean(
         &mut combined,
     )?;
     postprocess_boolean_mesh(result_faces, &combined, is_coplanar)
+        .map(|mesh| denormalize_result(mesh, origin, scale))
 }
 
 /// Return the exact union when two closed axis-aligned rectangular prisms
@@ -298,16 +298,10 @@ pub fn csg_boolean_nary(op: BooleanOp, meshes: &[IndexedMesh]) -> MeshResult<Ind
         return Ok(meshes[0].clone());
     }
 
-    // Compute scale from combined AABB diagonal for scale-relative VertexPool.
-    use crate::domain::geometry::aabb::Aabb;
-    let mut combined_bb = Aabb::empty();
-    for m in meshes {
-        let bb = m.bounding_box();
-        combined_bb = combined_bb.union(&bb);
-    }
-    let diag = (combined_bb.max - combined_bb.min).norm();
-    let mut combined = VertexPool::for_csg_with_scale(diag);
-    let face_soups = remap_nary_face_soups(meshes, &mut combined);
+    let mesh_refs: Vec<&IndexedMesh> = meshes.iter().collect();
+    let (normalized_meshes, origin, scale) = normalize_operands(&mesh_refs);
+    let mut combined = VertexPool::for_csg_with_scale(1.0);
+    let face_soups = remap_nary_face_soups(&normalized_meshes, &mut combined);
     let is_coplanar = face_soups.iter().all(|faces| {
         crate::application::csg::coplanar::detect_flat_plane(faces, &combined).is_some()
     });
@@ -317,6 +311,92 @@ pub fn csg_boolean_nary(op: BooleanOp, meshes: &[IndexedMesh]) -> MeshResult<Ind
         &mut combined,
     )?;
     postprocess_boolean_mesh(result_faces, &combined, is_coplanar)
+        .map(|mesh| denormalize_result(mesh, origin, scale))
+}
+
+/// Normalize operands only outside the stable unit-scale band.
+///
+/// Arrangement predicates contain absolute guards calibrated for ordinary
+/// unit-scale geometry. The `0.5..=10.0` band is the no-rescale contract for
+/// common unit-scale inputs; scale-regression coverage exercises both sides of
+/// these thresholds. Small and large operands are translated and scaled to a
+/// unit diagonal so those guards remain meaningful. Common-scale inputs stay
+/// in their original coordinates: this preserves exact decimal coplanarity in
+/// axis-aligned solids instead of replacing it with a rounded irrational scale.
+fn normalize_operands(meshes: &[&IndexedMesh]) -> (Vec<IndexedMesh>, Point3r, f64) {
+    let mut combined_bb = Aabb::empty();
+    for mesh in meshes {
+        combined_bb = combined_bb.union(&mesh.bounding_box());
+    }
+
+    let extent = combined_bb.max - combined_bb.min;
+    let diagonal = extent.norm();
+    if !diagonal.is_finite() || diagonal <= 0.0 {
+        return (
+            meshes.iter().map(|mesh| (*mesh).clone()).collect(),
+            Point3r::origin(),
+            1.0,
+        );
+    }
+
+    const STABLE_DIAGONAL_MIN: f64 = 0.5;
+    const STABLE_DIAGONAL_MAX: f64 = 10.0;
+    if (STABLE_DIAGONAL_MIN..=STABLE_DIAGONAL_MAX).contains(&diagonal) {
+        return (
+            meshes.iter().map(|mesh| (*mesh).clone()).collect(),
+            Point3r::origin(),
+            1.0,
+        );
+    }
+
+    let origin = combined_bb.min;
+    let scale = 1.0 / diagonal;
+    let normalized = meshes
+        .iter()
+        .map(|mesh| {
+            let mut normalized = (*mesh).clone();
+            let vertex_count = normalized.vertices.len();
+            for index in 0..vertex_count {
+                let vertex_id = VertexId::new(index as u32);
+                let position = *normalized.vertices.position(vertex_id);
+                normalized.vertices.set_position(
+                    vertex_id,
+                    Point3r::new(
+                        (position.x - origin.x) * scale,
+                        (position.y - origin.y) * scale,
+                        (position.z - origin.z) * scale,
+                    ),
+                );
+            }
+            normalized.vertices.rescale_spatial_hash(scale);
+            normalized
+        })
+        .collect();
+
+    (normalized, origin, scale)
+}
+
+fn denormalize_result(mut mesh: IndexedMesh, origin: Point3r, scale: f64) -> IndexedMesh {
+    if scale == 1.0 && origin == Point3r::origin() {
+        return mesh;
+    }
+
+    let inverse_scale = 1.0 / scale;
+    let vertex_count = mesh.vertices.len();
+    for index in 0..vertex_count {
+        let vertex_id = VertexId::new(index as u32);
+        let position = *mesh.vertices.position(vertex_id);
+        mesh.vertices.set_position(
+            vertex_id,
+            Point3r::new(
+                origin.x + position.x * inverse_scale,
+                origin.y + position.y * inverse_scale,
+                origin.z + position.z * inverse_scale,
+            ),
+        );
+    }
+    mesh.vertices.rescale_spatial_hash(inverse_scale);
+    mesh
 }
 
 fn remap_binary_face_soups(

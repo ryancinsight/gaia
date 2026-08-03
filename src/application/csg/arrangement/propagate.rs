@@ -143,7 +143,7 @@ pub fn propagate_seam_vertices(
 
 #[derive(Clone, Default)]
 pub(crate) struct AdjacentFaces {
-    count: u8,
+    count: usize,
     inline: [usize; 2],
     heap: Option<Vec<usize>>,
 }
@@ -151,7 +151,7 @@ pub(crate) struct AdjacentFaces {
 impl AdjacentFaces {
     pub(crate) fn push(&mut self, face_idx: usize) {
         if self.count < 2 {
-            self.inline[self.count as usize] = face_idx;
+            self.inline[self.count] = face_idx;
             self.count += 1;
         } else {
             let mut v = self.heap.take().unwrap_or_default();
@@ -171,7 +171,7 @@ impl AdjacentFaces {
 
 pub(crate) struct AdjacentFacesIter<'a> {
     adj: &'a AdjacentFaces,
-    index: u8,
+    index: usize,
 }
 
 impl<'a> Iterator for AdjacentFacesIter<'a> {
@@ -179,12 +179,16 @@ impl<'a> Iterator for AdjacentFacesIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < 2 && self.index < self.adj.count {
-            let item = &self.adj.inline[self.index as usize];
+            let item = &self.adj.inline[self.index];
             self.index += 1;
             Some(item)
         } else if self.index < self.adj.count {
-            let heap_idx = (self.index - 2) as usize;
-            let heap_vec = self.adj.heap.as_ref().unwrap();
+            let heap_idx = self.index - 2;
+            let heap_vec = self
+                .adj
+                .heap
+                .as_ref()
+                .expect("invariant: heap storage exists for the third adjacent face");
             let item = &heap_vec[heap_idx];
             self.index += 1;
             Some(item)
@@ -962,5 +966,18 @@ mod tests {
             segs_out[0].is_empty(),
             "seam position beside rim edge must not inject (off-edge but on-plane)"
         );
+    }
+
+    #[test]
+    fn adjacent_faces_preserves_more_than_u8_incident_faces() {
+        let mut adjacent = AdjacentFaces::default();
+        for face_index in 0..=u8::MAX as usize {
+            adjacent.push(face_index);
+        }
+
+        let faces: Vec<_> = adjacent.into_iter().copied().collect();
+        assert_eq!(faces.len(), 256);
+        assert_eq!(faces.first().copied(), Some(0));
+        assert_eq!(faces.last().copied(), Some(255));
     }
 }

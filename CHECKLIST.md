@@ -595,11 +595,11 @@
       outlet region or its analytical outlet neighborhood is absent. The
       focused regression covers the previously observed straight-tube false
       positive.
-    - [ ] Repair or narrow the branching Boolean watertightness contract so the
-      documented bifurcation and trifurcation representatives produce valid
-      meshes; the committed gallery representatives currently return
-      `NotWatertight { count: 4 }` and `NotWatertight { count: 15 }`,
-      respectively.
+    - [x] Repair the branching Boolean watertightness contract. Outward tube
+      winding, conditional CSG normalization outside the stable `0.5..=10.0`
+      diagonal band, and scale-aware operand snap cells make the documented
+      bifurcation and trifurcation representatives watertight while preserving
+      every daughter outlet region.
     - [x] Audit sequential binary CSG and exact/smooth SDF alternatives. Both
       remained invalid for the representative branch geometry (the SDF
       boundary was non-manifold). Removing internal daughter start caps also
@@ -620,14 +620,13 @@
       restored, preserving the previously inspected sheets.
     - [x] Canonicalize SDF macro-block order, broad-phase candidates, CSG
       arrangement/repair traversal, and union-find inputs. The focused
-      regression compares repeated same-process errors; two consecutive fresh
+      regression compares repeated same-process results; two consecutive fresh
       gallery runs have identical manifest and topology SVG SHA-256 hashes.
-      The stable manifest values are `V=158 F=1000 C=422` and branching
-      blocker counts `4/15`.
-    - [x] Keep the remaining CSG watertightness defect explicit: the branch
-      builders still return `NotWatertight { count: 4 }` and
-      `NotWatertight { count: 15 }`; no failed Boolean became a fabricated
-      gallery mesh.
+      The stable manifest values are SDF `V=158 F=1000 C=422`, bifurcation
+      `V=414 F=824`, and trifurcation `V=909 F=1814`.
+    - [x] Resolve the CSG watertightness defect without a fallback or
+      fabricated result. The previous branch blocker counts `4/15` are retained
+      as historical audit evidence; current builders pass the canonical report.
     - [x] Verification: `cargo fmt --check`, `git diff --check`, focused
       `cargo nextest` (9/9), `cargo clippy --lib --offline -- -D warnings`,
       `cargo check --bin book_mesh_gallery --offline`, `cargo doc --no-deps
@@ -637,16 +636,17 @@
 - [ ] **Phase 50: Watertightness Evidence and Pages Publication [docs]**
     - [x] Generate a watertightness sheet from Gaia's canonical report using
       closed, open, non-manifold, and inconsistent-orientation concrete mesh
-      cases; render branch Boolean failures as typed rejection panels.
+      cases; render successful branch Boolean unions as real panels and retain
+      typed rejection handling for future invalid cases.
     - [x] Add the watertightness chapter and generated manifest, documenting
       the exact report values and the no-fabricated-geometry boundary.
     - [x] Add the pinned GitHub Pages workflow. Pull requests regenerate and
       verify the book; successful `main` builds deploy the exact mdBook HTML
       artifact through the `github-pages` environment.
     - [x] Convert and inspect the watertightness sheet raster, then run the
-      exact local book and focused Rust gates on the final revision. The
-      rejection text is wrapped inside its panels and all edge highlights stay
-      within the mesh panels.
+      exact local book and full Rust gates on the final revision. The reviewed
+      raster has no off-canvas geometry or clipped labels, includes every
+      analytical failure highlight, and contains only validated branch output.
     - [x] Verify the first `main` Pages deployment and live HTTP response after
       merge commit `4ec3e946`: workflow run `30841921278` completed the Pages
       deployment, and the root book, watertightness chapter, and diagnostics

@@ -40,9 +40,20 @@ temporary frame allocation before the canonical sweep kernel computes frames.
 
 This is a breaking public API change. In-repository callers use `?` or explicit
 typed handling; external callers follow the [migration guide](../migration/channel-path-validation.md).
-The branching Boolean composition remains a separate open stability item in
-Phase 48 because its `NotWatertight` failures require a topology-level repair,
-not an input-error substitution.
+The branching Boolean composition is covered by the same validation boundary;
+its representative stability is tracked in Phase 48 and the generated book
+figures.
+
+## Revision — 2026-08-03
+
+The branch stability item is resolved in the same repository change. The tube
+surface winding is outward, CSG operands outside Gaia's stable `0.5..=10.0`
+combined-AABB diagonal band are normalized to a unit diagonal, and branch
+operands shrink their spatial-hash cell only when a circumferential edge is
+smaller than Gaia's default cell. The representative bifurcation and
+trifurcation builders now return watertight meshes and retain all daughter
+outlet regions. The internal CSG adjacency count is `usize`, so high-valence
+arrangements no longer overflow the former `u8` counter.
 
 ## Evidence
 
