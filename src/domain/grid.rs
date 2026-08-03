@@ -1,15 +1,14 @@
 //! Structured grid builder.
 //!
-//! Generates a regular Cartesian grid over the unit cube `[0,1]`³,
-//! subdivided into nx×ny×nz hexahedra (each decomposed to 5 tetrahedra).
+//! Provides regular Cartesian grids over the unit cube `[0,1]`³ as either
+//! validated tetrahedral cells or triangulated-face hexahedral cells.
 //!
 //! This module is a **volume/FEM tool** — it intentionally uses `Mesh<T>` for
 //! hexahedral cell topology and is exempt from the surface-mesh deprecation.
 
 use crate::domain::core::index::VertexId;
-use crate::domain::mesh::IndexedMesh;
-use crate::domain::topology::Cell;
-use hashbrown::HashMap;
+use crate::domain::mesh::{IndexedMesh, TetrahedralMeshBuilder};
+use crate::domain::topology::{Cell, ElementType};
 use leto::geometry::Point3;
 
 /// Error type for grid building.
@@ -46,6 +45,92 @@ impl StructuredGridBuilder {
     }
 }
 
+/// Builds a structured hexahedral grid whose cells are represented by
+/// triangulated boundary faces for [`crate::application::hierarchy::hex_to_tet::HexToTetConverter`].
+pub struct StructuredHexGridBuilder {
+    nx: usize,
+    ny: usize,
+    nz: usize,
+}
+
+impl StructuredHexGridBuilder {
+    /// Create a builder with `nx × ny × nz` hexahedral cells.
+    #[must_use]
+    pub fn new(nx: usize, ny: usize, nz: usize) -> Self {
+        Self { nx, ny, nz }
+    }
+
+    /// Build a triangulated-face hexahedral mesh.
+    #[must_use]
+    pub fn build(self) -> IndexedMesh<f64> {
+        build_structured_hex_grid(self.nx, self.ny, self.nz)
+    }
+}
+
+fn build_structured_hex_grid(nx: usize, ny: usize, nz: usize) -> IndexedMesh<f64> {
+    let nx = nx.max(1);
+    let ny = ny.max(1);
+    let nz = nz.max(1);
+    let vertex_capacity = (nx + 1) * (ny + 1) * (nz + 1);
+    let cell_capacity = nx * ny * nz;
+    let mut mesh = IndexedMesh::with_capacity(vertex_capacity, cell_capacity * 12, cell_capacity);
+    let mut vertex_ids = Vec::with_capacity(vertex_capacity);
+
+    for iz in 0..=nz {
+        for iy in 0..=ny {
+            for ix in 0..=nx {
+                vertex_ids.push(mesh.add_vertex_pos(Point3::new(
+                    ix as f64 / nx as f64,
+                    iy as f64 / ny as f64,
+                    iz as f64 / nz as f64,
+                )));
+            }
+        }
+    }
+
+    let vertex =
+        |ix: usize, iy: usize, iz: usize| vertex_ids[iz * (ny + 1) * (nx + 1) + iy * (nx + 1) + ix];
+
+    for iz in 0..nz {
+        for iy in 0..ny {
+            for ix in 0..nx {
+                let hex = [
+                    vertex(ix, iy, iz),
+                    vertex(ix + 1, iy, iz),
+                    vertex(ix + 1, iy + 1, iz),
+                    vertex(ix, iy + 1, iz),
+                    vertex(ix, iy, iz + 1),
+                    vertex(ix + 1, iy, iz + 1),
+                    vertex(ix + 1, iy + 1, iz + 1),
+                    vertex(ix, iy + 1, iz + 1),
+                ];
+                let triangles = [
+                    [hex[0], hex[1], hex[2]],
+                    [hex[0], hex[2], hex[3]],
+                    [hex[4], hex[6], hex[5]],
+                    [hex[4], hex[7], hex[6]],
+                    [hex[0], hex[4], hex[5]],
+                    [hex[0], hex[5], hex[1]],
+                    [hex[3], hex[2], hex[6]],
+                    [hex[3], hex[6], hex[7]],
+                    [hex[0], hex[3], hex[7]],
+                    [hex[0], hex[7], hex[4]],
+                    [hex[1], hex[5], hex[6]],
+                    [hex[1], hex[6], hex[2]],
+                ];
+                let faces = triangles.map(|[v0, v1, v2]| mesh.add_face(v0, v1, v2));
+                mesh.add_cell(Cell {
+                    faces: faces.map(|face| face.as_usize()).to_vec(),
+                    element_type: ElementType::Hexahedron,
+                    vertex_ids: Vec::new(),
+                });
+            }
+        }
+    }
+
+    mesh
+}
+
 fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<f64>, GridError> {
     let nx = nx.max(1);
     let ny = ny.max(1);
@@ -55,28 +140,9 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     let vny = ny + 1;
     let vnz = nz + 1;
 
-    let mut mesh = IndexedMesh::<f64>::new();
+    let mut builder =
+        TetrahedralMeshBuilder::<f64>::with_capacity(vnx * vny * vnz, nx * ny * nz * 5);
     let mut v_ids = Vec::with_capacity(vnx * vny * vnz);
-
-    // HashMap for deterministic face deduplication order (since nesting loops are deterministic).
-    // Each hex creates five tetrahedra and each tetrahedron contributes four
-    // candidate faces before deduplication.
-    let mut face_map: HashMap<
-        [crate::domain::core::index::VertexId; 3],
-        crate::domain::core::index::FaceId,
-    > = HashMap::with_capacity(nx * ny * nz * 20);
-
-    let mut add_tri = |v0: crate::domain::core::index::VertexId,
-                       v1: crate::domain::core::index::VertexId,
-                       v2: crate::domain::core::index::VertexId,
-                       mesh: &mut IndexedMesh<f64>|
-     -> crate::domain::core::index::FaceId {
-        let mut key = [v0, v1, v2];
-        key.sort_unstable_by_key(|vid| vid.as_usize());
-        *face_map
-            .entry(key)
-            .or_insert_with(|| mesh.add_face(key[0], key[1], key[2]))
-    };
 
     // Create corner vertices on a regular grid.
     for iz in 0..vnz {
@@ -85,7 +151,7 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
                 let x = ix as f64 / nx as f64;
                 let y = iy as f64 / ny as f64;
                 let z = iz as f64 / nz as f64;
-                v_ids.push(mesh.add_vertex_pos(Point3::new(x, y, z)));
+                v_ids.push(builder.vertex_array([x, y, z]));
             }
         }
     }
@@ -117,12 +183,10 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
                         [v[4], v[7], v[6], v[3]],
                         [v[1], v[3], v[4], v[6]],
                     ];
-                    for tet in &tets_a {
-                        let f0 = add_tri(tet[0], tet[1], tet[2], &mut mesh).as_usize();
-                        let f1 = add_tri(tet[0], tet[1], tet[3], &mut mesh).as_usize();
-                        let f2 = add_tri(tet[0], tet[2], tet[3], &mut mesh).as_usize();
-                        let f3 = add_tri(tet[1], tet[2], tet[3], &mut mesh).as_usize();
-                        mesh.add_cell(Cell::tetrahedron(f0, f1, f2, f3));
+                    for tet in tets_a {
+                        builder
+                            .tetrahedron(tet)
+                            .map_err(|error| GridError(error.to_string()))?;
                     }
                 } else {
                     let tets_b: [[VertexId; 4]; 5] = [
@@ -132,21 +196,22 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
                         [v[6], v[2], v[5], v[7]],
                         [v[0], v[2], v[7], v[5]], // Swapped v5 and v7
                     ];
-                    for tet in &tets_b {
-                        let f0 = add_tri(tet[0], tet[1], tet[2], &mut mesh).as_usize();
-                        let f1 = add_tri(tet[0], tet[1], tet[3], &mut mesh).as_usize();
-                        let f2 = add_tri(tet[0], tet[2], tet[3], &mut mesh).as_usize();
-                        let f3 = add_tri(tet[1], tet[2], tet[3], &mut mesh).as_usize();
-                        mesh.add_cell(Cell::tetrahedron(f0, f1, f2, f3));
+                    for tet in tets_b {
+                        builder
+                            .tetrahedron(tet)
+                            .map_err(|error| GridError(error.to_string()))?;
                     }
                 }
             }
         }
     }
 
+    let mut mesh = builder.build();
+
     // Label boundary faces.
     let mut boundary_updates = Vec::with_capacity(mesh.faces.len());
-    for (f_idx, face) in mesh.faces.iter_enumerated() {
+    for f_idx in mesh.boundary_faces() {
+        let face = mesh.faces.get(f_idx);
         let [v0, v1, v2] = face.vertices;
         let p0 = mesh.vertices.position(v0);
         let p1 = mesh.vertices.position(v1);

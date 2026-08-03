@@ -137,16 +137,23 @@ pub(crate) fn process_coplanar_groups(
     let mut coplanar_results: HashMap<usize, Vec<FaceData>> =
         HashMap::with_capacity(group_index.plane_a.len());
 
-    for (key, a_idxs) in &group_index.plane_a {
-        let Some(b_idxs) = group_index.plane_b.get(key) else {
+    // Processing a group mutates the shared vertex pool and barrel seam
+    // lists. Canonicalize the group order before those side effects so a
+    // hash-map seed cannot change vertex IDs or downstream face order.
+    let mut group_ids: Vec<usize> = group_index.plane_a.keys().copied().collect();
+    group_ids.sort_unstable();
+    for key in group_ids {
+        let Some(a_idxs) = group_index.plane_a.get(&key) else {
+            continue;
+        };
+        let Some(b_idxs) = group_index.plane_b.get(&key) else {
             continue;
         };
 
         let group_faces_a: Vec<FaceData> = a_idxs.iter().map(|&i| faces_a[i]).collect();
         let group_faces_b: Vec<FaceData> = b_idxs.iter().map(|&i| faces_b[i]).collect();
 
-        let basis = match basis_from_group(*key, &group_index.rep_a, faces_a, &group_faces_a, pool)
-        {
+        let basis = match basis_from_group(key, &group_index.rep_a, faces_a, &group_faces_a, pool) {
             Some(b) => b,
             None => continue, // fallback to Phase 3/4
         };
@@ -209,7 +216,7 @@ pub(crate) fn process_coplanar_groups(
             );
         }
 
-        coplanar_results.insert(*key, coplanar_result);
+        coplanar_results.insert(key, coplanar_result);
     }
 
     CoplanarPhaseResult {

@@ -864,17 +864,30 @@ impl<T: Scalar> IndexedMesh<T> {
         // Discard if face_count < max(4, largest * 0.05).
         let min_keep = ((largest_size as f64 * 0.05).ceil() as usize).max(4);
 
-        // Single-pass over components: build a fresh mesh from kept faces only.
-        let mut new_mesh = self.empty_clone();
-        // Map old VertexId → new VertexId (None = not yet seen).
-        let mut vertex_remap: Vec<Option<VertexId>> = vec![None; self.vertices.len()];
-        // Map old FaceId → new FaceId for attribute/label remapping.
-        let mut face_remap: Vec<Option<FaceId>> = vec![None; self.faces.len()];
-        let mut discarded = 0usize;
-
+        let mut discarded = 0;
         for component in &components {
             if component.len() < min_keep {
                 discarded += 1;
+            }
+        }
+
+        // Avoid allocating a reconstruction mesh and two remap arrays when
+        // every component already satisfies the retention threshold.
+        if discarded == 0 {
+            return 0;
+        }
+
+        // Single-pass over components: build a fresh mesh from kept faces only.
+        let mut new_mesh = self.empty_clone();
+        // Valid mesh IDs are always below `u32::MAX`, so the maximum raw ID
+        // is a compact sentinel replacement for `Option<VertexId>` and
+        // `Option<FaceId>`.
+        const UNMAPPED: u32 = u32::MAX;
+        let mut vertex_remap = vec![UNMAPPED; self.vertices.len()];
+        let mut face_remap = vec![UNMAPPED; self.faces.len()];
+
+        for component in &components {
+            if component.len() < min_keep {
                 tracing::debug!(
                     "retain_largest_component: discarding {} phantom face(s) \
                       (threshold = {} faces)",
@@ -888,13 +901,13 @@ impl<T: Scalar> IndexedMesh<T> {
                 let mut nv = [VertexId::default(); 3];
                 for (k, &vid) in fd.vertices.iter().enumerate() {
                     let idx = vid.as_usize();
-                    nv[k] = if let Some(new_vid) = vertex_remap[idx] {
-                        new_vid
-                    } else {
+                    nv[k] = if vertex_remap[idx] == UNMAPPED {
                         let new_vid = new_mesh
                             .add_vertex(*self.vertices.position(vid), *self.vertices.normal(vid));
-                        vertex_remap[idx] = Some(new_vid);
+                        vertex_remap[idx] = new_vid.raw();
                         new_vid
+                    } else {
+                        VertexId::new(vertex_remap[idx])
                     };
                 }
                 // Guard: skip any face that collapsed under vertex welding.
@@ -906,22 +919,18 @@ impl<T: Scalar> IndexedMesh<T> {
                 } else {
                     new_mesh.add_face_with_region(nv[0], nv[1], nv[2], fd.region)
                 };
-                face_remap[old_fid.as_usize()] = Some(new_fid);
+                face_remap[old_fid.as_usize()] = new_fid.0;
             }
-        }
-
-        if discarded == 0 {
-            return 0;
         }
 
         // Remap per-face scalar attributes.
         let old_attrs = std::mem::take(&mut self.attributes);
         for channel in old_attrs.channel_names() {
             for (old_fid_idx, &opt_new_fid) in face_remap.iter().enumerate() {
-                if let Some(new_fid) = opt_new_fid {
+                if opt_new_fid != UNMAPPED {
                     let old_fid = FaceId::from_usize(old_fid_idx);
                     if let Some(val) = old_attrs.get(channel, old_fid) {
-                        new_mesh.attributes.set(channel, new_fid, val);
+                        new_mesh.attributes.set(channel, FaceId(opt_new_fid), val);
                     }
                 }
             }
@@ -931,7 +940,10 @@ impl<T: Scalar> IndexedMesh<T> {
         let old_labels = std::mem::take(&mut self.boundary_labels);
         new_mesh.boundary_labels = old_labels
             .into_iter()
-            .filter_map(|(old_fid, label)| face_remap[old_fid.as_usize()].map(|nf| (nf, label)))
+            .filter_map(|(old_fid, label)| {
+                let new_fid = face_remap[old_fid.as_usize()];
+                (new_fid != UNMAPPED).then_some((FaceId(new_fid), label))
+            })
             .collect();
 
         // Swap stores in-place.
@@ -1073,17 +1085,28 @@ mod tests {
         mesh.add_face(v0, v2, v3);
         mesh.add_face(v0, v3, v1);
         mesh.add_face(v1, v3, v2); // closed tet
+        mesh.attributes
+            .set("temperature", FaceId::from_usize(0), 12.5);
+        mesh.mark_boundary(FaceId::from_usize(0), "kept");
 
         // Component 2 (Phantom island, 1 face)
         let v4 = mesh.add_vertex_pos(Point3::new(10.0, 0.0, 0.0));
         let v5 = mesh.add_vertex_pos(Point3::new(11.0, 0.0, 0.0));
         let v6 = mesh.add_vertex_pos(Point3::new(10.0, 1.0, 0.0));
-        mesh.add_face(v4, v5, v6);
+        let phantom_face = mesh.add_face(v4, v5, v6);
+        mesh.attributes.set("temperature", phantom_face, 99.5);
+        mesh.mark_boundary(phantom_face, "discarded");
 
         // Run filter
         let discarded = mesh.retain_largest_component();
         assert_eq!(discarded, 1);
         assert_eq!(mesh.face_count(), 4);
+        assert_eq!(
+            mesh.attributes.get("temperature", FaceId::from_usize(0)),
+            Some(12.5)
+        );
+        assert_eq!(mesh.boundary_label(FaceId::from_usize(0)), Some("kept"));
+        assert_eq!(mesh.boundary_label(FaceId::from_usize(4)), None);
 
         // Add points 1e-6 apart; under the default 1e-4 tolerance they would weld.
         // Under the preserved 1e-8 tolerance they should remain distinct.
@@ -1093,6 +1116,31 @@ mod tests {
             n1, n2,
             "Tolerance must be preserved after retain_largest_component"
         );
+    }
+
+    #[test]
+    fn retain_largest_component_skips_reconstruction_when_all_components_are_kept() {
+        let mut mesh: IndexedMesh<f32> = IndexedMesh::with_cell_size(1e-6);
+        for offset in [0.0_f32, 10.0] {
+            let v0 = mesh.add_vertex_pos(Point3::new(offset, 0.0, 0.0));
+            let v1 = mesh.add_vertex_pos(Point3::new(offset + 1.0, 0.0, 0.0));
+            let v2 = mesh.add_vertex_pos(Point3::new(offset, 1.0, 0.0));
+            let v3 = mesh.add_vertex_pos(Point3::new(offset, 0.0, 1.0));
+            mesh.add_face(v0, v1, v2);
+            mesh.add_face(v0, v2, v3);
+            mesh.add_face(v0, v3, v1);
+            mesh.add_face(v1, v3, v2);
+        }
+        mesh.mark_boundary(FaceId::from_usize(0), "first");
+
+        let before_faces = mesh.face_count();
+        let before_vertices = mesh.vertex_count();
+        let discarded = mesh.retain_largest_component();
+
+        assert_eq!(discarded, 0);
+        assert_eq!(mesh.face_count(), before_faces);
+        assert_eq!(mesh.vertex_count(), before_vertices);
+        assert_eq!(mesh.boundary_label(FaceId::from_usize(0)), Some("first"));
     }
 
     #[test]

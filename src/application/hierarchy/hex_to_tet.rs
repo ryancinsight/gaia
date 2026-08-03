@@ -9,9 +9,105 @@ use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::{Cell, ElementType};
-use hashbrown::{HashMap, HashSet};
+use crate::infrastructure::storage::face_store::FaceStore;
+use hashbrown::{hash_map::Entry, HashMap};
 
 type TriKey = [VertexId; 3];
+
+/// Stack-resident decomposition storage for the two supported hexahedron
+/// patterns. A hexahedron produces at most six tetrahedra, so a fixed buffer
+/// removes one heap allocation per converted cell without changing the public
+/// cell representation.
+#[derive(Clone, Copy)]
+struct TetDecomposition {
+    tets: [[VertexId; 4]; 6],
+    len: usize,
+}
+
+impl TetDecomposition {
+    fn from_five(tets: [[VertexId; 4]; 5]) -> Self {
+        let mut storage = [[VertexId::default(); 4]; 6];
+        storage[..5].copy_from_slice(&tets);
+        Self {
+            tets: storage,
+            len: 5,
+        }
+    }
+
+    fn from_six(tets: [[VertexId; 4]; 6]) -> Self {
+        Self { tets, len: 6 }
+    }
+
+    fn as_slice(&self) -> &[[VertexId; 4]] {
+        &self.tets[..self.len]
+    }
+}
+
+const HEX_VERTEX_COUNT: usize = 8;
+const HEX_MAX_NEIGHBORS: usize = HEX_VERTEX_COUNT - 1;
+const HEX_MAX_TETRAHEDRA: usize = 6;
+const TETRAHEDRON_FACE_COUNT: usize = 4;
+
+/// Bounded undirected adjacency for one hexahedral cell.
+///
+/// The cell has exactly eight unique vertices, so one vertex can be adjacent
+/// to at most the other seven.  Keeping the IDs inline removes eight map and
+/// vector allocations from the order-recovery probe.  Neighbor sets are
+/// deduplicated during insertion and remain bounded to seven entries, so
+/// linear membership is cheaper than maintaining a sorted allocation-free
+/// set.
+#[derive(Clone, Copy)]
+struct HexAdjacency {
+    ids: [[VertexId; HEX_MAX_NEIGHBORS]; HEX_VERTEX_COUNT],
+    lengths: [usize; HEX_VERTEX_COUNT],
+}
+
+impl HexAdjacency {
+    fn new() -> Self {
+        Self {
+            ids: [[VertexId::default(); HEX_MAX_NEIGHBORS]; HEX_VERTEX_COUNT],
+            lengths: [0; HEX_VERTEX_COUNT],
+        }
+    }
+
+    fn add_undirected(
+        &mut self,
+        vertices: &[VertexId; HEX_VERTEX_COUNT],
+        a: VertexId,
+        b: VertexId,
+    ) {
+        self.add_directed(vertices, a, b);
+        self.add_directed(vertices, b, a);
+    }
+
+    fn add_directed(&mut self, vertices: &[VertexId; HEX_VERTEX_COUNT], a: VertexId, b: VertexId) {
+        let Some(index) = vertices.iter().position(|&vertex| vertex == a) else {
+            return;
+        };
+        let length = self.lengths[index];
+        if self.ids[index][..length].contains(&b) {
+            return;
+        }
+        let Some(slot) = self.ids[index].get_mut(length) else {
+            debug_assert!(
+                length < HEX_MAX_NEIGHBORS,
+                "hexahedral adjacency exceeded seven neighbors"
+            );
+            return;
+        };
+        *slot = b;
+        self.lengths[index] += 1;
+    }
+
+    fn neighbors(
+        &self,
+        vertices: &[VertexId; HEX_VERTEX_COUNT],
+        target: VertexId,
+    ) -> Option<&[VertexId]> {
+        let index = vertices.iter().position(|&vertex| vertex == target)?;
+        self.ids[index].get(..self.lengths[index])
+    }
+}
 
 /// Canonicalize a triangle vertex triplet for orientation-invariant hashing.
 ///
@@ -24,8 +120,40 @@ type TriKey = [VertexId; 3];
 #[inline]
 fn canonical_tri_key(nodes: [VertexId; 3]) -> TriKey {
     let mut key = nodes;
-    key.sort_unstable_by_key(|vid| vid.as_usize());
+    if key[0] > key[1] {
+        key.swap(0, 1);
+    }
+    if key[1] > key[2] {
+        key.swap(1, 2);
+    }
+    if key[0] > key[1] {
+        key.swap(0, 1);
+    }
     key
+}
+
+#[inline]
+fn all_unique<const N: usize>(values: &[VertexId; N]) -> bool {
+    values
+        .iter()
+        .enumerate()
+        .all(|(index, value)| !values[..index].contains(value))
+}
+
+/// Upper bound for the face identities inserted during conversion.
+///
+/// A hexahedral cell produces at most six tetrahedra, and each tetrahedron
+/// submits four triangular faces to the registry. Preserved cells submit each
+/// of their existing faces once. Shared faces are deduplicated after this
+/// reservation, so the bound is sufficient without depending on scalar `T`.
+fn estimated_face_map_capacity(cells: &[Cell]) -> usize {
+    cells.iter().fold(0, |capacity, cell| {
+        let additions = match cell.element_type {
+            ElementType::Hexahedron => HEX_MAX_TETRAHEDRA * TETRAHEDRON_FACE_COUNT,
+            _ => cell.faces.len(),
+        };
+        capacity.saturating_add(additions)
+    })
 }
 
 /// Converter for decomposing hexahedral meshes into tetrahedral ones
@@ -43,13 +171,13 @@ impl HexToTetConverter {
 
         // 2. Identify boundary faces and map them
         // Key: canonical triangle vertex triplet, Value: new FaceId
-        let mut face_map: HashMap<TriKey, FaceId> = HashMap::with_capacity(mesh.faces.len() * 3);
+        let mut face_map: HashMap<TriKey, FaceId> =
+            HashMap::with_capacity(estimated_face_map_capacity(&mesh.cells));
 
         // 3. Process cells
         for c in &mesh.cells {
             if c.element_type == ElementType::Hexahedron {
-                let hex_vertices = Self::collect_unique_hex_vertices(c, mesh);
-                if hex_vertices.len() == 8 {
+                if let Some(hex_vertices) = Self::collect_unique_hex_vertices(c, &mesh.faces) {
                     let length_scale = Self::characteristic_length(mesh, &hex_vertices);
                     let tol_factor = <T as Scalar>::from_f64(1e-12);
                     let volume_tol = length_scale * length_scale * length_scale * tol_factor;
@@ -61,10 +189,10 @@ impl HexToTetConverter {
                     if let Some(recovered_order) =
                         Self::recover_hex_vertex_order(c, mesh, volume_tol)
                     {
-                        if let Some(tets) =
+                        if let Some((tets, _)) =
                             Self::select_hex_decomposition(mesh, recovered_order, volume_tol)
                         {
-                            for nodes in tets {
+                            for &nodes in tets.as_slice() {
                                 Self::add_tet(&mut new_mesh, &mut face_map, nodes);
                             }
                             decomposed = true;
@@ -72,32 +200,28 @@ impl HexToTetConverter {
                     }
 
                     if !decomposed {
-                        if let Ok(raw_order) = <[VertexId; 8]>::try_from(hex_vertices.as_slice()) {
-                            if let Some(tets) =
-                                Self::select_hex_decomposition(mesh, raw_order, volume_tol)
-                            {
-                                for nodes in tets {
-                                    Self::add_tet(&mut new_mesh, &mut face_map, nodes);
-                                }
-                                decomposed = true;
+                        if let Some((tets, _)) =
+                            Self::select_hex_decomposition(mesh, hex_vertices, volume_tol)
+                        {
+                            for &nodes in tets.as_slice() {
+                                Self::add_tet(&mut new_mesh, &mut face_map, nodes);
                             }
+                            decomposed = true;
                         }
                     }
 
                     if !decomposed {
                         // Final safeguard: keep only non-degenerate tetrahedra.
-                        if let Ok(raw_order) = <[VertexId; 8]>::try_from(hex_vertices.as_slice()) {
-                            for nodes in Self::hex_six_tet_pattern(raw_order) {
-                                if Self::is_non_degenerate_tet(mesh, nodes, volume_tol) {
-                                    Self::add_tet(&mut new_mesh, &mut face_map, nodes);
-                                }
+                        for nodes in Self::hex_six_tet_pattern(hex_vertices) {
+                            if Self::is_non_degenerate_tet(mesh, nodes, volume_tol) {
+                                Self::add_tet(&mut new_mesh, &mut face_map, nodes);
                             }
                         }
                     }
                 }
             } else {
                 // Keep other cells (e.g. already tetrahedra), remapping faces
-                let mut new_faces = Vec::new();
+                let mut new_faces = Vec::with_capacity(c.faces.len());
                 for &f_idx_raw in &c.faces {
                     let f_idx = FaceId::from_usize(f_idx_raw);
                     let face = mesh.faces.get(f_idx);
@@ -129,19 +253,22 @@ impl HexToTetConverter {
         new_mesh
     }
 
-    fn collect_unique_hex_vertices<T: Scalar>(cell: &Cell, mesh: &IndexedMesh<T>) -> Vec<VertexId> {
-        let mut vertices = Vec::with_capacity(8);
-        let mut seen: HashSet<VertexId> = HashSet::with_capacity(8);
+    fn collect_unique_hex_vertices(cell: &Cell, faces: &FaceStore) -> Option<[VertexId; 8]> {
+        let mut vertices = [VertexId::default(); 8];
+        let mut vertex_count = 0;
         for &f_idx_raw in &cell.faces {
             let f_idx = FaceId::from_usize(f_idx_raw);
-            let face = mesh.faces.get(f_idx);
+            let face = faces.get(f_idx);
             for &v_idx in &face.vertices {
-                if seen.insert(v_idx) {
-                    vertices.push(v_idx);
+                if vertices[..vertex_count].contains(&v_idx) {
+                    continue;
                 }
+                let slot = vertices.get_mut(vertex_count)?;
+                *slot = v_idx;
+                vertex_count += 1;
             }
         }
-        vertices
+        (vertex_count == vertices.len()).then_some(vertices)
     }
 
     fn characteristic_length<T: Scalar>(mesh: &IndexedMesh<T>, vertices: &[VertexId]) -> T {
@@ -172,14 +299,23 @@ impl HexToTetConverter {
         nodes: [VertexId; 4],
         volume_tol: T,
     ) -> bool {
+        Self::tet_six_volume_if_valid(mesh, nodes, volume_tol).is_some()
+    }
+
+    fn tet_six_volume_if_valid<T: Scalar>(
+        mesh: &IndexedMesh<T>,
+        nodes: [VertexId; 4],
+        volume_tol: T,
+    ) -> Option<T> {
         for i in 0..4 {
             for j in (i + 1)..4 {
                 if nodes[i] == nodes[j] {
-                    return false;
+                    return None;
                 }
             }
         }
-        Self::tet_six_volume(mesh, nodes) > volume_tol
+        let six_v = Self::tet_six_volume(mesh, nodes);
+        (six_v > volume_tol).then_some(six_v)
     }
 
     fn add_tet<T: Scalar>(
@@ -222,10 +358,7 @@ impl HexToTetConverter {
     ) -> Option<T> {
         let mut min_vol: Option<T> = None;
         for nodes in tets {
-            if !Self::is_non_degenerate_tet(mesh, *nodes, volume_tol) {
-                return None;
-            }
-            let six_v = Self::tet_six_volume(mesh, *nodes);
+            let six_v = Self::tet_six_volume_if_valid(mesh, *nodes, volume_tol)?;
             min_vol = Some(match min_vol {
                 Some(v) => {
                     if v < six_v {
@@ -244,7 +377,7 @@ impl HexToTetConverter {
         mesh: &IndexedMesh<T>,
         order: [VertexId; 8],
         volume_tol: T,
-    ) -> Option<Vec<[VertexId; 4]>> {
+    ) -> Option<(TetDecomposition, T)> {
         let five = Self::hex_five_tet_pattern(order);
         let six = Self::hex_six_tet_pattern(order);
         let q5 = Self::decomposition_min_volume(mesh, &five, volume_tol);
@@ -253,28 +386,29 @@ impl HexToTetConverter {
         match (q5, q6) {
             (Some(v5), Some(v6)) => {
                 if v5 >= v6 {
-                    Some(five.to_vec())
+                    Some((TetDecomposition::from_five(five), v5))
                 } else {
-                    Some(six.to_vec())
+                    Some((TetDecomposition::from_six(six), v6))
                 }
             }
-            (Some(_), None) => Some(five.to_vec()),
-            (None, Some(_)) => Some(six.to_vec()),
+            (Some(v5), None) => Some((TetDecomposition::from_five(five), v5)),
+            (None, Some(v6)) => Some((TetDecomposition::from_six(six), v6)),
             (None, None) => None,
         }
     }
 
     fn common_neighbor_excluding(
-        adjacency: &HashMap<VertexId, Vec<VertexId>>,
+        vertices: &[VertexId; HEX_VERTEX_COUNT],
+        adjacency: &HexAdjacency,
         a: VertexId,
         b: VertexId,
         excluded: &[VertexId],
     ) -> Option<VertexId> {
-        let a_neighbors = adjacency.get(&a)?;
-        let b_neighbors = adjacency.get(&b)?;
+        let a_neighbors = adjacency.neighbors(vertices, a)?;
+        let b_neighbors = adjacency.neighbors(vertices, b)?;
         let mut candidate = None;
         for &n in a_neighbors {
-            if Self::sorted_contains(b_neighbors, n) && !excluded.contains(&n) {
+            if Self::contains_neighbor(b_neighbors, n) && !excluded.contains(&n) {
                 if candidate.is_some() {
                     return None;
                 }
@@ -284,56 +418,46 @@ impl HexToTetConverter {
         candidate
     }
 
-    /// Membership query on sorted adjacency vectors.
+    /// Membership query on bounded adjacency vectors.
     ///
-    /// # Theorem — Binary Membership Equivalence
+    /// # Theorem — Bounded Neighbor Membership
     ///
-    /// For a sorted deduplicated vector `S`, `binary_search(x).is_ok()` is true
-    /// iff `x ∈ S`, equivalent to linear `contains(x)` with lower asymptotic
-    /// lookup cost. Since adjacency vectors are sorted/deduplicated immediately
-    /// after construction, this predicate is exact. ∎
+    /// Each adjacency vector has at most seven entries, so linear membership
+    /// has a fixed small bound and avoids sorting work in every recovered cell.
+    /// The insertion path deduplicates entries, but duplicate handling is not
+    /// required for this membership contract. ∎
     #[inline]
-    fn sorted_contains(sorted: &[VertexId], needle: VertexId) -> bool {
-        sorted
-            .binary_search_by_key(&needle.as_usize(), |vid| vid.as_usize())
-            .is_ok()
+    fn contains_neighbor(neighbors: &[VertexId], needle: VertexId) -> bool {
+        neighbors.contains(&needle)
+    }
+
+    fn build_hex_adjacency(
+        cell: &Cell,
+        vertices: &[VertexId; HEX_VERTEX_COUNT],
+        faces: &FaceStore,
+    ) -> HexAdjacency {
+        let mut adjacency = HexAdjacency::new();
+        for &f_idx_raw in &cell.faces {
+            let f_idx = FaceId::from_usize(f_idx_raw);
+            let face = faces.get(f_idx);
+            let n = face.vertices.len();
+            if n < 3 {
+                continue;
+            }
+            for i in 0..n {
+                adjacency.add_undirected(vertices, face.vertices[i], face.vertices[(i + 1) % n]);
+            }
+        }
+        adjacency
     }
 
     fn recover_hex_vertex_order<T: Scalar>(
         cell: &Cell,
         mesh: &IndexedMesh<T>,
         volume_tol: T,
-    ) -> Option<[VertexId; 8]> {
-        let vertices = Self::collect_unique_hex_vertices(cell, mesh);
-        if vertices.len() != 8 {
-            return None;
-        }
-
-        let mut adjacency: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(8);
-        for &f_idx_raw in &cell.faces {
-            let f_idx = FaceId::from_usize(f_idx_raw);
-            let face = mesh.faces.get(f_idx);
-            let n = face.vertices.len();
-            if n < 3 {
-                continue;
-            }
-            for i in 0..n {
-                let a = face.vertices[i];
-                let b = face.vertices[(i + 1) % n];
-                adjacency
-                    .entry(a)
-                    .or_insert_with(|| Vec::with_capacity(3))
-                    .push(b);
-                adjacency
-                    .entry(b)
-                    .or_insert_with(|| Vec::with_capacity(3))
-                    .push(a);
-            }
-        }
-        for neigh in adjacency.values_mut() {
-            neigh.sort_unstable_by_key(|vid| vid.as_usize());
-            neigh.dedup();
-        }
+    ) -> Option<[VertexId; HEX_VERTEX_COUNT]> {
+        let vertices = Self::collect_unique_hex_vertices(cell, &mesh.faces)?;
+        let adjacency = Self::build_hex_adjacency(cell, &vertices, &mesh.faces);
 
         let perms = [
             [0, 1, 2],
@@ -348,7 +472,7 @@ impl HexToTetConverter {
         let mut best_quality: Option<T> = None;
 
         for &v0 in &vertices {
-            let Some(neigh) = adjacency.get(&v0) else {
+            let Some(neigh) = adjacency.neighbors(&vertices, v0) else {
                 continue;
             };
             if neigh.len() != 3 {
@@ -360,33 +484,36 @@ impl HexToTetConverter {
                 let v3 = neigh[perm[1]];
                 let v4 = neigh[perm[2]];
 
-                let Some(v2) = Self::common_neighbor_excluding(&adjacency, v1, v3, &[v0, v4])
+                let Some(v2) =
+                    Self::common_neighbor_excluding(&vertices, &adjacency, v1, v3, &[v0, v4])
                 else {
                     continue;
                 };
-                let Some(v5) = Self::common_neighbor_excluding(&adjacency, v1, v4, &[v0, v3])
+                let Some(v5) =
+                    Self::common_neighbor_excluding(&vertices, &adjacency, v1, v4, &[v0, v3])
                 else {
                     continue;
                 };
-                let Some(v7) = Self::common_neighbor_excluding(&adjacency, v3, v4, &[v0, v1])
+                let Some(v7) =
+                    Self::common_neighbor_excluding(&vertices, &adjacency, v3, v4, &[v0, v1])
                 else {
                     continue;
                 };
 
-                let Some(n2) = adjacency.get(&v2) else {
+                let Some(n2) = adjacency.neighbors(&vertices, v2) else {
                     continue;
                 };
-                let Some(n5) = adjacency.get(&v5) else {
+                let Some(n5) = adjacency.neighbors(&vertices, v5) else {
                     continue;
                 };
-                let Some(n7) = adjacency.get(&v7) else {
+                let Some(n7) = adjacency.neighbors(&vertices, v7) else {
                     continue;
                 };
 
                 let mut v6_candidate = None;
                 for &n in n2 {
-                    if Self::sorted_contains(n5, n)
-                        && Self::sorted_contains(n7, n)
+                    if Self::contains_neighbor(n5, n)
+                        && Self::contains_neighbor(n7, n)
                         && n != v0
                         && n != v1
                         && n != v2
@@ -407,23 +534,14 @@ impl HexToTetConverter {
                 };
 
                 let order = [v0, v1, v2, v3, v4, v5, v6, v7];
-                let mut unique = order.to_vec();
-                unique.sort_unstable_by_key(|vid| vid.as_usize());
-                unique.dedup();
-                if unique.len() != 8 {
+                if !all_unique(&order) {
                     continue;
                 }
 
-                let Some(tets) = Self::select_hex_decomposition(mesh, order, volume_tol) else {
+                let Some((_, quality)) = Self::select_hex_decomposition(mesh, order, volume_tol)
+                else {
                     continue;
                 };
-                let quality = tets
-                    .iter()
-                    .map(|nodes| Self::tet_six_volume(mesh, *nodes))
-                    .fold(
-                        eunomia::RealField::max_value(),
-                        |a, b| if a < b { a } else { b },
-                    );
 
                 if best_quality.is_none_or(|best| quality > best) {
                     best_quality = Some(quality);
@@ -441,12 +559,13 @@ impl HexToTetConverter {
         nodes: [VertexId; 3],
     ) -> FaceId {
         let key = canonical_tri_key(nodes);
-        if let Some(&idx) = map.get(&key) {
-            idx
-        } else {
-            let idx = mesh.add_face(nodes[0], nodes[1], nodes[2]);
-            map.insert(key, idx);
-            idx
+        match map.entry(key) {
+            Entry::Occupied(entry) => *entry.get(),
+            Entry::Vacant(entry) => {
+                let idx = mesh.add_face(nodes[0], nodes[1], nodes[2]);
+                entry.insert(idx);
+                idx
+            }
         }
     }
 
@@ -458,12 +577,13 @@ impl HexToTetConverter {
 #[cfg(test)]
 mod tests {
     use super::canonical_tri_key;
+    use super::estimated_face_map_capacity;
     use super::HexToTetConverter;
     use crate::domain::core::index::FaceId;
     use crate::domain::core::index::VertexId;
-    use crate::domain::grid::StructuredGridBuilder;
+    use crate::domain::grid::StructuredHexGridBuilder;
     use crate::domain::mesh::IndexedMesh;
-    use crate::domain::topology::ElementType;
+    use crate::domain::topology::{Cell, ElementType};
 
     fn tet_six_volume(mesh: &IndexedMesh<f64>, cell: &crate::domain::topology::Cell) -> f64 {
         let mut vertices = Vec::new();
@@ -509,10 +629,10 @@ mod tests {
 
     #[test]
     fn structured_hex_mesh_converts_to_non_degenerate_tets() {
-        let hex_mesh = StructuredGridBuilder::new(4, 4, 4).build().unwrap();
+        let hex_mesh = StructuredHexGridBuilder::new(4, 4, 4).build();
         let tet_mesh = HexToTetConverter::convert(&hex_mesh);
 
-        assert!(tet_mesh.cell_count() > 0);
+        assert_eq!(tet_mesh.cell_count(), 4 * 4 * 4 * 5);
         assert!(tet_mesh
             .cells()
             .iter()
@@ -523,10 +643,14 @@ mod tests {
     #[test]
     fn branching_mesh_conversion_avoids_degenerate_tets() {
         // Use a larger structured grid to exercise non-trivial tet conversion.
-        let hex_mesh = StructuredGridBuilder::new(6, 4, 4).build().unwrap();
+        let hex_mesh = StructuredHexGridBuilder::new(6, 4, 4).build();
         let tet_mesh = HexToTetConverter::convert(&hex_mesh);
 
-        assert!(tet_mesh.cell_count() > 0);
+        assert_eq!(tet_mesh.cell_count(), 6 * 4 * 4 * 5);
+        assert!(tet_mesh
+            .cells()
+            .iter()
+            .all(|c| c.element_type == ElementType::Tetrahedron));
         assert_no_degenerate_tets(&tet_mesh);
     }
 
@@ -543,7 +667,7 @@ mod tests {
     }
 
     #[test]
-    fn adversarial_sorted_contains_matches_linear_membership() {
+    fn adversarial_neighbor_contains_matches_linear_membership() {
         let mut v = vec![
             VertexId::new(9),
             VertexId::new(1),
@@ -557,11 +681,21 @@ mod tests {
         for probe in 0..12 {
             let p = VertexId::new(probe);
             let linear = v.contains(&p);
-            let bsearch = HexToTetConverter::sorted_contains(&v, p);
+            let bounded = HexToTetConverter::contains_neighbor(&v, p);
             assert_eq!(
-                bsearch, linear,
-                "binary membership must match linear membership for sorted unique vectors"
+                bounded, linear,
+                "bounded membership must match linear membership"
             );
         }
+    }
+
+    #[test]
+    fn face_map_capacity_covers_mixed_cell_insertions() {
+        let cells = vec![
+            Cell::hexahedron(0, 1, 2, 3, 4, 5),
+            Cell::tetrahedron(6, 7, 8, 9),
+        ];
+
+        assert_eq!(estimated_face_map_capacity(&cells), 6 * 4 + 4);
     }
 }

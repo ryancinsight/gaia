@@ -5,8 +5,8 @@
 //!
 //! # Algorithm — N-ary Dense Adjacency Construction
 //!
-//! All three adjacency maps are built by first counting each list's required
-//! capacity, then filling pre-sized dense vectors:
+//! All three adjacency maps are built by first counting each row's required
+//! capacity, then filling contiguous value buffers addressed by row offsets:
 //!
 //! 1. **Count pass** (O(F + E)): Count vertex-face incidence, vertex valence,
 //!    and pre-dedup face-neighbor entries.
@@ -14,11 +14,10 @@
 //!    for each edge, record vertex → vertex adjacency
 //!    and, for each pair of faces sharing the edge, record face → face adjacency.
 //!
-//! Dense `Vec<Vec<T>>` arrays indexed by `VertexId::as_usize()` and
-//! `FaceId::as_usize()` replace the previous `HashMap`-based storage,
-//! eliminating per-lookup hash overhead and reducing memory from ~56 bytes
-//! per hash-map bucket to a single `Vec<T>` pointer (24 bytes on 64-bit)
-//! per entity.
+//! Packed rows indexed by `VertexId::as_usize()` and `FaceId::as_usize()` use
+//! one offset table and one contiguous value buffer per relation.  This keeps
+//! lookups O(1) while avoiding one heap allocation and one `Vec` header per
+//! entity.
 //!
 //! # Theorem — Vertex-Neighbor Uniqueness
 //!
@@ -46,7 +45,8 @@
 //! Hence each `(fi, fj)` pair appears at most once.  ∎
 //!
 //! A defensive sort+dedup is retained for `face_neighbors` to handle
-//! degenerate input (e.g., duplicated faces with different IDs).
+//! degenerate input (e.g., duplicated faces with different IDs).  Deduplication
+//! compacts the packed rows in place before the value buffer is frozen.
 //!
 //! # Complexity
 //!
@@ -57,21 +57,147 @@ use crate::domain::core::index::{FaceId, VertexId};
 use crate::infrastructure::storage::edge_store::EdgeStore;
 use crate::infrastructure::storage::face_store::FaceStore;
 
+/// Contiguous adjacency rows addressed by an offset table.
+///
+/// The row count is `offsets.len() - 1`; row `r` occupies
+/// `values[offsets[r]..offsets[r + 1]]`.  The generic storage is independent
+/// of mesh scalar precision and is instantiated only for the index types used
+/// by the graph.
+struct PackedRows<T> {
+    offsets: Box<[usize]>,
+    values: Box<[T]>,
+}
+
+impl<T: Copy + Default> PackedRows<T> {
+    /// Allocate one value buffer from exact row capacities and return cursors
+    /// positioned at each row's start.
+    fn from_counts(counts: Vec<usize>) -> (Self, Vec<usize>) {
+        let mut offsets = Vec::with_capacity(counts.len() + 1);
+        offsets.push(0);
+
+        let mut total = 0usize;
+        for count in counts {
+            total = total
+                .checked_add(count)
+                .expect("invariant: adjacency storage size fits usize");
+            offsets.push(total);
+        }
+
+        let cursors = offsets[..offsets.len() - 1].to_vec();
+        let values = vec![T::default(); total].into_boxed_slice();
+
+        (
+            Self {
+                offsets: offsets.into_boxed_slice(),
+                values,
+            },
+            cursors,
+        )
+    }
+
+    /// Write the next value in a row during the fill pass.
+    #[inline]
+    fn write(&mut self, cursors: &mut [usize], row: usize, value: T) {
+        let cursor = cursors
+            .get_mut(row)
+            .expect("invariant: adjacency row exists");
+        let end = *self
+            .offsets
+            .get(row + 1)
+            .expect("invariant: adjacency row end exists");
+        let index = *cursor;
+        debug_assert!(index < end, "invariant: adjacency row capacity is exact");
+        *self
+            .values
+            .get_mut(index)
+            .expect("invariant: adjacency row has remaining capacity") = value;
+        *cursor = index + 1;
+    }
+}
+
+impl<T> PackedRows<T> {
+    /// Return a row, or an empty slice for an out-of-range ID.
+    #[inline]
+    fn get(&self, row: usize) -> &[T] {
+        let Some(next) = row.checked_add(1) else {
+            return &[];
+        };
+
+        match (self.offsets.get(row), self.offsets.get(next)) {
+            (Some(&start), Some(&end)) => &self.values[start..end],
+            _ => &[],
+        }
+    }
+
+    /// Number of rows in the packed relation.
+    #[inline]
+    fn row_count(&self) -> usize {
+        self.offsets.len().saturating_sub(1)
+    }
+}
+
+impl<T: Copy + Ord> PackedRows<T> {
+    /// Sort and deduplicate every row, compacting the value buffer in place.
+    fn sort_dedup(&mut self) {
+        let row_count = self.row_count();
+        let mut offsets = Vec::with_capacity(row_count + 1);
+        offsets.push(0);
+        let mut compacted = 0usize;
+
+        for row in 0..row_count {
+            let start = self.offsets[row];
+            let end = self.offsets[row + 1];
+            let unique_len = {
+                let row_values = &mut self.values[start..end];
+                row_values.sort_unstable();
+                dedup_sorted(row_values)
+            };
+
+            if compacted != start {
+                self.values
+                    .copy_within(start..start + unique_len, compacted);
+            }
+            compacted += unique_len;
+            offsets.push(compacted);
+        }
+
+        let values = std::mem::replace(&mut self.values, Vec::<T>::new().into_boxed_slice());
+        let mut values = values.into_vec();
+        values.truncate(compacted);
+        self.values = values.into_boxed_slice();
+        self.offsets = offsets.into_boxed_slice();
+    }
+}
+
+/// Return the unique prefix length of a sorted slice while compacting it.
+fn dedup_sorted<T: Copy + Eq>(values: &mut [T]) -> usize {
+    let mut unique_len = 0usize;
+    for read in 0..values.len() {
+        if unique_len == 0 || values[read] != values[unique_len - 1] {
+            if read != unique_len {
+                values.swap(read, unique_len);
+            }
+            unique_len += 1;
+        }
+    }
+    unique_len
+}
+
 /// Pre-built adjacency graph for vertex-vertex and vertex-face queries.
 ///
-/// Uses dense `Vec<Vec<T>>` arrays indexed by entity ID for O(1) lookups
-/// with zero hash overhead.  Replaces the previous `HashMap`-based storage.
+/// Uses packed rows indexed by entity ID for O(1) lookups with zero hash
+/// overhead and no per-entity heap allocations after construction.
 pub struct AdjacencyGraph {
     /// vertex → list of adjacent vertices (1-ring neighborhood).
     /// Indexed by `VertexId::as_usize()`.  No duplicates (see module-level
     /// vertex-neighbor uniqueness theorem).
-    vertex_neighbors: Vec<Vec<VertexId>>,
+    vertex_neighbors: PackedRows<VertexId>,
     /// vertex → list of incident faces.
     /// Indexed by `VertexId::as_usize()`.
-    vertex_faces: Vec<Vec<FaceId>>,
+    vertex_faces: PackedRows<FaceId>,
     /// face → list of adjacent faces (sharing an edge).
     /// Indexed by `FaceId::as_usize()`.
-    face_neighbors: Vec<Vec<FaceId>>,
+    face_neighbors: PackedRows<FaceId>,
 }
 
 impl AdjacencyGraph {
@@ -113,49 +239,40 @@ impl AdjacencyGraph {
             }
         }
 
-        let mut vertex_neighbors: Vec<Vec<VertexId>> = vertex_neighbor_counts
-            .into_iter()
-            .map(Vec::with_capacity)
-            .collect();
-        let mut vertex_faces: Vec<Vec<FaceId>> = vertex_face_counts
-            .into_iter()
-            .map(Vec::with_capacity)
-            .collect();
-        let mut face_neighbors: Vec<Vec<FaceId>> = face_neighbor_counts
-            .into_iter()
-            .map(Vec::with_capacity)
-            .collect();
+        let (mut vertex_neighbors, mut vertex_neighbor_cursors) =
+            PackedRows::from_counts(vertex_neighbor_counts);
+        let (mut vertex_faces, mut vertex_face_cursors) =
+            PackedRows::from_counts(vertex_face_counts);
+        let (mut face_neighbors, mut face_neighbor_cursors) =
+            PackedRows::from_counts(face_neighbor_counts);
 
         // Pass 1 — vertex → face incidence from face store.
         for (fid, face) in face_store.iter_enumerated() {
             for &vid in &face.vertices {
-                vertex_faces[vid.as_usize()].push(fid);
+                vertex_faces.write(&mut vertex_face_cursors, vid.as_usize(), fid);
             }
         }
 
         // Pass 2 — vertex-vertex and face-face from edge store.
         for edge in edge_store.iter() {
             let (a, b) = edge.vertices;
-            vertex_neighbors[a.as_usize()].push(b);
-            vertex_neighbors[b.as_usize()].push(a);
+            vertex_neighbors.write(&mut vertex_neighbor_cursors, a.as_usize(), b);
+            vertex_neighbors.write(&mut vertex_neighbor_cursors, b.as_usize(), a);
 
             // All face-pairs sharing this edge are neighbors.
             for i in 0..edge.faces.len() {
                 for j in (i + 1)..edge.faces.len() {
                     let fi = edge.faces[i];
                     let fj = edge.faces[j];
-                    face_neighbors[fi.as_usize()].push(fj);
-                    face_neighbors[fj.as_usize()].push(fi);
+                    face_neighbors.write(&mut face_neighbor_cursors, fi.as_usize(), fj);
+                    face_neighbors.write(&mut face_neighbor_cursors, fj.as_usize(), fi);
                 }
             }
         }
 
         // Vertex neighbors: duplicates are impossible (uniqueness theorem).
         // Face neighbors: defensive dedup for degenerate input.
-        for v in &mut face_neighbors {
-            v.sort_unstable();
-            v.dedup();
-        }
+        face_neighbors.sort_dedup();
 
         Self {
             vertex_neighbors,
@@ -167,25 +284,19 @@ impl AdjacencyGraph {
     /// Get the 1-ring vertex neighborhood.
     #[must_use]
     pub fn vertex_neighbors(&self, v: VertexId) -> &[VertexId] {
-        self.vertex_neighbors
-            .get(v.as_usize())
-            .map_or(&[], Vec::as_slice)
+        self.vertex_neighbors.get(v.as_usize())
     }
 
     /// Get faces incident to a vertex.
     #[must_use]
     pub fn vertex_faces(&self, v: VertexId) -> &[FaceId] {
-        self.vertex_faces
-            .get(v.as_usize())
-            .map_or(&[], Vec::as_slice)
+        self.vertex_faces.get(v.as_usize())
     }
 
     /// Get faces neighboring a given face (sharing an edge).
     #[must_use]
     pub fn face_neighbors(&self, f: FaceId) -> &[FaceId] {
-        self.face_neighbors
-            .get(f.as_usize())
-            .map_or(&[], Vec::as_slice)
+        self.face_neighbors.get(f.as_usize())
     }
 
     /// Vertex valence (number of adjacent vertices).
@@ -197,13 +308,13 @@ impl AdjacencyGraph {
     /// Number of vertices tracked in the adjacency graph.
     #[must_use]
     pub fn num_vertices(&self) -> usize {
-        self.vertex_neighbors.len()
+        self.vertex_neighbors.row_count()
     }
 
     /// Number of faces tracked in the adjacency graph.
     #[must_use]
     pub fn num_faces(&self) -> usize {
-        self.face_neighbors.len()
+        self.face_neighbors.row_count()
     }
 }
 
@@ -446,6 +557,20 @@ mod tests {
         }
     }
 
+    /// Duplicate triangles share three edges, but the public relation keeps
+    /// one neighboring face entry after packed-row deduplication.
+    #[test]
+    fn duplicate_faces_are_deduplicated() {
+        let mut fs = FaceStore::new();
+        let face = FaceData::new(vid(0), vid(1), vid(2), RegionId::INVALID);
+        fs.push(face);
+        fs.push(face);
+
+        let adj = adj_from(&fs);
+        assert_eq!(adj.face_neighbors(FaceId::from_usize(0)), &[FaceId(1)]);
+        assert_eq!(adj.face_neighbors(FaceId::from_usize(1)), &[FaceId(0)]);
+    }
+
     /// Bowtie vertex (pinch vertex) — two fans joined at one vertex.
     ///
     /// This is a known failure mode in mesh libraries: a vertex shared by
@@ -494,8 +619,9 @@ mod tests {
     /// **Statement.** Querying `vertex_neighbors`, `vertex_faces`, or
     /// `face_neighbors` with an ID beyond the dense array returns `&[]`.
     ///
-    /// **Proof.** Each accessor uses `.get(id).map_or(&[], ...)`, which
-    /// returns the default empty slice for out-of-bounds indices.  ∎
+    /// **Proof.** Each accessor checks both row offsets with `.get()` and
+    /// returns the default empty slice when either offset is out of bounds.
+    /// ∎
     #[test]
     fn out_of_range_id_returns_empty() {
         let fs = tetra_store();

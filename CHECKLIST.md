@@ -1,5 +1,23 @@
 # Checklist
 
+- [x] **Atlas tetrahedral volume-builder contract [minor]**
+    - [x] Audit current Gaia surface, volume-cell, boundary-label, and I/O
+      contracts against CFDrs, Kwavers, Helios, and RITK consumers.
+    - [x] Remove retired reverse CFDrs integration test targets after the
+      CFDrs → Gaia ownership boundary was established.
+    - [x] Add one validated Gaia-owned tetrahedral builder and route the
+      structured-grid generator through it.
+    - [x] Verify generic f32/f64 value semantics, shared-face deduplication,
+      positive cell orientation, and rejection of invalid cells.
+    - [x] Synchronize the public mesh documentation and record the residual
+      mixed-cell/polygonal-face boundary as out of the current consumer scope.
+
+- [x] **Scalar-independent tetrahedral topology [patch]**
+    - [x] Extract face identity, validation, and cell construction from the
+      scalar-parameterized tetrahedral kernel.
+    - [x] Preserve native-precision orientation and value-semantic behavior.
+    - [x] Verify release LLVM output keeps topology helpers non-generic.
+
 - [ ] **crates.io release automation [patch]**
     - [x] Correct the Mnemosyne and Moirai facade package identities and retain
       their public dependency keys.
@@ -292,4 +310,344 @@
     - [x] Run full test suite (968 tests).
     - [x] Verify documentation compilation (`RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`).
     - [x] Run benchmark verification tests.
+
+- [x] **Phase 32: Hex-to-tet Fixed-Capacity Decomposition [patch]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`.
+    - [x] Replace per-cell unique-vertex, decomposition, and face-key
+      allocations with fixed-capacity storage and direct canonical ordering.
+    - [x] Preserve native-precision volume validation and converted topology.
+    - [x] Verify 4/4 focused conversion tests, 932/932 all-feature library
+      tests, formatting, Clippy, 6/6 doctests, and warning-denied rustdoc.
+    - [x] Verify release LLVM output drops the library from 400,041 to 398,569
+      lines and the canonical triangle key from general-sort expansion to a
+      57-line compare-swap helper.
+    - [x] Record residual: no runtime throughput claim is made without a
+      matched Criterion baseline; the evidence is allocation and codegen
+      structure for this slice.
+
+- [x] **Phase 33: Exercise Real Hexahedral Conversion [patch]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+      `src/domain/grid.rs`, `benches/hex_to_tet_performance.rs`,
+      `Cargo.toml`, and `README.md`.
+    - [x] Replace tetrahedral-only conversion fixtures with a triangulated
+      hexahedral fixture that reaches the conversion branch.
+    - [x] Add value-semantic coverage for converted cell count, topology, and
+      non-degenerate tetrahedral volumes.
+    - [x] Add a bounded Criterion target for the real conversion workload and
+      compare the current implementation against its parent revision: 1.0689 ms
+      current versus 1.0987 ms parent for 512 cells, with overlapping ranges.
+    - [x] Verify 4/4 focused tests, 932/932 all-feature library tests,
+      benchmark smoke, formatting, Clippy, 6/6 doctests, and warning-denied
+      rustdoc.
+    - [x] Record residual: the matched benchmark does not establish a
+      statistically significant runtime change; the delivered claim remains
+      fixture correctness plus allocation/codegen structure.
+
+- [x] **Phase 34: Share Orient-Outward Face Topology [audit]**
+    - [x] Owner: Codex; scope: `src/domain/mesh/indexed.rs`.
+    - [x] Evaluate extracting scalar-independent undirected face-edge
+      construction from
+      `IndexedMesh::orient_outward` into one non-generic helper.
+    - [x] Preserve orientation, nesting, signed-volume, and normal contracts
+      in the retained implementation; focused orientation tests remained 4/4.
+    - [x] Reject the candidate: `orient_outward` fell from 2,073 to 1,954
+      LLVM lines, but the helper added 144 lines and total release output rose
+      from 399,675 to 399,700 lines. No production code change is retained.
+
+- [x] **Phase 35: Retain-Component Remap Memory Audit [patch]**
+    - [x] Owner: Codex; scope: `src/domain/mesh/indexed.rs`.
+    - [x] Avoid allocating reconstruction and remap storage when all connected
+      components meet the retention threshold.
+    - [x] Replace `Option<VertexId>` and `Option<FaceId>` remap vectors with
+      compact sentinel-backed `u32` storage while preserving face, vertex,
+      attribute, and label results.
+    - [x] Verify focused component-retention tests, generic scalar coverage,
+      full format/lint/test/doc gates, and release LLVM output against the
+      current baseline: 399,422 lines versus 399,675 before the slice.
+    - [x] Record residual: the change establishes no-op allocation avoidance,
+      compact remap storage, and lower release codegen; no runtime throughput
+      claim is made without a matched benchmark.
+
+- [x] **Phase 36: Hex Vertex-Order Adjacency Storage [patch]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`.
+    - [x] Replace per-cell `HashMap<VertexId, Vec<VertexId>>` adjacency
+      construction with bounded fixed storage for the eight-node topology.
+    - [x] Keep adjacency construction and neighbor queries non-generic so
+      scalar-dependent recovery monomorphizes only the geometric kernel.
+    - [x] Preserve recovered-order selection, decomposition validity, and
+      fallback behavior; 4/4 focused conversion tests and 933/933 all-feature
+      library tests pass.
+    - [x] Reject the first fixed-storage form's sort path: it raised release
+      LLVM output to 401,983 lines. The retained deduplicated linear-membership
+      form is 399,822 lines versus 399,422 before the slice.
+    - [x] Verify the bounded benchmark: 398.10 us median on 512 cells; the
+      final form improved 7.4178% over the preceding fixed-storage form
+      (p < 0.05), following that form's 63.046% improvement over the stored
+      pre-slice baseline. One severe outlier occurred in the 10-sample run.
+    - [x] Verify formatting, Clippy, doctests, and warning-denied rustdoc.
+      Residual: the benchmark result is workload-specific and the codegen
+      output is 400 LLVM lines above Phase 35; no broader runtime claim is made.
+
+- [x] **Phase 37: Pack Adjacency Rows [patch]**
+    - [x] Owner: Codex; scope: `src/domain/topology/adjacency.rs` and its
+      topology tests.
+    - [x] Replace the three nested `Vec<Vec<...>>` adjacency families with
+      contiguous packed rows and offsets while preserving the public query
+      slices and invalid-ID behavior.
+    - [x] Preserve duplicate-face defensive deduplication and connected-
+      component semantics.
+    - [x] Verify the packed layout analytically: the 64×64 benchmark mesh has
+      4,225 vertices and 8,192 faces, so the former three nested families
+      carried 16,642 inner `Vec` headers (399,408 bytes at 24 bytes each),
+      while packed offsets require 16,645 `usize` entries (133,160 bytes);
+      value buffers remain contiguous 4-byte index storage. This is a layout
+      bound, not a process-RSS measurement.
+    - [x] Verify the bounded benchmark: packed construction is 257.10 us
+      median ([232.53, 274.79] us) versus 680.11 us ([651.04, 702.11] us)
+      for the parent nested-row implementation on the same 64×64 grid. The
+      independent runs establish a workload-specific construction reduction;
+      the automatic cross-worktree Criterion delta was discarded after the
+      shared target reused the parent binary.
+    - [x] Run full Gaia gates: formatting, warning-denied all-target Clippy,
+      934/934 all-feature library nextest tests with one skipped, 6/6
+      doctests with 39 ignored, and warning-denied all-feature rustdoc.
+    - [x] Verify final release codegen at 400,732 LLVM lines versus 399,822
+      before the slice (+910); benchmark smoke passes. Residual: the codegen
+      increase is accepted for the measured construction and layout result,
+      and no broader throughput or process-RSS claim is made.
+
+- [x] **Phase 38: Inline Boundary Loop Links [patch]**
+    - [x] Owner: Codex; scope: `src/application/watertight/seal.rs` and its
+      boundary-loop tests.
+    - [x] Evaluate inline-two/spill storage and an indexed contiguous link
+      arena; the three focused semantic tests and `cargo check --lib
+      --all-features` passed for the candidate forms.
+    - [x] Reject both candidate forms on release codegen: direct
+      `HashMap<VertexId, BoundaryLinks>` measured 402,102 LLVM lines and the
+      indexed `HashMap<VertexId, usize>` arena measured 402,246, versus the
+      400,732 Phase 37 baseline. The indexed arena was +1,514 lines and did
+      not recover the monomorphization cost.
+    - [x] Restore the original `HashMap<VertexId, Vec<VertexId>>` path after
+      the rejection. No runtime, allocation, or process-memory improvement is
+      claimed; the inline/spill design remains an audit residual for a future
+      measurement-backed implementation.
+
+- [x] **Phase 39: Consolidate CSG Boundary Loop Tracing [patch]**
+    - [x] Owner: Codex; scope: `src/application/csg/arrangement/stitch.rs` and
+      `src/application/csg/arrangement/patch.rs`.
+    - [x] Use one non-generic boundary-loop DFS implementation for stitching
+      and patching, preserving the callers' distinct path and output limits:
+      `512/512` for stitching and `MAX_PATCH_LOOP * 4` traversal with a
+      `MAX_PATCH_LOOP` output cap for patching.
+    - [x] Verify closed loops, figure-8 inner-cycle extraction, patch filling,
+      arrangement volume, and watertightness: 210/210 focused arrangement
+      tests pass and the full all-feature library gate passes 934/934 with one
+      skipped.
+    - [x] Verify release codegen: 399,937 LLVM lines versus 400,732 before the
+      slice (-795); the duplicate patch-local DFS is removed and one shared
+      `stitch::trace_loops` symbol remains at 683 LLVM lines.
+    - [x] Run formatting, warning-denied Clippy, doctests (6/6 with 39
+      ignored), and warning-denied all-feature rustdoc. Residual: this is a
+      codegen/monomorphization improvement; no runtime-throughput or process-
+      memory improvement is claimed without a matched benchmark.
+
+- [x] **Phase 40: Hoist BCC Boundary Adjacency [patch]**
+    - [x] Owner: Codex; scope: `src/application/delaunay/dim3/lattice.rs` and
+      its BCC mesher tests.
+    - [x] Evaluate the non-generic boundary adjacency hoist; `cargo check
+      --lib --all-features` passed for the candidate.
+    - [x] Reject the hoist on release codegen: 400,983 LLVM lines versus the
+      399,937 Phase 39 baseline (+1,046). The helper and six closure bodies
+      outweighed the intended generic-fanout reduction.
+    - [x] Restore the original scalar-generic source. No runtime, allocation,
+      or process-memory improvement is claimed; the hoist remains a residual
+      for a future implementation with lower emitted helper cost.
+
+- [x] **Phase 41: Hoist Component Analysis Core [patch]**
+    - [x] Owner: Codex; scope: `fragment_analysis.rs` and
+      `fragment_classification.rs`.
+    - [x] Replace the single-instantiation callback/generic edge-analysis
+      helper with a non-generic normalized-edge core; preserve source-boundary
+      connectivity and the existing component-root contract.
+    - [x] Verify classification value semantics, release LLVM-line output, and
+      the focused/full Gaia gates. Focused classification: 4/4; arrangement:
+      210/210; full native: 934/934; doctests: 6/6 with 39 ignored; clippy,
+      rustdoc, and format checks pass. Release codegen is 399,858 LLVM lines /
+      7,595 copies versus the Phase 39 baseline of 399,937 / 7,598. This is
+      a codegen/monomorphization result; no runtime-throughput or process-memory
+      improvement is claimed without a matched benchmark.
+
+- [x] **Phase 42: Pack Marching-Cubes Edge Cache [perf]**
+    - [x] Owner: Codex; scope: `src/domain/geometry/tpms/marching_cubes.rs`,
+      its value-semantic tests, and a focused TPMS benchmark.
+    - [x] Replace the hash-keyed per-edge cache with three bounded axis-aligned
+      edge arrays; preserve shared-edge identity, output topology, and normals.
+      The cache now stores `3 * n * (n + 1)^2` raw `u32` slots and uses the
+      existing `u32::MAX` invalid-mesh-ID invariant, removing hash keys,
+      bucket metadata, and the `Option<VertexId>` occupancy discriminant. At
+      resolution 24, the slot payload is 45,000 `u32` values (180,000 bytes),
+      excluding the three vector headers; no process-RSS reduction is claimed.
+    - [x] Verify TPMS value semantics: 38/38 focused tests pass, including
+      x-, y-, and z-axis shared-edge identity. Matched Criterion runs use 10
+      samples with 1 s warmup and 2 s measurement: the pre-change Gyroid sphere
+      baseline is 12.030 ms [11.630, 12.357], and the final packed-cache run is
+      4.830 ms [4.479, 5.446] with one severe outlier, approximately 60%
+      lower by median. Release `cargo llvm-lines --release --lib` reports
+      397,595 lines / 7,555 copies versus Phase 41's 399,858 / 7,595; no
+      unsupported runtime or RSS claim is made.
+
+- [x] **Phase 43: Remove TPMS Closure Wrapper Instantiations [patch]**
+    - [x] Owner: Codex; scope: `src/domain/geometry/tpms/mod.rs`,
+      `src/domain/geometry/tpms/marching_cubes.rs`, and the existing TPMS
+      semantic/benchmark lanes.
+    - [x] Replace the two per-surface closure wrappers around the `Tpms` trait
+      with one private statically-dispatched evaluator contract; preserve the
+      public closure-based `extract` API and custom-`Tpms` behavior.
+    - [x] Retain on evidence: release codegen is 397,145 LLVM lines / 7,555
+      copies versus 397,595 / 7,555 for Phase 42; the matched TPMS benchmark
+      is 3.7302--3.8800 ms and Criterion reports -16.325% median change
+      (p < 0.05). No dynamic-dispatch, memory, or total-instantiation claim
+      is made.
+
+- [x] **Phase 44: Reuse Hex Decomposition Quality [perf]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+      its value-semantic tests, and the existing hex-to-tet benchmark lane.
+    - [x] Return the selected decomposition quality from the existing selector
+      so recovered-order ranking does not recompute tetrahedral volumes; keep
+      the five-versus-six selection contract and native-scalar arithmetic.
+    - [x] Retain on evidence: the confirmation benchmark is 453.55 us median
+      [441.51, 466.43] versus 549.17 us immediately before the change;
+      Criterion reports -37.835% against its stored baseline (p < 0.05).
+      Release codegen remains 397,145 LLVM lines / 7,555 copies. The first
+      sample was noisy at 730.60 us and is retained as a host-noise observation,
+      not as the performance claim. Full nextest is 939/939 with one skipped.
+
+- [x] **Phase 45: Right-Size Hex-to-Tet Face Storage [perf]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+      its value-semantic tests, and the existing hex-to-tet benchmark lane.
+    - [x] Replace the input-face multiplier reservation with a topology-derived
+      upper bound: six tetrahedra × four faces per hexahedral cell plus the
+      original face count for preserved non-hexahedral cells; keep capacity
+      arithmetic saturating and the map operation type-independent.
+    - [x] Retain on evidence: the logical reservation for the 512-cell
+      structured input falls from 18,432 to 12,288 entries (33.3% lower).
+      The matched benchmark is 449.76 us [439.68, 460.58], with no change
+      detected by Criterion (p = 0.59); the mixed-cell bound test is included
+      in 5/5 focused tests. Release bench codegen is 74,910 LLVM lines /
+      2,060 copies versus 74,907 / 2,060, so no specialization reduction is
+      claimed and no RSS or allocator-byte claim is made. Full nextest is
+      940/940 with one skipped.
+
+- [x] **Phase 46: Tetrahedral and Generic Seam Audit [audit]**
+    - [x] Audit `TetrahedralMeshBuilder`, `P2MeshConverter`, and the public
+      `Cell` representation for a safe next monomorphization or storage slice.
+    - [x] Retain the existing design: face identity, validation, and cell
+      construction are already scalar-independent; the builder's release
+      artifact has one 404-LLVM-line `tetrahedron` specialization. Do not add
+      a registry seam to P2 conversion without a shipped Gaia instantiation
+      and matched benchmark.
+    - [x] Record residual: `Cell` stores public `Vec` fields consumed by
+      hierarchy, Delaunay, quality, and indexed-mesh code, so replacing them
+      with inline topology would be a public contract change requiring an
+      ADR and consumer migration rather than a local optimization slice.
+
+- [x] **Phase 47: Public Mesh Family Book and Figure Gallery [docs]**
+    - [x] Owner: Codex; scope: `docs/book/`, the book gallery binary/modules, and
+      synchronized documentation/checklist entries.
+    - [x] Add a Gaia-owned mdBook that defines the exhaustive-by-public-family
+      mesh coverage boundary and records Gaia as the Atlas mesh-generation SSOT.
+    - [x] Generate deterministic SVG sheets and a manifest from real public
+      mesh builders for 37 primitive, 4 successful channel, and 6 topology
+      cases. The manifest records two blocked branching builders with their
+      exact errors instead of treating them as successful figures.
+    - [x] Convert all three sheets with `rsvg-convert` and inspect the review
+      rasters: `outputs/book-review/primitive-mesh-families.png`,
+      `outputs/book-review/channel-mesh-families.png`, and
+      `outputs/book-review/topology-mesh-families.png`. No successful panel has
+      clipped labels, an empty mesh, or an off-canvas projection; TPMS panels
+      are dense but remain readable at the review scale.
+    - [x] Build the book with `mdbook build docs/book`; the HTML output contains
+      all three SVG assets and the linkcheck2 backend completes without errors.
+    - [x] The gallery generator compiles and runs through a direct `rustc`
+      supplementary check against the existing Gaia library artifact. A fresh
+      Cargo check is currently blocked before Gaia compilation by the peer
+      `ritk-registration` manifest error requiring `example.name`; this is
+      retained as verification residual rather than hidden.
+
+- [ ] **Phase 48: Mesh Builder Input and Branch Stability [safety]**
+    - [x] Owner: Codex; scope: `ChannelPath::new`,
+      `SweepMesher::sweep_variable`, and branching Boolean composition.
+    - [x] Replace the input-dependent `ChannelPath::new` assertion with
+      `ChannelPathError`, validate finite/non-degenerate waypoints, freeze
+      waypoint storage as `Box<[Point3r]>`, and make `segment_direction` safe
+      for out-of-range indices.
+    - [x] Make variable sweep length mismatch a surfaced `SweepError` instead
+      of an empty mesh; the mismatch path leaves the vertex pool unchanged.
+      Focused nextest passes 4/4, including the matching-scale kernel path.
+    - [x] Verify library and gallery binary checks, `clippy --lib -D warnings`,
+      and warning-clean `cargo doc --no-deps` against the changed public API.
+    - [x] Validate branching dimensions, angle, daughter count, resolution,
+      and capacity arithmetic before mesh allocation. Pre-size each tube from
+      its topology and retain only first/previous rings, reducing temporary
+      ring-index storage from axial-by-angular to angular-only without a
+      runtime claim.
+    - [x] Reject watertight-but-incomplete Boolean results when a daughter
+      outlet region or its analytical outlet neighborhood is absent. The
+      focused regression covers the previously observed straight-tube false
+      positive.
+    - [ ] Repair or narrow the branching Boolean watertightness contract so the
+      documented bifurcation and trifurcation representatives produce valid
+      meshes; the committed gallery representatives currently return
+      `NotWatertight { count: 4 }` and `NotWatertight { count: 15 }`,
+      respectively.
+    - [x] Audit sequential binary CSG and exact/smooth SDF alternatives. Both
+      remained invalid for the representative branch geometry (the SDF
+      boundary was non-manifold). Removing internal daughter start caps also
+      remained non-watertight, so no approximation or fallback was shipped.
+
+- [x] **Phase 49: Deterministic Volume Gallery Regeneration [stability]**
+    - [x] Owner: Codex; scope: `src/application/delaunay/dim3/lattice.rs`,
+      `src/application/csg/boolean/indexed.rs`,
+      `src/application/csg/arrangement/boolean_csg.rs`,
+      `src/application/csg/arrangement/coplanar_dispatch.rs`,
+      `src/application/csg/arrangement/coplanar_groups.rs`,
+      `src/application/csg/arrangement/fragment_refinement.rs`,
+      `src/application/csg/arrangement/mod.rs`, focused regressions, gallery
+      artifacts, and synchronized book/PM entries.
+    - [x] Audit the same gallery inputs across fresh runs. SDF volume counts
+      changed from `V=158 F=1016 C=430` to `V=158 F=1062 C=453`; branching
+      errors changed from `4/15` to `7/14`. The unreviewed regeneration was
+      restored, preserving the previously inspected sheets.
+    - [x] Canonicalize SDF macro-block order, broad-phase candidates, CSG
+      arrangement/repair traversal, and union-find inputs. The focused
+      regression compares repeated same-process errors; two consecutive fresh
+      gallery runs have identical manifest and topology SVG SHA-256 hashes.
+      The stable manifest values are `V=158 F=1000 C=422` and branching
+      blocker counts `4/15`.
+    - [x] Keep the remaining CSG watertightness defect explicit: the branch
+      builders still return `NotWatertight { count: 4 }` and
+      `NotWatertight { count: 15 }`; no failed Boolean became a fabricated
+      gallery mesh.
+    - [x] Verification: `cargo fmt --check`, `git diff --check`, focused
+      `cargo nextest` (9/9), `cargo clippy --lib --offline -- -D warnings`,
+      `cargo check --bin book_mesh_gallery --offline`, `cargo doc --no-deps
+      --offline`, `cargo test --doc --offline`, `mdbook build docs/book`, and
+      `mdbook test docs/book` all pass on the delivered tree.
+
+- [ ] **Phase 50: Watertightness Evidence and Pages Publication [docs]**
+    - [x] Generate a watertightness sheet from Gaia's canonical report using
+      closed, open, non-manifold, and inconsistent-orientation concrete mesh
+      cases; render branch Boolean failures as typed rejection panels.
+    - [x] Add the watertightness chapter and generated manifest, documenting
+      the exact report values and the no-fabricated-geometry boundary.
+    - [x] Add the pinned GitHub Pages workflow. Pull requests regenerate and
+      verify the book; successful `main` builds deploy the exact mdBook HTML
+      artifact through the `github-pages` environment.
+    - [x] Convert and inspect the watertightness sheet raster, then run the
+      exact local book and focused Rust gates on the final revision. The
+      rejection text is wrapped inside its panels and all edge highlights stay
+      within the mesh panels.
+    - [ ] Verify the first `main` Pages deployment and live HTTP response after
+      the workflow is merged; a branch build cannot establish that remote
+      deployment state.
 

@@ -321,11 +321,15 @@ pub fn boolean_intersecting_arrangement(
     }
 
     let t_fragment_classification = std::time::Instant::now();
-    let coplanar_groups: Vec<(usize, FaceData)> = coplanar_index
+    let mut coplanar_groups: Vec<(usize, FaceData)> = coplanar_index
         .rep_a
         .values()
         .map(|&ai| (ai, faces_a[ai]))
         .collect();
+    // Hash-map iteration is not part of the Boolean contract: canonicalize the
+    // representative order before classification so downstream face emission
+    // cannot depend on the process hash seed.
+    coplanar_groups.sort_unstable_by_key(|&(face_index, _)| face_index);
     let kept_faces = classify_kept_fragments(op, &frags, faces_a, faces_b, pool, &coplanar_groups);
     if trace_enabled() {
         tracing::info!(
@@ -337,8 +341,11 @@ pub fn boolean_intersecting_arrangement(
     // Phase 4b: emit 2-D coplanar boolean caps directly.
     // inject_cap_seam_into_barrels (Phase 2d) guarantees seam vertex IDs in cop_faces
     // match the barrel CDT rim -- no T-junctions.
-    for cop_faces in coplanar_results.values() {
-        result_faces.extend_from_slice(cop_faces);
+    // Preserve the same deterministic order for coplanar cap emission.
+    let mut coplanar_results: Vec<_> = coplanar_results.into_iter().collect();
+    coplanar_results.sort_unstable_by_key(|&(group_id, _)| group_id);
+    for (_, cop_faces) in coplanar_results {
+        result_faces.extend_from_slice(&cop_faces);
     }
 
     // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 5: push kept barrel/sphere frags to result Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬

@@ -142,6 +142,9 @@ pub use domain::mesh::IndexedMesh;
 /// Ergonomic builder for `IndexedMesh`.
 pub use domain::mesh::MeshBuilder;
 
+/// Validated tetrahedral volume-mesh builder.
+pub use domain::mesh::TetrahedralMeshBuilder;
+
 /// Branded half-edge surface mesh.
 pub use domain::mesh::HalfEdgeMesh;
 
@@ -222,6 +225,6 @@ pub use domain::geometry::{
 
 /// Application-level channel builders.
 pub use application::channel::{
-    BranchingMeshBuilder, ChannelPath, ChannelProfile, SerpentineMeshBuilder, SubstrateBuilder,
-    SweepMesher, VenturiMeshBuilder,
+    BranchingMeshBuilder, ChannelPath, ChannelPathError, ChannelProfile, SerpentineMeshBuilder,
+    SubstrateBuilder, SweepError, SweepMesher, VenturiMeshBuilder,
 };

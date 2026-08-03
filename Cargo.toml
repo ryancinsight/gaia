@@ -73,6 +73,16 @@ name = "csg_performance"
 path = "benches/csg_performance.rs"
 harness = false
 
+[[bench]]
+name = "hex_to_tet_performance"
+path = "benches/hex_to_tet_performance.rs"
+harness = false
+
+[[bench]]
+name = "tpms_performance"
+path = "benches/tpms_performance.rs"
+harness = false
+
 # ── Primitive validation examples ─────────────────────────────────────────────
 
 [[example]]

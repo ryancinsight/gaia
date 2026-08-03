@@ -221,82 +221,6 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
         max_area_sq < COLLINEAR_THRESH * diameter_sq * diameter_sq
     };
 
-    // -- Helper: trace closed boundary loops <= MAX_PATCH_LOOP. ---------------
-    //
-    // Handles figure-8 boundary graphs where a single vertex has boundary
-    // out-degree > 1. When the DFS trace reaches a vertex already in the path:
-    // 1) extract the inner cycle, 2) truncate path to that vertex, 3) continue.
-    let trace_loops = |boundary_edges: &[(VertexId, VertexId)]| -> Vec<Vec<VertexId>> {
-        let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::new();
-        for &(vi, vj) in boundary_edges {
-            adj.entry(vi).or_default().push(vj);
-        }
-        for v in adj.values_mut() {
-            v.sort();
-        }
-
-        let mut used_edges: HashSet<(VertexId, VertexId)> = HashSet::new();
-        let mut loops: Vec<Vec<VertexId>> = Vec::new();
-        let mut starts: Vec<VertexId> = adj.keys().copied().collect();
-        starts.sort();
-
-        for start in starts {
-            let Some(successors) = adj.get(&start) else {
-                continue;
-            };
-            for &next in successors {
-                if used_edges.contains(&(start, next)) {
-                    continue;
-                }
-                let mut loop_verts: Vec<VertexId> = vec![start, next];
-                used_edges.insert((start, next));
-                let mut cur = next;
-                let mut closed = false;
-                'trace: loop {
-                    if loop_verts.len() > MAX_PATCH_LOOP * 4 {
-                        break;
-                    }
-                    let nexts = match adj.get(&cur) {
-                        Some(s) => s,
-                        None => break,
-                    };
-                    let mut found = false;
-                    for &n in nexts {
-                        if used_edges.contains(&(cur, n)) {
-                            continue;
-                        }
-                        used_edges.insert((cur, n));
-                        if n == start {
-                            closed = true;
-                            break 'trace;
-                        }
-                        if let Some(pos) = loop_verts.iter().position(|&v| v == n) {
-                            let inner = loop_verts[pos..].to_vec(); // [n, ..., cur]
-                            if inner.len() >= 3 && inner.len() <= MAX_PATCH_LOOP {
-                                loops.push(inner);
-                            }
-                            loop_verts.truncate(pos + 1);
-                            cur = n;
-                            found = true;
-                            break;
-                        }
-                        loop_verts.push(n);
-                        cur = n;
-                        found = true;
-                        break;
-                    }
-                    if !found {
-                        break;
-                    }
-                }
-                if closed && loop_verts.len() >= 3 && loop_verts.len() <= MAX_PATCH_LOOP {
-                    loops.push(loop_verts);
-                }
-            }
-        }
-        loops
-    };
-
     // -- Iterative patching loop. ---------------------------------------------
     // Each iteration:
     //   (a) Build boundary edges.
@@ -345,7 +269,7 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
             break;
         }
 
-        let loops = trace_loops(&boundary_edges);
+        let loops = stitch::trace_loops(&boundary_edges, MAX_PATCH_LOOP * 4, MAX_PATCH_LOOP);
 
         // -- (d) Step 6: collapse collinear degenerate loops. -----------------
         {
@@ -419,7 +343,11 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
         if boundary_edges_after_collapse.is_empty() {
             break;
         }
-        let loops_after = trace_loops(&boundary_edges_after_collapse);
+        let loops_after = stitch::trace_loops(
+            &boundary_edges_after_collapse,
+            MAX_PATCH_LOOP * 4,
+            MAX_PATCH_LOOP,
+        );
 
         let mut valence = stitch::build_canonical_valence(faces);
         let mut any_patch = false;

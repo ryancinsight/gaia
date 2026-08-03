@@ -71,6 +71,15 @@ pub enum MeshError {
         face: FaceId,
     },
 
+    /// Invalid tetrahedral volume cell.
+    #[error("cell {cell} is invalid: {reason}")]
+    InvalidCell {
+        /// Index the cell would receive in insertion order.
+        cell: usize,
+        /// Violated cell invariant.
+        reason: String,
+    },
+
     /// Self-intersection detected.
     #[error("self-intersection between faces {a} and {b}")]
     SelfIntersection {
