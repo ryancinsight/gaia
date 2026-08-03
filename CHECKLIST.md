@@ -477,12 +477,22 @@
       a codegen/monomorphization result; no runtime-throughput or process-memory
       improvement is claimed without a matched benchmark.
 
-- [ ] **Phase 42: Pack Marching-Cubes Edge Cache [perf]**
-    - [ ] Owner: Codex; scope: `src/domain/geometry/tpms/marching_cubes.rs`,
+- [x] **Phase 42: Pack Marching-Cubes Edge Cache [perf]**
+    - [x] Owner: Codex; scope: `src/domain/geometry/tpms/marching_cubes.rs`,
       its value-semantic tests, and a focused TPMS benchmark.
-    - [ ] Replace the hash-keyed per-edge cache with three bounded axis-aligned
+    - [x] Replace the hash-keyed per-edge cache with three bounded axis-aligned
       edge arrays; preserve shared-edge identity, output topology, and normals.
-    - [ ] Retain only with a matched release benchmark and an explicit memory
-      representation accounting; do not claim RSS improvement without a process
-      measurement.
+      The cache now stores `3 * n * (n + 1)^2` raw `u32` slots and uses the
+      existing `u32::MAX` invalid-mesh-ID invariant, removing hash keys,
+      bucket metadata, and the `Option<VertexId>` occupancy discriminant. At
+      resolution 24, the slot payload is 45,000 `u32` values (180,000 bytes),
+      excluding the three vector headers; no process-RSS reduction is claimed.
+    - [x] Verify TPMS value semantics: 38/38 focused tests pass, including
+      x-, y-, and z-axis shared-edge identity. Matched Criterion runs use 10
+      samples with 1 s warmup and 2 s measurement: the pre-change Gyroid sphere
+      baseline is 12.030 ms [11.630, 12.357], and the final packed-cache run is
+      4.830 ms [4.479, 5.446] with one severe outlier, approximately 60%
+      lower by median. Release `cargo llvm-lines --release --lib` reports
+      397,595 lines / 7,555 copies versus Phase 41's 399,858 / 7,595; no
+      unsupported runtime or RSS claim is made.
 

@@ -22,8 +22,6 @@
 //! extracted surface converges to the true level-set at rate `O(h)` in
 //! Hausdorff distance (Lorensen & Cline 1987).
 
-use hashbrown::HashMap;
-
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
@@ -364,6 +362,80 @@ pub const EDGES: [[usize; 2]; 12] = [
     [3, 7],
 ];
 
+/// Contiguous cache for the three axis-aligned edge families of a voxel grid.
+///
+/// Every grid edge has one canonical axis and integer lattice coordinate, so
+/// a hash key is unnecessary. The arrays contain one slot per possible grid
+/// edge; [`Self::UNMAPPED`] means that the edge has not produced a mesh vertex
+/// yet. Valid mesh IDs are strictly below `u32::MAX`, so the packed slots do
+/// not need a separate occupancy bitmap.
+struct EdgeVertexCache {
+    x: Vec<u32>,
+    y: Vec<u32>,
+    z: Vec<u32>,
+    n: usize,
+    grid_size: usize,
+}
+
+impl EdgeVertexCache {
+    const UNMAPPED: u32 = u32::MAX;
+
+    fn new(n: usize) -> Self {
+        let grid_size = n + 1;
+        let x_edges = n * grid_size * grid_size;
+        let y_edges = grid_size * n * grid_size;
+        let z_edges = grid_size * grid_size * n;
+        Self {
+            x: vec![Self::UNMAPPED; x_edges],
+            y: vec![Self::UNMAPPED; y_edges],
+            z: vec![Self::UNMAPPED; z_edges],
+            n,
+            grid_size,
+        }
+    }
+
+    #[inline]
+    fn x_index(n: usize, grid_size: usize, ix: usize, iy: usize, iz: usize) -> usize {
+        (iz * grid_size + iy) * n + ix
+    }
+
+    #[inline]
+    fn y_index(n: usize, grid_size: usize, ix: usize, iy: usize, iz: usize) -> usize {
+        (iz * n + iy) * grid_size + ix
+    }
+
+    #[inline]
+    fn z_index(grid_size: usize, ix: usize, iy: usize, iz: usize) -> usize {
+        (iz * grid_size + iy) * grid_size + ix
+    }
+
+    /// Return the canonical cache slot for one of the twelve local cube edges.
+    ///
+    /// The mapping follows [`CORNERS`] and [`EDGES`]. The local edge index is
+    /// produced by the fixed `EDGES` table in [`extract`], so the final arm is
+    /// a programmer-error guard rather than an input fallback.
+    #[inline]
+    fn slot(&mut self, ix: usize, iy: usize, iz: usize, edge: usize) -> &mut u32 {
+        let n = self.n;
+        let grid_size = self.grid_size;
+        match edge {
+            0 => &mut self.x[Self::x_index(n, grid_size, ix, iy, iz)],
+            1 => &mut self.y[Self::y_index(n, grid_size, ix + 1, iy, iz)],
+            2 => &mut self.x[Self::x_index(n, grid_size, ix, iy + 1, iz)],
+            3 => &mut self.y[Self::y_index(n, grid_size, ix, iy, iz)],
+            4 => &mut self.x[Self::x_index(n, grid_size, ix, iy, iz + 1)],
+            5 => &mut self.y[Self::y_index(n, grid_size, ix + 1, iy, iz + 1)],
+            6 => &mut self.x[Self::x_index(n, grid_size, ix, iy + 1, iz + 1)],
+            7 => &mut self.y[Self::y_index(n, grid_size, ix, iy, iz + 1)],
+            8 => &mut self.z[Self::z_index(grid_size, ix, iy, iz)],
+            9 => &mut self.z[Self::z_index(grid_size, ix + 1, iy, iz)],
+            10 => &mut self.z[Self::z_index(grid_size, ix + 1, iy + 1, iz)],
+            11 => &mut self.z[Self::z_index(grid_size, ix, iy + 1, iz)],
+            _ => panic!("invariant: marching-cubes edge index {edge} outside table"),
+        }
+    }
+}
+
 // ── Extraction engine ─────────────────────────────────────────────────────────
 
 /// Marching cubes extraction parameters.
@@ -410,8 +482,7 @@ pub fn extract(
         }
     }
 
-    // Edge-midpoint vertex cache keyed by (ix, iy, iz, edge_index).
-    let mut cache: HashMap<(usize, usize, usize, usize), VertexId> = HashMap::new();
+    let mut cache = EdgeVertexCache::new(n);
 
     for iz in 0..n {
         for iy in 0..n {
@@ -438,30 +509,37 @@ pub fn extract(
                     if emask & (1 << ei) == 0 {
                         continue;
                     }
-                    let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
-                        let (ax, ay, az) = (
-                            ix + CORNERS[ca].0 as usize,
-                            iy + CORNERS[ca].1 as usize,
-                            iz + CORNERS[ca].2 as usize,
-                        );
-                        let (bx, by, bz) = (
-                            ix + CORNERS[cb].0 as usize,
-                            iy + CORNERS[cb].1 as usize,
-                            iz + CORNERS[cb].2 as usize,
-                        );
-                        let va = cube_vals[ca];
-                        let vb = cube_vals[cb];
-                        let t = if (vb - va).abs() > 1e-15 {
-                            (-va / (vb - va)).clamp(0.0, 1.0)
-                        } else {
-                            0.5
-                        };
-                        let wx = -r + (ax as f64 * (1.0 - t) + bx as f64 * t) * step;
-                        let wy = -r + (ay as f64 * (1.0 - t) + by as f64 * t) * step;
-                        let wz = -r + (az as f64 * (1.0 - t) + bz as f64 * t) * step;
-                        let normal = gradient_fn(wx, wy, wz, k);
-                        mesh.add_vertex(Point3r::new(wx, wy, wz), normal)
-                    });
+                    let slot = cache.slot(ix, iy, iz, ei);
+                    let vid = match *slot {
+                        EdgeVertexCache::UNMAPPED => {
+                            let (ax, ay, az) = (
+                                ix + CORNERS[ca].0 as usize,
+                                iy + CORNERS[ca].1 as usize,
+                                iz + CORNERS[ca].2 as usize,
+                            );
+                            let (bx, by, bz) = (
+                                ix + CORNERS[cb].0 as usize,
+                                iy + CORNERS[cb].1 as usize,
+                                iz + CORNERS[cb].2 as usize,
+                            );
+                            let va = cube_vals[ca];
+                            let vb = cube_vals[cb];
+                            let t = if (vb - va).abs() > 1e-15 {
+                                (-va / (vb - va)).clamp(0.0, 1.0)
+                            } else {
+                                0.5
+                            };
+                            let wx = -r + (ax as f64 * (1.0 - t) + bx as f64 * t) * step;
+                            let wy = -r + (ay as f64 * (1.0 - t) + by as f64 * t) * step;
+                            let wz = -r + (az as f64 * (1.0 - t) + bz as f64 * t) * step;
+                            let normal = gradient_fn(wx, wy, wz, k);
+                            let vid = mesh.add_vertex(Point3r::new(wx, wy, wz), normal);
+                            debug_assert_ne!(vid.raw(), EdgeVertexCache::UNMAPPED);
+                            *slot = vid.raw();
+                            vid
+                        }
+                        raw => VertexId::new(raw),
+                    };
                     edge_vids[ei] = Some(vid);
                 }
 
@@ -489,5 +567,25 @@ pub fn extract(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::EdgeVertexCache;
+
+    #[test]
+    fn edge_cache_shares_each_lattice_edge_across_cells() {
+        let mut cache = EdgeVertexCache::new(4);
+
+        *cache.slot(1, 1, 1, 0) = 10;
+        assert_eq!(*cache.slot(1, 0, 1, 2), 10);
+
+        *cache.slot(1, 1, 1, 1) = 11;
+        assert_eq!(*cache.slot(2, 1, 1, 3), 11);
+
+        *cache.slot(1, 1, 1, 8) = 12;
+        assert_eq!(*cache.slot(0, 1, 1, 9), 12);
+        assert_eq!(*cache.slot(1, 0, 1, 11), 12);
     }
 }
