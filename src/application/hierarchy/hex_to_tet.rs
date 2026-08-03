@@ -43,6 +43,70 @@ impl TetDecomposition {
     }
 }
 
+const HEX_VERTEX_COUNT: usize = 8;
+const HEX_MAX_NEIGHBORS: usize = HEX_VERTEX_COUNT - 1;
+
+/// Bounded undirected adjacency for one hexahedral cell.
+///
+/// The cell has exactly eight unique vertices, so one vertex can be adjacent
+/// to at most the other seven.  Keeping the IDs inline removes eight map and
+/// vector allocations from the order-recovery probe.  Neighbor sets are
+/// deduplicated during insertion and remain bounded to seven entries, so
+/// linear membership is cheaper than maintaining a sorted allocation-free
+/// set.
+#[derive(Clone, Copy)]
+struct HexAdjacency {
+    ids: [[VertexId; HEX_MAX_NEIGHBORS]; HEX_VERTEX_COUNT],
+    lengths: [usize; HEX_VERTEX_COUNT],
+}
+
+impl HexAdjacency {
+    fn new() -> Self {
+        Self {
+            ids: [[VertexId::default(); HEX_MAX_NEIGHBORS]; HEX_VERTEX_COUNT],
+            lengths: [0; HEX_VERTEX_COUNT],
+        }
+    }
+
+    fn add_undirected(
+        &mut self,
+        vertices: &[VertexId; HEX_VERTEX_COUNT],
+        a: VertexId,
+        b: VertexId,
+    ) {
+        self.add_directed(vertices, a, b);
+        self.add_directed(vertices, b, a);
+    }
+
+    fn add_directed(&mut self, vertices: &[VertexId; HEX_VERTEX_COUNT], a: VertexId, b: VertexId) {
+        let Some(index) = vertices.iter().position(|&vertex| vertex == a) else {
+            return;
+        };
+        let length = self.lengths[index];
+        if self.ids[index][..length].contains(&b) {
+            return;
+        }
+        let Some(slot) = self.ids[index].get_mut(length) else {
+            debug_assert!(
+                length < HEX_MAX_NEIGHBORS,
+                "hexahedral adjacency exceeded seven neighbors"
+            );
+            return;
+        };
+        *slot = b;
+        self.lengths[index] += 1;
+    }
+
+    fn neighbors(
+        &self,
+        vertices: &[VertexId; HEX_VERTEX_COUNT],
+        target: VertexId,
+    ) -> Option<&[VertexId]> {
+        let index = vertices.iter().position(|&vertex| vertex == target)?;
+        self.ids[index].get(..self.lengths[index])
+    }
+}
+
 /// Canonicalize a triangle vertex triplet for orientation-invariant hashing.
 ///
 /// # Theorem — Canonical-Key Equivalence
@@ -309,16 +373,17 @@ impl HexToTetConverter {
     }
 
     fn common_neighbor_excluding(
-        adjacency: &HashMap<VertexId, Vec<VertexId>>,
+        vertices: &[VertexId; HEX_VERTEX_COUNT],
+        adjacency: &HexAdjacency,
         a: VertexId,
         b: VertexId,
         excluded: &[VertexId],
     ) -> Option<VertexId> {
-        let a_neighbors = adjacency.get(&a)?;
-        let b_neighbors = adjacency.get(&b)?;
+        let a_neighbors = adjacency.neighbors(vertices, a)?;
+        let b_neighbors = adjacency.neighbors(vertices, b)?;
         let mut candidate = None;
         for &n in a_neighbors {
-            if Self::sorted_contains(b_neighbors, n) && !excluded.contains(&n) {
+            if Self::contains_neighbor(b_neighbors, n) && !excluded.contains(&n) {
                 if candidate.is_some() {
                     return None;
                 }
@@ -328,53 +393,46 @@ impl HexToTetConverter {
         candidate
     }
 
-    /// Membership query on sorted adjacency vectors.
+    /// Membership query on bounded adjacency vectors.
     ///
-    /// # Theorem — Binary Membership Equivalence
+    /// # Theorem — Bounded Neighbor Membership
     ///
-    /// For a sorted deduplicated vector `S`, `binary_search(x).is_ok()` is true
-    /// iff `x ∈ S`, equivalent to linear `contains(x)` with lower asymptotic
-    /// lookup cost. Since adjacency vectors are sorted/deduplicated immediately
-    /// after construction, this predicate is exact. ∎
+    /// Each adjacency vector has at most seven entries, so linear membership
+    /// has a fixed small bound and avoids sorting work in every recovered cell.
+    /// The insertion path deduplicates entries, but duplicate handling is not
+    /// required for this membership contract. ∎
     #[inline]
-    fn sorted_contains(sorted: &[VertexId], needle: VertexId) -> bool {
-        sorted
-            .binary_search_by_key(&needle.as_usize(), |vid| vid.as_usize())
-            .is_ok()
+    fn contains_neighbor(neighbors: &[VertexId], needle: VertexId) -> bool {
+        neighbors.contains(&needle)
+    }
+
+    fn build_hex_adjacency(
+        cell: &Cell,
+        vertices: &[VertexId; HEX_VERTEX_COUNT],
+        faces: &FaceStore,
+    ) -> HexAdjacency {
+        let mut adjacency = HexAdjacency::new();
+        for &f_idx_raw in &cell.faces {
+            let f_idx = FaceId::from_usize(f_idx_raw);
+            let face = faces.get(f_idx);
+            let n = face.vertices.len();
+            if n < 3 {
+                continue;
+            }
+            for i in 0..n {
+                adjacency.add_undirected(vertices, face.vertices[i], face.vertices[(i + 1) % n]);
+            }
+        }
+        adjacency
     }
 
     fn recover_hex_vertex_order<T: Scalar>(
         cell: &Cell,
         mesh: &IndexedMesh<T>,
         volume_tol: T,
-    ) -> Option<[VertexId; 8]> {
+    ) -> Option<[VertexId; HEX_VERTEX_COUNT]> {
         let vertices = Self::collect_unique_hex_vertices(cell, &mesh.faces)?;
-
-        let mut adjacency: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(8);
-        for &f_idx_raw in &cell.faces {
-            let f_idx = FaceId::from_usize(f_idx_raw);
-            let face = mesh.faces.get(f_idx);
-            let n = face.vertices.len();
-            if n < 3 {
-                continue;
-            }
-            for i in 0..n {
-                let a = face.vertices[i];
-                let b = face.vertices[(i + 1) % n];
-                adjacency
-                    .entry(a)
-                    .or_insert_with(|| Vec::with_capacity(3))
-                    .push(b);
-                adjacency
-                    .entry(b)
-                    .or_insert_with(|| Vec::with_capacity(3))
-                    .push(a);
-            }
-        }
-        for neigh in adjacency.values_mut() {
-            neigh.sort_unstable_by_key(|vid| vid.as_usize());
-            neigh.dedup();
-        }
+        let adjacency = Self::build_hex_adjacency(cell, &vertices, &mesh.faces);
 
         let perms = [
             [0, 1, 2],
@@ -389,7 +447,7 @@ impl HexToTetConverter {
         let mut best_quality: Option<T> = None;
 
         for &v0 in &vertices {
-            let Some(neigh) = adjacency.get(&v0) else {
+            let Some(neigh) = adjacency.neighbors(&vertices, v0) else {
                 continue;
             };
             if neigh.len() != 3 {
@@ -401,33 +459,36 @@ impl HexToTetConverter {
                 let v3 = neigh[perm[1]];
                 let v4 = neigh[perm[2]];
 
-                let Some(v2) = Self::common_neighbor_excluding(&adjacency, v1, v3, &[v0, v4])
+                let Some(v2) =
+                    Self::common_neighbor_excluding(&vertices, &adjacency, v1, v3, &[v0, v4])
                 else {
                     continue;
                 };
-                let Some(v5) = Self::common_neighbor_excluding(&adjacency, v1, v4, &[v0, v3])
+                let Some(v5) =
+                    Self::common_neighbor_excluding(&vertices, &adjacency, v1, v4, &[v0, v3])
                 else {
                     continue;
                 };
-                let Some(v7) = Self::common_neighbor_excluding(&adjacency, v3, v4, &[v0, v1])
+                let Some(v7) =
+                    Self::common_neighbor_excluding(&vertices, &adjacency, v3, v4, &[v0, v1])
                 else {
                     continue;
                 };
 
-                let Some(n2) = adjacency.get(&v2) else {
+                let Some(n2) = adjacency.neighbors(&vertices, v2) else {
                     continue;
                 };
-                let Some(n5) = adjacency.get(&v5) else {
+                let Some(n5) = adjacency.neighbors(&vertices, v5) else {
                     continue;
                 };
-                let Some(n7) = adjacency.get(&v7) else {
+                let Some(n7) = adjacency.neighbors(&vertices, v7) else {
                     continue;
                 };
 
                 let mut v6_candidate = None;
                 for &n in n2 {
-                    if Self::sorted_contains(n5, n)
-                        && Self::sorted_contains(n7, n)
+                    if Self::contains_neighbor(n5, n)
+                        && Self::contains_neighbor(n7, n)
                         && n != v0
                         && n != v1
                         && n != v2
@@ -587,7 +648,7 @@ mod tests {
     }
 
     #[test]
-    fn adversarial_sorted_contains_matches_linear_membership() {
+    fn adversarial_neighbor_contains_matches_linear_membership() {
         let mut v = vec![
             VertexId::new(9),
             VertexId::new(1),
@@ -601,10 +662,10 @@ mod tests {
         for probe in 0..12 {
             let p = VertexId::new(probe);
             let linear = v.contains(&p);
-            let bsearch = HexToTetConverter::sorted_contains(&v, p);
+            let bounded = HexToTetConverter::contains_neighbor(&v, p);
             assert_eq!(
-                bsearch, linear,
-                "binary membership must match linear membership for sorted unique vectors"
+                bounded, linear,
+                "bounded membership must match linear membership"
             );
         }
     }

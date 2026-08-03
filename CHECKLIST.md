@@ -368,14 +368,23 @@
       compact remap storage, and lower release codegen; no runtime throughput
       claim is made without a matched benchmark.
 
-- [ ] **Phase 36: Hex Vertex-Order Adjacency Storage [patch]**
-    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`.
-    - [ ] Replace per-cell `HashMap<VertexId, Vec<VertexId>>` adjacency
+- [x] **Phase 36: Hex Vertex-Order Adjacency Storage [patch]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`.
+    - [x] Replace per-cell `HashMap<VertexId, Vec<VertexId>>` adjacency
       construction with bounded fixed storage for the eight-node topology.
-    - [ ] Keep adjacency construction and neighbor queries non-generic so
+    - [x] Keep adjacency construction and neighbor queries non-generic so
       scalar-dependent recovery monomorphizes only the geometric kernel.
-    - [ ] Preserve recovered-order selection, decomposition validity, and
-      fallback behavior; verify codegen, conversion benchmark evidence, and
-      full format/lint/test/doc gates before claiming a performance or memory
-      improvement.
+    - [x] Preserve recovered-order selection, decomposition validity, and
+      fallback behavior; 4/4 focused conversion tests and 933/933 all-feature
+      library tests pass.
+    - [x] Reject the first fixed-storage form's sort path: it raised release
+      LLVM output to 401,983 lines. The retained deduplicated linear-membership
+      form is 399,822 lines versus 399,422 before the slice.
+    - [x] Verify the bounded benchmark: 398.10 us median on 512 cells; the
+      final form improved 7.4178% over the preceding fixed-storage form
+      (p < 0.05), following that form's 63.046% improvement over the stored
+      pre-slice baseline. One severe outlier occurred in the 10-sample run.
+    - [x] Verify formatting, Clippy, doctests, and warning-denied rustdoc.
+      Residual: the benchmark result is workload-specific and the codegen
+      output is 400 LLVM lines above Phase 35; no broader runtime claim is made.
 
