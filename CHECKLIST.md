@@ -591,6 +591,10 @@
       its topology and retain only first/previous rings, reducing temporary
       ring-index storage from axial-by-angular to angular-only without a
       runtime claim.
+    - [x] Reject watertight-but-incomplete Boolean results when a daughter
+      outlet region or its analytical outlet neighborhood is absent. The
+      focused regression covers the previously observed straight-tube false
+      positive.
     - [ ] Repair or narrow the branching Boolean watertightness contract so the
       documented bifurcation and trifurcation representatives produce valid
       meshes; the committed gallery representatives currently return

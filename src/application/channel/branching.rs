@@ -281,8 +281,10 @@ fn build_branching_surface(b: &BranchingMeshBuilder) -> Result<IndexedMesh, Buil
 
     // 3. Boolean Union across all branch bounds.
     use crate::application::csg::boolean::{csg_boolean_nary, BooleanOp};
-    csg_boolean_nary(BooleanOp::Union, &meshes)
-        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))
+    let mesh = csg_boolean_nary(BooleanOp::Union, &meshes)
+        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))?;
+    validate_branching_result(&mesh, b)?;
+    Ok(mesh)
 }
 
 fn validate_parameters(b: &BranchingMeshBuilder) -> Result<(), BuildError> {
@@ -320,6 +322,33 @@ fn validate_parameters(b: &BranchingMeshBuilder) -> Result<(), BuildError> {
             "n_daughters must be 2 or 3, got {}",
             b.n_daughters
         )));
+    }
+    Ok(())
+}
+
+fn validate_branching_result(
+    mesh: &IndexedMesh,
+    b: &BranchingMeshBuilder,
+) -> Result<(), BuildError> {
+    let r_daughter = b.d_daughter / 2.0;
+    let half_daughters = (b.n_daughters - 1) as Real / 2.0;
+    for daughter in 0..b.n_daughters {
+        let angle = b.branching_angle * (daughter as Real - half_daughters);
+        let expected_x = b.l_daughter * angle.sin();
+        let expected_z = b.l_parent + b.l_daughter * angle.cos();
+        let has_outlet_neighborhood = mesh.vertices.positions().any(|point| {
+            let dx = point.x - expected_x;
+            let dy = point.y;
+            let dz = point.z - expected_z;
+            dx * dx + dy * dy + dz * dz <= (r_daughter * 1.5).powi(2)
+        });
+        let outlet_region = RegionId::from_usize(2 + daughter);
+        let has_outlet_region = mesh.faces.iter().any(|face| face.region == outlet_region);
+        if !has_outlet_neighborhood || !has_outlet_region {
+            return Err(BuildError(format!(
+                "CSG Boolean omitted daughter outlet geometry for daughter {daughter}"
+            )));
+        }
     }
     Ok(())
 }
@@ -376,6 +405,19 @@ mod tests {
             };
             assert_eq!(error.0, expected);
         }
+    }
+
+    #[test]
+    fn rejects_watertight_but_incomplete_branch_result() {
+        let builder = BranchingMeshBuilder::trifurcation(0.004, 0.020, 0.001, 0.010, 0.5, 4);
+        let error = match builder.build_surface() {
+            Ok(_) => panic!("incomplete Boolean result must not be published"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            error.0,
+            "CSG Boolean omitted daughter outlet geometry for daughter 0"
+        );
     }
 
     #[test]

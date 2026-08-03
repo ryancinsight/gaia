@@ -29,6 +29,12 @@ topology-derived storage and retains only the first and previous axial rings;
 this bounds temporary ring-index storage by angular resolution rather than
 axial resolution without changing the emitted faces.
 
+Branching Boolean output has a second safety boundary: a watertight result must
+retain every daughter outlet region and a vertex neighborhood around each
+analytical outlet center. A result that is topologically watertight but omits a
+daughter is rejected with a typed `BuildError`; the focused regression covers
+this false-positive class without publishing approximate geometry.
+
 “All possible meshes” is finite only at the family level. Each family accepts
 continuous dimensions, resolutions, profiles, or fields, so the gallery uses
 small deterministic representative parameters and records them in the
