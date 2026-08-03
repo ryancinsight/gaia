@@ -463,12 +463,17 @@
       or process-memory improvement is claimed; the hoist remains a residual
       for a future implementation with lower emitted helper cost.
 
-- [ ] **Phase 41: Hoist Component Analysis Core [patch]**
-    - [ ] Owner: Codex; scope: `fragment_analysis.rs` and
+- [x] **Phase 41: Hoist Component Analysis Core [patch]**
+    - [x] Owner: Codex; scope: `fragment_analysis.rs` and
       `fragment_classification.rs`.
-    - [ ] Replace the single-instantiation callback/generic edge-analysis
+    - [x] Replace the single-instantiation callback/generic edge-analysis
       helper with a non-generic normalized-edge core; preserve source-boundary
       connectivity and the existing component-root contract.
-    - [ ] Verify classification value semantics, release LLVM-line output, and
-      the focused/full Gaia gates before deciding whether to retain the slice.
+    - [x] Verify classification value semantics, release LLVM-line output, and
+      the focused/full Gaia gates. Focused classification: 4/4; arrangement:
+      210/210; full native: 934/934; doctests: 6/6 with 39 ignored; clippy,
+      rustdoc, and format checks pass. Release codegen is 399,858 LLVM lines /
+      7,595 copies versus the Phase 39 baseline of 399,937 / 7,598. This is
+      a codegen/monomorphization result; no runtime-throughput or process-memory
+      improvement is claimed without a matched benchmark.
 

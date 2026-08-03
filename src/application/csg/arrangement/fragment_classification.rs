@@ -4,7 +4,7 @@ use super::classify::{
     centroid, classify_fragment_prepared, prepare_classification_faces, tri_normal, FragRecord,
     FragmentClass,
 };
-use super::fragment_analysis::{component_roots_by_source, is_degenerate_sliver_with_normal};
+use super::fragment_analysis::{component_roots_from_edges, is_degenerate_sliver_with_normal};
 use crate::application::csg::boolean::BooleanOp;
 use crate::application::csg::predicates3d::triangle_is_degenerate_exact;
 #[cfg(test)]
@@ -17,7 +17,17 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 use hashbrown::HashMap;
 
 fn fragment_component_roots(frags: &[FragRecord]) -> Vec<usize> {
-    component_roots_by_source(frags, |frag| frag.face.vertices, |frag| frag.from_a)
+    let mut edge_refs = Vec::with_capacity(frags.len() * 3);
+    for (fragment_index, fragment) in frags.iter().enumerate() {
+        let vertices = fragment.face.vertices;
+        for edge_index in 0..3 {
+            let a = vertices[edge_index];
+            let b = vertices[(edge_index + 1) % 3];
+            let (mn, mx) = if a < b { (a, b) } else { (b, a) };
+            edge_refs.push((mn, mx, fragment_index, fragment.from_a));
+        }
+    }
+    component_roots_from_edges(&mut edge_refs, frags.len())
 }
 
 struct CoplanarPlaneInfo {

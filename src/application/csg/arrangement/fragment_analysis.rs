@@ -10,33 +10,19 @@ use crate::domain::core::constants::SLIVER_AREA_RATIO_SQ;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 
-/// Build connected-component roots for fragment adjacency induced by shared
-/// edges, while preserving source boundaries.
-pub(crate) fn component_roots_by_source<T, FVertices, FSource, S>(
-    fragments: &[T],
-    mut face_vertices: FVertices,
-    mut source_key: FSource,
-) -> Vec<usize>
-where
-    FVertices: FnMut(&T) -> [VertexId; 3],
-    FSource: FnMut(&T) -> S,
-    S: Copy + Eq,
-{
-    let mut edge_refs: Vec<(VertexId, VertexId, usize, S)> =
-        Vec::with_capacity(fragments.len() * 3);
-    for (fragment_index, fragment) in fragments.iter().enumerate() {
-        let vertices = face_vertices(fragment);
-        let source = source_key(fragment);
-        for edge_index in 0..3 {
-            let a = vertices[edge_index];
-            let b = vertices[(edge_index + 1) % 3];
-            let (mn, mx) = if a < b { (a, b) } else { (b, a) };
-            edge_refs.push((mn, mx, fragment_index, source));
-        }
-    }
+/// Build connected-component roots from normalized fragment-edge records.
+///
+/// The caller extracts its fragment representation once, while this core stays
+/// monomorphic over the edge record and source marker. Keeping the DSU and
+/// sorted edge sweep independent of callback and fragment types avoids
+/// instantiation of the same topology algorithm for each closure shape.
+pub(crate) fn component_roots_from_edges(
+    edge_refs: &mut [(VertexId, VertexId, usize, bool)],
+    fragment_count: usize,
+) -> Vec<usize> {
     edge_refs.sort_unstable_by_key(|&(a, b, _, _)| (a.raw(), b.raw()));
 
-    let mut dsu = DisjointSet::new(fragments.len());
+    let mut dsu = DisjointSet::new(fragment_count);
     let mut run_start = 0usize;
     while run_start < edge_refs.len() {
         let (edge_a, edge_b, _, first_source) = edge_refs[run_start];
@@ -65,8 +51,8 @@ where
         run_start = run_end;
     }
 
-    let mut roots = Vec::with_capacity(fragments.len());
-    for index in 0..fragments.len() {
+    let mut roots = Vec::with_capacity(fragment_count);
+    for index in 0..fragment_count {
         roots.push(dsu.find(index));
     }
     roots
