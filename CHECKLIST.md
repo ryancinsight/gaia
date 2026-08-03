@@ -647,7 +647,8 @@
       exact local book and focused Rust gates on the final revision. The
       rejection text is wrapped inside its panels and all edge highlights stay
       within the mesh panels.
-    - [ ] Verify the first `main` Pages deployment and live HTTP response after
-      the workflow is merged; a branch build cannot establish that remote
-      deployment state.
+    - [x] Verify the first `main` Pages deployment and live HTTP response after
+      merge commit `4ec3e946`: workflow run `30841921278` completed the Pages
+      deployment, and the root book, watertightness chapter, and diagnostics
+      SVG each return HTTP 200 at `https://ryancinsight.github.io/gaia/`.
 
