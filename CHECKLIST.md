@@ -463,3 +463,12 @@
       or process-memory improvement is claimed; the hoist remains a residual
       for a future implementation with lower emitted helper cost.
 
+- [ ] **Phase 41: Hoist Component Analysis Core [patch]**
+    - [ ] Owner: Codex; scope: `fragment_analysis.rs` and
+      `fragment_classification.rs`.
+    - [ ] Replace the single-instantiation callback/generic edge-analysis
+      helper with a non-generic normalized-edge core; preserve source-boundary
+      connectivity and the existing component-root contract.
+    - [ ] Verify classification value semantics, release LLVM-line output, and
+      the focused/full Gaia gates before deciding whether to retain the slice.
+
