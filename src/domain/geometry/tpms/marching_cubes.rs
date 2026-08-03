@@ -438,6 +438,45 @@ impl EdgeVertexCache {
 
 // ── Extraction engine ─────────────────────────────────────────────────────────
 
+trait SurfaceEvaluator {
+    fn field(&self, x: f64, y: f64, z: f64, k: f64) -> f64;
+
+    fn gradient(&self, x: f64, y: f64, z: f64, k: f64) -> Vector3r;
+}
+
+struct ClosureEvaluator<F, G> {
+    field: F,
+    gradient: G,
+}
+
+impl<F, G> SurfaceEvaluator for ClosureEvaluator<F, G>
+where
+    F: Fn(f64, f64, f64, f64) -> f64,
+    G: Fn(f64, f64, f64, f64) -> Vector3r,
+{
+    #[inline]
+    fn field(&self, x: f64, y: f64, z: f64, k: f64) -> f64 {
+        (self.field)(x, y, z, k)
+    }
+
+    #[inline]
+    fn gradient(&self, x: f64, y: f64, z: f64, k: f64) -> Vector3r {
+        (self.gradient)(x, y, z, k)
+    }
+}
+
+impl<S: super::Tpms + ?Sized> SurfaceEvaluator for S {
+    #[inline]
+    fn field(&self, x: f64, y: f64, z: f64, k: f64) -> f64 {
+        super::Tpms::field(self, x, y, z, k)
+    }
+
+    #[inline]
+    fn gradient(&self, x: f64, y: f64, z: f64, k: f64) -> Vector3r {
+        super::Tpms::gradient(self, x, y, z, k)
+    }
+}
+
 /// Marching cubes extraction parameters.
 pub struct McParams {
     /// Clip-sphere radius (mm).  Triangles whose centroid exceeds this are discarded.
@@ -460,6 +499,26 @@ pub fn extract(
     field_fn: impl Fn(f64, f64, f64, f64) -> f64,
     gradient_fn: impl Fn(f64, f64, f64, f64) -> Vector3r,
 ) {
+    let evaluator = ClosureEvaluator {
+        field: field_fn,
+        gradient: gradient_fn,
+    };
+    extract_impl(mesh, params, &evaluator);
+}
+
+pub(crate) fn extract_surface<S: super::Tpms>(
+    mesh: &mut IndexedMesh,
+    params: &McParams,
+    surface: &S,
+) {
+    extract_impl(mesh, params, surface);
+}
+
+fn extract_impl<E: SurfaceEvaluator + ?Sized>(
+    mesh: &mut IndexedMesh,
+    params: &McParams,
+    evaluator: &E,
+) {
     let n = params.resolution;
     let r = params.radius;
     let k = params.k;
@@ -477,7 +536,7 @@ pub fn extract(
                 let wx = -r + ix as f64 * step;
                 let wy = -r + iy as f64 * step;
                 let wz = -r + iz as f64 * step;
-                field[idx(ix, iy, iz)] = field_fn(wx, wy, wz, k) - iso;
+                field[idx(ix, iy, iz)] = evaluator.field(wx, wy, wz, k) - iso;
             }
         }
     }
@@ -532,7 +591,7 @@ pub fn extract(
                             let wx = -r + (ax as f64 * (1.0 - t) + bx as f64 * t) * step;
                             let wy = -r + (ay as f64 * (1.0 - t) + by as f64 * t) * step;
                             let wz = -r + (az as f64 * (1.0 - t) + bz as f64 * t) * step;
-                            let normal = gradient_fn(wx, wy, wz, k);
+                            let normal = evaluator.gradient(wx, wy, wz, k);
                             let vid = mesh.add_vertex(Point3r::new(wx, wy, wz), normal);
                             debug_assert_ne!(vid.raw(), EdgeVertexCache::UNMAPPED);
                             *slot = vid.raw();

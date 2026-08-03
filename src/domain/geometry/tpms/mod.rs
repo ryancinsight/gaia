@@ -160,12 +160,7 @@ pub fn build_tpms_sphere<S: Tpms>(
     };
 
     let mut mesh = IndexedMesh::new();
-    marching_cubes::extract(
-        &mut mesh,
-        &mc_params,
-        |x, y, z, kk| surface.field(x, y, z, kk),
-        |x, y, z, kk| surface.gradient(x, y, z, kk),
-    );
+    marching_cubes::extract_surface(&mut mesh, &mc_params, surface);
 
     Ok(mesh)
 }
