@@ -575,7 +575,7 @@
       retained as verification residual rather than hidden.
 
 - [ ] **Phase 48: Mesh Builder Input and Branch Stability [safety]**
-    - [ ] Owner: Codex; scope: `ChannelPath::new`,
+    - [x] Owner: Codex; scope: `ChannelPath::new`,
       `SweepMesher::sweep_variable`, and branching Boolean composition.
     - [ ] Replace the input-dependent `ChannelPath::new` assertion with a
       typed construction error and make variable sweep length mismatch a
