@@ -388,7 +388,7 @@
       Residual: the benchmark result is workload-specific and the codegen
       output is 400 LLVM lines above Phase 35; no broader runtime claim is made.
 
-- [ ] **Phase 37: Pack Adjacency Rows [patch]**
+- [x] **Phase 37: Pack Adjacency Rows [patch]**
     - [x] Owner: Codex; scope: `src/domain/topology/adjacency.rs` and its
       topology tests.
     - [x] Replace the three nested `Vec<Vec<...>>` adjacency families with
@@ -415,4 +415,15 @@
       before the slice (+910); benchmark smoke passes. Residual: the codegen
       increase is accepted for the measured construction and layout result,
       and no broader throughput or process-RSS claim is made.
+
+- [ ] **Phase 38: Inline Boundary Loop Links [patch]**
+    - [x] Owner: Codex; scope: `src/application/watertight/seal.rs` and its
+      boundary-loop tests.
+    - [ ] Replace per-source boundary `Vec` allocations with inline storage for
+      the normal two-link case and a spill path for higher fan-out.
+    - [ ] Preserve sorted traversal, figure-8 splitting, closed-loop output,
+      and non-manifold outgoing-link behavior.
+    - [ ] Measure release codegen and focused boundary-loop behavior; retain
+      the change only if the memory/allocation tradeoff is evidence-backed.
+    - [ ] Run the affected Gaia format, lint, test, doctest, and rustdoc gates.
 
