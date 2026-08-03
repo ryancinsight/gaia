@@ -416,14 +416,19 @@
       increase is accepted for the measured construction and layout result,
       and no broader throughput or process-RSS claim is made.
 
-- [ ] **Phase 38: Inline Boundary Loop Links [patch]**
+- [x] **Phase 38: Inline Boundary Loop Links [patch]**
     - [x] Owner: Codex; scope: `src/application/watertight/seal.rs` and its
       boundary-loop tests.
-    - [ ] Replace per-source boundary `Vec` allocations with inline storage for
-      the normal two-link case and a spill path for higher fan-out.
-    - [ ] Preserve sorted traversal, figure-8 splitting, closed-loop output,
-      and non-manifold outgoing-link behavior.
-    - [ ] Measure release codegen and focused boundary-loop behavior; retain
-      the change only if the memory/allocation tradeoff is evidence-backed.
-    - [ ] Run the affected Gaia format, lint, test, doctest, and rustdoc gates.
+    - [x] Evaluate inline-two/spill storage and an indexed contiguous link
+      arena; the three focused semantic tests and `cargo check --lib
+      --all-features` passed for the candidate forms.
+    - [x] Reject both candidate forms on release codegen: direct
+      `HashMap<VertexId, BoundaryLinks>` measured 402,102 LLVM lines and the
+      indexed `HashMap<VertexId, usize>` arena measured 402,246, versus the
+      400,732 Phase 37 baseline. The indexed arena was +1,514 lines and did
+      not recover the monomorphization cost.
+    - [x] Restore the original `HashMap<VertexId, Vec<VertexId>>` path after
+      the rejection. No runtime, allocation, or process-memory improvement is
+      claimed; the inline/spill design remains an audit residual for a future
+      measurement-backed implementation.
 
