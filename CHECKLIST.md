@@ -432,3 +432,14 @@
       claimed; the inline/spill design remains an audit residual for a future
       measurement-backed implementation.
 
+- [ ] **Phase 39: Consolidate CSG Boundary Loop Tracing [patch]**
+    - [x] Owner: Codex; scope: `src/application/csg/arrangement/stitch.rs` and
+      `src/application/csg/arrangement/patch.rs`.
+    - [ ] Use one non-generic boundary-loop DFS implementation for stitching
+      and patching, preserving the callers' distinct path and output limits.
+    - [ ] Verify closed loops, figure-8 inner-cycle extraction, and bounded
+      loop rejection through the existing arrangement tests.
+    - [ ] Measure release codegen and retain the consolidation only if the
+      duplicate implementation is removed without a behavioral regression.
+    - [ ] Run the affected Gaia format, lint, test, doctest, and rustdoc gates.
+
