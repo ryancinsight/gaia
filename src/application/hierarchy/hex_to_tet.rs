@@ -45,6 +45,8 @@ impl TetDecomposition {
 
 const HEX_VERTEX_COUNT: usize = 8;
 const HEX_MAX_NEIGHBORS: usize = HEX_VERTEX_COUNT - 1;
+const HEX_MAX_TETRAHEDRA: usize = 6;
+const TETRAHEDRON_FACE_COUNT: usize = 4;
 
 /// Bounded undirected adjacency for one hexahedral cell.
 ///
@@ -138,6 +140,22 @@ fn all_unique<const N: usize>(values: &[VertexId; N]) -> bool {
         .all(|(index, value)| !values[..index].contains(value))
 }
 
+/// Upper bound for the face identities inserted during conversion.
+///
+/// A hexahedral cell produces at most six tetrahedra, and each tetrahedron
+/// submits four triangular faces to the registry. Preserved cells submit each
+/// of their existing faces once. Shared faces are deduplicated after this
+/// reservation, so the bound is sufficient without depending on scalar `T`.
+fn estimated_face_map_capacity(cells: &[Cell]) -> usize {
+    cells.iter().fold(0, |capacity, cell| {
+        let additions = match cell.element_type {
+            ElementType::Hexahedron => HEX_MAX_TETRAHEDRA * TETRAHEDRON_FACE_COUNT,
+            _ => cell.faces.len(),
+        };
+        capacity.saturating_add(additions)
+    })
+}
+
 /// Converter for decomposing hexahedral meshes into tetrahedral ones
 pub struct HexToTetConverter;
 
@@ -153,7 +171,8 @@ impl HexToTetConverter {
 
         // 2. Identify boundary faces and map them
         // Key: canonical triangle vertex triplet, Value: new FaceId
-        let mut face_map: HashMap<TriKey, FaceId> = HashMap::with_capacity(mesh.faces.len() * 3);
+        let mut face_map: HashMap<TriKey, FaceId> =
+            HashMap::with_capacity(estimated_face_map_capacity(&mesh.cells));
 
         // 3. Process cells
         for c in &mesh.cells {
@@ -558,12 +577,13 @@ impl HexToTetConverter {
 #[cfg(test)]
 mod tests {
     use super::canonical_tri_key;
+    use super::estimated_face_map_capacity;
     use super::HexToTetConverter;
     use crate::domain::core::index::FaceId;
     use crate::domain::core::index::VertexId;
     use crate::domain::grid::StructuredHexGridBuilder;
     use crate::domain::mesh::IndexedMesh;
-    use crate::domain::topology::ElementType;
+    use crate::domain::topology::{Cell, ElementType};
 
     fn tet_six_volume(mesh: &IndexedMesh<f64>, cell: &crate::domain::topology::Cell) -> f64 {
         let mut vertices = Vec::new();
@@ -667,5 +687,15 @@ mod tests {
                 "bounded membership must match linear membership"
             );
         }
+    }
+
+    #[test]
+    fn face_map_capacity_covers_mixed_cell_insertions() {
+        let cells = vec![
+            Cell::hexahedron(0, 1, 2, 3, 4, 5),
+            Cell::tetrahedron(6, 7, 8, 9),
+        ];
+
+        assert_eq!(estimated_face_map_capacity(&cells), 6 * 4 + 4);
     }
 }

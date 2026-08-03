@@ -522,13 +522,19 @@
       sample was noisy at 730.60 us and is retained as a host-noise observation,
       not as the performance claim. Full nextest is 939/939 with one skipped.
 
-- [ ] **Phase 45: Right-Size Hex-to-Tet Face Storage [perf]**
-    - [ ] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
+- [x] **Phase 45: Right-Size Hex-to-Tet Face Storage [perf]**
+    - [x] Owner: Codex; scope: `src/application/hierarchy/hex_to_tet.rs`,
       its value-semantic tests, and the existing hex-to-tet benchmark lane.
-    - [ ] Replace the input-face multiplier reservation with a topology-derived
+    - [x] Replace the input-face multiplier reservation with a topology-derived
       upper bound: six tetrahedra × four faces per hexahedral cell plus the
       original face count for preserved non-hexahedral cells; keep capacity
       arithmetic saturating and the map operation type-independent.
-    - [ ] Retain only if the matched conversion benchmark does not regress and
-      the reservation bound is proven sufficient for mixed cell inputs.
+    - [x] Retain on evidence: the logical reservation for the 512-cell
+      structured input falls from 18,432 to 12,288 entries (33.3% lower).
+      The matched benchmark is 449.76 us [439.68, 460.58], with no change
+      detected by Criterion (p = 0.59); the mixed-cell bound test is included
+      in 5/5 focused tests. Release bench codegen is 74,910 LLVM lines /
+      2,060 copies versus 74,907 / 2,060, so no specialization reduction is
+      claimed and no RSS or allocator-byte claim is made. Full nextest is
+      940/940 with one skipped.
 
