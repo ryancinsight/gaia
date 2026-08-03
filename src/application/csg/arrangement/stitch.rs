@@ -104,7 +104,7 @@ pub(crate) fn fill_boundary_loops(faces: &mut Vec<FaceData>, pool: &VertexPool) 
             break;
         }
 
-        let loops = trace_loops(&boundary);
+        let loops = trace_loops(&boundary, MAX_LOOP, MAX_LOOP);
         if loops.is_empty() {
             break;
         }
@@ -145,7 +145,11 @@ pub(crate) fn fill_boundary_loops(faces: &mut Vec<FaceData>, pool: &VertexPool) 
 
 /// Trace closed boundary loops from directed boundary edges using greedy DFS
 /// with inner-cycle extraction for figure-8 topologies.
-fn trace_loops(boundary: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> {
+pub(crate) fn trace_loops(
+    boundary: &[(VertexId, VertexId)],
+    max_path_len: usize,
+    max_loop_len: usize,
+) -> Vec<Vec<VertexId>> {
     let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(boundary.len());
     for &(vi, vj) in boundary {
         adj.entry(vi)
@@ -176,7 +180,7 @@ fn trace_loops(boundary: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> {
             let mut closed = false;
 
             loop {
-                if path.len() > MAX_LOOP {
+                if path.len() > max_path_len {
                     break;
                 }
                 let succs = match adj.get(&cur) {
@@ -197,7 +201,7 @@ fn trace_loops(boundary: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> {
                     // Inner-cycle extraction for figure-8 boundaries.
                     if let Some(pos) = path.iter().position(|&v| v == n) {
                         let inner = path[pos..].to_vec();
-                        if inner.len() >= 3 && inner.len() <= MAX_LOOP {
+                        if inner.len() >= 3 && inner.len() <= max_loop_len {
                             loops.push(inner);
                         }
                         path.truncate(pos + 1);
@@ -215,7 +219,7 @@ fn trace_loops(boundary: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> {
                 }
             }
 
-            if closed && path.len() >= 3 && path.len() <= MAX_LOOP {
+            if closed && path.len() >= 3 && path.len() <= max_loop_len {
                 loops.push(path);
             }
         }

@@ -432,14 +432,22 @@
       claimed; the inline/spill design remains an audit residual for a future
       measurement-backed implementation.
 
-- [ ] **Phase 39: Consolidate CSG Boundary Loop Tracing [patch]**
+- [x] **Phase 39: Consolidate CSG Boundary Loop Tracing [patch]**
     - [x] Owner: Codex; scope: `src/application/csg/arrangement/stitch.rs` and
       `src/application/csg/arrangement/patch.rs`.
-    - [ ] Use one non-generic boundary-loop DFS implementation for stitching
-      and patching, preserving the callers' distinct path and output limits.
-    - [ ] Verify closed loops, figure-8 inner-cycle extraction, and bounded
-      loop rejection through the existing arrangement tests.
-    - [ ] Measure release codegen and retain the consolidation only if the
-      duplicate implementation is removed without a behavioral regression.
-    - [ ] Run the affected Gaia format, lint, test, doctest, and rustdoc gates.
+    - [x] Use one non-generic boundary-loop DFS implementation for stitching
+      and patching, preserving the callers' distinct path and output limits:
+      `512/512` for stitching and `MAX_PATCH_LOOP * 4` traversal with a
+      `MAX_PATCH_LOOP` output cap for patching.
+    - [x] Verify closed loops, figure-8 inner-cycle extraction, patch filling,
+      arrangement volume, and watertightness: 210/210 focused arrangement
+      tests pass and the full all-feature library gate passes 934/934 with one
+      skipped.
+    - [x] Verify release codegen: 399,937 LLVM lines versus 400,732 before the
+      slice (-795); the duplicate patch-local DFS is removed and one shared
+      `stitch::trace_loops` symbol remains at 683 LLVM lines.
+    - [x] Run formatting, warning-denied Clippy, doctests (6/6 with 39
+      ignored), and warning-denied all-feature rustdoc. Residual: this is a
+      codegen/monomorphization improvement; no runtime-throughput or process-
+      memory improvement is claimed without a matched benchmark.
 
