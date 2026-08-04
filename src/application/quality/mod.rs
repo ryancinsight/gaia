@@ -9,7 +9,7 @@
 //! |--------|---------|
 //! | `metrics` | `QualityMetric` — min/max/mean per-scalar |
 //! | `triangle` | Per-triangle measurement functions |
-//! | `tetrahedron` | Native-precision tetrahedral shape metrics and reports |
+//! | `tetrahedron` | Native-precision tetrahedral metrics, criteria, and reports |
 //! | `cell_quality` | CFD internal-face orthogonality and skewness |
 //! | `validation` | `MeshValidator`, `QualityReport`, `QualityThresholds` |
 //! | `normals` | Normal consistency analysis |
@@ -39,6 +39,8 @@ pub use metrics::QualityMetric;
 pub use normals::{analyze_normals, NormalAnalysis};
 pub use report::FullQualityReport;
 pub use tetrahedron::{
-    tetrahedral_quality_report, tetrahedron_quality, TetrahedralQualityReport, TetrahedronQuality,
+    tetrahedral_quality_report, tetrahedron_quality, TetrahedralQualityAcceptance,
+    TetrahedralQualityCriteria, TetrahedralQualityCriteriaError, TetrahedralQualityReport,
+    TetrahedronQuality, TetrahedronQualityClass,
 };
 pub use validation::MeshValidator;

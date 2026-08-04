@@ -1,6 +1,6 @@
 # Mesh-library gap audit
 
-Date: 2026-08-03
+Date: 2026-08-04
 
 This audit compares Gaia's current mesh-provider surface with the capabilities
 that are explicit in the primary documentation for CGAL Mesh_3, Gmsh, TetGen,
@@ -28,7 +28,7 @@ parameter value.
 | 2-D constrained meshing | Delaunay, PSLG, CDT, Ruppert refinement, metric and smoothing paths | Constrained Delaunay refinement with quality/size criteria | Present; expand property and adversarial coverage |
 | 3-D unconstrained meshing | Bowyer-Watson tetrahedralization and deterministic SDF/BCC seeding | Delaunay-based volume meshing | Present as a seed/tetrahedralization kernel; new direct regression coverage added in this audit |
 | 3-D constrained refinement | No boundary-feature protection, sizing field, radius-edge refinement loop, or sliver optimization API | CGAL Mesh_3 and TetGen expose constrained/refined quality meshing | Open P1 capability gap; this is the primary state-of-the-art volume-meshing extension |
-| Tetrahedral quality | Native `T` volume, radius-edge, minimum-dihedral, and normalized-volume metrics; CFD internal-face metrics | Radius-edge, dihedral-angle, sliver, volume, and size criteria | Partial: native shape metrics are present; sliver classification and size criteria remain open |
+| Tetrahedral quality | Native `T` volume, radius-edge, minimum-dihedral, and normalized-volume metrics; explicit consumer-supplied acceptance criteria; CFD internal-face metrics | Radius-edge, dihedral-angle, sliver, volume, and size criteria | Present for cell-level acceptance; boundary-feature acceptance and refinement remain open |
 | Remeshing/repair | Degenerate-face removal, orientation repair, boundary stitching/sealing, component retention, self-intersection detection | Self-intersection remeshing, decimation, isotropic/adaptive remeshing | Open P1: detection exists, canonical validation does not reject/report it, and no remeshing result is owned by Gaia |
 | High-order/mixed volume cells | Linear tetrahedral builder, hexahedral source grid, P2 surface refinement | Mixed/high-order element workflows vary by library | Open P2 and consumer-driven; do not add public cell variants without an Atlas consumer contract |
 | Parallel meshing | Parallel CSG classification paths; deterministic serial Delaunay/SDF topology | Gmsh exposes threaded 3-D generation; HXT provides parallel Delaunay/refinement research | Open P2 performance track; benchmark before changing topology or order |
@@ -90,11 +90,22 @@ volume. Invalid tetrahedral cells are counted without defaulting their
 metrics. Tests cover analytical `f32` and `f64` instantiations, a sliver, an
 invalid cell, and the structured-grid CFD report.
 
+### Explicit tetrahedral acceptance criteria
+
+`TetrahedralQualityCriteria<T>` now validates consumer-supplied shape bounds
+and an optional maximum cell volume in native scalar precision. Assessment is
+one traversal over tetrahedral cells and classifies radius-edge-safe cells
+with simultaneously low dihedral angle and normalized volume as sliver
+candidates. Other shape failures, oversized cells, and malformed cells stay
+distinct, so a consumer can select the corrective action without a hidden
+default threshold. Scale/translation invariance and `f32`/`f64` assessment
+coverage are regression-tested.
+
 ## Remaining prioritized work
 
-1. Add sliver classification, a validated sizing criterion, and boundary-cell
-   quality acceptance rules on top of the native tetrahedral metrics. Keep
-   thresholds explicit and consumer-driven.
+1. Add boundary-cell quality acceptance rules on top of the native tetrahedral
+   criteria. The current policy is cell-level and does not yet encode feature
+   protection or surface-facet criteria.
 2. Add a constrained 3-D refinement stage around the existing tetrahedralizer:
    protected boundary features, a validated sizing field, explicit termination
    limits, and a quality-improvement phase. The API should be introduced only
