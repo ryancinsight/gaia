@@ -11,6 +11,17 @@ positive signed volume. The positive-volume requirement rejects a globally
 inverted surface. Euler characteristic is diagnostic rather than a genus-zero
 gate, so valid handles such as a torus remain watertight.
 
+Self-intersection detection is an explicit policy choice. The default
+`check_watertight` report leaves `self_intersections` as
+`SelfIntersectionStatus::NotChecked` and does not build the BVH. Call
+`check_watertight_with_self_intersections` when proper non-adjacent triangle
+crossings must participate in the acceptance decision; it reuses the indexed
+face storage, reports the detected pair count, and marks the mesh as not
+watertight. The corresponding assertion returns the typed
+`MeshError::SelfIntersection` for the first pair. Shared-edge adjacency is
+excluded by construction; coplanar overlap, touching, and near-degenerate
+classification remain separate predicate work.
+
 ![Watertightness diagnostic cases](figures/watertightness-diagnostics.svg)
 
 The generated sheet contains four analytical diagnostics:

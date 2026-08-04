@@ -705,6 +705,9 @@
       with cell criteria by single-cell face incidence; reject malformed
       boundary topology and cover `f32`/`f64`, sizing, invalid-face, and
       malformed-cell cases.
+    - [x] Add an explicit opt-in self-intersection status/error path without
+      adding BVH work to the default watertight check; cover crossing and
+      clean-mesh value semantics.
     - [ ] Add constrained 3-D Delaunay refinement after the predicate contract,
       feature-consumer criteria, sizing-field contract, and termination gates
       are defined; no state-of-the-art refinement capability is claimed before

@@ -57,7 +57,7 @@ contracts and are not silently widened here.
 | Capability | Gaia baseline | Reference-library expectation | Disposition |
 | --- | --- | --- | --- |
 | Indexed surface topology | Welded indexed triangles, persistent edge adjacency, boundary labels, half-edge view | Common indexed/half-edge or compact mesh representations | Present; retain Gaia ownership |
-| Surface validation | Boundary/non-manifold edge counts, winding consistency, signed volume, Euler diagnostic, BVH self-intersection detector | Robust topology and geometric-defect validation | Fixed in this audit: outward orientation is now required and Euler genus is diagnostic. Self-intersection detection remains a separate opt-in operation |
+| Surface validation | Boundary/non-manifold edge counts, winding consistency, signed volume, Euler diagnostic, BVH self-intersection detector, explicit opt-in status/error | Robust topology and geometric-defect validation | Fixed in this audit: outward orientation is required, Euler genus is diagnostic, and self-intersection rejection is explicit without changing the hot default path |
 | Surface CSG | BVH broad phase, exact orientation predicates, co-refinement, coplanar arrangement, n-ary operation | Robust Boolean/CSG trees and self-intersection resolution | Present for Gaia's supported triangle-surface contract; add unresolved seam cases to regression data before broadening claims |
 | 2-D constrained meshing | Delaunay, PSLG, CDT, Ruppert refinement, metric and smoothing paths | Constrained Delaunay refinement with quality/size criteria | Present; expand property and adversarial coverage |
 | 3-D unconstrained meshing | Bowyer-Watson tetrahedralization and deterministic SDF/BCC seeding | Delaunay-based volume meshing | Present as a seed/tetrahedralization kernel; new direct regression coverage added in this audit |
@@ -150,16 +150,31 @@ This closes the acceptance-oracle gap, not the refinement gap. It does not
 claim feature protection, a sizing field, constrained Delaunay refinement, or
 sliver optimization.
 
+### Explicit self-intersection policy
+
+The watertight API now keeps self-intersection detection opt-in. The default
+`check_watertight` path reports `SelfIntersectionStatus::NotChecked` and does
+not build the BVH. `check_watertight_with_self_intersections` performs the
+existing BVH/narrow-phase scan without copying the face store, reports either
+`Clear` or the crossing-pair count, and folds a found crossing into the
+watertight result. The corresponding assertion API returns the existing typed
+`MeshError::SelfIntersection` for the first pair.
+
+The predicate contract remains deliberately narrow: shared-vertex/edge
+adjacency is excluded, coplanar overlap is not classified as a proper 3-D
+crossing, and the detector currently uses Gaia's `f64` CSG predicate boundary.
+Those are explicit limits, not hidden validation defaults.
+
 ## Remaining prioritized work
 
 1. Add a constrained 3-D refinement stage around the existing tetrahedralizer:
    protected boundary features, a validated sizing field, explicit termination
    limits, and a quality-improvement phase. The API should be introduced only
    after an Atlas consumer contract and a benchmark workload exist.
-2. Promote self-intersection status into an explicit validation policy or
-   result type. Do not silently fold the existing detector into every hot
-   watertight check until its scalar boundary, coplanar policy, and cost are
-   specified.
+2. Extend the self-intersection predicate contract to classify coplanar
+   overlap, touching, and near-degenerate cases for callers that need a full
+   geometric-defect policy. The current opt-in crossing policy intentionally
+   remains limited to proper non-adjacent 3-D intersections.
 3. Replace the current f64-only robust-predicate boundary in the 3-D
    tetrahedralizer with an explicit predicate-precision contract. The current
    implementation is generic in `T` but routes orientation/insphere decisions
