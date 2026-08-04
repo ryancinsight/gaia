@@ -7,8 +7,8 @@
 //! interior angles **exactly once** per triangle.  Previously each function
 //! recomputed the same six normalized edge vectors independently.
 
-use crate::domain::core::constants;
-use crate::domain::core::scalar::{Point3r, Real};
+use crate::domain::core::scalar::{Point3r, Real, Scalar};
+use eunomia::{NumericElement, RealField};
 
 // ── Private helper ─────────────────────────────────────────────────────────────
 
@@ -28,7 +28,11 @@ use crate::domain::core::scalar::{Point3r, Real};
 /// of truth; tests assert the π-sum and equilateral angle contracts within a
 /// bounded floating-point tolerance.
 #[inline]
-pub(crate) fn triangle_angles(a: &Point3r, b: &Point3r, c: &Point3r) -> [Real; 3] {
+pub(crate) fn triangle_angles<T: Scalar>(
+    a: &leto::geometry::Point3<T>,
+    b: &leto::geometry::Point3<T>,
+    c: &leto::geometry::Point3<T>,
+) -> [T; 3] {
     let ab = b - a;
     let ac = c - a;
     let bc = c - b;
@@ -37,13 +41,18 @@ pub(crate) fn triangle_angles(a: &Point3r, b: &Point3r, c: &Point3r) -> [Real; 3
     let lac = ac.norm();
     let lbc = bc.norm();
 
-    if lab <= Real::EPSILON || lac <= Real::EPSILON || lbc <= Real::EPSILON {
-        return [Real::NAN; 3];
+    if lab <= <T as NumericElement>::ZERO
+        || lac <= <T as NumericElement>::ZERO
+        || lbc <= <T as NumericElement>::ZERO
+    {
+        return [<T as NumericElement>::NAN; 3];
     }
 
     #[inline]
-    fn angle(dot: Real, lhs_len: Real, rhs_len: Real) -> Real {
-        (dot / (lhs_len * rhs_len)).clamp(-1.0, 1.0).acos()
+    fn angle<T: Scalar>(dot: T, lhs_len: T, rhs_len: T) -> T {
+        (dot / (lhs_len * rhs_len))
+            .clamp(-<T as NumericElement>::ONE, <T as NumericElement>::ONE)
+            .acos()
     }
 
     [
@@ -61,27 +70,41 @@ pub(crate) fn triangle_angles(a: &Point3r, b: &Point3r, c: &Point3r) -> [Real; 3
 /// CFD meshes typically want aspect ratio < 5.
 #[inline]
 #[must_use]
-pub fn aspect_ratio(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+pub(crate) fn aspect_ratio_native<T: Scalar>(
+    a: &leto::geometry::Point3<T>,
+    b: &leto::geometry::Point3<T>,
+    c: &leto::geometry::Point3<T>,
+) -> T {
     let ab = b - a;
     let bc = c - b;
     let ca = a - c;
     let edges = [ab.norm(), bc.norm(), ca.norm()];
-    let longest = edges.iter().copied().fold(0.0, Real::max);
+    let longest = edges
+        .iter()
+        .copied()
+        .fold(<T as NumericElement>::ZERO, |lhs, rhs| lhs.max_scalar(rhs));
     // ab already computed — reuse for cross product to avoid a second subtraction.
-    let area = 0.5 * ab.cross(-ca).norm();
+    let area_twice = ab.cross(-ca).norm();
 
-    if area < Real::EPSILON {
-        return Real::INFINITY; // Degenerate
+    // Compare the area against a scale-relative bound.  An absolute epsilon
+    // incorrectly classifies valid micro-scale or macro-scale triangles.
+    let scale = longest * longest;
+    if longest <= <T as NumericElement>::ZERO || area_twice <= <T as RealField>::EPSILON * scale {
+        return <T as NumericElement>::INFINITY; // Degenerate
     }
 
-    let shortest_alt = 2.0 * area / longest;
+    let shortest_alt = area_twice / longest;
     longest / shortest_alt
 }
 
 /// Minimum interior angle of a triangle (in radians).
 #[inline]
 #[must_use]
-pub fn min_angle(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+pub(crate) fn min_angle_native<T: Scalar>(
+    a: &leto::geometry::Point3<T>,
+    b: &leto::geometry::Point3<T>,
+    c: &leto::geometry::Point3<T>,
+) -> T {
     let [a0, a1, a2] = triangle_angles(a, b, c);
     a0.min(a1).min(a2)
 }
@@ -89,7 +112,11 @@ pub fn min_angle(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
 /// Maximum interior angle of a triangle (in radians).
 #[inline]
 #[must_use]
-pub fn max_angle(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+pub(crate) fn max_angle_native<T: Scalar>(
+    a: &leto::geometry::Point3<T>,
+    b: &leto::geometry::Point3<T>,
+    c: &leto::geometry::Point3<T>,
+) -> T {
     let [a0, a1, a2] = triangle_angles(a, b, c);
     a0.max(a1).max(a2)
 }
@@ -103,16 +130,34 @@ pub fn max_angle(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
 /// angle computation overhead.
 #[inline]
 #[must_use]
-pub fn equiangle_skewness(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
-    let ideal = constants::PI / 3.0; // 60° for equilateral triangle
+pub(crate) fn equiangle_skewness_native<T: Scalar>(
+    a: &leto::geometry::Point3<T>,
+    b: &leto::geometry::Point3<T>,
+    c: &leto::geometry::Point3<T>,
+) -> T {
+    let ideal = <T as RealField>::PI / <T as Scalar>::from_f64(3.0); // 60° for equilateral triangle
     let angles = triangle_angles(a, b, c);
-    let max_a = angles.iter().copied().fold(Real::NEG_INFINITY, Real::max);
-    let min_a = angles.iter().copied().fold(Real::INFINITY, Real::min);
+    let max_a = angles
+        .iter()
+        .copied()
+        .fold(-<T as NumericElement>::INFINITY, |lhs, rhs| {
+            lhs.max_scalar(rhs)
+        });
+    let min_a = angles
+        .iter()
+        .copied()
+        .fold(<T as NumericElement>::INFINITY, |lhs, rhs| {
+            lhs.min_scalar(rhs)
+        });
 
-    let skew_max = (max_a - ideal) / (constants::PI - ideal);
+    let skew_max = (max_a - ideal) / (<T as RealField>::PI - ideal);
     let skew_min = (ideal - min_a) / ideal;
 
-    skew_max.max(skew_min)
+    if skew_max.is_nan() || skew_min.is_nan() {
+        <T as NumericElement>::NAN
+    } else {
+        skew_max.max_scalar(skew_min)
+    }
 }
 
 /// Edge length ratio: `shortest_edge / longest_edge`.
@@ -120,16 +165,63 @@ pub fn equiangle_skewness(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
 /// 1.0 = all edges equal, approaching 0 = bad quality.
 #[inline]
 #[must_use]
-pub fn edge_length_ratio(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+pub(crate) fn edge_length_ratio_native<T: Scalar>(
+    a: &leto::geometry::Point3<T>,
+    b: &leto::geometry::Point3<T>,
+    c: &leto::geometry::Point3<T>,
+) -> T {
     let edges = [(b - a).norm(), (c - b).norm(), (a - c).norm()];
-    let shortest = edges.iter().copied().fold(Real::INFINITY, Real::min);
-    let longest = edges.iter().copied().fold(0.0, Real::max);
+    let shortest = edges
+        .iter()
+        .copied()
+        .fold(<T as NumericElement>::INFINITY, |lhs, rhs| {
+            lhs.min_scalar(rhs)
+        });
+    let longest = edges
+        .iter()
+        .copied()
+        .fold(<T as NumericElement>::ZERO, |lhs, rhs| lhs.max_scalar(rhs));
 
-    if longest < Real::EPSILON {
-        return 0.0;
+    if longest <= <T as NumericElement>::ZERO {
+        return <T as NumericElement>::ZERO;
     }
 
     shortest / longest
+}
+
+/// Triangle aspect ratio: `longest_edge / shortest_altitude`.
+#[inline]
+#[must_use]
+pub fn aspect_ratio(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+    aspect_ratio_native(a, b, c)
+}
+
+/// Minimum interior angle of a triangle (in radians).
+#[inline]
+#[must_use]
+pub fn min_angle(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+    min_angle_native(a, b, c)
+}
+
+/// Maximum interior angle of a triangle (in radians).
+#[inline]
+#[must_use]
+pub fn max_angle(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+    max_angle_native(a, b, c)
+}
+
+/// Equiangle skewness: deviation from an equilateral triangle.
+#[inline]
+#[must_use]
+pub fn equiangle_skewness(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+    equiangle_skewness_native(a, b, c)
+}
+
+/// Edge length ratio: `shortest_edge / longest_edge`.
+#[inline]
+#[must_use]
+pub fn edge_length_ratio(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
+    edge_length_ratio_native(a, b, c)
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
@@ -137,7 +229,7 @@ pub fn edge_length_ratio(a: &Point3r, b: &Point3r, c: &Point3r) -> Real {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::core::scalar::Point3r;
+    use crate::domain::core::scalar::{Point3r, Real};
 
     fn equilateral() -> (Point3r, Point3r, Point3r) {
         use std::f64::consts::SQRT_2;

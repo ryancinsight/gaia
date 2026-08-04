@@ -6,6 +6,11 @@ non-manifold-edge count, orientation consistency, signed volume, and Euler
 characteristic. The report is evidence about a concrete `IndexedMesh`; it is
 not inferred from a builder name or from a successful `Result`.
 
+`is_watertight` requires a closed manifold, consistent winding, and a finite
+positive signed volume. The positive-volume requirement rejects a globally
+inverted surface. Euler characteristic is diagnostic rather than a genus-zero
+gate, so valid handles such as a torus remain watertight.
+
 ![Watertightness diagnostic cases](figures/watertightness-diagnostics.svg)
 
 The generated sheet contains four analytical diagnostics:

@@ -1,7 +1,8 @@
 //! Body-Centered Cubic (BCC) Lattice Seeding and SDF Volumetric Meshing.
 //!
 //! Generates an unstructured `IndexedMesh<T>` conforming to an implicit `Sdf3D` surface
-//! using robust gradient descent and the exact `BowyerWatson3D` tetrahedralizer.
+//! using gradient descent and the robust-predicate `BowyerWatson3D`
+//! tetrahedralizer.
 
 use crate::application::delaunay::dim3::sdf::Sdf3D;
 use crate::application::delaunay::dim3::tetrahedralize::BowyerWatson3D;
@@ -34,10 +35,9 @@ impl<T: Scalar> SdfMesher<T> {
     /// Embed the boundary geometry by evaluating the input `Sdf3D`, inserting
     /// conforming seed points, and tetrahedralizing into an `IndexedMesh<T>`.
     ///
-    /// ## Theorems Enforced
-    /// 1. **Euler-Poincaré Cell Continuity**: Interior cells perfectly pack volumetric space.
-    /// 2. **Empty Circumsphere**: `BowyerWatson3D` guarantees optimal tetrahedral shape.
-    /// 3. **Topological Extrusion Duality**: Exact $\nabla SDF$ gradients ensure points lock to $SDF=0$.
+    /// The generated interior uses the Delaunay empty-circumsphere criterion;
+    /// that establishes connectivity, not a quality optimum. Boundary
+    /// projection follows the `Sdf3D` implementation's gradient contract.
     pub fn build_volume<S: Sdf3D<T>>(&self, sdf: &S) -> IndexedMesh<T> {
         let (min, max) = sdf.bounds();
 

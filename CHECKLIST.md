@@ -679,3 +679,32 @@
       improvement claim. The unrelated repository-wide Leto format residual
       remains outside this Gaia scope.
 
+- [ ] **Phase 52: Mesh-library Gap Audit and Native Validation [audit]**
+    - [x] Compare Gaia's public meshing surface against primary CGAL, Gmsh,
+      TetGen, and libigl documentation; record present capability, confirmed
+      gaps, evidence boundaries, and dependency-ordered follow-up work in
+      `docs/mesh_library_gap_audit.md`.
+    - [x] Fix native-precision quality validation: triangle metrics, threshold
+      comparisons, and reductions remain in `T`, with `f64` conversion only at
+      the report boundary. Reject non-finite metrics from degenerate faces.
+    - [x] Fix watertightness semantics: require finite positive signed volume,
+      reject globally inverted closed surfaces, and accept valid non-spherical
+      topology through `assert_watertight`.
+    - [x] Add value-semantic tests for `f32` quality validation, degenerate
+      quality rejection, inverted surfaces, torus topology, and direct 3-D
+      Bowyer-Watson output invariants.
+    - [x] Activate the CFD cell-quality module and add native tetrahedral
+      volume, radius-edge, minimum-dihedral, normalized-volume, sliver, and
+      invalid-cell coverage for `f32` and `f64`.
+    - [ ] Add sliver classification, sizing acceptance criteria, and
+      constrained 3-D Delaunay refinement after the predicate contract and
+      consumer acceptance criteria are defined; no state-of-the-art
+      capability is claimed before those gates.
+    - [ ] Collect the exact-final-revision doctest and rustdoc results; both
+      attempts were held by concurrent shared-target Cargo jobs and timed out
+      without diagnostics. Format, warning-denied clippy, full 957/957 native
+      nextest, mdBook test/build, and `git diff --check` pass on the delivered
+      code before the capacity-only report reservation. No controlled runtime
+      or RSS improvement claim is made; the remaining optimization evidence is
+      benchmark work in the open refinement item.
+

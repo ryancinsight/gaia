@@ -21,9 +21,9 @@ Gaia implements exactly-computable geometry and topologically-safe mesh represen
 - **GhostCell + SlotMap Integration**: Mesh entities (vertices, half-edges, faces) are managed via slotmap keys. Mutability is gated by an invariant lifetime brand `'id` using a single `GhostToken<'id>`, guaranteeing that entities cannot be accessed or mutated outside their parent mesh boundaries at compile time (zero runtime overhead).
 - **Branded Mesh representation**: Exposes a branded half-edge mesh `Mesh<'id>` for topological traversal, and an `IndexedMesh` for serialized I/O snapshots.
 
-### 2. Numerical Correctness via Exact Predicates
-- **Shewchuk Adaptive Precision**: Wraps robust geometric predicates (`orient_2d`, `orient_3d`) to perform exact orientation and incircle tests. All topological sign decisions are immune to floating-point roundoff or cancellation.
-- **Evidence Tier**: Mathematical verification via Shewchuk's adaptive precision algorithms; validated empirically through full-suite regression tests.
+### 2. Numerical Correctness via Robust Predicates
+- **Shewchuk Adaptive Precision**: Wraps robust geometric predicates (`orient_2d`, `orient_3d`) for the documented `f64` predicate boundary. The predicate implementation protects sign decisions against roundoff in that representation.
+- **Precision contract**: Surface and tetrahedral-builder kernels execute native `T` arithmetic; the 3-D Bowyer-Watson kernel currently converts coordinates to `f64` for its robust predicates. Native-precision 3-D predicates remain an audited extension item.
 
 ### 3. Validated Volume Construction
 - **TetrahedralMeshBuilder**: Builds `IndexedMesh<T>` volume meshes from welded
@@ -69,7 +69,7 @@ src/
     delaunay/                # 2D/3D Delaunay triangulation (Bowyer-Watson, Ruppert refinement)
     hierarchy/               # Mesh promotion and decomposition (P2 conversion, Hex-to-Tet)
     pipeline/                # End-to-end mesh generation pipelines
-    quality/                 # Aspect ratio, skewness, and normal quality metrics
+    quality/                 # Surface, CFD-cell, and tetrahedral quality metrics
     watertight/              # Mesh repair, topological sealing, and manifold verification
   domain/                    # Domain primitives and invariants
     core/                    # Scalar types, index aliases, and error types
