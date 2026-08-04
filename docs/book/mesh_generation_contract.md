@@ -55,8 +55,13 @@ metrics in the mesh scalar, CFD volume-cell reports expose internal-face
 non-orthogonality and skewness, and tetrahedral reports expose native
 volume, radius-edge ratio, minimum dihedral angle, and normalized volume.
 Invalid tetrahedral cells are counted rather than assigned default metric
-values. Constrained three-dimensional refinement and sliver optimization are
-not implied by these measurements and remain separate capabilities.
+values. `TetrahedralQualityCriteria<T>` adds an explicit acceptance boundary:
+callers provide the shape bounds and may provide a maximum cell volume. The
+validated policy classifies cells as accepted, sliver candidates, poor-shape,
+oversized, or invalid. There is no default because mesh quality and sizing
+are consumer policy. Constrained three-dimensional refinement and sliver
+optimization are not implied by these measurements and remain separate
+capabilities.
 
 ## Evidence boundary
 

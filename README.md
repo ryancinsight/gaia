@@ -97,6 +97,10 @@ src/
 - **Tetrahedral volumes**: `TetrahedralMeshBuilder<T>` validates native-
   precision cells, deduplicates shared faces, and exposes a boundary shell for
   FEM consumers such as Kwavers.
+- **Tetrahedral acceptance**: `TetrahedralQualityCriteria<T>` requires
+  consumer-supplied radius-edge, dihedral-angle, normalized-volume, and
+  optional maximum-volume bounds. It classifies measured cells as accepted,
+  sliver, poor-shape, oversized, or invalid without imposing hidden defaults.
 - **CFD I/O Exporters**:
   - **OpenFOAM**: High-performance export with region index mapping.
   - **3MF**: Pre-allocated XML serialization.

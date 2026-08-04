@@ -696,15 +696,18 @@
     - [x] Activate the CFD cell-quality module and add native tetrahedral
       volume, radius-edge, minimum-dihedral, normalized-volume, sliver, and
       invalid-cell coverage for `f32` and `f64`.
-    - [ ] Add sliver classification, sizing acceptance criteria, and
-      constrained 3-D Delaunay refinement after the predicate contract and
-      consumer acceptance criteria are defined; no state-of-the-art
-      capability is claimed before those gates.
-    - [ ] Collect the exact-final-revision doctest and rustdoc results; both
-      attempts were held by concurrent shared-target Cargo jobs and timed out
-      without diagnostics. Format, warning-denied clippy, full 957/957 native
-      nextest, mdBook test/build, and `git diff --check` pass on the delivered
-      code before the capacity-only report reservation. No controlled runtime
-      or RSS improvement claim is made; the remaining optimization evidence is
-      benchmark work in the open refinement item.
+    - [x] Add explicit native-precision tetrahedral acceptance criteria for
+      radius-edge, minimum dihedral angle, normalized volume, and optional
+      maximum cell volume. Classify sliver candidates, other shape failures,
+      oversized cells, and invalid cells without hidden defaults.
+    - [ ] Add boundary-cell quality acceptance rules and constrained 3-D
+      Delaunay refinement after the predicate contract and feature-consumer
+      criteria are defined; no state-of-the-art capability is claimed before
+      those gates.
+    - [x] Collect the exact-final-revision gates: format, warning-denied
+      all-target Clippy, full 961/961 native nextest with one skipped, 7/7
+      non-ignored doctests, warning-denied Rustdoc, mdBook test/build with
+      linkcheck2, and `git diff --check` all pass. No controlled runtime or RSS
+      improvement claim is made; benchmark evidence remains required for the
+      open refinement and optimization items.
 
