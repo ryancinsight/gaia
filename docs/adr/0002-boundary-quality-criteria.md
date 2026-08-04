@@ -20,9 +20,11 @@ boundary-cell result that combined the two policies.
 ## Decision
 
 Gaia adds `BoundaryFacetQualityCriteria<T>` with explicit native-precision
-bounds for minimum facet angle, shortest-to-longest edge ratio, and optional
-maximum edge length. `TetrahedralQualityCriteria<T>::assess_boundary` composes
-that policy with the cell policy.
+Aequitas quantities for minimum facet angle, dimensionless shortest-to-longest
+edge ratio, and optional SI maximum edge length. `TetrahedralQualityCriteria<T>::assess_boundary`
+composes that policy with the cell policy. Aequitas' transparent quantity
+representation preserves the scalar layout and monomorphizes away the
+dimension marker.
 
 Boundary facets are identified by face incidence: exactly one tetrahedral cell
 references the face. Each geometric boundary facet is measured once. A
@@ -48,7 +50,8 @@ controlled performance evidence.
 
 ## Verification
 
-The boundary module tests native `f32` and `f64` instantiations, accepted unit
-tetrahedra, oversized facets, malformed facet vertex identifiers, malformed
-cell topology, and invalid criterion domains. The relevant primary references
-are linked from [`docs/mesh_library_gap_audit.md`](../mesh_library_gap_audit.md).
+The boundary module tests native `f32` and `f64` instantiations, Aequitas unit
+construction, accepted unit tetrahedra, oversized facets, malformed facet
+vertex identifiers, malformed cell topology, and invalid criterion domains.
+The relevant primary references are linked from
+[`docs/mesh_library_gap_audit.md`](../mesh_library_gap_audit.md).

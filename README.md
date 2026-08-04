@@ -102,7 +102,8 @@ src/
   optional maximum-volume bounds. It classifies measured cells as accepted,
   sliver, poor-shape, oversized, or invalid without imposing hidden defaults.
 - **Boundary acceptance**: `BoundaryFacetQualityCriteria<T>` supplies explicit
-  native-precision facet angle, edge-ratio, and optional edge-size bounds.
+  Aequitas-typed angle, dimensionless edge-ratio, and optional SI-length
+  edge-size bounds.
   `TetrahedralQualityCriteria<T>::assess_boundary` combines them by face
   incidence and rejects malformed boundary topology instead of treating it as
   interior.

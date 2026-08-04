@@ -104,8 +104,8 @@ coverage are regression-tested.
 ### Boundary-facet and boundary-cell acceptance
 
 `BoundaryFacetQualityCriteria<T>` now provides explicit native-precision
-minimum-angle, shortest-to-longest edge-ratio, and optional maximum-edge-size
-bounds. `TetrahedralQualityCriteria<T>::assess_boundary` identifies exposed
+Aequitas-typed angle, dimensionless shortest-to-longest edge-ratio, and
+optional SI-length edge-size bounds. `TetrahedralQualityCriteria<T>::assess_boundary` identifies exposed
 facets by exactly-one-cell incidence, measures each facet once, and accepts a
 boundary cell only when its volume-cell policy and every exposed facet policy
 pass. Malformed facet references, invalid vertex identifiers, degenerate

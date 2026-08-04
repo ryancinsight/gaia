@@ -60,13 +60,19 @@ callers provide the shape bounds and may provide a maximum cell volume. The
 validated policy classifies cells as accepted, sliver candidates, poor-shape,
 oversized, or invalid. There is no default because mesh quality and sizing
 are consumer policy. `BoundaryFacetQualityCriteria<T>` separately validates
-minimum facet angle, edge-length ratio, and optional maximum edge length.
+minimum facet angle, dimensionless edge-length ratio, and optional SI length.
 `TetrahedralQualityCriteria<T>::assess_boundary` identifies geometric boundary
 facets by single-cell incidence and accepts a boundary cell only when both its
 cell policy and all exposed facet policies pass. Malformed cell or facet
 topology is rejected and counted as invalid. Constrained three-dimensional
 refinement, feature protection, sizing fields, and sliver optimization are
 not implied by these acceptance measurements and remain separate capabilities.
+
+The typed boundary constructor accepts canonical SI values or Aequitas linear
+unit conversions. For example, `Length::from_unit::<Millimeter>(0.5)` is
+stored as metres before the native-precision acceptance kernel runs. The
+quantity markers are zero-sized, so the dimensional check has no runtime
+representation or dynamic-dispatch cost.
 
 ## Evidence boundary
 

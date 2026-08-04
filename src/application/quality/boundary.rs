@@ -6,6 +6,8 @@
 //! keeps that distinction explicit and composes the facet policy with Gaia's
 //! existing [`super::tetrahedron::TetrahedralQualityCriteria`].
 
+use aequitas::systems::si::quantities::{Angle, Dimensionless, Length};
+use core::mem::{align_of, size_of};
 use eunomia::{NumericElement, RealField};
 use hashbrown::hash_map::Entry;
 use hashbrown::HashMap;
@@ -20,15 +22,34 @@ use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::ElementType;
 
+const _: () = {
+    assert!(size_of::<Angle<f32>>() == size_of::<f32>());
+    assert!(size_of::<Dimensionless<f32>>() == size_of::<f32>());
+    assert!(size_of::<Length<f32>>() == size_of::<f32>());
+    assert!(align_of::<Angle<f32>>() == align_of::<f32>());
+    assert!(align_of::<Dimensionless<f32>>() == align_of::<f32>());
+    assert!(align_of::<Length<f32>>() == align_of::<f32>());
+    assert!(size_of::<Angle<f64>>() == size_of::<f64>());
+    assert!(size_of::<Dimensionless<f64>>() == size_of::<f64>());
+    assert!(size_of::<Length<f64>>() == size_of::<f64>());
+    assert!(align_of::<Angle<f64>>() == align_of::<f64>());
+    assert!(align_of::<Dimensionless<f64>>() == align_of::<f64>());
+    assert!(align_of::<Length<f64>>() == align_of::<f64>());
+};
+
 /// Native-precision quality values for one exposed triangular facet.
+///
+/// Aequitas carries the SI dimension of each metric at compile time. The
+/// quantity wrappers are transparent over `T`, so this boundary adds no
+/// storage or dynamic-dispatch cost to the quality result.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BoundaryFacetQuality<T> {
     /// Smallest interior angle in radians.
-    pub min_angle: T,
+    pub min_angle: Angle<T>,
     /// Shortest edge divided by the longest edge.
-    pub edge_length_ratio: T,
-    /// Length of the longest facet edge.
-    pub max_edge_length: T,
+    pub edge_length_ratio: Dimensionless<T>,
+    /// Length of the longest facet edge in canonical SI units.
+    pub max_edge_length: Length<T>,
 }
 
 /// Error returned when a boundary-facet criterion is outside its domain.
@@ -45,21 +66,22 @@ pub enum BoundaryFacetQualityCriteriaError {
 /// Explicit acceptance criteria for exposed triangular facets.
 ///
 /// The minimum angle and edge-length ratio are scale invariant. The optional
-/// maximum edge length is the facet sizing boundary in mesh coordinate units.
+/// maximum edge length is the facet sizing boundary in canonical SI units.
 /// There is no `Default` implementation because surface quality and sizing are
 /// consumer policy rather than universal mesh invariants.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BoundaryFacetQualityCriteria<T> {
-    min_angle: T,
-    min_edge_length_ratio: T,
-    max_edge_length: Option<T>,
+    min_angle: Angle<T>,
+    min_edge_length_ratio: Dimensionless<T>,
+    max_edge_length: Option<Length<T>>,
 }
 
 impl<T: Scalar> BoundaryFacetQualityCriteria<T> {
     /// Create validated boundary-facet shape and sizing criteria.
     ///
-    /// `min_angle` is in radians, `min_edge_length_ratio` is in `[0, 1]`, and
-    /// `max_edge_length` is expressed in the mesh coordinate units.
+    /// `min_angle` is an SI angle in radians, `min_edge_length_ratio` is a
+    /// dimensionless value in `[0, 1]`, and `max_edge_length` is an SI length
+    /// in metres, matching the mesh coordinate contract.
     ///
     /// # Errors
     ///
@@ -69,41 +91,45 @@ impl<T: Scalar> BoundaryFacetQualityCriteria<T> {
     /// # Examples
     ///
     /// ```
+    /// use aequitas::systems::si::quantities::{Angle, Dimensionless, Length};
     /// use gaia::application::quality::BoundaryFacetQualityCriteria;
     ///
     /// let criteria = BoundaryFacetQualityCriteria::<f64>::try_new(
-    ///     0.5,
-    ///     0.5,
-    ///     Some(2.0),
+    ///     Angle::from_base(0.5),
+    ///     Dimensionless::from_base(0.5),
+    ///     Some(Length::from_base(2.0)),
     /// )
     /// .expect("criteria are finite and valid");
-    /// assert_eq!(criteria.max_edge_length(), Some(2.0));
+    /// assert_eq!(criteria.max_edge_length(), Some(Length::from_base(2.0)));
     /// ```
     #[must_use = "handle invalid boundary-facet criteria"]
     pub fn try_new(
-        min_angle: T,
-        min_edge_length_ratio: T,
-        max_edge_length: Option<T>,
+        min_angle: Angle<T>,
+        min_edge_length_ratio: Dimensionless<T>,
+        max_edge_length: Option<Length<T>>,
     ) -> Result<Self, BoundaryFacetQualityCriteriaError> {
+        let min_angle_value = min_angle.into_base();
+        let min_edge_length_ratio_value = min_edge_length_ratio.into_base();
         let zero = <T as NumericElement>::ZERO;
         let one = <T as NumericElement>::ONE;
         let sixty_degrees = <T as RealField>::PI / <T as Scalar>::from_f64(3.0);
 
-        if !<T as NumericElement>::is_finite(min_angle)
-            || min_angle < zero
-            || min_angle > sixty_degrees
+        if !<T as NumericElement>::is_finite(min_angle_value)
+            || min_angle_value < zero
+            || min_angle_value > sixty_degrees
         {
             return Err(BoundaryFacetQualityCriteriaError::InvalidMinAngle);
         }
-        if !<T as NumericElement>::is_finite(min_edge_length_ratio)
-            || min_edge_length_ratio < zero
-            || min_edge_length_ratio > one
+        if !<T as NumericElement>::is_finite(min_edge_length_ratio_value)
+            || min_edge_length_ratio_value < zero
+            || min_edge_length_ratio_value > one
         {
             return Err(BoundaryFacetQualityCriteriaError::InvalidMinEdgeLengthRatio);
         }
-        if max_edge_length
-            .is_some_and(|length| !<T as NumericElement>::is_finite(length) || length <= zero)
-        {
+        if max_edge_length.is_some_and(|length| {
+            let value = length.into_base();
+            !<T as NumericElement>::is_finite(value) || value <= zero
+        }) {
             return Err(BoundaryFacetQualityCriteriaError::InvalidMaxEdgeLength);
         }
 
@@ -116,48 +142,51 @@ impl<T: Scalar> BoundaryFacetQualityCriteria<T> {
 
     /// Return the minimum accepted facet angle in radians.
     #[must_use]
-    pub fn min_angle(&self) -> T {
+    pub fn min_angle(&self) -> Angle<T> {
         self.min_angle
     }
 
     /// Return the minimum accepted shortest-to-longest edge ratio.
     #[must_use]
-    pub fn min_edge_length_ratio(&self) -> T {
+    pub fn min_edge_length_ratio(&self) -> Dimensionless<T> {
         self.min_edge_length_ratio
     }
 
     /// Return the optional maximum accepted facet edge length.
     #[must_use]
-    pub fn max_edge_length(&self) -> Option<T> {
+    pub fn max_edge_length(&self) -> Option<Length<T>> {
         self.max_edge_length
     }
 
     /// Classify one measured boundary facet against these criteria.
     #[must_use]
     pub fn classify(&self, quality: BoundaryFacetQuality<T>) -> BoundaryFacetQualityClass {
-        let finite = <T as NumericElement>::is_finite(quality.min_angle)
-            && <T as NumericElement>::is_finite(quality.edge_length_ratio)
-            && <T as NumericElement>::is_finite(quality.max_edge_length);
+        let min_angle = quality.min_angle.into_base();
+        let edge_length_ratio = quality.edge_length_ratio.into_base();
+        let max_edge_length = quality.max_edge_length.into_base();
+        let finite = <T as NumericElement>::is_finite(min_angle)
+            && <T as NumericElement>::is_finite(edge_length_ratio)
+            && <T as NumericElement>::is_finite(max_edge_length);
         let zero = <T as NumericElement>::ZERO;
         let one = <T as NumericElement>::ONE;
         let pi = <T as RealField>::PI;
         if !finite
-            || quality.min_angle < zero
-            || quality.min_angle > pi
-            || quality.edge_length_ratio <= zero
-            || quality.edge_length_ratio > one
-            || quality.max_edge_length <= zero
+            || min_angle < zero
+            || min_angle > pi
+            || edge_length_ratio <= zero
+            || edge_length_ratio > one
+            || max_edge_length <= zero
         {
             return BoundaryFacetQualityClass::Invalid;
         }
-        if quality.min_angle < self.min_angle
-            || quality.edge_length_ratio < self.min_edge_length_ratio
+        if min_angle < self.min_angle.into_base()
+            || edge_length_ratio < self.min_edge_length_ratio.into_base()
         {
             return BoundaryFacetQualityClass::PoorShape;
         }
         if self
             .max_edge_length
-            .is_some_and(|max_length| quality.max_edge_length > max_length)
+            .is_some_and(|max_length| max_edge_length > max_length.into_base())
         {
             return BoundaryFacetQualityClass::Oversized;
         }
@@ -269,9 +298,9 @@ pub fn boundary_facet_quality<T: Scalar>(
     }
 
     Some(BoundaryFacetQuality {
-        min_angle,
-        edge_length_ratio,
-        max_edge_length,
+        min_angle: Angle::from_base(min_angle),
+        edge_length_ratio: Dimensionless::from_base(edge_length_ratio),
+        max_edge_length: Length::from_base(max_edge_length),
     })
 }
 
@@ -457,8 +486,13 @@ mod tests {
 
     fn facet_criteria<T: Scalar>(max_edge_length: Option<f64>) -> BoundaryFacetQualityCriteria<T> {
         let scalar = |value| <T as Scalar>::from_f64(value);
-        BoundaryFacetQualityCriteria::try_new(scalar(0.7), scalar(0.6), max_edge_length.map(scalar))
-            .expect("facet criteria are valid")
+        BoundaryFacetQualityCriteria::try_new(
+            aequitas::systems::si::quantities::Angle::from_base(scalar(0.7)),
+            aequitas::systems::si::quantities::Dimensionless::from_base(scalar(0.6)),
+            max_edge_length
+                .map(|value| aequitas::systems::si::quantities::Length::from_base(scalar(value))),
+        )
+        .expect("facet criteria are valid")
     }
 
     #[test]
@@ -473,6 +507,19 @@ mod tests {
             assert_eq!(acceptance.rejected_boundary_cell_count, 0);
             assert_eq!(acceptance.boundary_facet_acceptance.accepted_facet_count, 4);
             assert!(acceptance.passed());
+        }
+
+        exercise::<f32>();
+        exercise::<f64>();
+    }
+
+    #[test]
+    fn aequitas_length_conversion_is_native_and_canonical() {
+        fn exercise<T: Scalar + eunomia::UnitScalar>() {
+            let length = aequitas::systems::si::quantities::Length::<T>::from_unit::<
+                aequitas::systems::si::units::Millimeter,
+            >(<T as Scalar>::from_f64(2.0));
+            assert!((length.into_base().to_f64() - 0.002).abs() < 1e-8);
         }
 
         exercise::<f32>();
@@ -527,18 +574,26 @@ mod tests {
     fn boundary_facet_criteria_reject_invalid_bounds() {
         assert_eq!(
             BoundaryFacetQualityCriteria::<f64>::try_new(
-                std::f64::consts::PI / 2.0,
-                0.5,
-                Some(1.0),
+                aequitas::systems::si::quantities::Angle::from_base(std::f64::consts::PI / 2.0,),
+                aequitas::systems::si::quantities::Dimensionless::from_base(0.5),
+                Some(aequitas::systems::si::quantities::Length::from_base(1.0)),
             ),
             Err(BoundaryFacetQualityCriteriaError::InvalidMinAngle)
         );
         assert_eq!(
-            BoundaryFacetQualityCriteria::<f64>::try_new(0.5, 1.1, Some(1.0)),
+            BoundaryFacetQualityCriteria::<f64>::try_new(
+                aequitas::systems::si::quantities::Angle::from_base(0.5),
+                aequitas::systems::si::quantities::Dimensionless::from_base(1.1),
+                Some(aequitas::systems::si::quantities::Length::from_base(1.0)),
+            ),
             Err(BoundaryFacetQualityCriteriaError::InvalidMinEdgeLengthRatio)
         );
         assert_eq!(
-            BoundaryFacetQualityCriteria::<f64>::try_new(0.5, 0.5, Some(0.0)),
+            BoundaryFacetQualityCriteria::<f64>::try_new(
+                aequitas::systems::si::quantities::Angle::from_base(0.5),
+                aequitas::systems::si::quantities::Dimensionless::from_base(0.5),
+                Some(aequitas::systems::si::quantities::Length::from_base(0.0)),
+            ),
             Err(BoundaryFacetQualityCriteriaError::InvalidMaxEdgeLength)
         );
     }

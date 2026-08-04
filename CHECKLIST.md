@@ -700,8 +700,8 @@
       radius-edge, minimum dihedral angle, normalized volume, and optional
       maximum cell volume. Classify sliver candidates, other shape failures,
       oversized cells, and invalid cells without hidden defaults.
-    - [x] Add explicit native-precision boundary-facet criteria for minimum
-      angle, edge-length ratio, and optional maximum edge length. Compose them
+    - [x] Add explicit native-precision Aequitas-typed boundary-facet criteria
+      for angle, dimensionless edge-length ratio, and optional SI length. Compose them
       with cell criteria by single-cell face incidence; reject malformed
       boundary topology and cover `f32`/`f64`, sizing, invalid-face, and
       malformed-cell cases.
