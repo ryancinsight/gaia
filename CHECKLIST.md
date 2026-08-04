@@ -709,12 +709,11 @@
       feature-consumer criteria, sizing-field contract, and termination gates
       are defined; no state-of-the-art refinement capability is claimed before
       those gates.
-    - [ ] Collect the exact-final-revision gates: format, warning-denied
-      all-target Clippy, full 966/966 native nextest with one skipped,
+    - [x] Collect the exact-final-revision gates: format, warning-denied
+      all-target Clippy, full 967/967 native nextest with one skipped,
       warning-denied Rustdoc, mdBook test/build with linkcheck2, and
-      `git diff --check` pass. Seven of eight runnable doctests pass; the
-      pre-existing `orient_3d` doctest is blocked by Windows Defender OS error
-      225 while launching its generated executable. No controlled runtime or
-      RSS improvement claim is made; benchmark evidence remains required for
-      the open refinement and optimization items.
+      `git diff --check` pass. All eight runnable doctests pass; 39 additional
+      doctests remain intentionally ignored. No controlled runtime or RSS
+      improvement claim is made; benchmark evidence remains required for the
+      open refinement and optimization items.
 
