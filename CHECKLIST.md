@@ -700,14 +700,21 @@
       radius-edge, minimum dihedral angle, normalized volume, and optional
       maximum cell volume. Classify sliver candidates, other shape failures,
       oversized cells, and invalid cells without hidden defaults.
-    - [ ] Add boundary-cell quality acceptance rules and constrained 3-D
-      Delaunay refinement after the predicate contract and feature-consumer
-      criteria are defined; no state-of-the-art capability is claimed before
+    - [x] Add explicit native-precision boundary-facet criteria for minimum
+      angle, edge-length ratio, and optional maximum edge length. Compose them
+      with cell criteria by single-cell face incidence; reject malformed
+      boundary topology and cover `f32`/`f64`, sizing, invalid-face, and
+      malformed-cell cases.
+    - [ ] Add constrained 3-D Delaunay refinement after the predicate contract,
+      feature-consumer criteria, sizing-field contract, and termination gates
+      are defined; no state-of-the-art refinement capability is claimed before
       those gates.
-    - [x] Collect the exact-final-revision gates: format, warning-denied
-      all-target Clippy, full 961/961 native nextest with one skipped, 7/7
-      non-ignored doctests, warning-denied Rustdoc, mdBook test/build with
-      linkcheck2, and `git diff --check` all pass. No controlled runtime or RSS
-      improvement claim is made; benchmark evidence remains required for the
-      open refinement and optimization items.
+    - [ ] Collect the exact-final-revision gates: format, warning-denied
+      all-target Clippy, full 966/966 native nextest with one skipped,
+      warning-denied Rustdoc, mdBook test/build with linkcheck2, and
+      `git diff --check` pass. Seven of eight runnable doctests pass; the
+      pre-existing `orient_3d` doctest is blocked by Windows Defender OS error
+      225 while launching its generated executable. No controlled runtime or
+      RSS improvement claim is made; benchmark evidence remains required for
+      the open refinement and optimization items.
 

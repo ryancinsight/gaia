@@ -28,7 +28,7 @@ parameter value.
 | 2-D constrained meshing | Delaunay, PSLG, CDT, Ruppert refinement, metric and smoothing paths | Constrained Delaunay refinement with quality/size criteria | Present; expand property and adversarial coverage |
 | 3-D unconstrained meshing | Bowyer-Watson tetrahedralization and deterministic SDF/BCC seeding | Delaunay-based volume meshing | Present as a seed/tetrahedralization kernel; new direct regression coverage added in this audit |
 | 3-D constrained refinement | No boundary-feature protection, sizing field, radius-edge refinement loop, or sliver optimization API | CGAL Mesh_3 and TetGen expose constrained/refined quality meshing | Open P1 capability gap; this is the primary state-of-the-art volume-meshing extension |
-| Tetrahedral quality | Native `T` volume, radius-edge, minimum-dihedral, and normalized-volume metrics; explicit consumer-supplied acceptance criteria; CFD internal-face metrics | Radius-edge, dihedral-angle, sliver, volume, and size criteria | Present for cell-level acceptance; boundary-feature acceptance and refinement remain open |
+| Tetrahedral quality | Native `T` volume, radius-edge, minimum-dihedral, and normalized-volume metrics; explicit cell and boundary-facet acceptance criteria; CFD internal-face metrics | Radius-edge, dihedral-angle, sliver, volume, facet, and size criteria | Present for acceptance; feature protection and constrained refinement remain open |
 | Remeshing/repair | Degenerate-face removal, orientation repair, boundary stitching/sealing, component retention, self-intersection detection | Self-intersection remeshing, decimation, isotropic/adaptive remeshing | Open P1: detection exists, canonical validation does not reject/report it, and no remeshing result is owned by Gaia |
 | High-order/mixed volume cells | Linear tetrahedral builder, hexahedral source grid, P2 surface refinement | Mixed/high-order element workflows vary by library | Open P2 and consumer-driven; do not add public cell variants without an Atlas consumer contract |
 | Parallel meshing | Parallel CSG classification paths; deterministic serial Delaunay/SDF topology | Gmsh exposes threaded 3-D generation; HXT provides parallel Delaunay/refinement research | Open P2 performance track; benchmark before changing topology or order |
@@ -101,25 +101,37 @@ distinct, so a consumer can select the corrective action without a hidden
 default threshold. Scale/translation invariance and `f32`/`f64` assessment
 coverage are regression-tested.
 
+### Boundary-facet and boundary-cell acceptance
+
+`BoundaryFacetQualityCriteria<T>` now provides explicit native-precision
+minimum-angle, shortest-to-longest edge-ratio, and optional maximum-edge-size
+bounds. `TetrahedralQualityCriteria<T>::assess_boundary` identifies exposed
+facets by exactly-one-cell incidence, measures each facet once, and accepts a
+boundary cell only when its volume-cell policy and every exposed facet policy
+pass. Malformed facet references, invalid vertex identifiers, degenerate
+facets, and malformed tetrahedral cell topology are counted as invalid rather
+than silently classified as interior.
+
+This closes the acceptance-oracle gap, not the refinement gap. It does not
+claim feature protection, a sizing field, constrained Delaunay refinement, or
+sliver optimization.
+
 ## Remaining prioritized work
 
-1. Add boundary-cell quality acceptance rules on top of the native tetrahedral
-   criteria. The current policy is cell-level and does not yet encode feature
-   protection or surface-facet criteria.
-2. Add a constrained 3-D refinement stage around the existing tetrahedralizer:
+1. Add a constrained 3-D refinement stage around the existing tetrahedralizer:
    protected boundary features, a validated sizing field, explicit termination
    limits, and a quality-improvement phase. The API should be introduced only
    after an Atlas consumer contract and a benchmark workload exist.
-3. Promote self-intersection status into an explicit validation policy or
+2. Promote self-intersection status into an explicit validation policy or
    result type. Do not silently fold the existing detector into every hot
    watertight check until its scalar boundary, coplanar policy, and cost are
    specified.
-4. Replace the current f64-only robust-predicate boundary in the 3-D
+3. Replace the current f64-only robust-predicate boundary in the 3-D
    tetrahedralizer with an explicit predicate-precision contract. The current
    implementation is generic in `T` but routes orientation/insphere decisions
    through f64 predicates; this is a monomorphization audit finding, not a
    native-precision claim.
-5. Add controlled benchmarks and memory measurements for the refinement,
+4. Add controlled benchmarks and memory measurements for the refinement,
    quality, self-intersection, and SDF paths. Source-level preallocation is
    not evidence of lower RSS or faster execution.
 
