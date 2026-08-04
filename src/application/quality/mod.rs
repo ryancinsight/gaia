@@ -10,6 +10,7 @@
 //! | `metrics` | `QualityMetric` — min/max/mean per-scalar |
 //! | `triangle` | Per-triangle measurement functions |
 //! | `tetrahedron` | Native-precision tetrahedral metrics, criteria, and reports |
+//! | `boundary` | Boundary-facet criteria and boundary-cell acceptance |
 //! | `cell_quality` | CFD internal-face orthogonality and skewness |
 //! | `validation` | `MeshValidator`, `QualityReport`, `QualityThresholds` |
 //! | `normals` | Normal consistency analysis |
@@ -19,6 +20,7 @@
 //! | `curvature` | `vertex_mean_curvature` via cotangent Laplacian |
 
 pub mod analyzer;
+pub mod boundary;
 pub mod cell_quality;
 pub mod curvature;
 pub mod histograms;
@@ -30,6 +32,11 @@ pub mod triangle;
 pub mod validation;
 
 pub use analyzer::{QualityAnalyzer, StandardQualityAnalyzer};
+pub use boundary::{
+    boundary_facet_quality, BoundaryFacetQuality, BoundaryFacetQualityAcceptance,
+    BoundaryFacetQualityClass, BoundaryFacetQualityCriteria, BoundaryFacetQualityCriteriaError,
+    BoundaryTetrahedralQualityAcceptance,
+};
 pub use cell_quality::{
     cell_quality_report, face_non_orthogonality, face_skewness, CellQualityReport,
 };

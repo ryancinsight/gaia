@@ -36,6 +36,7 @@ indexmap = "2.0"
 slotmap = "1.0"
 leto = { version = "0.40.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
 eunomia = { version = "0.7.0", git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
+aequitas = { version = "0.1.0", git = "https://github.com/ryancinsight/aequitas", default-features = false, features = ["std"] }
 melinoe = { version = "0.9.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false }
 
 # Mesh / geometry — state-of-the-art kernel

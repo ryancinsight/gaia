@@ -386,6 +386,7 @@ name = "gaia"
 version = "0.3.0"
 dependencies = [
  "anyhow",
+ "aequitas",
  "criterion",
  "eunomia",
  "geometry-predicates",
