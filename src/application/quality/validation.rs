@@ -5,9 +5,10 @@ use crate::application::quality::triangle;
 use crate::application::quality::triangle::triangle_angles;
 use crate::domain::core::constants;
 use crate::domain::core::error::{MeshError, MeshResult};
-use crate::domain::core::scalar::{Point3r, Real, Scalar};
+use crate::domain::core::scalar::{Real, Scalar};
 use crate::infrastructure::storage::face_store::FaceStore;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
+use eunomia::NumericElement;
 
 /// Quality thresholds for mesh validation.
 #[derive(Clone, Debug)]
@@ -57,20 +58,6 @@ pub struct MeshValidator {
     thresholds: QualityThresholds,
 }
 
-/// Convert a generic `Point3<T>` position to the `f64` working precision
-/// required by the quality triangle functions.
-///
-/// Hoisted from the per-face closure in `MeshValidator::validate` to eliminate
-/// closure re-creation overhead on every loop iteration.
-#[inline]
-fn point_to_p3r<T: Scalar>(p: &leto::geometry::Point3<T>) -> Point3r {
-    Point3r::new(
-        eunomia::NumericElement::to_f64(p.x),
-        eunomia::NumericElement::to_f64(p.y),
-        eunomia::NumericElement::to_f64(p.z),
-    )
-}
-
 impl MeshValidator {
     /// Create with default thresholds.
     #[must_use]
@@ -98,42 +85,66 @@ impl MeshValidator {
         let mut skewnesses = Vec::with_capacity(n);
         let mut edge_ratios = Vec::with_capacity(n);
         let mut failing = 0usize;
+        let max_aspect_ratio = <T as Scalar>::from_f64(self.thresholds.max_aspect_ratio);
+        let min_angle = <T as Scalar>::from_f64(self.thresholds.min_angle);
+        let max_skewness = <T as Scalar>::from_f64(self.thresholds.max_skewness);
+        let min_edge_ratio = <T as Scalar>::from_f64(self.thresholds.min_edge_ratio);
+        let ideal = <T as eunomia::RealField>::PI / <T as Scalar>::from_f64(3.0);
 
         for (_, face) in face_store.iter_enumerated() {
-            let a = point_to_p3r(vertex_pool.position(face.vertices[0]));
-            let b = point_to_p3r(vertex_pool.position(face.vertices[1]));
-            let c = point_to_p3r(vertex_pool.position(face.vertices[2]));
+            let a = vertex_pool.position(face.vertices[0]);
+            let b = vertex_pool.position(face.vertices[1]);
+            let c = vertex_pool.position(face.vertices[2]);
 
-            let ar = triangle::aspect_ratio(&a, &b, &c);
-            let er = triangle::edge_length_ratio(&a, &b, &c);
+            let ar = triangle::aspect_ratio_native(a, b, c);
+            let er = triangle::edge_length_ratio_native(a, b, c);
             // Compute all three angles once, derive min, max, and skewness from
             // that single result — avoids 2x redundant normalize passes that
             // would occur by calling min_angle + equiangle_skewness separately.
-            let angles = triangle_angles(&a, &b, &c);
-            let ideal = constants::PI / 3.0;
-            let max_a = angles.iter().copied().fold(Real::NEG_INFINITY, Real::max);
-            let ma = angles.iter().copied().fold(Real::INFINITY, Real::min);
-            let sk = ((max_a - ideal) / (constants::PI - ideal)).max((ideal - ma) / ideal);
+            let angles = triangle_angles(a, b, c);
+            let max_a = angles
+                .iter()
+                .copied()
+                .fold(-<T as NumericElement>::INFINITY, |lhs, rhs| {
+                    lhs.max_scalar(rhs)
+                });
+            let ma = angles
+                .iter()
+                .copied()
+                .fold(<T as NumericElement>::INFINITY, |lhs, rhs| {
+                    lhs.min_scalar(rhs)
+                });
+            let skew_max = (max_a - ideal) / (<T as eunomia::RealField>::PI - ideal);
+            let skew_min = (ideal - ma) / ideal;
+            let sk = if skew_max.is_nan() || skew_min.is_nan() {
+                <T as NumericElement>::NAN
+            } else {
+                skew_max.max_scalar(skew_min)
+            };
 
             aspect_ratios.push(ar);
             min_angles.push(ma);
             skewnesses.push(sk);
             edge_ratios.push(er);
 
-            if ar > self.thresholds.max_aspect_ratio
-                || ma < self.thresholds.min_angle
-                || sk > self.thresholds.max_skewness
-                || er < self.thresholds.min_edge_ratio
+            if !ar.is_finite()
+                || !ma.is_finite()
+                || !sk.is_finite()
+                || !er.is_finite()
+                || ar > max_aspect_ratio
+                || ma < min_angle
+                || sk > max_skewness
+                || er < min_edge_ratio
             {
                 failing += 1;
             }
         }
 
         QualityReport {
-            aspect_ratio: QualityMetric::from_values(&aspect_ratios),
-            min_angle: QualityMetric::from_values(&min_angles),
-            skewness: QualityMetric::from_values(&skewnesses),
-            edge_ratio: QualityMetric::from_values(&edge_ratios),
+            aspect_ratio: QualityMetric::from_scalar_values(&aspect_ratios),
+            min_angle: QualityMetric::from_scalar_values(&min_angles),
+            skewness: QualityMetric::from_scalar_values(&skewnesses),
+            edge_ratio: QualityMetric::from_scalar_values(&edge_ratios),
             failing_faces: failing,
             total_faces: n,
             passed: failing == 0,
@@ -160,5 +171,40 @@ impl MeshValidator {
 impl Default for MeshValidator {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::mesh::IndexedMesh;
+    use leto::geometry::Point3;
+
+    #[test]
+    fn validates_single_precision_geometry_in_native_precision() {
+        let mut mesh = IndexedMesh::<f32>::new();
+        let a = mesh.add_vertex_pos(Point3::new(0.0, 0.0, 0.0));
+        let b = mesh.add_vertex_pos(Point3::new(1.0, 0.0, 0.0));
+        let c = mesh.add_vertex_pos(Point3::new(0.0, 1.0, 0.0));
+        mesh.add_face(a, b, c);
+
+        let report = MeshValidator::default().validate(&mesh.faces, &mesh.vertices);
+
+        assert!(report.passed);
+        assert_eq!(report.total_faces, 1);
+        assert_eq!(report.min_angle.expect("one face").count, 1);
+    }
+
+    #[test]
+    fn rejects_degenerate_faces_instead_of_accepting_nan_metrics() {
+        let mut mesh = IndexedMesh::<f64>::new();
+        let a = mesh.add_vertex_pos(Point3::new(0.0, 0.0, 0.0));
+        let b = mesh.add_vertex_pos(Point3::new(1.0, 0.0, 0.0));
+        mesh.add_face(a, b, a);
+
+        let report = MeshValidator::default().validate(&mesh.faces, &mesh.vertices);
+
+        assert_eq!(report.failing_faces, 1);
+        assert!(!report.passed);
     }
 }

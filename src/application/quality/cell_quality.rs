@@ -13,7 +13,7 @@
 use leto::geometry::Point3;
 
 use crate::application::quality::metrics::QualityMetric;
-use crate::domain::core::index::{CellId, FaceId};
+use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::core::scalar::Real;
 use crate::domain::mesh::IndexedMesh;
 
@@ -22,47 +22,47 @@ use crate::domain::mesh::IndexedMesh;
 /// Non-orthogonality in degrees: angle between the face normal and the
 /// owner→neighbour centroid vector **d**.
 ///
-/// Returns `0.0` when `mesh` has no cells.
+/// Returns `None` when either cell identifier is not present.
 pub fn face_non_orthogonality(
     face: FaceId,
-    owner: CellId,
-    neighbour: CellId,
+    owner: usize,
+    neighbour: usize,
     mesh: &IndexedMesh,
-) -> Real {
+) -> Option<Real> {
     let face_data = mesh.faces.get(face);
     let [va, vb, vc] = face_data.vertices;
     let a = mesh.vertices.position(va);
     let b = mesh.vertices.position(vb);
     let c = mesh.vertices.position(vc);
 
-    let n = (b - a).cross((c - a));
+    let n = (b - a).cross(c - a);
     if n.norm_squared() < 1e-30 {
-        return 0.0;
+        return Some(0.0);
     }
     let n = n.normalize();
 
-    let c_owner = cell_centroid(owner, mesh);
-    let c_neigh  = cell_centroid(neighbour, mesh);
+    let c_owner = cell_centroid(owner, mesh)?;
+    let c_neigh = cell_centroid(neighbour, mesh)?;
     let d = c_neigh - c_owner;
     if d.norm_squared() < 1e-30 {
-        return 0.0;
+        return Some(0.0);
     }
     let d = d.normalize();
 
     let cos_theta = n.dot(d).abs().min(1.0);
-    cos_theta.acos().to_degrees()
+    Some(cos_theta.acos().to_degrees())
 }
 
 /// Skewness: ratio of (face-centre deviation from the owner→neighbour
 /// intersection point) to (distance from face centre to owner centroid).
 ///
-/// Returns `0.0` when `mesh` has no cells or the geometry is degenerate.
+/// Returns `None` when either cell identifier is not present.
 pub fn face_skewness(
     face: FaceId,
-    owner: CellId,
-    neighbour: CellId,
+    owner: usize,
+    neighbour: usize,
     mesh: &IndexedMesh,
-) -> Real {
+) -> Option<Real> {
     let face_data = mesh.faces.get(face);
     let [va, vb, vc] = face_data.vertices;
     let a = mesh.vertices.position(va);
@@ -73,30 +73,30 @@ pub fn face_skewness(
     let fc = Point3::from((a.coords + b.coords + c.coords) / 3.0);
 
     // Face normal (unnormalised; used for plane intersection).
-    let n = (b - a).cross((c - a));
+    let n = (b - a).cross(c - a);
     if n.norm_squared() < 1e-30 {
-        return 0.0;
+        return Some(0.0);
     }
 
-    let c_owner = cell_centroid(owner, mesh);
-    let c_neigh  = cell_centroid(neighbour, mesh);
+    let c_owner = cell_centroid(owner, mesh)?;
+    let c_neigh = cell_centroid(neighbour, mesh)?;
 
     // Parametric intersection of the d-line with the face plane:
     //   P(t) = c_owner + t * d,  and  n · (P(t) - fc) = 0
     let d = c_neigh - c_owner;
     let denom = n.dot(d);
     if denom.abs() < 1e-30 {
-        return 0.0;
+        return Some(0.0);
     }
-    let t = n.dot((fc - c_owner)) / denom;
+    let t = n.dot(fc - c_owner) / denom;
     let p_i = c_owner + d * t; // intersection point on face plane
 
     let deviation = (fc - p_i).norm();
-    let ref_dist  = (fc - c_owner).norm();
+    let ref_dist = (fc - c_owner).norm();
     if ref_dist < 1e-30 {
-        return 0.0;
+        return Some(0.0);
     }
-    deviation / ref_dist
+    Some(deviation / ref_dist)
 }
 
 // ── Report ────────────────────────────────────────────────────────────────────
@@ -126,13 +126,14 @@ pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
 
     // Build face → (owner, optional neighbour) map.
     // hashbrown::HashMap is used for lower per-lookup overhead vs std HashMap.
-    let mut face_owner: hashbrown::HashMap<FaceId, CellId> =
+    let mut face_owner: hashbrown::HashMap<FaceId, usize> =
         hashbrown::HashMap::with_capacity(mesh.face_count());
-    let mut face_neighbour: hashbrown::HashMap<FaceId, CellId> =
+    let mut face_neighbour: hashbrown::HashMap<FaceId, usize> =
         hashbrown::HashMap::with_capacity(mesh.face_count() / 2);
 
-    for (cell_id, cell) in mesh.cells_iter_enumerated() {
+    for (cell_id, cell) in mesh.cells().iter().enumerate() {
         for &fi in &cell.faces {
+            let fi = FaceId::from_usize(fi);
             if let hashbrown::hash_map::Entry::Vacant(e) = face_owner.entry(fi) {
                 e.insert(cell_id);
             } else {
@@ -141,19 +142,27 @@ pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
         }
     }
 
-    let mut non_orth_vals: Vec<Real> = Vec::new();
-    let mut skew_vals:     Vec<Real> = Vec::new();
+    let mut non_orth_vals: Vec<Real> = Vec::with_capacity(face_owner.len());
+    let mut skew_vals: Vec<Real> = Vec::with_capacity(face_owner.len());
 
     for (&fi, &owner) in &face_owner {
-        let Some(&neighbour) = face_neighbour.get(&fi) else { continue };
-        non_orth_vals.push(face_non_orthogonality(fi, owner, neighbour, mesh));
-        skew_vals.push(face_skewness(fi, owner, neighbour, mesh));
+        let Some(&neighbour) = face_neighbour.get(&fi) else {
+            continue;
+        };
+        let (Some(non_orthogonality), Some(skewness)) = (
+            face_non_orthogonality(fi, owner, neighbour, mesh),
+            face_skewness(fi, owner, neighbour, mesh),
+        ) else {
+            continue;
+        };
+        non_orth_vals.push(non_orthogonality);
+        skew_vals.push(skewness);
     }
 
     let non_orthogonality = QualityMetric::from_values(&non_orth_vals)?;
-    let skewness          = QualityMetric::from_values(&skew_vals)?;
-    let high_no  = non_orth_vals.iter().filter(|&&v| v > 70.0).count();
-    let high_sk  = skew_vals.iter().filter(|&&v| v > 0.85).count();
+    let skewness = QualityMetric::from_values(&skew_vals)?;
+    let high_no = non_orth_vals.iter().filter(|&&v| v > 70.0).count();
+    let high_sk = skew_vals.iter().filter(|&&v| v > 0.85).count();
 
     Some(CellQualityReport {
         non_orthogonality,
@@ -167,24 +176,27 @@ pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
 // ── Helper ────────────────────────────────────────────────────────────────────
 
 /// Centroid of a cell: arithmetic mean of its vertices.
-pub fn cell_centroid(cell_id: CellId, mesh: &IndexedMesh) -> Point3<Real> {
-    let cell = mesh.cell(cell_id);
+pub fn cell_centroid(cell_id: usize, mesh: &IndexedMesh) -> Option<Point3<Real>> {
+    let cell = mesh.cells().get(cell_id)?;
 
     // Prefer vertex_ids if populated; fall back to face-vertex union.
     if !cell.vertex_ids.is_empty() {
-        let sum: leto::geometry::Vector3<Real> = cell.vertex_ids.iter()
-            .map(|&vi| mesh.vertices.position(vi).coords)
-            .sum();
-        return Point3::from(sum / cell.vertex_ids.len() as Real);
+        let sum: leto::geometry::Vector3<Real> = cell
+            .vertex_ids
+            .iter()
+            .map(|&vi| mesh.vertices.position(VertexId::from_usize(vi)).coords)
+            .fold(leto::geometry::Vector3::zeros(), |sum, position| {
+                sum + position
+            });
+        return Some(Point3::from(sum / cell.vertex_ids.len() as Real));
     }
 
     let mut sum = leto::geometry::Vector3::<Real>::zeros();
     let mut count = 0usize;
     // hashbrown::HashSet gives O(1) amortised membership test vs O(n) Vec::contains.
-    let mut seen: hashbrown::HashSet<_> =
-        hashbrown::HashSet::with_capacity(cell.faces.len() * 3);
+    let mut seen: hashbrown::HashSet<_> = hashbrown::HashSet::with_capacity(cell.faces.len() * 3);
     for &fi in &cell.faces {
-        for &vi in &mesh.faces.get(fi).vertices {
+        for &vi in &mesh.faces.get(FaceId::from_usize(fi)).vertices {
             if seen.insert(vi) {
                 sum += mesh.vertices.position(vi).coords;
                 count += 1;
@@ -192,9 +204,9 @@ pub fn cell_centroid(cell_id: CellId, mesh: &IndexedMesh) -> Point3<Real> {
         }
     }
     if count == 0 {
-        Point3::origin()
+        None
     } else {
-        Point3::from(sum / count as Real)
+        Some(Point3::from(sum / count as Real))
     }
 }
 

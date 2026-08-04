@@ -50,6 +50,14 @@ generated manifest. A new public mesh-producing family is a documentation
 change: add it to the generator, regenerate the figures, review them, and
 update this coverage list in the same change.
 
+Quality is provider-owned as well. Surface validation evaluates triangle
+metrics in the mesh scalar, CFD volume-cell reports expose internal-face
+non-orthogonality and skewness, and tetrahedral reports expose native
+volume, radius-edge ratio, minimum dihedral angle, and normalized volume.
+Invalid tetrahedral cells are counted rather than assigned default metric
+values. Constrained three-dimensional refinement and sliver optimization are
+not implied by these measurements and remain separate capabilities.
+
 ## Evidence boundary
 
 The generated SVGs are display projections. The manifest preserves the source

@@ -1,4 +1,4 @@
-//! 3D Constrained Delaunay Tetrahedralization (CDT) using Bowyer-Watson.
+//! 3D Delaunay tetrahedralization using Bowyer-Watson.
 //!
 //! # Theorem 2: Empty Circumsphere Criterion (Delaunay Condition)
 //!
@@ -14,7 +14,14 @@
 //! surviving elements ($T \\setminus C$) can be transient and strictly localized. Because they represent
 //! purely temporary geometric state, pre-allocating a persistent `HashMap` and `Vec`, and executing `.clear()`
 //! between generic point insertions is mathematically identical and topologically isomorphic to
-//! fresh allocations, yielding guaranteed zero-allocation O(1) memory overhead during mesh generation.
+//! fresh allocations, avoiding per-insertion cavity-buffer churn. Capacity
+//! growth remains possible when the caller exceeds the initial heuristic.
+//!
+//! The storage and vector arithmetic are generic over `T: Scalar`. The robust
+//! Shewchuk predicate boundary currently consumes an `f64` coordinate
+//! representation, so this kernel does not claim native-precision predicate
+//! execution for `IndexedMesh<f32>`; that boundary is tracked in the mesh
+//! library gap audit.
 
 use hashbrown::{HashMap, HashSet};
 use leto::geometry::{Point3, Vector3};
@@ -63,7 +70,8 @@ pub struct Tetrahedron<T: Scalar> {
 }
 
 impl<T: Scalar> Tetrahedron<T> {
-    /// Rigorously construct a new tetrahedron and enforce positive geometric orientation.
+    /// Construct a tetrahedron and enforce positive orientation at the robust
+    /// `f64` predicate boundary.
     pub fn new(mut v: [usize; 4], points: &[Point3<T>]) -> Self {
         use crate::domain::geometry::predicates;
 
@@ -87,7 +95,8 @@ impl<T: Scalar> Tetrahedron<T> {
         }
     }
 
-    /// Evaluates whether a point lies strictly inside the circumsphere of this tet using exact predicates.
+    /// Evaluate circumsphere inclusion using the robust `f64` predicate
+    /// boundary.
     #[inline(always)]
     pub fn contains_in_circumsphere(&self, p: &Point3<T>, points: &[Point3<T>]) -> bool {
         use crate::domain::geometry::predicates;
@@ -491,5 +500,63 @@ impl<T: Scalar> BowyerWatson3D<T> {
         }
 
         (clean_points, raw_tets)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_points() -> [Point3<f64>; 6] {
+        [
+            Point3::new(0.1, 0.1, 0.1),
+            Point3::new(0.9, 0.1, 0.1),
+            Point3::new(0.1, 0.9, 0.1),
+            Point3::new(0.1, 0.1, 0.9),
+            Point3::new(0.72, 0.64, 0.58),
+            Point3::new(0.38, 0.44, 0.31),
+        ]
+    }
+
+    #[test]
+    fn bowyer_watson_retains_all_non_degenerate_input_points() {
+        let points = sample_points();
+        let mut engine = BowyerWatson3D::with_capacity(
+            Point3::new(0.0, 0.0, 0.0),
+            Point3::new(1.0, 1.0, 1.0),
+            points.len(),
+        );
+        for &point in &points {
+            engine.insert_point(point);
+        }
+
+        let (vertices, tetrahedra) = engine.finalize();
+
+        assert_eq!(vertices.len(), points.len());
+        assert!(!tetrahedra.is_empty());
+        for tet in tetrahedra {
+            assert!(tet.iter().all(|&index| index < vertices.len()));
+            assert!(tet
+                .iter()
+                .enumerate()
+                .all(|(index, vertex)| !tet[..index].contains(vertex)));
+            let [a, b, c, d] = tet.map(|index| vertices[index]);
+            let six_volume = (b - a).cross(c - a).dot(d - a);
+            assert!(six_volume.abs() > 1e-12, "degenerate tetrahedron: {tet:?}");
+        }
+    }
+
+    #[test]
+    fn tetrahedron_circumsphere_rejects_a_strictly_external_point() {
+        let points = [
+            Point3::new(0.0, 0.0, 0.0),
+            Point3::new(1.0, 0.0, 0.0),
+            Point3::new(0.0, 1.0, 0.0),
+            Point3::new(0.0, 0.0, 1.0),
+        ];
+        let tetrahedron = Tetrahedron::new([0, 1, 2, 3], &points);
+        let external = Point3::new(3.0, 3.0, 3.0);
+
+        assert!(!tetrahedron.contains_in_circumsphere(&external, &points));
     }
 }

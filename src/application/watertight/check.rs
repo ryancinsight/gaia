@@ -7,8 +7,8 @@
 //!    A torus gives `V - E + F = 0`, etc. Mismatches reveal topological defects.
 //! 3. **Orientation consistency**: all face pairs sharing an edge have opposite
 //!    directed-edge orientations (no two adjacent faces wind the same way).
-//! 4. **Positive signed volume**: the divergence-theorem volume integral should
-//!    be positive for an outward-oriented mesh.
+//! 4. **Positive signed volume**: the divergence-theorem volume integral must
+//!    be finite and positive for an outward-oriented mesh.
 //!
 //! ## Euler's Theorem
 //!
@@ -45,7 +45,7 @@ pub struct WatertightReport {
     pub orientation_consistent: bool,
     /// Signed volume (should be positive for outward-oriented mesh).
     pub signed_volume: f64,
-    /// Is the mesh watertight (all checks pass)?
+    /// Is the mesh closed, consistently oriented, and outward-oriented?
     pub is_watertight: bool,
     /// Euler characteristic $\chi = V - E + F$.
     ///
@@ -55,7 +55,10 @@ pub struct WatertightReport {
     ///
     /// `None` when vertices/edges/faces counts are not available.
     pub euler_characteristic: Option<i64>,
-    /// Expected Euler characteristic for a valid closed manifold of genus 0.
+    /// Reference Euler characteristic for a closed genus-0 manifold.
+    ///
+    /// This is diagnostic metadata, not a watertightness requirement: valid
+    /// meshes may have handles (for example, a torus has characteristic 0).
     pub euler_expected: i64,
 }
 
@@ -92,7 +95,10 @@ pub fn check_watertight<T: Scalar>(
         non_manifold_edge_count: manifold_report.non_manifold_edges,
         orientation_consistent: orientation_ok,
         signed_volume: signed_vol_f64,
-        is_watertight: is_closed && orientation_ok,
+        is_watertight: is_closed
+            && orientation_ok
+            && signed_vol_f64.is_finite()
+            && signed_vol_f64 > 0.0,
         euler_characteristic: Some(euler),
         euler_expected: 2,
     }
@@ -105,19 +111,23 @@ pub fn assert_watertight<T: Scalar>(
     edge_store: &EdgeStore,
 ) -> MeshResult<WatertightReport> {
     let report = check_watertight(vertex_pool, face_store, edge_store);
-    if !report.is_watertight {
+    if !report.is_closed {
         return Err(MeshError::NotWatertight {
             count: report.boundary_edge_count,
         });
     }
-    // Euler characteristic check — only meaningful for closed manifolds.
-    if let Some(chi) = report.euler_characteristic {
-        if chi != report.euler_expected {
-            return Err(MeshError::Other(format!(
-                "Euler characteristic χ = {} (expected {}); topology defect detected",
-                chi, report.euler_expected
-            )));
-        }
+    if !report.orientation_consistent {
+        return Err(
+            orientation::check_orientation(face_store, edge_store).expect_err(
+                "invariant: orientation report marked an inconsistent mesh as consistent",
+            ),
+        );
+    }
+    if !report.signed_volume.is_finite() || report.signed_volume <= 0.0 {
+        return Err(MeshError::Other(format!(
+            "mesh is not outward-oriented: signed volume {}",
+            report.signed_volume
+        )));
     }
     Ok(report)
 }
@@ -151,4 +161,39 @@ pub fn euler_chi_from_stores(face_store: &FaceStore, edge_store: &EdgeStore) -> 
     let e = edge_store.len() as i64;
     let f = face_store.len() as i64;
     v - e + f
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::geometry::primitives::{Cube, PrimitiveMesh, Torus};
+
+    #[test]
+    fn globally_inverted_closed_mesh_is_not_outward_watertight() {
+        let mut mesh = Cube::unit().build().expect("unit cube");
+        mesh.flip_faces();
+        let edges = EdgeStore::from_face_store(&mesh.faces);
+        let report = check_watertight(&mesh.vertices, &mesh.faces, &edges);
+
+        assert!(report.is_closed);
+        assert!(report.orientation_consistent);
+        assert!(report.signed_volume < 0.0);
+        assert!(!report.is_watertight);
+        let error = assert_watertight(&mesh.vertices, &mesh.faces, &edges)
+            .expect_err("inverted mesh must fail outward-orientation validation");
+        assert!(
+            matches!(error, MeshError::Other(message) if message.contains("not outward-oriented") && message.contains('-'))
+        );
+    }
+
+    #[test]
+    fn assertion_accepts_valid_non_spherical_topology() {
+        let mesh = Torus::default().build().expect("torus");
+        let edges = EdgeStore::from_face_store(&mesh.faces);
+        let report = assert_watertight(&mesh.vertices, &mesh.faces, &edges)
+            .expect("closed oriented torus is watertight");
+
+        assert_eq!(report.euler_characteristic, Some(0));
+        assert!(report.is_watertight);
+    }
 }

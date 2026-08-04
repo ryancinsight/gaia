@@ -1,7 +1,10 @@
 //! Watertight mesh verification and repair.
 //!
 //! Critical for CFD: a watertight mesh has no boundary edges, consistent
-//! orientation, and no self-intersections.
+//! outward orientation, and a finite positive enclosed volume. Self-
+//! intersection detection is available as a separate BVH-accelerated CSG
+//! operation; the constant-time edge report does not silently perform that
+//! potentially expensive scan.
 
 pub mod check;
 pub mod repair;
