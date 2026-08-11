@@ -13,6 +13,19 @@ categories = ["science", "simulation"]
 publish = true
 autoexamples = false
 
+# The published crate is the library, not the repository. Book figures and
+# committed run outputs (mesh dumps, OpenFOAM cases, review renders) are ~10 MB
+# of material no consumer compiles against, and they pushed the archive to
+# 4.25 MB — past what a single upload request completes. Excluding them is
+# packaging hygiene, not content loss: the book is served from Pages and the
+# outputs are regenerable by the examples that produced them.
+exclude = [
+    "docs/",
+    "outputs/",
+    "scratch/",
+    ".claude/",
+]
+
 [features]
 default = []
 millifluidic = []
