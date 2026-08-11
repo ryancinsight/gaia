@@ -1,5 +1,11 @@
 [package]
-name = "gaia"
+# Registry name only. The crates.io name `gaia` belongs to an unrelated
+# third-party crate, so this publishes as `gaia-mesh` while `[lib] name` keeps
+# the import path `gaia` — the same split the stack uses for `moirai-runtime`,
+# `mnemosyne-memory`, `themis-topology`, and `iris-viz`. Consumers write
+# `gaia = { package = "gaia-mesh", version = "0.3.0" }` and every `use gaia::…`
+# is unchanged.
+name = "gaia-mesh"
 version = "0.3.0"
 edition = "2021"
 authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
@@ -25,6 +31,11 @@ exclude = [
     "scratch/",
     ".claude/",
 ]
+
+[lib]
+# Import path stays `gaia` regardless of the registry name above.
+name = "gaia"
+path = "src/lib.rs"
 
 [features]
 default = []
