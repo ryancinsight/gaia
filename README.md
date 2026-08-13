@@ -2,12 +2,33 @@
 
 Watertight CFD mesh generation and geometry topology kernel for millifluidic devices.
 
+## Installation
+
+The crates.io name `gaia` belongs to an unrelated third-party crate, so this
+crate is published as [`gaia-mesh`](https://crates.io/crates/gaia-mesh). The
+import path stays `gaia` via the `[lib] name`, so rename the dependency and no
+`use gaia::…` changes:
+
+```toml
+[dependencies]
+gaia = { package = "gaia-mesh", version = "0.4.0" }
+```
+
+Default features are empty; enable the I/O and domain features you need:
+
+```toml
+[dependencies]
+gaia = { package = "gaia-mesh", version = "0.4.0", features = ["stl-io", "vtk-io"] }
+```
+
+API documentation is published at [docs.rs/gaia-mesh](https://docs.rs/gaia-mesh).
+
 ## Distribution
 
-Gaia is published as [`gaia`](https://crates.io/crates/gaia). GitHub Releases
-tagged `crate-gaia-v<version>` validate the exact package and publish through
-the protected `crates-io` environment with a short-lived crates.io Trusted
-Publishing credential.
+Publishing runs from the `Crates.io Release` GitHub Actions workflow, triggered
+by a published GitHub Release (or manually via `workflow_dispatch` for
+validation without publishing). It verifies the packaged source and uses
+crates.io Trusted Publishing to obtain a short-lived credential.
 
 The generated [Gaia Mesh Book](https://ryancinsight.github.io/gaia/) is built
 from the public mesh builders and published by the `Gaia mesh book` GitHub
@@ -23,6 +44,7 @@ Gaia implements exactly-computable geometry and topologically-safe mesh represen
 
 ### 2. Numerical Correctness via Robust Predicates
 - **Shewchuk Adaptive Precision**: Wraps robust geometric predicates (`orient_2d`, `orient_3d`) for the documented `f64` predicate boundary. The predicate implementation protects sign decisions against roundoff in that representation.
+- **Where exactness ends**: exact predicates decide orientation and incircle/insphere signs. They do not decide CSG inside/outside membership — `classify_fragment` thresholds a generalized winding number against the tolerance constants `GWN_INSIDE_THRESHOLD` (0.65) and `GWN_OUTSIDE_THRESHOLD` (0.35) in `domain/core/constants.rs`, and resolves the band between them with coplanarity and nearest-face tiebreakers that are themselves tolerance-based.
 - **Precision contract**: Surface and tetrahedral-builder kernels execute native `T` arithmetic; the 3-D Bowyer-Watson kernel currently converts coordinates to `f64` for its robust predicates. Native-precision 3-D predicates remain an audited extension item.
 
 ### 3. Validated Volume Construction
@@ -68,9 +90,9 @@ src/
     csg/                     # Constructive Solid Geometry Boolean ops (Arrangement, Classification)
     delaunay/                # 2D/3D Delaunay triangulation (Bowyer-Watson, Ruppert refinement)
     hierarchy/               # Mesh promotion and decomposition (P2 conversion, Hex-to-Tet)
-    pipeline/                # End-to-end mesh generation pipelines
     quality/                 # Surface, CFD-cell, and tetrahedral quality metrics
     watertight/              # Mesh repair, topological sealing, and manifold verification
+    welding/                 # Spatial-hash vertex deduplication and snap-to-grid/vertex
   domain/                    # Domain primitives and invariants
     core/                    # Scalar types, index aliases, and error types
     geometry/                # NURBS curves/surfaces, planes, AABB, and exact predicates
@@ -110,7 +132,10 @@ src/
 
 ## Testing & Quality Gates
 
-Verify compilation correctness, strict lint compliance, and test suite execution:
+Run locally before opening a change. **CI does not run these** — the only
+GitHub Actions workflows in this repository are `book-pages.yml` (mdBook to
+Pages) and `rust-release.yml` (crates.io publish on a published Release).
+There is no verification workflow, so these gates are contributor-enforced:
 
 ```powershell
 # Format check
@@ -122,3 +147,12 @@ cargo clippy --all-targets --all-features -- -D warnings
 # Execute all tests
 cargo nextest run --all-features
 ```
+
+## License
+
+Dual-licensed under either of:
+
+- [Apache License, Version 2.0](LICENSE-APACHE)
+- [MIT License](LICENSE)
+
+at your option.
