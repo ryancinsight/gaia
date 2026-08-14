@@ -122,9 +122,22 @@ pedantic = { level = "deny", priority = -1 }
 
 # Library code never panics on an input-dependent path. 4 production sites
 # remain, each carrying a per-site `#[expect]` naming this ratchet; test code
-# is exempt via `#![cfg_attr(test, allow(...))]` at the crate root and a
+# is exempt via `#![cfg_attr(test, expect(...))]` at the crate root and a
 # per-file attribute on the example, bench, bin and integration-test targets.
+# The test carve-outs are `expect`, not `allow`, so they self-expire when a
+# file's last unwrap goes.
 unwrap_used = "deny"
+
+# Debug-print restriction floor. `dbg_macro` fires nowhere in the crate, so it
+# is denied outright with no ratchet.
+dbg_macro = "deny"
+
+# `print_stdout` (1 172 hits) and `print_stderr` (47) are NOT denied. Every hit
+# is in an `examples/`, `src/bin/` or `tests/` target — the library proper has
+# zero — and this is a single package, so one `[lints]` table governs the
+# library and its 60+ diagnostic examples alike. Denying here would mean 65
+# permanent per-file suppressions on targets whose whole job is printing, which
+# is noise, not a ratchet. The library-code guarantee is the measured zero.
 
 # ── Ratchet: numeric-conversion debt (1 268) ──────────────────────────────────
 # The real fix is a `Scalar`-parameterized conversion boundary, not blanket

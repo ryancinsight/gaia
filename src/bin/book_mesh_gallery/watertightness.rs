@@ -1,6 +1,12 @@
 // This module's only `unwrap()` calls are in its `#[cfg(test)]` block, where an
 // unwrap is the assertion. The bin's production path has none.
-#![cfg_attr(test, allow(clippy::unwrap_used))]
+#![cfg_attr(
+    test,
+    expect(
+        clippy::unwrap_used,
+        reason = "test code: an unwrap is the assertion, not an input-dependent failure path"
+    )
+)]
 
 use std::fmt::Write as _;
 use std::fs;

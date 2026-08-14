@@ -84,7 +84,13 @@
 // the assertion, not an input-dependent failure path. This is the crate-root
 // half of that carve-out; the example, bench, bin and integration-test targets
 // carry their own, since they are separate crates.
-#![cfg_attr(test, allow(clippy::unwrap_used))]
+#![cfg_attr(
+    test,
+    expect(
+        clippy::unwrap_used,
+        reason = "test code: an unwrap is the assertion, not an input-dependent failure path"
+    )
+)]
 
 pub mod application;
 pub mod domain;
