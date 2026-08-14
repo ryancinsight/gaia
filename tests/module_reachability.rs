@@ -1,3 +1,5 @@
+//! Regression gate for source-module reachability.
+
 use std::collections::{BTreeSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
