@@ -1,3 +1,10 @@
+//! Diagnostic: dump the faces and vertices of a CSG result mesh.
+
+#![allow(
+    clippy::unwrap_used,
+    reason = "demonstration and diagnostic target: an unwrap here is the assertion, not an input-dependent failure path"
+)]
+
 use gaia::application::csg::boolean::{csg_boolean, BooleanOp};
 use gaia::domain::core::scalar::Point3r;
 use gaia::domain::geometry::primitives::PrimitiveMesh;

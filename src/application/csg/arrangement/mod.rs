@@ -105,8 +105,6 @@
 //! - Shewchuk (1997), *Adaptive Precision Floating-Point Arithmetic and Fast
 //!   Robust Geometric Predicates*, Discrete & Computational Geometry.
 
-#![allow(missing_docs)]
-
 use super::boolean::BooleanOp;
 use super::broad_phase::broad_phase_pairs;
 use super::diagnostics::trace_enabled;

@@ -1,3 +1,7 @@
+// This module's only `unwrap()` calls are in its `#[cfg(test)]` block, where an
+// unwrap is the assertion. The bin's production path has none.
+#![cfg_attr(test, allow(clippy::unwrap_used))]
+
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;

@@ -1,4 +1,13 @@
 //! Criterion performance benchmarks for the CSG arrangement pipeline.
+#![allow(
+    missing_docs,
+    reason = "criterion_main! generates an undocumented public fn in this crate root"
+)]
+#![allow(
+    clippy::unwrap_used,
+    reason = "demonstration and diagnostic target: an unwrap here is the assertion, not an input-dependent failure path"
+)]
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use gaia::application::csg::arrangement::classify::{

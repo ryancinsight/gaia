@@ -1,3 +1,5 @@
+//! Tests for the canonical [`boolean_csg`](super::boolean_csg) arrangement pipeline.
+
 use super::boolean_csg::{csg_boolean, BooleanOp};
 use crate::application::csg::boolean::containment::{containment, Containment};
 use crate::domain::core::scalar::{Point3r, Vector3r};

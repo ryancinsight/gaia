@@ -224,7 +224,15 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
         }
 
         // Orient seed: outward if face normal has positive X component.
-        let seed_normal = face_normals[seed_fi].unwrap(); // guaranteed non-None
+        // The seed scan skips faces whose normal is None, but when the scan
+        // selects nothing `seed_fi` stays at `seed_cursor`, whose normal is not
+        // proven present. Establishing or repairing that invariant is burn-down
+        // work, not a suppression to keep.
+        #[expect(
+            clippy::unwrap_used,
+            reason = "ratchet GAIA-LINT-1: seed-selection invariant unproven"
+        )]
+        let seed_normal = face_normals[seed_fi].unwrap();
         let seed_is_outward = seed_normal.x >= 0.0;
         orientation[seed_fi] = Some(seed_is_outward);
 
@@ -232,6 +240,10 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
         queue.push_back(seed_fi);
 
         while let Some(fi) = queue.pop_front() {
+            #[expect(
+                clippy::unwrap_used,
+                reason = "ratchet GAIA-LINT-1: queue-enqueue invariant unproven"
+            )]
             let is_outward = orientation[fi].unwrap();
             let v = face_list[fi].vertices;
 

@@ -132,20 +132,28 @@ src/
 
 ## Testing & Quality Gates
 
-Run locally before opening a change. **CI does not run these** — the only
-GitHub Actions workflows in this repository are `book-pages.yml` (mdBook to
-Pages) and `rust-release.yml` (crates.io publish on a published Release).
-There is no verification workflow, so these gates are contributor-enforced:
+`.github/workflows/ci.yml` runs this sequence on every push and pull request
+to `main`. Run it locally first:
 
 ```powershell
 # Format check
-cargo fmt --check
+cargo fmt --all -- --check
 
-# Clippy warnings denial
+# Lint floor: clippy::pedantic + clippy::unwrap_used + missing_docs, denied.
+# The floor is declared in Cargo.toml [lints]; pre-existing debt is held by a
+# counted allow-list there (ratchet GAIA-LINT-1), so a lint class absent from
+# that list fails the build.
 cargo clippy --all-targets --all-features -- -D warnings
 
-# Execute all tests
+# Tests under the committed .config/nextest.toml budget (30 s slow /
+# 60 s terminate). Bare `cargo test` bypasses that instrument.
 cargo nextest run --all-features
+
+# Doctests — nextest does not execute them
+cargo test --doc --all-features
+
+# Warning-clean rustdoc
+$env:RUSTDOCFLAGS = "-D warnings"; cargo doc --no-deps --all-features
 ```
 
 ## License
@@ -153,6 +161,6 @@ cargo nextest run --all-features
 Dual-licensed under either of:
 
 - [Apache License, Version 2.0](LICENSE-APACHE)
-- [MIT License](LICENSE)
+- [MIT License](LICENSE-MIT)
 
 at your option.

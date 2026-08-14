@@ -167,7 +167,9 @@ fn build(sp: &StadiumPrism) -> Result<IndexedMesh, PrimitiveError> {
         // Also check wrap-around: last point must not equal first
         if dedup.len() > 1 {
             let first = dedup[0];
-            let last = *dedup.last().unwrap();
+            let last = *dedup
+                .last()
+                .expect("invariant: dedup.len() > 1 checked by the enclosing branch");
             let dx = last[0] - first[0];
             let dz = last[1] - first[1];
             if dx * dx + dz * dz < tol_sq {

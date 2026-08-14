@@ -91,6 +91,93 @@ criterion = "0.5"
 mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
 moirai = { package = "moirai-runtime", version = "0.5.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
+# ── Lint floor ────────────────────────────────────────────────────────────────
+#
+# gaia is a single package, so the floor is declared here rather than in a
+# `[workspace.lints]` table. It supersedes the inner `#![warn(...)]` /
+# `#![allow(...)]` block that used to sit at the top of src/lib.rs: those
+# attributes were never run under `-D warnings` by anything, so the floor was
+# advisory. CI now denies it (.github/workflows/ci.yml).
+#
+# RATCHET (GAIA-LINT-1). Turning the floor from warn to deny surfaces 2 400
+# pre-existing pedantic and default-warn hits under
+# `cargo clippy --all-targets --all-features` at 1.97.0. They are not fixed
+# here; each class that already fires is allowed below with its measured count,
+# so nothing existing is touched while every pedantic class NOT in this list is
+# a hard error. The counts are the burn-down backlog and the baseline: they may
+# only decrease. A class is deleted from this list when its count reaches zero.
+#
+# Counts are emissions, not unique sites — `--all-targets` compiles the library
+# twice (lib and lib-test), so a hit inside a `#[cfg(test)]`-free region is
+# reported once and a shared one twice.
+[lints.rust]
+# The crate is published; undocumented public API does not compile. Fully
+# enforced — there is no ratchet here, the nine sites that the three blanket
+# `#![allow(missing_docs)]` suppressions used to hide are documented.
+missing_docs = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -2 }
+pedantic = { level = "deny", priority = -1 }
+
+# Library code never panics on an input-dependent path. 4 production sites
+# remain, each carrying a per-site `#[expect]` naming this ratchet; test code
+# is exempt via `#![cfg_attr(test, allow(...))]` at the crate root and a
+# per-file attribute on the example, bench, bin and integration-test targets.
+unwrap_used = "deny"
+
+# ── Ratchet: numeric-conversion debt (1 268) ──────────────────────────────────
+# The real fix is a `Scalar`-parameterized conversion boundary, not blanket
+# `as` casts from index to coordinate space.
+cast_precision_loss = "allow"        # 759
+cast_possible_truncation = "allow"   # 297
+cast_sign_loss = "allow"             # 99
+unreadable_literal = "allow"         # 44
+float_cmp = "allow"                  # 37 — separately tracked as the CSG
+                                     #      epsilon-classification item
+cast_possible_wrap = "allow"         # 29
+cast_lossless = "allow"              # 3
+
+# ── Ratchet: documentation debt (520) ─────────────────────────────────────────
+doc_markdown = "allow"               # 368
+missing_errors_doc = "allow"         # 86
+missing_panics_doc = "allow"         # 34
+must_use_candidate = "allow"         # 24
+return_self_not_must_use = "allow"   # 4
+doc_overindented_list_items = "allow" # 2
+empty_line_after_doc_comments = "allow" # 2
+
+# ── Ratchet: naming and style debt (449) ──────────────────────────────────────
+similar_names = "allow"              # 131
+many_single_char_names = "allow"     # 82
+items_after_statements = "allow"     # 53
+manual_let_else = "allow"            # 51
+uninlined_format_args = "allow"      # 43
+redundant_closure_for_method_calls = "allow" # 31
+inline_always = "allow"              # 16
+semicolon_if_nothing_returned = "allow" # 13
+needless_pass_by_value = "allow"     # 10
+unnecessary_wraps = "allow"          # 6
+trivially_copy_pass_by_ref = "allow" # 4
+unused_self = "allow"                # 4
+map_unwrap_or = "allow"              # 4
+explicit_iter_loop = "allow"         # 1
+
+# ── Ratchet: size and shape debt (117) ────────────────────────────────────────
+# 42 files are past the 500-line target; these are the lint-visible symptom.
+too_many_lines = "allow"             # 101
+too_many_arguments = "allow"         # 12
+len_without_is_empty = "allow"       # 2
+new_ret_no_self = "allow"            # 2
+
+# ── Ratchet: default-warn (clippy::all) debt (46) ─────────────────────────────
+needless_range_loop = "allow"        # 30
+manual_clamp = "allow"               # 4
+same_item_push = "allow"             # 4
+format_push_string = "allow"         # 4
+if_same_then_else = "allow"          # 2
+comparison_chain = "allow"           # 2
+
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 
 [[bench]]

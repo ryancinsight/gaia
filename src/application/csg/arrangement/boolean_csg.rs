@@ -17,9 +17,13 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 /// Broad-phase overlapping face pair between two meshes in the canonical Boolean pass.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BooleanCandidatePair {
+    /// Index of the first mesh in the operand slice.
     pub mesh_a: usize,
+    /// Index of the candidate face within `mesh_a`.
     pub face_a: usize,
+    /// Index of the second mesh in the operand slice.
     pub mesh_b: usize,
+    /// Index of the candidate face within `mesh_b`.
     pub face_b: usize,
 }
 

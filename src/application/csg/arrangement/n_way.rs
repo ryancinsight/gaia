@@ -6,5 +6,7 @@
 
 pub use super::boolean_csg::{csg_boolean, BooleanOp};
 
+/// Former name of [`BooleanCandidatePair`](super::boolean_csg::BooleanCandidatePair).
 pub type NWayCandidatePair = super::boolean_csg::BooleanCandidatePair;
+/// Former name of [`BooleanFragmentRecord`](super::boolean_csg::BooleanFragmentRecord).
 pub type NWayFragRecord = super::boolean_csg::BooleanFragmentRecord;
