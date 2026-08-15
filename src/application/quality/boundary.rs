@@ -368,18 +368,20 @@ pub(crate) fn assess_boundary_cells<T: Scalar>(
                 }
                 Entry::Occupied(mut entry) => {
                     let incidence = entry.get_mut();
-                    incidence.count = incidence.count.saturating_add(1);
-                    if incidence.count == 2 {
-                        incidence.second_owner = Some(cell_id);
-                    }
-                    let (count, owner, second_owner) =
-                        (incidence.count, incidence.owner, incidence.second_owner);
-                    if count >= 3 {
-                        boundary_cells.entry(owner).or_default().invalid = true;
-                        if let Some(second_owner) = second_owner {
-                            boundary_cells.entry(second_owner).or_default().invalid = true;
+                    if incidence.owner != cell_id && incidence.second_owner != Some(cell_id) {
+                        incidence.count = incidence.count.saturating_add(1);
+                        if incidence.count == 2 {
+                            incidence.second_owner = Some(cell_id);
                         }
-                        boundary_cells.entry(cell_id).or_default().invalid = true;
+                        let (count, owner, second_owner) =
+                            (incidence.count, incidence.owner, incidence.second_owner);
+                        if count >= 3 {
+                            boundary_cells.entry(owner).or_default().invalid = true;
+                            if let Some(second_owner) = second_owner {
+                                boundary_cells.entry(second_owner).or_default().invalid = true;
+                            }
+                            boundary_cells.entry(cell_id).or_default().invalid = true;
+                        }
                     }
                 }
             }
