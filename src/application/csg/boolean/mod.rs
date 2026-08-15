@@ -22,6 +22,8 @@ pub mod indexed;
 pub mod operations;
 pub mod tree;
 
+mod rectangular_prism;
+
 pub use indexed::{csg_boolean, csg_boolean_nary};
 pub use operations::BooleanOp;
 pub use tree::CsgNode;
