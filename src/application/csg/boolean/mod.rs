@@ -22,6 +22,7 @@ pub mod indexed;
 pub mod operations;
 pub mod tree;
 
+mod normalization;
 mod rectangular_prism;
 
 pub use indexed::{csg_boolean, csg_boolean_nary};
