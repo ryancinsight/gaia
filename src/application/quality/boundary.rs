@@ -314,6 +314,7 @@ struct BoundaryCellState {
 struct FaceIncidence {
     owner: usize,
     count: usize,
+    second_owner: Option<usize>,
 }
 
 pub(crate) fn assess_boundary_cells<T: Scalar>(
@@ -362,10 +363,24 @@ pub(crate) fn assess_boundary_cells<T: Scalar>(
                     entry.insert(FaceIncidence {
                         owner: cell_id,
                         count: 1,
+                        second_owner: None,
                     });
                 }
                 Entry::Occupied(mut entry) => {
-                    entry.get_mut().count = entry.get().count.saturating_add(1);
+                    let incidence = entry.get_mut();
+                    incidence.count = incidence.count.saturating_add(1);
+                    if incidence.count == 2 {
+                        incidence.second_owner = Some(cell_id);
+                    }
+                    let (count, owner, second_owner) =
+                        (incidence.count, incidence.owner, incidence.second_owner);
+                    if count >= 3 {
+                        boundary_cells.entry(owner).or_default().invalid = true;
+                        if let Some(second_owner) = second_owner {
+                            boundary_cells.entry(second_owner).or_default().invalid = true;
+                        }
+                        boundary_cells.entry(cell_id).or_default().invalid = true;
+                    }
                 }
             }
         }
@@ -567,6 +582,25 @@ mod tests {
         assert_eq!(acceptance.boundary_cell_count, 2);
         assert_eq!(acceptance.invalid_boundary_cell_count, 1);
         assert_eq!(acceptance.rejected_boundary_cell_count, 1);
+        assert!(!acceptance.passed());
+    }
+
+    #[test]
+    fn non_manifold_face_is_not_treated_as_interior() {
+        let mut mesh = unit_tetrahedron::<f64>();
+        for _ in 0..2 {
+            let mut duplicate = crate::domain::topology::Cell::tetrahedron(0, 1, 2, 3);
+            duplicate.vertex_ids = vec![0, 1, 2, 3];
+            mesh.cells.push(duplicate);
+        }
+
+        let acceptance = cell_criteria::<f64>()
+            .assess_boundary(&mesh, &facet_criteria::<f64>(Some(1.5)))
+            .expect("tetrahedral cells exist");
+        assert_eq!(acceptance.boundary_cell_count, 3);
+        assert_eq!(acceptance.accepted_boundary_cell_count, 0);
+        assert_eq!(acceptance.rejected_boundary_cell_count, 3);
+        assert_eq!(acceptance.invalid_boundary_cell_count, 3);
         assert!(!acceptance.passed());
     }
 
