@@ -746,3 +746,29 @@
     - [x] Owner: Codex, lane `fix/gaia-csg-hierarchy`, scope limited to the
       Boolean implementation/test leaves and this checklist entry.
 
+- [x] **Phase 54: CSG Operand-Normalization Ownership Leaf [arch]**
+    - [x] Audit the coordinate-normalization family and its borrowed-versus-
+      owned operand invariant against the current Boolean call sites.
+    - [x] Move the cohesive normalization family into the named private
+      `boolean::normalization` leaf with explicit imports, preserving the
+      public API and canonical Boolean helpers.
+    - [x] Preserve value-semantic Boolean coverage and synchronize the leaf
+      module documentation. The stable unit-scale path still borrows meshes;
+      only out-of-band geometry materializes transformed storage.
+    - [x] Verify formatting, warning-denied all-target Clippy, focused 3/3 and
+      full nextest (975/975 with one skipped), doctests (9/9 with 39 ignored),
+      rustdoc, and `git diff --check` on the exact revision.
+    - [x] Owner: Codex, lane `fix/gaia-degenerate-collapse`, scope limited to
+      the normalization leaf, its call-site imports, tests, and this checklist
+      entry.
+
+- [ ] **Phase 55: CSG Degenerate-Face Cleanup Leaf [arch]**
+    - [ ] Audit the degenerate-face collapse helper and its shared union-find
+      invariant against the current Boolean repair call sites.
+    - [ ] Move that cohesive cleanup family into a named private leaf with
+      explicit imports, preserving the public API and canonical helper.
+    - [ ] Preserve value-semantic Boolean repair coverage and synchronize the
+      module documentation.
+    - [ ] Verify formatting, warning-denied all-target Clippy, focused and full
+      nextest, doctests, rustdoc, and `git diff --check` on the exact revision.
+
