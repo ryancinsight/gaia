@@ -762,7 +762,21 @@
       the normalization leaf, its call-site imports, tests, and this checklist
       entry.
 
-- [ ] **Phase 55: CSG Degenerate-Face Cleanup Leaf [arch]**
+- [x] **Phase 55: Branching Tube Ownership Leaf [arch]**
+    - [x] Audit the closed-tube operand family and its ring-frame, region-label,
+      and snap-cell invariants against the branching composition call sites.
+    - [x] Move that cohesive geometry family into the private
+      `channel::branching::tube` leaf with explicit imports, preserving the
+      public branching builder API and Boolean composition.
+    - [x] Preserve value-semantic branching and watertightness coverage while
+      reducing `branching.rs` from 507 to 364 lines; the new tube leaf is 127
+      lines and the implementation remains allocation-bounded by caller caps.
+    - [x] Verify formatting, warning-denied all-target Clippy, focused nextest
+      7/7, and `git diff --check` on the exact revision.
+    - [x] Owner: Codex, lane `audit/gaia-conformance`, scope limited to the
+      branching tube leaf, call-site imports, tests, and this checklist entry.
+
+- [ ] **Phase 56: CSG Degenerate-Face Cleanup Leaf [arch]**
     - [ ] Audit the degenerate-face collapse helper and its shared union-find
       invariant against the current Boolean repair call sites.
     - [ ] Move that cohesive cleanup family into a named private leaf with

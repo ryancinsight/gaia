@@ -14,9 +14,10 @@
 
 use crate::application::channel::venturi::BuildError;
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Real, Vector3r};
+use crate::domain::core::scalar::Real;
 use crate::domain::mesh::IndexedMesh;
-use crate::infrastructure::storage::vertex_pool::DEFAULT_MESH_CELL_SIZE;
+
+mod tube;
 
 /// Builds a branching (bifurcation) flow passage mesh.
 ///
@@ -117,8 +118,9 @@ fn build_branching_union(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildE
     let r_parent = d_parent / 2.0_f64;
     let r_daughter = d_daughter / 2.0_f64;
     let n_ax = b.resolution;
-    // Angular resolution derived from builder field â€” consistent with venturi/serpentine.
-    let n_ang: usize = 32;
+    // Angular resolution derived from the tube leaf â€” consistent with
+    // venturi/serpentine.
+    let n_ang = tube::ANGULAR_SEGMENTS;
     let vertex_capacity = n_ax
         .checked_mul(n_ang)
         .and_then(|capacity| capacity.checked_add(2))
@@ -130,139 +132,19 @@ fn build_branching_union(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildE
         .and_then(|faces| faces.checked_add(n_ang.checked_mul(2)?))
         .ok_or_else(|| BuildError("branching resolution overflows face capacity".into()))?;
 
-    let wall_region = RegionId::from_usize(0);
-
-    // Helper: build a watertight closed tube.
-    //
-    // `origin`: start point (x, y, z)
-    // `dir`:    direction vector (dx, dy, dz) â€” length = tube length
-    // `r`:      tube radius
-    // `n_steps`: axial ring count
-    // `is_parent`: if true, marks the inlet face as "inlet" boundary
-    // `d_idx`:  daughter index for outlet boundary label
-    let build_closed_tube = |origin: (Real, Real, Real),
-                             dir: (Real, Real, Real),
-                             r: Real,
-                             n_steps: usize,
-                             is_parent: bool,
-                             d_idx: usize|
-     -> IndexedMesh {
-        // Keep the default snap cell for ordinary channels.  When a
-        // circumferential edge is smaller than that cell, shrink only this
-        // operand's cell so adjacent ring vertices remain distinct.
-        let angular_edge = 2.0 * r * (std::f64::consts::PI / n_ang as Real).sin();
-        let cell_size = if angular_edge < DEFAULT_MESH_CELL_SIZE {
-            angular_edge * 0.25
-        } else {
-            DEFAULT_MESH_CELL_SIZE
-        };
-        let mut mesh =
-            IndexedMesh::with_capacity_and_cell_size(vertex_capacity, face_capacity, 0, cell_size);
-        let (ox, oy, oz) = origin;
-        let (dx, dy, dz) = dir;
-        let len = (dx * dx + dy * dy + dz * dz).sqrt();
-        let (udx, udy, udz) = (dx / len, dy / len, dz / len);
-
-        // Compute a stable radial basis via Gram-Schmidt against a reference axis.
-        let (ex, ey, ez) = if udz.abs() < 0.9 {
-            let (lx, ly, lz) = (0.0, 0.0, 1.0);
-            let dot = udx * lx + udy * ly + udz * lz;
-            let (sx, sy, sz) = (lx - dot * udx, ly - dot * udy, lz - dot * udz);
-            let slen = (sx * sx + sy * sy + sz * sz).sqrt();
-            (sx / slen, sy / slen, sz / slen)
-        } else {
-            let (lx, ly, lz) = (1.0, 0.0, 0.0);
-            let dot = udx * lx + udy * ly + udz * lz;
-            let (sx, sy, sz) = (lx - dot * udx, ly - dot * udy, lz - dot * udz);
-            let slen = (sx * sx + sy * sy + sz * sz).sqrt();
-            (sx / slen, sy / slen, sz / slen)
-        };
-        let (fx, fy, fz) = (
-            udy * ez - udz * ey,
-            udz * ex - udx * ez,
-            udx * ey - udy * ex,
-        );
-
-        let mut first_ring = Vec::with_capacity(n_ang);
-        let mut previous_ring = Vec::with_capacity(n_ang);
-        let mut ring = Vec::with_capacity(n_ang);
-        for i in 0..n_steps {
-            let t = i as Real / (n_steps - 1) as Real;
-            let cx = ox + dx * t;
-            let cy = oy + dy * t;
-            let cz = oz + dz * t;
-            ring.clear();
-            for ia in 0..n_ang {
-                let theta = std::f64::consts::TAU * ia as Real / n_ang as Real;
-                let (sin_t, cos_t) = theta.sin_cos();
-                let nx_v = cos_t * ex + sin_t * fx;
-                let ny_v = cos_t * ey + sin_t * fy;
-                let nz_v = cos_t * ez + sin_t * fz;
-                let vid = mesh.add_vertex(
-                    Point3r::new(cx + r * nx_v, cy + r * ny_v, cz + r * nz_v),
-                    Vector3r::new(nx_v, ny_v, nz_v),
-                );
-                ring.push(vid);
-            }
-            if i == 0 {
-                first_ring.clone_from(&ring);
-            } else {
-                for ia in 0..n_ang {
-                    let ia1 = (ia + 1) % n_ang;
-                    let v00 = previous_ring[ia];
-                    let v01 = previous_ring[ia1];
-                    let v10 = ring[ia];
-                    let v11 = ring[ia1];
-                    // `ex`, `fx`, and the axial direction form a right-handed
-                    // frame.  The ring edge therefore precedes the axial edge
-                    // for an outward lateral normal.
-                    mesh.add_face_with_region(v00, v01, v10, wall_region);
-                    mesh.add_face_with_region(v01, v11, v10, wall_region);
-                }
-            }
-            std::mem::swap(&mut previous_ring, &mut ring);
-        }
-
-        // Inlet cap (starts at t=0, normal = -dir)
-        let ic = mesh.add_vertex(Point3r::new(ox, oy, oz), Vector3r::new(-udx, -udy, -udz));
-        let inlet_region = RegionId::from_usize(1);
-        for ia in 0..n_ang {
-            let ia1 = (ia + 1) % n_ang;
-            let fid = mesh.add_face_with_region(ic, first_ring[ia1], first_ring[ia], inlet_region);
-            if is_parent {
-                mesh.mark_boundary(fid, "inlet");
-            }
-        }
-
-        // Outlet cap (ends at t=1, normal = dir)
-        let oc = mesh.add_vertex(
-            Point3r::new(ox + dx, oy + dy, oz + dz),
-            Vector3r::new(udx, udy, udz),
-        );
-        let outlet_region = RegionId::from_usize(2 + d_idx);
-        for ia in 0..n_ang {
-            let ia1 = (ia + 1) % n_ang;
-            let fid =
-                mesh.add_face_with_region(oc, previous_ring[ia], previous_ring[ia1], outlet_region);
-            if !is_parent {
-                mesh.mark_boundary(fid, format!("outlet_{d_idx}"));
-            }
-        }
-
-        mesh
-    };
-
     let mut meshes = Vec::with_capacity(1 + b.n_daughters);
 
     // 1. Parent tube â€” extend slightly past l_parent to ensure solid overlap for CSG union.
     let parent_overlap = r_parent * 1.5;
-    let mesh_parent = build_closed_tube(
+    let mesh_parent = tube::build_closed_tube(
         (0.0, 0.0, 0.0),
         (0.0, 0.0, l_parent + parent_overlap),
         r_parent,
         n_ax,
         true,
         0,
+        vertex_capacity,
+        face_capacity,
     );
     meshes.push(mesh_parent);
 
@@ -288,13 +170,15 @@ fn build_branching_union(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildE
         let dy = 0.0;
         let dz = run_dist * cos_a;
 
-        let mesh_d = build_closed_tube(
+        let mesh_d = tube::build_closed_tube(
             (start_x, start_y, start_z),
             (dx, dy, dz),
             r_daughter,
             n_ax,
             false,
             d,
+            vertex_capacity,
+            face_capacity,
         );
         meshes.push(mesh_d);
     }
