@@ -731,17 +731,18 @@
       improvement claim is made; benchmark evidence remains required for the
       open refinement and optimization items.
 
-- [ ] **Phase 53: CSG Boolean Vertical Hierarchy [arch]**
-    - [ ] Audit `src/application/csg/boolean/indexed.rs` and its tests for
+- [x] **Phase 53: CSG Boolean Vertical Hierarchy [arch]**
+    - [x] Audit `src/application/csg/boolean/indexed.rs` and its tests for
       distinct operation-family ownership and select one complete leaf split
       that preserves the public API and value semantics.
-    - [ ] Move the selected operation family into a named dedicated module;
+    - [x] Move the selected operation family into a named dedicated module;
       keep imports explicit, retain one canonical implementation, and delete
       the superseded inline ownership.
-    - [ ] Add or preserve focused value-semantic coverage for the moved
-      operation family and synchronize module documentation.
-    - [ ] Verify formatting, warning-denied all-target Clippy, focused and full
-      nextest, doctests, rustdoc, and `git diff --check` on the exact revision.
-    - [ ] Owner: Codex, lane `fix/gaia-csg-hierarchy`, scope limited to the
+    - [x] Preserve the rectangular-prism union value tests with an explicit
+      private-leaf import and synchronize the new leaf module documentation.
+    - [x] Verify formatting, warning-denied all-target Clippy, focused and full
+      nextest (975 started, one skipped), doctests, rustdoc, and
+      `git diff --check` on the exact revision.
+    - [x] Owner: Codex, lane `fix/gaia-csg-hierarchy`, scope limited to the
       Boolean implementation/test leaves and this checklist entry.
 

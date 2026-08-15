@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use super::super::rectangular_prism::rectangular_prism_union;
 use super::*;
 use crate::application::watertight::check::check_watertight;
 use crate::domain::core::scalar::Point3r;
