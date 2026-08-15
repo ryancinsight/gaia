@@ -746,3 +746,16 @@
     - [x] Owner: Codex, lane `fix/gaia-csg-hierarchy`, scope limited to the
       Boolean implementation/test leaves and this checklist entry.
 
+- [ ] **Phase 54: CSG Degenerate-Face Cleanup Leaf [arch]**
+    - [ ] Audit the degenerate-face collapse helper and its shared union-find
+      invariant against the current Boolean repair call sites.
+    - [ ] Move that cohesive cleanup family into a named private leaf with
+      explicit imports, preserving the public API and canonical helper.
+    - [ ] Preserve value-semantic Boolean repair coverage and synchronize the
+      module documentation.
+    - [ ] Verify formatting, warning-denied all-target Clippy, focused and full
+      nextest, doctests, rustdoc, and `git diff --check` on the exact revision.
+    - [ ] Owner: Codex, lane `fix/gaia-degenerate-collapse`, scope limited to
+      the degenerate-face cleanup leaf, its call-site imports, tests, and this
+      checklist entry.
+
