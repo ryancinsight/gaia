@@ -19,7 +19,6 @@ keywords = ["mesh", "cfd", "millifluidic", "watertight", "ghostcell"]
 categories = ["science", "simulation"]
 publish = true
 autoexamples = false
-
 # The published crate is the library, not the repository. Book figures and
 # committed run outputs (mesh dumps, OpenFOAM cases, review renders) are ~10 MB
 # of material no consumer compiles against, and they pushed the archive to
@@ -61,6 +60,7 @@ indexmap = "2.0"
 slotmap = "1.0"
 leto = { version = "0.42.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
 eunomia = { version = "0.8.0", git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
+aequitas = { version = "0.2.0", git = "https://github.com/ryancinsight/aequitas", default-features = false, features = ["std"] }
 melinoe = { version = "0.9.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false, features = ["alloc"] }
 
 # Mesh / geometry — state-of-the-art kernel

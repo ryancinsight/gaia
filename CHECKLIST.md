@@ -711,14 +711,23 @@
       radius-edge, minimum dihedral angle, normalized volume, and optional
       maximum cell volume. Classify sliver candidates, other shape failures,
       oversized cells, and invalid cells without hidden defaults.
-    - [ ] Add boundary-cell quality acceptance rules and constrained 3-D
-      Delaunay refinement after the predicate contract and feature-consumer
-      criteria are defined; no state-of-the-art capability is claimed before
+    - [x] Add explicit native-precision Aequitas-typed boundary-facet criteria
+      for angle, dimensionless edge-length ratio, and optional SI length. Compose them
+      with cell criteria by single-cell face incidence; reject malformed
+      boundary topology and cover `f32`/`f64`, sizing, invalid-face, and
+      malformed-cell cases.
+    - [x] Add an explicit opt-in self-intersection status/error path without
+      adding BVH work to the default watertight check; cover crossing and
+      clean-mesh value semantics.
+    - [ ] Add constrained 3-D Delaunay refinement after the predicate contract,
+      feature-consumer criteria, sizing-field contract, and termination gates
+      are defined; no state-of-the-art refinement capability is claimed before
       those gates.
     - [x] Collect the exact-final-revision gates: format, warning-denied
-      all-target Clippy, full 961/961 native nextest with one skipped, 7/7
-      non-ignored doctests, warning-denied Rustdoc, mdBook test/build with
-      linkcheck2, and `git diff --check` all pass. No controlled runtime or RSS
+      all-target Clippy, full 967/967 native nextest with one skipped,
+      warning-denied Rustdoc, mdBook test/build with linkcheck2, and
+      `git diff --check` pass. All eight runnable doctests pass; 39 additional
+      doctests remain intentionally ignored. No controlled runtime or RSS
       improvement claim is made; benchmark evidence remains required for the
       open refinement and optimization items.
 

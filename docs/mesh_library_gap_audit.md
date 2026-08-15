@@ -18,18 +18,52 @@ format exporters. The reviewed book gallery enumerates the public mesh-family
 boundary; it is intentionally exhaustive by family, not by every continuous
 parameter value.
 
+## Atlas consumer audit
+
+The local Atlas consumers confirm Gaia's ownership boundary and identify the
+next contracts without requiring consumer-owned mesh algorithms:
+
+- `CFDrs/crates/cfd-schematic-mesh` consumes the Gaia package as `cfd-mesh`.
+  Its direct 3-D workload is the existing `BowyerWatson3D` and `SdfMesher`
+  path, with a committed `CFDrs/benches/delaunay_3d.rs` benchmark. The
+  schematic-to-mesh bridge remains in CFDrs because it depends on CFD
+  schematics; Gaia owns the general mesh and tetrahedral kernels.
+- `kwavers/crates/kwavers-mesh/src/tetrahedral/gaia.rs` treats
+  `gaia::IndexedMesh<f64>` as the authoritative volume artifact. Its current
+  contract requires tetrahedral cells, four unique vertex references, finite
+  coordinates, adjacency, and Gaia boundary labels before conversion into the
+  solver-facing representation. Kwavers retains that solver representation to
+  avoid a provider-consumer cycle.
+- RITK consumes Gaia `IndexedMesh<f64>` and `MeshBuilder` for surface
+  filtering, VTK/STL/OBJ/PLY/GLB I/O, and watertight surface interchange. No
+  current RITK contract requires constrained 3-D volume refinement.
+- Helios consumes Gaia `Aabb` and `Ray` geometry; its current contract does
+  not require a mesh generator.
+- Kwavers still reports a missing grid-to-tetrahedral generator at
+  `kwavers-simulation/src/solver_factory.rs`. This is a valid future Gaia
+  provider driver, but its acceptance contract must cover structured-grid
+  ownership, boundary labels, cell orientation, and solver conversion before
+  a public refinement API is added.
+
+This audit therefore keeps Gaia as the SSOT for mesh representation and
+general algorithms, while leaving domain-specific bridges in their consumers.
+The Aequitas-typed boundary criteria introduced in this slice provide the
+first typed physical-dimension contract at the Gaia quality boundary; the
+remaining consumer bridges still expose their existing `f64` solver/API
+contracts and are not silently widened here.
+
 ## Capability comparison
 
 | Capability | Gaia baseline | Reference-library expectation | Disposition |
 | --- | --- | --- | --- |
 | Indexed surface topology | Welded indexed triangles, persistent edge adjacency, boundary labels, half-edge view | Common indexed/half-edge or compact mesh representations | Present; retain Gaia ownership |
-| Surface validation | Boundary/non-manifold edge counts, winding consistency, signed volume, Euler diagnostic, BVH self-intersection detector | Robust topology and geometric-defect validation | Fixed in this audit: outward orientation is now required and Euler genus is diagnostic. Self-intersection detection remains a separate opt-in operation |
+| Surface validation | Boundary/non-manifold edge counts, winding consistency, signed volume, Euler diagnostic, BVH self-intersection detector, explicit opt-in status/error | Robust topology and geometric-defect validation | Fixed in this audit: outward orientation is required, Euler genus is diagnostic, and self-intersection rejection is explicit without changing the hot default path |
 | Surface CSG | BVH broad phase, exact orientation predicates, co-refinement, coplanar arrangement, n-ary operation | Robust Boolean/CSG trees and self-intersection resolution | Present for Gaia's supported triangle-surface contract; add unresolved seam cases to regression data before broadening claims |
 | 2-D constrained meshing | Delaunay, PSLG, CDT, Ruppert refinement, metric and smoothing paths | Constrained Delaunay refinement with quality/size criteria | Present; expand property and adversarial coverage |
 | 3-D unconstrained meshing | Bowyer-Watson tetrahedralization and deterministic SDF/BCC seeding | Delaunay-based volume meshing | Present as a seed/tetrahedralization kernel; new direct regression coverage added in this audit |
 | 3-D constrained refinement | No boundary-feature protection, sizing field, radius-edge refinement loop, or sliver optimization API | CGAL Mesh_3 and TetGen expose constrained/refined quality meshing | Open P1 capability gap; this is the primary state-of-the-art volume-meshing extension |
-| Tetrahedral quality | Native `T` volume, radius-edge, minimum-dihedral, and normalized-volume metrics; explicit consumer-supplied acceptance criteria; CFD internal-face metrics | Radius-edge, dihedral-angle, sliver, volume, and size criteria | Present for cell-level acceptance; boundary-feature acceptance and refinement remain open |
-| Remeshing/repair | Degenerate-face removal, orientation repair, boundary stitching/sealing, component retention, self-intersection detection | Self-intersection remeshing, decimation, isotropic/adaptive remeshing | Open P1: detection exists, canonical validation does not reject/report it, and no remeshing result is owned by Gaia |
+| Tetrahedral quality | Native `T` volume, radius-edge, minimum-dihedral, and normalized-volume metrics; explicit cell and boundary-facet acceptance criteria; CFD internal-face metrics | Radius-edge, dihedral-angle, sliver, volume, facet, and size criteria | Present for acceptance; feature protection and constrained refinement remain open |
+| Remeshing/repair | Degenerate-face removal, orientation repair, boundary stitching/sealing, component retention, self-intersection detection | Self-intersection remeshing, decimation, isotropic/adaptive remeshing | Open P1: detection is explicit but remains opt-in; a policy-bearing validation result and Gaia-owned remeshing result are not yet defined |
 | High-order/mixed volume cells | Linear tetrahedral builder, hexahedral source grid, P2 surface refinement | Mixed/high-order element workflows vary by library | Open P2 and consumer-driven; do not add public cell variants without an Atlas consumer contract |
 | Parallel meshing | Parallel CSG classification paths; deterministic serial Delaunay/SDF topology | Gmsh exposes threaded 3-D generation; HXT provides parallel Delaunay/refinement research | Open P2 performance track; benchmark before changing topology or order |
 | Interoperability | STL, VTK, OpenFOAM, OBJ, PLY, GLB, 3MF paths | Broad import/export and downstream solver integration | Present for current Atlas consumers; add contract tests as new consumers land |
@@ -101,25 +135,52 @@ distinct, so a consumer can select the corrective action without a hidden
 default threshold. Scale/translation invariance and `f32`/`f64` assessment
 coverage are regression-tested.
 
+### Boundary-facet and boundary-cell acceptance
+
+`BoundaryFacetQualityCriteria<T>` now provides explicit native-precision
+Aequitas-typed angle, dimensionless shortest-to-longest edge-ratio, and
+optional SI-length edge-size bounds. `TetrahedralQualityCriteria<T>::assess_boundary` identifies exposed
+facets by exactly-one-cell incidence, measures each facet once, and accepts a
+boundary cell only when its volume-cell policy and every exposed facet policy
+pass. Malformed facet references, invalid vertex identifiers, degenerate
+facets, and malformed tetrahedral cell topology are counted as invalid rather
+than silently classified as interior.
+
+This closes the acceptance-oracle gap, not the refinement gap. It does not
+claim feature protection, a sizing field, constrained Delaunay refinement, or
+sliver optimization.
+
+### Explicit self-intersection policy
+
+The watertight API now keeps self-intersection detection opt-in. The default
+`check_watertight` path reports `SelfIntersectionStatus::NotChecked` and does
+not build the BVH. `check_watertight_with_self_intersections` performs the
+existing BVH/narrow-phase scan without copying the face store, reports either
+`Clear` or the crossing-pair count, and folds a found crossing into the
+watertight result. The corresponding assertion API returns the existing typed
+`MeshError::SelfIntersection` for the first pair.
+
+The predicate contract remains deliberately narrow: shared-vertex/edge
+adjacency is excluded, coplanar overlap is not classified as a proper 3-D
+crossing, and the detector currently uses Gaia's `f64` CSG predicate boundary.
+Those are explicit limits, not hidden validation defaults.
+
 ## Remaining prioritized work
 
-1. Add boundary-cell quality acceptance rules on top of the native tetrahedral
-   criteria. The current policy is cell-level and does not yet encode feature
-   protection or surface-facet criteria.
-2. Add a constrained 3-D refinement stage around the existing tetrahedralizer:
+1. Add a constrained 3-D refinement stage around the existing tetrahedralizer:
    protected boundary features, a validated sizing field, explicit termination
    limits, and a quality-improvement phase. The API should be introduced only
    after an Atlas consumer contract and a benchmark workload exist.
-3. Promote self-intersection status into an explicit validation policy or
-   result type. Do not silently fold the existing detector into every hot
-   watertight check until its scalar boundary, coplanar policy, and cost are
-   specified.
-4. Replace the current f64-only robust-predicate boundary in the 3-D
+2. Extend the self-intersection predicate contract to classify coplanar
+   overlap, touching, and near-degenerate cases for callers that need a full
+   geometric-defect policy. The current opt-in crossing policy intentionally
+   remains limited to proper non-adjacent 3-D intersections.
+3. Replace the current f64-only robust-predicate boundary in the 3-D
    tetrahedralizer with an explicit predicate-precision contract. The current
    implementation is generic in `T` but routes orientation/insphere decisions
    through f64 predicates; this is a monomorphization audit finding, not a
    native-precision claim.
-5. Add controlled benchmarks and memory measurements for the refinement,
+4. Add controlled benchmarks and memory measurements for the refinement,
    quality, self-intersection, and SDF paths. Source-level preallocation is
    not evidence of lower RSS or faster execution.
 

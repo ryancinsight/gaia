@@ -7,10 +7,13 @@
 
 use leto::geometry::{Point3, Vector3};
 
+use super::boundary::{
+    assess_boundary_cells, BoundaryFacetQualityCriteria, BoundaryTetrahedralQualityAcceptance,
+};
 use crate::application::quality::metrics::QualityMetric;
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
-use crate::domain::topology::ElementType;
+use crate::domain::topology::{Cell, ElementType};
 
 /// Per-tetrahedron quality values.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -233,6 +236,25 @@ impl<T: Scalar> TetrahedralQualityCriteria<T> {
         }
         Some(acceptance)
     }
+
+    /// Assess tetrahedral cells that touch the geometric boundary.
+    ///
+    /// A boundary cell passes only when its cell criteria and every exposed
+    /// triangular facet satisfy their respective policies. Boundary facets
+    /// are identified by face incidence: exactly one tetrahedral cell must
+    /// reference the face. Malformed tetrahedral topology is counted as an
+    /// invalid boundary cell instead of being treated as an interior cell.
+    ///
+    /// The facet policy must be constructed through
+    /// [`BoundaryFacetQualityCriteria::try_new`], which validates its bounds.
+    #[must_use]
+    pub fn assess_boundary(
+        &self,
+        mesh: &IndexedMesh<T>,
+        facet_criteria: &BoundaryFacetQualityCriteria<T>,
+    ) -> Option<BoundaryTetrahedralQualityAcceptance> {
+        assess_boundary_cells(self, facet_criteria, mesh)
+    }
 }
 
 /// Quality category assigned to one tetrahedral cell.
@@ -294,24 +316,29 @@ const EDGES: [(usize, usize, usize, usize); 6] = [
 fn tetrahedral_measurements<T: Scalar>(
     mesh: &IndexedMesh<T>,
 ) -> impl Iterator<Item = Option<TetrahedronQuality<T>>> + '_ {
-    mesh.cells.iter().filter_map(|cell| {
-        if cell.element_type != ElementType::Tetrahedron {
-            return None;
-        }
-        let vertex_ids: [usize; 4] = match cell.vertex_ids.as_slice().try_into() {
-            Ok(vertex_ids) => vertex_ids,
-            Err(_) => return Some(None),
-        };
-        if vertex_ids.iter().any(|&id| id >= mesh.vertices.len()) {
-            return Some(None);
-        }
-        let points = vertex_ids.map(|id| {
-            *mesh
-                .vertices
-                .position(crate::domain::core::index::VertexId::from_usize(id))
-        });
-        Some(tetrahedron_quality(points))
-    })
+    mesh.cells
+        .iter()
+        .filter(|cell| cell.element_type == ElementType::Tetrahedron)
+        .map(|cell| cell_tetrahedron_quality(mesh, cell))
+}
+
+pub(crate) fn cell_tetrahedron_quality<T: Scalar>(
+    mesh: &IndexedMesh<T>,
+    cell: &Cell,
+) -> Option<TetrahedronQuality<T>> {
+    if cell.element_type != ElementType::Tetrahedron {
+        return None;
+    }
+    let vertex_ids: [usize; 4] = cell.vertex_ids.as_slice().try_into().ok()?;
+    if vertex_ids.iter().any(|&id| id >= mesh.vertices.len()) {
+        return None;
+    }
+    let points = vertex_ids.map(|id| {
+        *mesh
+            .vertices
+            .position(crate::domain::core::index::VertexId::from_usize(id))
+    });
+    tetrahedron_quality(points)
 }
 
 #[inline]

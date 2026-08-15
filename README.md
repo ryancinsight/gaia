@@ -90,7 +90,8 @@ src/
     csg/                     # Constructive Solid Geometry Boolean ops (Arrangement, Classification)
     delaunay/                # 2D/3D Delaunay triangulation (Bowyer-Watson, Ruppert refinement)
     hierarchy/               # Mesh promotion and decomposition (P2 conversion, Hex-to-Tet)
-    quality/                 # Surface, CFD-cell, and tetrahedral quality metrics
+    pipeline/                # End-to-end mesh generation pipelines
+    quality/                 # Surface, boundary-facet, CFD-cell, and tetrahedral quality metrics
     watertight/              # Mesh repair, topological sealing, and manifold verification
     welding/                 # Spatial-hash vertex deduplication and snap-to-grid/vertex
   domain/                    # Domain primitives and invariants
@@ -123,6 +124,12 @@ src/
   consumer-supplied radius-edge, dihedral-angle, normalized-volume, and
   optional maximum-volume bounds. It classifies measured cells as accepted,
   sliver, poor-shape, oversized, or invalid without imposing hidden defaults.
+- **Boundary acceptance**: `BoundaryFacetQualityCriteria<T>` supplies explicit
+  Aequitas-typed angle, dimensionless edge-ratio, and optional SI-length
+  edge-size bounds.
+  `TetrahedralQualityCriteria<T>::assess_boundary` combines them by face
+  incidence and rejects malformed boundary topology instead of treating it as
+  interior.
 - **CFD I/O Exporters**:
   - **OpenFOAM**: High-performance export with region index mapping.
   - **3MF**: Pre-allocated XML serialization.
