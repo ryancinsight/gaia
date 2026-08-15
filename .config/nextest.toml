@@ -1,0 +1,18 @@
+# Test-time budget: a test is marked slow at 30 s and terminated at 60 s (two
+# 30 s periods). Crossing 30 s is a performance defect to profile and optimize
+# in the real mesh code — never raise the limit, shrink the workload, or ignore
+# the test. A 60 s termination is a hang or deadlock to root-cause.
+#
+# gaia is the last member of the stack to gain this instrument; before it, a
+# hanging CSG arrangement had nothing to stop it. `cargo nextest run` applies
+# this file; bare `cargo test` bypasses it and is not a substitute.
+[profile.default]
+slow-timeout = { period = "30s", terminate-after = 2, grace-period = "5s" }
+global-timeout = "15m"
+
+[profile.ci]
+test-threads = 4
+retries = 0
+fail-fast = true
+slow-timeout = { period = "30s", terminate-after = 2, grace-period = "10s" }
+global-timeout = "15m"

@@ -1,3 +1,10 @@
+//! Diagnostic integration test for the cube-cube boolean arrangement.
+
+#![allow(
+    clippy::unwrap_used,
+    reason = "demonstration and diagnostic target: an unwrap here is the assertion, not an input-dependent failure path"
+)]
+
 use gaia::application::csg::boolean::{csg_boolean, BooleanOp};
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::core::index::VertexId;

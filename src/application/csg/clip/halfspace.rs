@@ -187,7 +187,12 @@ pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {
         }
     }
     if deduplicated.len() > 1
-        && (deduplicated[0] - deduplicated.last().unwrap()).norm_squared() < 1e-20
+        && (deduplicated[0]
+            - deduplicated
+                .last()
+                .expect("invariant: deduplicated.len() > 1 checked in this condition"))
+        .norm_squared()
+            < 1e-20
     {
         deduplicated.pop();
     }

@@ -1,3 +1,5 @@
+//! Regression suite for previously broken CSG boolean configurations.
+
 use std::f64::consts::{PI, TAU};
 
 use gaia::application::csg::boolean::operations::csg_boolean;

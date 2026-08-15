@@ -1,5 +1,10 @@
 //! Criterion benchmark for the shared TPMS marching-cubes path.
 
+#![allow(
+    missing_docs,
+    reason = "criterion_main! generates an undocumented public fn in this crate root"
+)]
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use gaia::domain::geometry::tpms::{build_tpms_sphere, Gyroid, TpmsParams};

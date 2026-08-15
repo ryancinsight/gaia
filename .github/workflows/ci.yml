@@ -1,0 +1,86 @@
+name: CI
+
+# The verification gate the README has advertised since 0.1: format, lint
+# floor, tests under the committed nextest budget, doctests, and warning-clean
+# rustdoc. Before this workflow existed the repository's only CI was the book
+# build and the release packaging check, so nothing mechanically enforced the
+# sequence in README.md § Testing & Quality Gates.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: every job here only reads the tree. Publishing and Pages
+# deployment keep their elevated scopes in rust-release.yml and book-pages.yml.
+permissions:
+  contents: read
+
+# Verification only — a superseded run on the same ref carries no value, so it
+# is cancelled. (Deployment workflows must not do this; see book-pages.yml.)
+concurrency:
+  group: gaia-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_TOOLCHAIN: 1.97.0
+  NEXTEST_VERSION: 0.9.140
+
+jobs:
+  gate:
+    name: fmt + clippy + nextest + doctests + doc
+    runs-on: ubuntu-latest
+    # A cold build of the CSG stack plus the full suite runs in roughly ten
+    # minutes; 45 leaves margin for a cache miss while still refusing an
+    # unbounded job.
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the revision under test
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt, clippy
+
+      - name: Install the pinned test runner
+        uses: taiki-e/install-action@a6b2e2dcd845ddd7f509ce4f3ed3d922b80cc5d9 # v2.84.0
+        with:
+          tool: nextest@${{ env.NEXTEST_VERSION }}
+
+      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      # The lint floor lives in Cargo.toml [lints]: clippy::pedantic denied,
+      # plus clippy::unwrap_used and rustc missing_docs. Pre-existing pedantic
+      # debt is held by a curated, counted allow-list in that table (the
+      # ratchet) — a class absent from that list is a hard error here.
+      - name: Clippy (lint floor, denied)
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      # nextest applies the committed .config/nextest.toml budget (30 s slow /
+      # 60 s terminate). Bare `cargo test` bypasses that instrument, so a hang
+      # would run to the job timeout instead of failing the test.
+      - name: Tests (nextest, committed timeout budget)
+        run: cargo nextest run --locked --all-features --profile ci
+
+      # nextest does not execute doctests; the public API examples are gated
+      # separately.
+      - name: Doctests
+        run: cargo test --locked --doc --all-features
+
+      - name: Docs (warning-clean)
+        run: cargo doc --locked --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings

@@ -1,5 +1,16 @@
 # Checklist
 
+- [x] **Source-module reachability audit [patch]**
+    - [x] Enumerate crate roots and follow declarative modules, including
+      `#[path]` modules and binary targets.
+    - [x] Delete the unreachable `application/csg/boolean/union_strategy.rs`
+      and `infrastructure/storage/cell_store.rs` artifacts after confirming
+      their historical code had no live owner.
+    - [x] Add an integration regression that reports every Rust source file
+      not reachable from a library, binary, or declared module root.
+    - [x] Verify the reachability scan and formatting; hosted Gaia CI remains
+      the crate-compilation and full-gate oracle.
+
 - [x] **Atlas tetrahedral volume-builder contract [minor]**
     - [x] Audit current Gaia surface, volume-cell, boundary-label, and I/O
       contracts against CFDrs, Kwavers, Helios, and RITK consumers.

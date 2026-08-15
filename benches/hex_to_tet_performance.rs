@@ -1,5 +1,10 @@
 //! Criterion benchmark for the real hexahedral-to-tetrahedral conversion path.
 
+#![allow(
+    missing_docs,
+    reason = "criterion_main! generates an undocumented public fn in this crate root"
+)]
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use gaia::application::hierarchy::hex_to_tet::HexToTetConverter;
 use gaia::domain::grid::StructuredHexGridBuilder;

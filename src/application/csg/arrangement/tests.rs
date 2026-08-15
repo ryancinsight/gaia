@@ -1,3 +1,5 @@
+//! Tests for the mesh-arrangement module surface.
+
 use super::*;
 use crate::application::csg::arrangement::boolean_csg::csg_boolean as arrangement_csg_boolean;
 use crate::application::csg::boolean::{csg_boolean, BooleanOp};

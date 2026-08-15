@@ -1,3 +1,9 @@
+//! The canonical watertight-first indexed surface mesh.
+//!
+//! [`IndexedMesh`] is the crate's single source of truth for surface and
+//! volume topology, combining the deduplicating vertex pool, face and edge
+//! stores, attribute store, cell list, and `GhostCell` half-edge topology.
+
 use leto::geometry::{Point3, Vector3};
 // =========================================================================
 // IndexedMesh<T> — watertight-first surface mesh, generic over precision

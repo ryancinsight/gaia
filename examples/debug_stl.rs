@@ -1,3 +1,10 @@
+//! Diagnostic: read an STL file and report its triangle and vertex counts.
+
+#![allow(
+    clippy::unwrap_used,
+    reason = "demonstration and diagnostic target: an unwrap here is the assertion, not an input-dependent failure path"
+)]
+
 use gaia::infrastructure::io::stl::read_stl;
 use std::fs::File;
 use std::path::Path;

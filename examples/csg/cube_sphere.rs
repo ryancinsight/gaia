@@ -41,6 +41,11 @@
 //!
 //! STL outputs are written to `outputs/csg/`.
 
+#![allow(
+    clippy::unwrap_used,
+    reason = "demonstration and diagnostic target: an unwrap here is the assertion, not an input-dependent failure path"
+)]
+
 use std::fs;
 use std::io::BufWriter;
 use std::time::Instant;

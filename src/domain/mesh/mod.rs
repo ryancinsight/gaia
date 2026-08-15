@@ -6,9 +6,7 @@
 //!   combining `VertexPool` (spatial-hash dedup), `FaceStore`, `EdgeStore`,
 //!   `AttributeStore`, `Vec<Cell>`, and `GhostCell` topology.
 
-#[allow(missing_docs)]
 pub mod halfedge;
-#[allow(missing_docs)]
 pub mod indexed;
 pub mod tetrahedral;
 
