@@ -131,6 +131,9 @@ pub use domain::geometry::Polyline;
 /// Polyline construction and operation errors.
 pub use domain::geometry::PolylineError;
 
+/// Deterministic geodesic samples carrying a unit-vector invariant.
+pub use domain::geometry::UnitSphereDirectionSet;
+
 /// Exact Shewchuk orientation result.
 pub use domain::geometry::Orientation;
 
