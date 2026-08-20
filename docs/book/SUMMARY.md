@@ -3,6 +3,7 @@
 [Gaia Mesh Book](README.md)
 
 - [Mesh-generation contract](mesh_generation_contract.md)
+- [Executable quick start](quick_start.md)
 - [Atlas ownership and provider boundaries](atlas_ownership.md)
 - [Reviewed mesh gallery](mesh_gallery.md)
   - [Figure manifest](figure_manifest.md)

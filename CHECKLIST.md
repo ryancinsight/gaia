@@ -1,5 +1,18 @@
 # Checklist
 
+- [ ] **Executable Gaia book gate [patch]**
+    - [x] Confirm the direct `mdbook test` command was vacuous at `dbed97a`:
+      the book contained zero Rust fences.
+    - [x] Add an included `Cube::centred` example with value-semantic
+      watertightness, vertex-count, and face-count assertions, and stage Gaia
+      plus dependency artifacts before the book test.
+    - [x] Verify `cargo fmt --all -- --check`, `mdbook build`, and strict links
+      (9 files, 16 links, zero missing files/anchors/read failures).
+    - [ ] Collect a clean-toolchain `mdbook test` result and hosted exact-head
+      book evidence; the shared Atlas target is locally contaminated by
+      multiple historical Gaia artifacts and the local locked build is blocked
+      by the stack overlay lock-form mismatch.
+
 - [x] **Source-module reachability audit [patch]**
     - [x] Enumerate crate roots and follow declarative modules, including
       `#[path]` modules and binary targets.

@@ -64,6 +64,16 @@ jobs:
         shell: bash
         run: cargo run --locked --bin book_mesh_gallery -- docs/book
 
+      - name: Stage Gaia and dependency artifacts for mdBook
+        shell: bash
+        run: |
+          set -euo pipefail
+          deps_dir="target/mdbook-test-libs"
+          rm -rf "$deps_dir"
+          mkdir -p "$deps_dir"
+          find target/debug/deps -maxdepth 1 -type f \( -name 'lib*.rlib' -o -name 'lib*.so' \) -exec cp -p {} "$deps_dir" \;
+          compgen -G "$deps_dir/libgaia-*.rlib" > /dev/null
+
       - name: Verify book examples and links
         shell: bash
         run: mdbook test docs/book
