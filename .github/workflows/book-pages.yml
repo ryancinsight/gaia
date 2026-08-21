@@ -80,7 +80,13 @@ jobs:
               *.rlib|*.so) cp -p "$artifact" "$deps_dir/" ;;
             esac
           done < "$artifact_list"
-          compgen -G "$deps_dir/libgaia-*.rlib" > /dev/null
+          shopt -s nullglob
+          gaia_libraries=("$deps_dir"/libgaia-*.rlib)
+          if (( ${#gaia_libraries[@]} != 1 )); then
+            printf 'expected exactly one staged Gaia library, found %s\\n' \
+              "${#gaia_libraries[@]}" >&2
+            exit 1
+          fi
 
       - name: Verify book examples and links
         shell: bash
