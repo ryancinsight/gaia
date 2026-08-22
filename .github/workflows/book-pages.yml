@@ -60,13 +60,37 @@ jobs:
         shell: bash
         run: cargo install mdbook-linkcheck2 --version "${MDBOOK_LINKCHECK2_VERSION}" --locked
 
-      - name: Generate Gaia mesh figures
+      - name: Build Gaia and generate mesh figures
         shell: bash
-        run: cargo run --locked --bin book_mesh_gallery -- docs/book
+        run: |
+          set -euo pipefail
+          artifact_list="$(mktemp)"
+          trap 'rm -f "$artifact_list"' EXIT
+          cargo build --locked --bin book_mesh_gallery \
+            --message-format=json-render-diagnostics \
+            | jq -r 'select(.reason == "compiler-artifact") | .filenames[]' \
+            > "$artifact_list"
+          cargo run --locked --quiet --bin book_mesh_gallery -- docs/book
+
+          deps_dir="target/mdbook-test-libs"
+          rm -rf "$deps_dir"
+          mkdir -p "$deps_dir"
+          while IFS= read -r artifact; do
+            case "$artifact" in
+              *.rlib|*.so) cp -p "$artifact" "$deps_dir/" ;;
+            esac
+          done < "$artifact_list"
+          shopt -s nullglob
+          gaia_libraries=("$deps_dir"/libgaia-*.rlib)
+          if (( ${#gaia_libraries[@]} != 1 )); then
+            printf 'expected exactly one staged Gaia library, found %s\\n' \
+              "${#gaia_libraries[@]}" >&2
+            exit 1
+          fi
 
       - name: Verify book examples and links
         shell: bash
-        run: mdbook test docs/book
+        run: mdbook test docs/book --library-path target/mdbook-test-libs
 
       - name: Build the Pages artifact
         shell: bash
