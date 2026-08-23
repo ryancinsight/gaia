@@ -786,3 +786,50 @@
     - [ ] Verify formatting, warning-denied all-target Clippy, focused and full
       nextest, doctests, rustdoc, and `git diff --check` on the exact revision.
 
+
+## gap-audit-2026-08-20 (owner: atlas-gap-audit)
+
+Execution steps for the board seeded in `backlog.md` at `4980732`. Ordered by
+triage: correctness, then architecture required for correctness, then missing
+verification, then documentation, then hygiene. Each step's completion
+condition is the item's acceptance oracle in `backlog.md`; do not restate it
+here.
+
+- [x] Audit pass: static evidence only (no build, no test run, detached tree
+      left as found). Findings filed as GAIA-001 .. GAIA-015 in `backlog.md`.
+- [x] Documentation drift fixed in place: removed the `application/pipeline/`
+      row from the `README.md` directory tree — the directory does not exist
+      (`src/application/` holds channel, csg, delaunay, hierarchy, quality,
+      watertight, welding).
+- [ ] GAIA-001 — derive or replace the GWN classification band.
+    - [ ] Write the derivation for the 0.65 / 0.35 band, or the replacing
+      criterion, in the form used by `GWN_SOLID_ANGLE_CLIP`.
+    - [ ] Add in-band adversarial cases with an independent membership oracle.
+    - [ ] Draft the accompanying ADR (feeds GAIA-010).
+- [ ] GAIA-002 — close or narrow the 3-D predicate precision boundary.
+    - [ ] Decide: native-`T` predicate path, or an `f64`-only 3-D kernel bound.
+    - [ ] Record the decision as an ADR before implementing (`[arch]`).
+    - [ ] Update the README precision contract in the same change.
+- [ ] GAIA-003 — burn down `Real` toward the `Scalar` seam, module family by
+      module family; each increment lowers a `Cargo.toml` ratchet count.
+- [ ] GAIA-004 — add the differential naive-vs-exact predicate suite; prove the
+      check is live by confirming the naive form disagrees.
+- [ ] GAIA-005 — convert the 39 ignored doctests, module by module.
+- [ ] GAIA-006 — declare or delete the six undeclared `examples/` files and
+      extend `tests/module_reachability.rs` to cover `examples/`.
+- [ ] GAIA-007 — add the nightly miri job for the two GhostCell `unsafe impl`s.
+- [ ] GAIA-008 — add `cargo deny`, `cargo machete`, and `cargo semver-checks`
+      to CI; retire the hand-run semver comparisons recorded above.
+- [ ] GAIA-012 — add bench and example runtime budgets to CI.
+- [ ] GAIA-009 — untrack `outputs/` except the manifest-cited golden renders;
+      resolve the inert `stl-io` / `millifluidic` features and the README
+      install example together.
+- [ ] GAIA-010 — backfill the as-built ADRs, trigger-driven, one per touching
+      item.
+- [ ] GAIA-011 — add the theory chapters to the book.
+- [ ] GAIA-013 — GAIA-LINT-1 burn-down; correct the stale "4 production sites"
+      comment (the measured count is 2) in the first increment that touches
+      the ratchet table.
+- [ ] GAIA-014 — migrate to edition 2024.
+- [ ] GAIA-015 — deliver or explicitly de-scope constrained 3-D refinement and
+      remeshing; re-verified 2026-08-20 as still absent from the tree.
