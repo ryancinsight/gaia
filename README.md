@@ -162,6 +162,23 @@ cargo test --doc --all-features
 $env:RUSTDOCFLAGS = "-D warnings"; cargo doc --no-deps --all-features
 ```
 
+### Pre-push hook
+
+Install the hooks once per clone:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Git never applies tracked hooks on its own, so this is a one-time step per
+clone. The `pre-push` hook runs `scripts/lockfile.py --check`, which is the
+same check CI runs. It matters most when working inside the Atlas stack: the
+stack's `[patch]` overlay makes cargo resolve first-party dependencies to
+local paths and write a `Cargo.lock` with every `source = "git+..."` line
+stripped. That lock resolves fine under the overlay and fails every
+`--locked` job in CI, so without the hook the corruption is invisible until a
+runner reports it. Repair with `python3 scripts/lockfile.py --regenerate`.
+
 ## License
 
 Dual-licensed under either of:
