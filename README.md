@@ -90,7 +90,6 @@ src/
     csg/                     # Constructive Solid Geometry Boolean ops (Arrangement, Classification)
     delaunay/                # 2D/3D Delaunay triangulation (Bowyer-Watson, Ruppert refinement)
     hierarchy/               # Mesh promotion and decomposition (P2 conversion, Hex-to-Tet)
-    pipeline/                # End-to-end mesh generation pipelines
     quality/                 # Surface, boundary-facet, CFD-cell, and tetrahedral quality metrics
     watertight/              # Mesh repair, topological sealing, and manifold verification
     welding/                 # Spatial-hash vertex deduplication and snap-to-grid/vertex
