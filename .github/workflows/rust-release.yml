@@ -25,7 +25,25 @@ env:
   RUST_TOOLCHAIN: 1.97.0
 
 jobs:
+  # A public-surface break the manifest version does not cover
+  # stops the release here. The baseline is the latest published
+  # version, so the list is the crates the registry carries.
+  # Atlas ATLAS-SEMVER-GATE-FLEETWIDE-2026-08-28.
+  semver:
+    name: SemVer gate (release)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'crate-')
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@da9d549bc50dbb9c4e1d18dca8f37d17059098cb
+    with:
+      release-gate: true
+      package: gaia-mesh
+      rust-toolchain: 1.97.0
+    permissions:
+      contents: read
+
   validate:
+    needs: semver
     if: >-
       github.event_name == 'workflow_dispatch' ||
       startsWith(github.event.release.tag_name, 'crate-')
