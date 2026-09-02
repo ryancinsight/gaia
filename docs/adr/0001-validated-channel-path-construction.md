@@ -1,4 +1,4 @@
-# ADR-0001: Validate channel paths and variable sweeps
+# ADR 0001: Validate channel paths and variable sweeps
 
 - Status: Accepted
 - Date: 2026-08-02
