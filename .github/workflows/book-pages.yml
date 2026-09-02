@@ -25,7 +25,9 @@ permissions:
 
 concurrency:
   group: gaia-mesh-book-${{ github.ref }}
-  cancel-in-progress: true
+  # Deploys queue behind one another; a half-cancelled deploy is worse than a
+  # superseded one, and a cancelled default-branch run leaves that merge undeployed.
+  cancel-in-progress: false
 
 env:
   RUST_TOOLCHAIN: 1.97.0
