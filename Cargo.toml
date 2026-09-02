@@ -6,7 +6,7 @@
 # `gaia = { package = "gaia-mesh", version = "0.4.0" }` and every `use gaia::…`
 # is unchanged.
 name = "gaia-mesh"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
 license = "MIT OR Apache-2.0"
