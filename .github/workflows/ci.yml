@@ -31,6 +31,15 @@ env:
   NEXTEST_VERSION: 0.9.140
 
 jobs:
+  adr-index:
+    name: ADR index is current
+    # atlas owns the one generator (ATLAS-ADR-FORM-NORMALIZATION-2026-09-02); strict: the ADRs carry the canonical heading form and numbering.
+    uses: ryancinsight/atlas/.github/workflows/adr-index-guard.yml@acc117f9c4e4b5c70c58a0d98f9e56a1ac7cc0cc
+    permissions:
+      contents: read
+    with:
+      strict: true
+
   # Runs first and alone: it needs no toolchain, no cache and no build, and it
   # guards the one artifact whose correctness cannot be checked from inside the
   # environment that produces it. Working on this repository inside the Atlas
