@@ -37,7 +37,7 @@ jobs:
   adr-index:
     name: ADR index is current
     # atlas owns the one generator (ATLAS-ADR-FORM-NORMALIZATION-2026-09-02); strict: the ADRs carry the canonical heading form and numbering.
-    uses: ryancinsight/atlas/.github/workflows/adr-index-guard.yml@acc117f9c4e4b5c70c58a0d98f9e56a1ac7cc0cc
+    uses: ryancinsight/atlas/.github/workflows/adr-index-guard.yml@191617bffed5f78de9d840fee8755963fccaaa67
     permissions:
       contents: read
     with:
