@@ -8,7 +8,6 @@ use super::super::coplanar::basis::PlaneBasis;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
-#[allow(clippy::if_same_then_else)]
 fn accumulate_oriented_faces(
     op: BooleanOp,
     faces_by_mesh: &[Vec<FaceData>],
@@ -22,9 +21,7 @@ fn accumulate_oriented_faces(
             accum_opt = Some(crate::application::csg::coplanar::boolean_coplanar(
                 op, &accum, mesh_faces, pool, basis,
             ));
-        } else if mesh_idx == 0 {
-            accum_opt = Some(mesh_faces.clone());
-        } else if op == BooleanOp::Union {
+        } else if mesh_idx == 0 || op == BooleanOp::Union {
             accum_opt = Some(mesh_faces.clone());
         } else {
             accum_opt = Some(Vec::new());
