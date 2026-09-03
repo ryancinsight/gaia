@@ -82,13 +82,13 @@ tracing = "0.1"
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
-mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
+mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", rev = "cdf3363db2ff31337c531b24d0025d945ac59a23", optional = true, default-features = false }
 moirai = { package = "moirai-runtime", version = "0.5.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
 proptest = "1.4"
 criterion = "0.5"
-mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
+mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", rev = "cdf3363db2ff31337c531b24d0025d945ac59a23", default-features = false }
 moirai = { package = "moirai-runtime", version = "0.5.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
 # ── Lint floor ────────────────────────────────────────────────────────────────
