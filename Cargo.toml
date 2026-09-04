@@ -82,13 +82,13 @@ tracing = "0.1"
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
-mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", rev = "05f7c6a468a0f81d471b5c480bc88a3e9876bcd8", optional = true, default-features = false }
+mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", rev = "48b6888410cdeef79acfb733ea00328c5e572f96", optional = true, default-features = false }
 moirai = { package = "moirai-runtime", version = "0.5.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
 
 [dev-dependencies]
 proptest = "1.4"
 criterion = "0.5"
-mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", rev = "05f7c6a468a0f81d471b5c480bc88a3e9876bcd8", default-features = false }
+mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", rev = "48b6888410cdeef79acfb733ea00328c5e572f96", default-features = false }
 moirai = { package = "moirai-runtime", version = "0.5.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false, features = ["parallel"] }
 
 # ── Lint floor ────────────────────────────────────────────────────────────────
