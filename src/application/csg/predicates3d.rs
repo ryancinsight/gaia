@@ -184,8 +184,10 @@ mod tests {
 
     #[test]
     fn point_on_segment_exact_accepts_true_collinear_midpoint() {
-        let t = point_on_segment_exact(&p(0.0, 0.0, 0.0), &p(1.0, 2.0, 3.0), &p(0.5, 1.0, 1.5));
-        assert!(t.is_some());
+        let t = point_on_segment_exact(&p(0.0, 0.0, 0.0), &p(1.0, 2.0, 3.0), &p(0.5, 1.0, 1.5))
+            .expect("a collinear midpoint lies on the segment");
+        // The midpoint's parameter is what makes it the midpoint.
+        assert!((t - 0.5).abs() < 1e-12, "expected t = 0.5, got {t}");
     }
 
     #[test]
@@ -202,11 +204,7 @@ mod tests {
         let d = p(0.5, 1.0e-10, 0.0);
         let n = Vector3r::new(0.0, 0.0, 1.0);
         let hit = proper_segment_intersection_params_projected_exact(&a, &b, &c, &d, &n);
-        assert!(
-            hit.is_some(),
-            "near-parallel but proper crossing must be detected"
-        );
-        let (t, u) = hit.expect("intersection params");
+        let (t, u) = hit.expect("near-parallel but proper crossing must be detected");
         assert!(t > 0.0 && t < 1.0 && u > 0.0 && u < 1.0);
     }
 
@@ -232,8 +230,7 @@ mod tests {
         let d = p(0.5, 1.0, 0.5);
         let n = Vector3r::new(1.0, 0.0, -1.0);
         let hit = proper_segment_intersection_params_projected_exact(&a, &b, &c, &d, &n);
-        assert!(hit.is_some(), "crossing in tilted plane must be detected");
-        let (t, u) = hit.expect("intersection params");
+        let (t, u) = hit.expect("crossing in tilted plane must be detected");
         assert!((t - 0.5).abs() < 1e-12);
         assert!((u - 0.5).abs() < 1e-12);
     }

@@ -90,6 +90,7 @@ mod tests {
     use super::*;
     use crate::application::watertight::check::check_watertight;
     use crate::infrastructure::storage::edge_store::EdgeStore;
+    use crate::test_support::assert_rejects;
 
     #[test]
     fn tetrahedron_is_watertight() {
@@ -115,6 +116,6 @@ mod tests {
     #[test]
     fn tetrahedron_invalid_radius() {
         let result = Tetrahedron { radius: -1.0 }.build();
-        assert!(result.is_err());
+        assert_rejects(&result, "invalid parameter: radius must be > 0, got -1");
     }
 }

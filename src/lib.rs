@@ -95,6 +95,8 @@
 pub mod application;
 pub mod domain;
 pub mod infrastructure;
+#[cfg(test)]
+pub mod test_support;
 
 /// Unified error type for all gaia operations.
 pub use domain::core::error::{Error, ErrorContext, NurbsKind, Result};

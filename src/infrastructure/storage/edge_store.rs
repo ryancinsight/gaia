@@ -482,12 +482,18 @@ mod tests {
     fn find_edge_canonical_order() {
         let fs = tetra_store();
         let es = EdgeStore::from_face_store(&fs);
-        for edge in es.iter() {
+        for (index, edge) in es.iter().enumerate() {
             let (a, b) = edge.vertices;
             let id_ab = es.find_edge(a, b);
             let id_ba = es.find_edge(b, a);
             assert_eq!(id_ab, id_ba, "canonical order violated for {:?}", (a, b));
-            assert!(id_ab.is_some());
+            // A stored edge must resolve to its own id, not merely to something.
+            assert_eq!(
+                id_ab,
+                Some(EdgeId::from_usize(index)),
+                "find_edge must return the stored edge's own id for {:?}",
+                (a, b)
+            );
         }
     }
 

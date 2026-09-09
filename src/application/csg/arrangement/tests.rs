@@ -280,8 +280,7 @@ fn exact_algebraic_coplanarity_no_shatter() {
 
     let result = csg_boolean(BooleanOp::Intersection, &mesh_a, &mesh_b);
 
-    assert!(result.is_ok(), "Intersection evaluation should not error");
-    let result_mesh = result.unwrap();
+    let result_mesh = result.expect("intersection evaluation must succeed");
     // Since they only intersect at exactly one line inside the 2D plane (y=0, z~=0),
     // there is no 3D overlap, and no coplanar 2D area overlap. The intersection mesh correctly
     // produces the exact intersection artifacts (typically 1 or 2 seam fragments) rather than completely

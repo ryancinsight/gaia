@@ -129,10 +129,14 @@ fn adjacency_symmetry() {
             }
             let nbr_tri = dt.triangle(nbr);
             assert!(nbr_tri.alive, "Neighbor {nbr:?} of {tid:?} is dead");
-            let back = nbr_tri.shared_edge(tid);
-            assert!(
-                back.is_some(),
-                "Adjacency asymmetry: {tid:?} → {nbr:?} but {nbr:?} does not point back"
+            let back = nbr_tri.shared_edge(tid).unwrap_or_else(|| {
+                panic!("Adjacency asymmetry: {tid:?} → {nbr:?} but {nbr:?} does not point back")
+            });
+            // Close the loop: the slot found must be the one naming `tid`.
+            assert_eq!(
+                nbr_tri.adj[back], tid,
+                "shared_edge({tid:?}) returned slot {back}, which names {:?}",
+                nbr_tri.adj[back]
             );
         }
     }
