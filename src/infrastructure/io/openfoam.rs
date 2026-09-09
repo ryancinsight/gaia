@@ -383,6 +383,7 @@ mod tests {
     use super::*;
     use crate::domain::core::scalar::Point3r;
     use crate::domain::mesh::MeshBuilder;
+    use crate::test_support::assert_rejects;
 
     /// Helper: build a tiny tetrahedron IndexedMesh.
     fn tet_mesh() -> IndexedMesh {
@@ -503,6 +504,6 @@ mod tests {
         let mesh = IndexedMesh::new();
         let dir = std::env::temp_dir().join("gaia_of_test_empty");
         let result = write_openfoam_polymesh(&mesh, &dir, &[]);
-        assert!(result.is_err(), "empty mesh should produce an error");
+        assert_rejects(&result, "cannot write empty mesh to OpenFOAM format");
     }
 }

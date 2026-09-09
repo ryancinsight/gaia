@@ -120,9 +120,37 @@ mod tests {
         let analyzer = StandardQualityAnalyzer::default();
         let report = analyzer.compute(&mesh);
         assert!(report.base.total_faces > 0, "cube should have faces");
-        assert!(report.aspect_ratio_histogram.is_some());
-        assert!(report.min_angle_histogram.is_some());
-        assert!(report.edge_length_histogram.is_some());
+
+        // One value per face goes into each per-face histogram, so the bin
+        // counts must account for every face and the edges must bound them.
+        for (name, histogram) in [
+            ("aspect ratio", &report.aspect_ratio_histogram),
+            ("min angle", &report.min_angle_histogram),
+        ] {
+            let histogram = histogram
+                .as_ref()
+                .unwrap_or_else(|| panic!("{name} histogram must be produced for a cube"));
+            assert_eq!(
+                histogram.edges.len(),
+                histogram.bins.len() + 1,
+                "{name} histogram must have one more edge than bins"
+            );
+            assert_eq!(
+                histogram.bins.iter().sum::<usize>(),
+                report.base.total_faces,
+                "{name} histogram must count every face"
+            );
+        }
+
+        let edge_lengths = report
+            .edge_length_histogram
+            .as_ref()
+            .expect("edge length histogram must be produced for a cube");
+        assert_eq!(edge_lengths.edges.len(), edge_lengths.bins.len() + 1);
+        assert!(
+            edge_lengths.bins.iter().sum::<usize>() > 0,
+            "edge length histogram must count edges"
+        );
     }
 
     #[test]

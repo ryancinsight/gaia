@@ -570,8 +570,9 @@ mod tests {
     fn set_and_clear_metric() {
         let mut refiner = RuppertRefiner::new(square_cdt());
         assert!(refiner.metric.is_none());
-        refiner.set_metric(MetricTensor::anisotropic(0.5, 5.0));
-        assert!(refiner.metric.is_some());
+        let metric = MetricTensor::anisotropic(0.5, 5.0);
+        refiner.set_metric(metric);
+        assert_eq!(refiner.metric, Some(metric));
         refiner.clear_metric();
         assert!(refiner.metric.is_none());
     }

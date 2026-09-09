@@ -202,11 +202,7 @@ mod tests {
         .expect("cyl b");
 
         let result = csg_boolean(BooleanOp::Union, &cyl_a, &cyl_b);
-        assert!(
-            result.is_ok(),
-            "low-tessellation cylinder union must not panic"
-        );
-        let mesh = result.unwrap();
+        let mesh = result.expect("low-tessellation cylinder union must succeed");
         assert!(mesh.face_count() > 0, "result must have faces");
     }
 
@@ -344,8 +340,7 @@ mod tests {
         .expect("cylinder");
 
         let result = csg_boolean(BooleanOp::Union, &torus, &cylinder);
-        assert!(result.is_ok(), "torus-cylinder union must not panic");
-        let mesh = result.unwrap();
+        let mesh = result.expect("torus-cylinder union must succeed");
         assert!(
             mesh.face_count() > 0,
             "torus-cylinder union must produce faces"
@@ -429,11 +424,7 @@ mod tests {
         .expect("cyl b");
 
         let result = csg_boolean(BooleanOp::Union, &a, &b);
-        assert!(
-            result.is_ok(),
-            "near-tangent parallel cylinder union must not panic"
-        );
-        let mesh = result.unwrap();
+        let mesh = result.expect("near-tangent parallel cylinder union must succeed");
         assert!(mesh.face_count() > 0, "result must have faces");
         let v = signed_volume(&mesh);
         let v_single = std::f64::consts::PI * r * r * 3.0;

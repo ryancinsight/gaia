@@ -330,6 +330,7 @@ mod tests {
     use super::*;
     use crate::application::watertight::check::check_watertight;
     use crate::infrastructure::storage::edge_store::EdgeStore;
+    use crate::test_support::assert_rejects;
 
     #[test]
     fn linear_sweep_square_is_watertight() {
@@ -444,7 +445,10 @@ mod tests {
             height: 1.0,
         }
         .build();
-        assert!(result.is_err(), "CW profile should return InvalidParam");
+        assert_rejects(
+            &result,
+            "invalid parameter: profile signed area must be > 0 (CCW winding), got -4.000000",
+        );
     }
 
     #[test]
@@ -459,7 +463,7 @@ mod tests {
             height: 0.0,
         }
         .build();
-        assert!(result.is_err());
+        assert_rejects(&result, "invalid parameter: height must be > 0, got 0");
     }
 
     #[test]
@@ -470,6 +474,6 @@ mod tests {
             height: 1.0,
         }
         .build();
-        assert!(result.is_err());
+        assert_rejects(&result, "segments must be >= 3, got 2");
     }
 }

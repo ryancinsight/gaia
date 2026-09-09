@@ -351,6 +351,7 @@ mod tests {
     use super::*;
     use crate::application::watertight::check::check_watertight;
     use crate::infrastructure::storage::edge_store::EdgeStore;
+    use crate::test_support::assert_rejects;
     use std::f64::consts::PI;
 
     /// Revolve a single vertical edge of radius r and height h → open tube
@@ -513,7 +514,7 @@ mod tests {
             angle: TAU,
         }
         .build();
-        assert!(result.is_err());
+        assert_rejects(&result, "segments must be >= 3, got 1");
     }
 
     #[test]
@@ -524,7 +525,10 @@ mod tests {
             angle: TAU,
         }
         .build();
-        assert!(result.is_err());
+        assert_rejects(
+            &result,
+            "invalid parameter: all radial values must be ≥ 0, got -1",
+        );
     }
 
     #[test]
@@ -535,6 +539,6 @@ mod tests {
             angle: TAU,
         }
         .build();
-        assert!(result.is_err());
+        assert_rejects(&result, "segments must be >= 3, got 2");
     }
 }

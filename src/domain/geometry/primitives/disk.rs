@@ -127,6 +127,7 @@ impl PrimitiveMesh for Disk {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::assert_rejects;
     use eunomia::assert_relative_eq;
 
     fn build_disk(r: f64, n: usize) -> IndexedMesh {
@@ -211,7 +212,7 @@ mod tests {
             segments: 32,
         }
         .build();
-        assert!(err.is_err());
+        assert_rejects(&err, "invalid parameter: Disk radius must be > 0, got 0");
     }
 
     /// Disk rejects too few segments.
@@ -223,7 +224,7 @@ mod tests {
             segments: 2,
         }
         .build();
-        assert!(err.is_err());
+        assert_rejects(&err, "segments must be >= 3, got 2");
     }
 
     /// Disk centred at non-origin lies in plane y = cy.

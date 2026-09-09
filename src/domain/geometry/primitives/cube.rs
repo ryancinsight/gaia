@@ -128,6 +128,7 @@ mod tests {
     use super::*;
     use crate::application::watertight::check::check_watertight;
     use crate::infrastructure::storage::edge_store::EdgeStore;
+    use crate::test_support::assert_rejects;
     use eunomia::assert_relative_eq;
 
     #[test]
@@ -163,6 +164,9 @@ mod tests {
             depth: 1.0,
         }
         .build();
-        assert!(result.is_err());
+        assert_rejects(
+            &result,
+            "invalid parameter: all dimensions must be > 0, got (-1, 1, 1)",
+        );
     }
 }

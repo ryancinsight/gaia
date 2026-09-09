@@ -183,22 +183,29 @@ mod tests {
 
     #[test]
     fn test_seg_intersect_crossing() {
-        let hit = seg_intersect([0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [1.0, 0.0]);
-        assert!(hit.is_some(), "crossing segments must produce parameters");
+        // The diagonals of the unit square cross at their shared midpoint.
+        let (t, u) = seg_intersect([0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [1.0, 0.0])
+            .expect("crossing segments must produce parameters");
+        assert!((t - 0.5).abs() < 1e-12, "expected t = 0.5, got {t}");
+        assert!((u - 0.5).abs() < 1e-12, "expected u = 0.5, got {u}");
     }
 
     #[test]
     fn test_seg_intersect_nearly_parallel_not_dropped() {
         // determinant = 5e-21 (below legacy threshold), but non-zero exactly.
-        let hit = seg_intersect(
-            [0.0, 0.0],
-            [1.0e-10, 1.0e-10],
-            [0.0, 1.0e-10],
-            [2.0e-10, 3.5e-10],
-        );
-        assert!(
-            hit.is_some(),
-            "non-parallel directions must not be rejected by epsilon threshold"
-        );
+        let (p1, p2) = ([0.0, 0.0], [1.0e-10, 1.0e-10]);
+        let (p3, p4) = ([0.0, 1.0e-10], [2.0e-10, 3.5e-10]);
+        let (t, u) = seg_intersect(p1, p2, p3, p4)
+            .expect("non-parallel directions must not be rejected by epsilon threshold");
+
+        // The parameters must place both segments at the same point.
+        for axis in 0..2 {
+            let on_first = p1[axis] + t * (p2[axis] - p1[axis]);
+            let on_second = p3[axis] + u * (p4[axis] - p3[axis]);
+            assert!(
+                (on_first - on_second).abs() <= 1.0e-22,
+                "axis {axis}: t={t} gives {on_first}, u={u} gives {on_second}"
+            );
+        }
     }
 }

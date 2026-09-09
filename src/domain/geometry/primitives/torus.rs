@@ -161,6 +161,7 @@ mod tests {
     use super::*;
     use crate::application::watertight::check::check_watertight;
     use crate::infrastructure::storage::edge_store::EdgeStore;
+    use crate::test_support::assert_rejects;
     use std::f64::consts::PI;
 
     #[test]
@@ -218,6 +219,9 @@ mod tests {
             ..Torus::default()
         }
         .build();
-        assert!(result.is_err());
+        assert_rejects(
+            &result,
+            "invalid parameter: minor_radius (2) must be < major_radius (1) for a ring torus",
+        );
     }
 }
