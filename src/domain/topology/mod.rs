@@ -8,6 +8,8 @@ pub mod connectivity;
 pub mod halfedge;
 pub mod manifold;
 pub mod orientation;
+mod packed_rows;
+pub(crate) use packed_rows::PackedRows;
 pub mod predicates;
 
 pub use adjacency::AdjacencyGraph;
