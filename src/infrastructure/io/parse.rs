@@ -1,14 +1,19 @@
-//! Shared primitives for the ASCII mesh importers.
+//! Shared primitives for the mesh importers.
 //!
 //! OBJ and PLY are both line-oriented ASCII formats whose fields are
 //! file-supplied numbers and indices. Both importers have to make the same
 //! three decisions — how to read a field as a number, how to read three fields
 //! as a point, and what to do when a file names an index that is not there —
 //! so those decisions live here once rather than once per format.
+//!
+//! The finiteness gate is shared with STL as well, including its binary reader.
+//! That reader has no field to parse and therefore nothing to hand to
+//! [`parse_point`], but it does have a point to check, so [`finite_point`] is
+//! exposed separately rather than folded into the parser.
 
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::{Point3r, Real};
+use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 
 /// Parse one field as a [`Real`].
 ///
@@ -20,15 +25,29 @@ pub(crate) fn parse_real(field: &str) -> MeshResult<Real> {
         .map_err(|_| MeshError::Other(format!("invalid number: {field}")))
 }
 
-/// Parse three fields as a point whose components are all finite.
+/// The diagnostic for a 3-component value that is not entirely finite.
+///
+/// `ordinal` is a *file* position, not a mesh id, so it is saturated into the
+/// reported [`VertexId`] rather than converted: [`VertexId::from_usize`] panics
+/// above `u32::MAX`, and a PLY ordinal descends from a file-controlled element
+/// count.
+fn invalid_coordinate(ordinal: usize, point: Point3r) -> MeshError {
+    MeshError::InvalidCoordinate {
+        vertex: VertexId::new(u32::try_from(ordinal).unwrap_or(u32::MAX)),
+        point,
+    }
+}
+
+/// Reject a point if any component is not finite.
 ///
 /// `ordinal` is the position of the vertex in the *file*: `0` for the first `v`
 /// record, or the first vertex of a PLY vertex element. It is carried into the
 /// error so the diagnostic names a location in the source file rather than a
 /// post-weld mesh id, which welding may have merged with a different vertex.
-/// It is a *diagnostic* only — it is saturated into the reported [`VertexId`]
-/// rather than converted, because [`VertexId::from_usize`] panics above
-/// `u32::MAX` and a PLY ordinal descends from a file-controlled element count.
+///
+/// This is the whole of the finiteness rule; the text importers reach it
+/// through [`parse_point`], and the binary STL reader — which reads a record
+/// rather than a field — calls it directly.
 ///
 /// Finiteness is checked separately from parsing because `Real`'s parser
 /// *accepts* `"nan"`, `"inf"` and `"-inf"`. A parser that only reports syntax
@@ -37,20 +56,42 @@ pub(crate) fn parse_real(field: &str) -> MeshResult<Real> {
 /// normal and volume that touches the vertex.
 ///
 /// # Errors
+/// Returns [`MeshError::InvalidCoordinate`] if any component is NaN or infinite.
+pub(crate) fn finite_point(point: Point3r, ordinal: usize) -> MeshResult<Point3r> {
+    if point.x.is_finite() && point.y.is_finite() && point.z.is_finite() {
+        Ok(point)
+    } else {
+        Err(invalid_coordinate(ordinal, point))
+    }
+}
+
+/// Parse three fields as a point whose components are all finite.
+///
+/// # Errors
 /// Returns [`MeshError::Other`] if a field is not a number, and
 /// [`MeshError::InvalidCoordinate`] if any component is NaN or infinite.
 pub(crate) fn parse_point(fields: [&str; 3], ordinal: usize) -> MeshResult<Point3r> {
     let x = parse_real(fields[0])?;
     let y = parse_real(fields[1])?;
     let z = parse_real(fields[2])?;
-    let point = Point3r::new(x, y, z);
-    if !(x.is_finite() && y.is_finite() && z.is_finite()) {
-        return Err(MeshError::InvalidCoordinate {
-            vertex: VertexId::new(u32::try_from(ordinal).unwrap_or(u32::MAX)),
-            point,
-        });
-    }
-    Ok(point)
+    finite_point(Point3r::new(x, y, z), ordinal)
+}
+
+/// Parse three fields as a normal whose components are all finite.
+///
+/// A normal is not a position, but it is stored per vertex and used the same
+/// way: it is interpolated, shaded with, and compared for degeneracy, and a
+/// non-finite one stays in the vertex pool exactly as a non-finite position
+/// would. The check is therefore the same check, and the diagnostic reuses
+/// [`MeshError::InvalidCoordinate`] — a normal component is a coordinate in the
+/// same sense.
+///
+/// # Errors
+/// Returns [`MeshError::Other`] if a field is not a number, and
+/// [`MeshError::InvalidCoordinate`] if any component is NaN or infinite.
+pub(crate) fn parse_normal(fields: [&str; 3], ordinal: usize) -> MeshResult<Vector3r> {
+    let point = parse_point(fields, ordinal)?;
+    Ok(Vector3r::new(point.x, point.y, point.z))
 }
 
 /// Resolve a file-supplied index into a buffer.
@@ -134,6 +175,64 @@ mod tests {
                 MeshError::InvalidCoordinate { vertex, .. } if vertex.raw() == u32::MAX
             ),
             "expected the ordinal to saturate, got {err:?}"
+        );
+    }
+
+    #[test]
+    fn finite_point_accepts_a_fully_finite_point() {
+        let point = Point3r::new(1.0, -2.0, 3.0);
+        let checked = finite_point(point, 0).unwrap();
+        assert_eq!((checked.x, checked.y, checked.z), (1.0, -2.0, 3.0));
+    }
+
+    #[test]
+    fn finite_point_rejects_a_bad_component_on_any_axis() {
+        for bad in [
+            Point3r::new(Real::NAN, 0.0, 0.0),
+            Point3r::new(0.0, Real::NAN, 0.0),
+            Point3r::new(0.0, 0.0, Real::NAN),
+            Point3r::new(Real::INFINITY, 0.0, 0.0),
+            Point3r::new(0.0, Real::NEG_INFINITY, 0.0),
+        ] {
+            let err = finite_point(bad, 3).unwrap_err();
+            assert!(
+                matches!(
+                    err,
+                    MeshError::InvalidCoordinate { vertex, .. } if vertex.as_usize() == 3
+                ),
+                "{bad:?} was accepted or misreported: {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn parse_normal_reads_three_finite_fields() {
+        let normal = parse_normal(["0", "0", "1"], 0).unwrap();
+        assert_eq!((normal.x, normal.y, normal.z), (0.0, 0.0, 1.0));
+    }
+
+    /// The gap this closes: `parse_real` accepts `"nan"` and `"inf"`, so a
+    /// normal read with it alone reaches the vertex pool non-finite.
+    #[test]
+    fn parse_normal_rejects_a_non_finite_component() {
+        for fields in [["nan", "0", "0"], ["0", "inf", "0"], ["0", "0", "-inf"]] {
+            let err = parse_normal(fields, 5).unwrap_err();
+            assert!(
+                matches!(
+                    err,
+                    MeshError::InvalidCoordinate { vertex, .. } if vertex.as_usize() == 5
+                ),
+                "expected InvalidCoordinate naming ordinal 5, got {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn parse_normal_still_reports_a_genuinely_invalid_field() {
+        let err = parse_normal(["1.2.3", "0", "0"], 0).unwrap_err();
+        assert!(
+            matches!(err, MeshError::Other(ref m) if m.contains("invalid number")),
+            "expected the parse failure, got {err:?}"
         );
     }
 

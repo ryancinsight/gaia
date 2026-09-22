@@ -163,11 +163,10 @@ pub fn read_ply<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
         positions.push(parse::parse_point([parts[0], parts[1], parts[2]], ordinal)?);
 
         if has_normals && parts.len() >= 6 {
-            normals_vec.push(Vector3r::new(
-                parse::parse_real(parts[3])?,
-                parse::parse_real(parts[4])?,
-                parse::parse_real(parts[5])?,
-            ));
+            normals_vec.push(parse::parse_normal(
+                [parts[3], parts[4], parts[5]],
+                ordinal,
+            )?);
         }
     }
 
@@ -369,6 +368,27 @@ mod tests {
     fn ply_non_finite_vertex_is_an_error() {
         for spelling in ["nan", "inf", "-inf"] {
             let ply = ply_ascii(1, &format!("{spelling} 0 0\n"), 0, "");
+            assert_rejects(
+                &read_ply(std::io::Cursor::new(ply.as_bytes())),
+                "invalid coordinate at vertex 0",
+            );
+        }
+    }
+
+    /// The normal columns are finite-checked on the same terms as the position
+    /// columns. `parse_real` accepts `nan` and `inf`, and a non-finite normal is
+    /// stored per vertex exactly as a non-finite position is, so checking only
+    /// the position left this open.
+    #[test]
+    fn ply_non_finite_normal_is_an_error() {
+        for spelling in ["nan", "inf", "-inf"] {
+            let ply = format!(
+                "ply\nformat ascii 1.0\n\
+                 element vertex 1\n\
+                 property float x\nproperty float y\nproperty float z\n\
+                 property float nx\nproperty float ny\nproperty float nz\n\
+                 end_header\n0 0 0 {spelling} 0 0\n"
+            );
             assert_rejects(
                 &read_ply(std::io::Cursor::new(ply.as_bytes())),
                 "invalid coordinate at vertex 0",

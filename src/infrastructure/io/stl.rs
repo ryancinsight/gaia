@@ -11,6 +11,8 @@ use crate::domain::mesh::IndexedMesh;
 use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
+use super::parse;
+
 /// Write an indexed mesh as ASCII STL.
 pub fn write_ascii_stl<W: Write>(
     writer: &mut W,
@@ -101,6 +103,10 @@ pub fn read_ascii_stl<R: Read>(
     let buf = BufReader::new(reader);
     let mut count = 0usize;
     let mut verts: Vec<Point3r> = Vec::with_capacity(3);
+    // Position of the next `vertex` record in the file, so a non-finite
+    // coordinate is reported against the file rather than against a mesh id
+    // that welding has not assigned yet.
+    let mut ordinal = 0usize;
 
     for line in buf.lines() {
         let line = line.map_err(MeshError::Io)?;
@@ -109,16 +115,8 @@ pub fn read_ascii_stl<R: Read>(
         if trimmed.starts_with("vertex") {
             let parts: Vec<&str> = trimmed.split_whitespace().collect();
             if parts.len() >= 4 {
-                let x: Real = parts[1]
-                    .parse()
-                    .map_err(|_| MeshError::Other("bad vertex x".to_string()))?;
-                let y: Real = parts[2]
-                    .parse()
-                    .map_err(|_| MeshError::Other("bad vertex y".to_string()))?;
-                let z: Real = parts[3]
-                    .parse()
-                    .map_err(|_| MeshError::Other("bad vertex z".to_string()))?;
-                verts.push(Point3r::new(x, y, z));
+                verts.push(parse::parse_point([parts[1], parts[2], parts[3]], ordinal)?);
+                ordinal += 1;
             }
         }
 
@@ -172,19 +170,25 @@ pub fn read_binary_stl<R: Read>(
     r.read_exact(&mut count_bytes).map_err(MeshError::Io)?;
     let n = u32::from_le_bytes(count_bytes) as usize;
 
-    for _ in 0..n {
+    for triangle in 0..n {
         // Skip the stored normal (12 bytes) — we recompute it.
         let mut skip = [0u8; 12];
         r.read_exact(&mut skip).map_err(MeshError::Io)?;
 
         let mut verts = [Point3r::new(0.0, 0.0, 0.0); 3];
-        for vert in &mut verts {
+        for (index, vert) in verts.iter_mut().enumerate() {
             let mut vbuf = [0u8; 12];
             r.read_exact(&mut vbuf).map_err(MeshError::Io)?;
             let x = Real::from(f32::from_le_bytes([vbuf[0], vbuf[1], vbuf[2], vbuf[3]]));
             let y = Real::from(f32::from_le_bytes([vbuf[4], vbuf[5], vbuf[6], vbuf[7]]));
             let z = Real::from(f32::from_le_bytes([vbuf[8], vbuf[9], vbuf[10], vbuf[11]]));
-            *vert = Point3r::new(x, y, z);
+            // `f32::from_le_bytes` accepts every bit pattern, so the NaN and
+            // infinity encodings are reachable from a well-formed 50-byte
+            // record; the ordinal is this vertex's position in the file.
+            *vert = parse::finite_point(
+                Point3r::new(x, y, z),
+                triangle.saturating_mul(3).saturating_add(index),
+            )?;
         }
         // Skip attribute byte count (2 bytes).
         let mut attr = [0u8; 2];
@@ -284,6 +288,7 @@ pub fn fuzz_read_stl(data: &[u8]) -> MeshResult<IndexedMesh> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_support::assert_rejects;
 
     // ── ASCII round-trip ──────────────────────────────────────────────────
 
@@ -319,6 +324,59 @@ mod tests {
         let mesh2 = read_stl(std::io::Cursor::new(&buf)).unwrap();
         assert_eq!(mesh2.face_count(), 1);
         assert_eq!(mesh2.vertex_count(), 3);
+    }
+
+    // ── Non-finite input is refused ───────────────────────────────────────
+
+    /// A one-triangle binary STL whose first vertex has x-coordinate `first_x`.
+    ///
+    /// Exactly `84 + 1 * 50` bytes, which is the invariant `read_stl` uses to
+    /// decide a file is binary.
+    fn one_triangle_binary_stl(first_x: f32) -> Vec<u8> {
+        let mut data = Vec::with_capacity(134);
+        data.extend_from_slice(&[0u8; 80]); // header
+        data.extend_from_slice(&1_u32.to_le_bytes()); // triangle count
+        data.extend_from_slice(&[0u8; 12]); // the stored normal, which is ignored
+        for (x, y, z) in [
+            (first_x, 0.0_f32, 0.0_f32),
+            (1.0, 0.0, 0.0),
+            (0.0, 1.0, 0.0),
+        ] {
+            data.extend_from_slice(&x.to_le_bytes());
+            data.extend_from_slice(&y.to_le_bytes());
+            data.extend_from_slice(&z.to_le_bytes());
+        }
+        data.extend_from_slice(&[0u8; 2]); // attribute byte count
+        data
+    }
+
+    /// `f32::from_le_bytes` accepts every bit pattern, so the NaN and infinity
+    /// encodings are reachable from a well-formed 50-byte record. The binary
+    /// reader parses no text and so had no syntax check that could fail.
+    #[test]
+    fn binary_stl_non_finite_vertex_is_an_error() {
+        for value in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            let data = one_triangle_binary_stl(value);
+            assert_rejects(
+                &read_stl(std::io::Cursor::new(&data[..])),
+                "invalid coordinate at vertex 0",
+            );
+        }
+    }
+
+    #[test]
+    fn ascii_stl_non_finite_vertex_is_an_error() {
+        for spelling in ["nan", "inf", "-inf"] {
+            let body = format!(
+                "solid t\nfacet normal 0 0 1\nouter loop\n\
+                 vertex {spelling} 0 0\nvertex 1 0 0\nvertex 0 1 0\n\
+                 endloop\nendfacet\nendsolid t\n"
+            );
+            assert_rejects(
+                &read_stl(std::io::Cursor::new(body.as_bytes())),
+                "invalid coordinate at vertex 0",
+            );
+        }
     }
 
     // ── Fuzz entry point never panics ─────────────────────────────────────

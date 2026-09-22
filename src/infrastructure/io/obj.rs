@@ -105,11 +105,13 @@ pub fn read_obj<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
                 )?);
             }
             "vn" if parts.len() >= 4 => {
-                normals.push(Vector3r::new(
-                    parse::parse_real(parts[1])?,
-                    parse::parse_real(parts[2])?,
-                    parse::parse_real(parts[3])?,
-                ));
+                // A normal is finite-checked on the same terms as a position:
+                // `parse_real` accepts `nan` and `inf`, and a non-finite normal
+                // is stored per vertex just as a non-finite position is.
+                normals.push(parse::parse_normal(
+                    [parts[1], parts[2], parts[3]],
+                    normals.len(),
+                )?);
             }
             "f" if parts.len() >= 4 => {
                 // Parse face vertex indices.
@@ -295,6 +297,21 @@ mod tests {
     fn obj_non_finite_position_is_an_error() {
         for spelling in ["nan", "inf", "-inf"] {
             let obj = format!("v {spelling} 0 0\n");
+            assert_rejects(
+                &read_obj(std::io::Cursor::new(obj.as_bytes())),
+                "invalid coordinate at vertex 0",
+            );
+        }
+    }
+
+    /// A normal index out of range is tolerated, but a normal's *components*
+    /// are not. `parse_real` accepts `nan` and `inf`, and a non-finite normal
+    /// is stored per vertex exactly as a non-finite position is, so the
+    /// position check alone left this open.
+    #[test]
+    fn obj_non_finite_normal_is_an_error() {
+        for spelling in ["nan", "inf", "-inf"] {
+            let obj = format!("v 0 0 0\nv 1 0 0\nv 0 1 0\nvn {spelling} 0 0\nf 1//1 2//1 3//1\n");
             assert_rejects(
                 &read_obj(std::io::Cursor::new(obj.as_bytes())),
                 "invalid coordinate at vertex 0",
