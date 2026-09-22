@@ -333,7 +333,7 @@ type-checking, so no bench body has ever been executed by a gate.
   number in the first increment that touches the table.
 - **Dependencies**: GAIA-003 retires the largest class (1268 cast lints).
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: todo. **Owner**: unclaimed.
+- **Status**: in-progress. **Owner**: atlas-pin-collection-20260922.
 
 Evidence: `Cargo.toml` `[lints.clippy]` holds ~2400 measured hits across 30
 allowed classes; `find src -name '*.rs' | xargs wc -l` shows 42 files over
