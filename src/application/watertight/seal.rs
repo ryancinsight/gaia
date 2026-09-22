@@ -2,9 +2,17 @@
 
 use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::topology::boundary_loops;
 use crate::infrastructure::storage::edge_store::EdgeStore;
 use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
 use crate::infrastructure::storage::vertex_pool::VertexPool;
+
+/// Bound on the vertices visited while walking a *single* boundary loop.
+///
+/// A walk that has not closed by then is abandoned, so malformed adjacency
+/// cannot spin. This bounds the walk only: a loop that does close is returned
+/// whatever its size, because the fan below triangulates any length.
+const MAX_BOUNDARY_PATH_LEN: usize = 4096;
 
 /// Seal boundary loops by fan triangulation from the centroid.
 ///
@@ -52,14 +60,16 @@ pub fn seal_boundary_loops(
         }
     }
 
-    // Find connected loops
-    let loops = extract_boundary_loops(&boundary_pairs);
+    // Find connected loops. The walk is bounded; the returned loops are not,
+    // since a sealed hole of any size is still fan-triangulated from its
+    // centroid.
+    let loops = boundary_loops::trace_loops(&boundary_pairs, MAX_BOUNDARY_PATH_LEN, usize::MAX);
 
     let mut faces_added = 0;
     for boundary_loop in &loops {
-        if boundary_loop.len() < 3 {
-            continue;
-        }
+        // `trace_loops` only returns loops of at least three vertices, so the
+        // fan below never produces a degenerate face.
+        debug_assert!(boundary_loop.len() >= 3);
 
         // Compute centroid
         let mut centroid = Point3r::origin();
@@ -82,87 +92,4 @@ pub fn seal_boundary_loops(
     }
 
     faces_added
-}
-
-/// Extract connected loops from a set of directed edges.
-fn extract_boundary_loops(edges: &[(VertexId, VertexId)]) -> Vec<Vec<VertexId>> {
-    use hashbrown::{HashMap, HashSet};
-
-    // Build adjacency that preserves all outgoing boundary links.
-    let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(edges.len());
-    for &(a, b) in edges {
-        adj.entry(a)
-            .or_insert_with(|| Vec::with_capacity(2))
-            .push(b);
-    }
-    for nexts in adj.values_mut() {
-        nexts.sort();
-    }
-
-    let mut used: HashSet<(VertexId, VertexId)> = HashSet::new();
-    let mut loops = Vec::new();
-    let mut starts: Vec<VertexId> = adj.keys().copied().collect();
-    starts.sort();
-
-    for start in starts {
-        let successors = match adj.get(&start) {
-            Some(s) => s.as_slice(),
-            None => continue,
-        };
-        for &first_next in successors {
-            if used.contains(&(start, first_next)) {
-                continue;
-            }
-            let mut path: Vec<VertexId> = vec![start, first_next];
-            used.insert((start, first_next));
-            let mut cur = first_next;
-            let mut closed = false;
-
-            loop {
-                if path.len() > 4096 {
-                    break;
-                }
-                let nexts = match adj.get(&cur) {
-                    Some(s) => s,
-                    None => break,
-                };
-                let mut found = false;
-                for &n in nexts {
-                    if used.contains(&(cur, n)) {
-                        continue;
-                    }
-                    used.insert((cur, n));
-                    if n == start {
-                        closed = true;
-                        found = true;
-                        break;
-                    }
-                    // Split figure-8 style inner cycles into separate simple loops.
-                    if let Some(pos) = path.iter().position(|&v| v == n) {
-                        let inner = path[pos..].to_vec();
-                        if inner.len() >= 3 {
-                            loops.push(inner);
-                        }
-                        path.truncate(pos + 1);
-                        cur = n;
-                        found = true;
-                        break;
-                    }
-                    path.push(n);
-                    cur = n;
-                    found = true;
-                    break;
-                }
-                if !found || closed {
-                    break;
-                }
-            }
-
-            if closed && path.len() >= 3 {
-                loops.push(path);
-            }
-        }
-    }
-
-    loops
 }
