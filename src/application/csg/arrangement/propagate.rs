@@ -43,9 +43,7 @@
 //!   generator."  Provides CDT guarantees used by propagation.
 
 use crate::application::csg::intersect::SnapSegment;
-use crate::application::csg::predicates3d::{
-    point_on_segment_exact, proper_segment_intersection_params_projected_exact,
-};
+use crate::application::csg::predicates3d::point_on_segment_exact;
 use crate::application::welding::snap::GridCell;
 use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 use crate::infrastructure::storage::face_store::FaceData;
@@ -72,6 +70,61 @@ use hashbrown::{HashMap, HashSet};
 /// perpendicular-distance check (d_perp² ≤ C) that caused false positives
 /// at millimetre scale where d_perp < 1 mm for geometrically distant points.
 const COLLINEAR_TOL_SQ: Real = 1e-6;
+
+/// Squared length below which an edge, segment, or normal is treated as a
+/// point.
+///
+/// Applied to `|v|²` of a difference of two points, so it is in *squared* world
+/// units: `1e-20` is a length of `1e-10`. An edge this short has no direction
+/// to project onto, so every downstream parameter would be a division by zero.
+const DEGENERATE_LEN_SQ: Real = 1e-20;
+
+/// Squared length below which a point is treated as coincident with the
+/// reference point it was measured from.
+///
+/// Deliberately tighter than [`DEGENERATE_LEN_SQ`] — `1e-30` is a length of
+/// `1e-15`, so this fires only at the noise floor of `f64` at unit scale. It is
+/// a separate threshold because it answers a different question: the angular
+/// collinearity test divides by `|sp|²`, so a point that *is* the edge start
+/// would make that ratio `0/0` and be reported as collinear at every angle.
+const COINCIDENT_LEN_SQ: Real = 1e-30;
+
+/// Parameter margin for "strictly interior" on a normalised segment.
+///
+/// A parameter `t ∈ [0, 1]` counts as interior only within
+/// `(PARAM_MARGIN, 1 − PARAM_MARGIN)`. An endpoint touch is not an interior
+/// crossing — it is already a vertex of the neighbouring face — so accepting it
+/// here would inject a zero-length snap segment and split the edge into a
+/// duplicate Steiner vertex.
+///
+/// Named once because both passes need it under the same meaning; it was
+/// previously `MARGIN` in one function and `SEG_MARGIN` in the other.
+const PARAM_MARGIN: Real = 1e-7;
+
+/// Tolerance for merging two intersection parameters that describe the same
+/// crossing.
+///
+/// Both values are parameters on the *same* normalised segment, so this is
+/// dimensionless and scale-invariant: `1e-9` is `1e-9` of the edge length in
+/// world units. It is needed because one crossing solved from two different
+/// axis pairs can land a few ULP apart, and emitting both would split the
+/// neighbouring edge twice at points it cannot distinguish.
+const PARAM_DEDUP_TOL: Real = 1e-9;
+
+/// Shortest sub-interval, in parameter space, worth emitting as a snap segment.
+///
+/// Tighter than [`PARAM_DEDUP_TOL`] because it answers a different question:
+/// dedup asks "are these the same crossing?", this asks "is this interval
+/// anything at all?". A zero-width interval yields a zero-length segment.
+const PARAM_MIN_SPAN: Real = 1e-12;
+
+/// Floor on the seam-position spatial-hash cell size, in world units.
+///
+/// The cell is sized from the longest rim edge (`edge_len / 8`, so the 27-cell
+/// neighbourhood stays complete for every rim face in the pass). A degenerate
+/// or single-point rim would give a cell of zero and an infinite inverse, so
+/// the cell is floored rather than left to the geometry.
+const MIN_HASH_CELL: Real = 1e-6;
 
 /// Ensure that every seam vertex created by CDT co-refinement is injected into
 /// all faces that share the face edge on which the seam vertex lies.
@@ -102,7 +155,7 @@ const COLLINEAR_TOL_SQ: Real = 1e-6;
 ///
 /// A point P is considered to lie on edge [Va, Vb] if:
 /// - `|(Vb−Va) × (P−Va)|² / |Vb−Va|² < COLLINEAR_TOL_SQ` (1e-6; sub-millimetre)
-/// - parameter `t = (P−Va)·(Vb−Va) / |Vb−Va|² ∈ (1e-7, 1−1e-7)`
+/// - parameter `t = (P−Va)·(Vb−Va) / |Vb−Va|² ∈ (PARAM_MARGIN, 1−PARAM_MARGIN)`
 pub fn propagate_seam_vertices(
     faces: &[FaceData],
     segs: &mut [Vec<SnapSegment>],
@@ -230,10 +283,6 @@ fn propagate_seam_vertices_impl(
         }
         let face = &faces[fi];
         let v = face.vertices;
-        let p0 = *pool.position(v[0]);
-        let p1 = *pool.position(v[1]);
-        let p2 = *pool.position(v[2]);
-        let face_n = (p1 - p0).cross(p2 - p0);
 
         for i in 0..3_usize {
             let va_id = v[i];
@@ -243,7 +292,7 @@ fn propagate_seam_vertices_impl(
 
             let edge_vec = pb - pa;
             let edge_len_sq = edge_vec.dot(edge_vec);
-            if edge_len_sq < 1e-20 {
+            if edge_len_sq < DEGENERATE_LEN_SQ {
                 continue;
             }
 
@@ -261,12 +310,11 @@ fn propagate_seam_vertices_impl(
             }
 
             t_params.clear();
-            const MARGIN: Real = 1e-7;
 
             for seg in snap_segs {
                 for &p in &[seg.start, seg.end] {
                     if let Some(t_exact) = point_on_segment_exact(&pa, &pb, &p) {
-                        if t_exact > MARGIN && t_exact < 1.0 - MARGIN {
+                        if t_exact > PARAM_MARGIN && t_exact < 1.0 - PARAM_MARGIN {
                             t_params.push(t_exact);
                         }
                         continue;
@@ -274,13 +322,13 @@ fn propagate_seam_vertices_impl(
 
                     let sp: leto::geometry::Vector3<f64> = p - pa;
                     let sp_len_sq = sp.norm_squared();
-                    if sp_len_sq < 1e-30 {
+                    if sp_len_sq < COINCIDENT_LEN_SQ {
                         continue;
                     }
                     let cross_v = edge_vec.cross(sp);
                     if cross_v.norm_squared() <= COLLINEAR_TOL_SQ * edge_len_sq * sp_len_sq {
                         let t = sp.dot(edge_vec) / edge_len_sq;
-                        if t > MARGIN && t < 1.0 - MARGIN {
+                        if t > PARAM_MARGIN && t < 1.0 - PARAM_MARGIN {
                             t_params.push(t);
                         }
                     }
@@ -306,22 +354,50 @@ fn propagate_seam_vertices_impl(
                         best_s = (e0 * r1 - e1 * r0) / det;
                     }
                 }
+                // Reject a near-parallel axis pair: the 2x2 solve above divides
+                // by this determinant.
+                //
+                // NOTE: unlike `COLLINEAR_TOL_SQ`, this threshold is *not*
+                // dimensionless. `best_det_abs` is a 2-D determinant and scales
+                // as length², while `(edge_len_sq + |sv|²).sqrt()` scales as
+                // length, so the effective rejection angle grows as
+                // `1 / length` — this rejects more at small scale than at unit
+                // scale. The comparable threshold in `corefine.rs` multiplies
+                // two lengths (`1e-14 * n_sq.sqrt() * (d1.norm() + d2.norm())`)
+                // and is therefore a genuine length². Making this one match
+                // would accept more axis pairs on small-scale meshes and so
+                // change arrangement output; it is recorded as an open item
+                // rather than altered on inspection.
                 let min_det = 1e-14 * (edge_len_sq + sv.norm_squared()).sqrt();
                 if best_det_abs < min_det {
                     continue;
                 }
-                if best_t <= MARGIN || best_t >= 1.0 - MARGIN {
+                if best_t <= PARAM_MARGIN || best_t >= 1.0 - PARAM_MARGIN {
                     continue;
                 }
-                if best_s <= MARGIN || best_s >= 1.0 - MARGIN {
+                if best_s <= PARAM_MARGIN || best_s >= 1.0 - PARAM_MARGIN {
                     continue;
                 }
                 let x_edge = pa + edge_vec * best_t;
                 let x_seg = seg.start + sv * best_s;
+                // The 3-D points the parameter pair reconstructs must coincide
+                // to within `1e-6` *relative in squared distance* — a relative
+                // length of 1e-3, since both sides scale as length².
                 if (x_edge).distance_squared(x_seg) > 1e-6 * edge_len_sq {
-                    let _ = proper_segment_intersection_params_projected_exact(
-                        &pa, &pb, &seg.start, &seg.end, &face_n,
-                    );
+                    // The parameter pair failed its own verification, so the
+                    // crossing is rejected.
+                    //
+                    // An exact-predicate fallback used to be attempted here,
+                    // with its result discarded into `_` — so it never decided
+                    // anything, and it computed a projection axis, four
+                    // `orient_2d_arr` calls and a 2x2 solve per rejected
+                    // candidate for nothing. It was removed rather than wired
+                    // up: instrumenting this branch and running the whole suite
+                    // shows it is never reached, and the predicate it called
+                    // returns `None` whenever any projected orientation is
+                    // degenerate — which is precisely the near-parallel
+                    // configuration that gets here. See the open item in
+                    // `backlog/atlas-gaia-mesh-renderer.md`.
                     continue;
                 }
                 t_params.push(best_t);
@@ -332,7 +408,7 @@ fn propagate_seam_vertices_impl(
             }
 
             t_params.sort_by(|a, b| a.total_cmp(b));
-            t_params.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
+            t_params.dedup_by(|a, b| (*a - *b).abs() < PARAM_DEDUP_TOL);
 
             pts.clear();
             pts.push(pa);
@@ -346,7 +422,7 @@ fn propagate_seam_vertices_impl(
                     continue;
                 }
                 for w in pts.windows(2) {
-                    if (w[1] - w[0]).norm_squared() < 1e-20 {
+                    if (w[1] - w[0]).norm_squared() < DEGENERATE_LEN_SQ {
                         continue;
                     }
                     injections.push((
@@ -514,7 +590,7 @@ pub(crate) fn propagate_seam_vertices_until_stable(
 ///
 /// Point `s` lies on segment `pa→pb` iff the cross-product `(pb−pa)×(s−pa)` is
 /// the zero vector (collinear) and the dot-product parameter
-/// `t = (s−pa)·(pb−pa) / |pb−pa|²` lies in `(MARGIN, 1−MARGIN)`.
+/// `t = (s−pa)·(pb−pa) / |pb−pa|²` lies in `(PARAM_MARGIN, 1−PARAM_MARGIN)`.
 ///
 /// Uses `COLLINEAR_TOL_SQ` (1e-6 on cross²/edge², i.e., |cross|/|edge| < 1e-3),
 /// matching `propagate_seam_vertices` for consistent seam detection.
@@ -528,13 +604,12 @@ pub fn inject_cap_seam_into_barrels(
     pool: &VertexPool,
 ) {
     let plane_n_len_sq = plane_n.dot(*plane_n);
-    if plane_n_len_sq < 1e-20 || seam_positions.is_empty() {
+    if plane_n_len_sq < DEGENERATE_LEN_SQ || seam_positions.is_empty() {
         return;
     }
     let plane_n_len = plane_n_len_sq.sqrt();
 
     const ON_TOL: Real = 1e-7; // signed-distance tolerance (relative to normal length)
-    const SEG_MARGIN: Real = 1e-7; // parameter margin for "strictly interior"
     let tol = ON_TOL * plane_n_len;
 
     // ── Phase 1: Pre-filter barrel faces to rim faces ─────────────────────────
@@ -572,7 +647,7 @@ pub fn inject_cap_seam_into_barrels(
             _ => continue,
         };
         let edge_len_sq = (pb - pa).norm_squared();
-        if edge_len_sq < 1e-20 {
+        if edge_len_sq < DEGENERATE_LEN_SQ {
             continue;
         }
         rim_faces.push(RimFace { face_idx, pa, pb });
@@ -591,7 +666,7 @@ pub fn inject_cap_seam_into_barrels(
         .iter()
         .map(|rim| (rim.pb - rim.pa).norm())
         .fold(0.0_f64, f64::max);
-    let hash_cell = (max_rim_edge_len / 8.0).max(1e-6);
+    let hash_cell = (max_rim_edge_len / 8.0).max(MIN_HASH_CELL);
     let inv_cell = 1.0 / hash_cell;
 
     let mut seam_hash: HashMap<GridCell, Vec<usize>> =
@@ -646,7 +721,7 @@ pub fn inject_cap_seam_into_barrels(
 
             // Exact-first on-segment detection.
             if let Some(t_exact) = point_on_segment_exact(&pa, &pb, s) {
-                if t_exact > SEG_MARGIN && t_exact < 1.0 - SEG_MARGIN {
+                if t_exact > PARAM_MARGIN && t_exact < 1.0 - PARAM_MARGIN {
                     cut_params.push(t_exact);
                 }
                 continue;
@@ -656,13 +731,13 @@ pub fn inject_cap_seam_into_barrels(
             // True angular check: sin²(θ) = |cross|² / (|edge|² · |sp|²)
             let sp = *s - pa;
             let sp_len_sq = sp.norm_squared();
-            if sp_len_sq < 1e-30 {
+            if sp_len_sq < COINCIDENT_LEN_SQ {
                 continue; // s ≈ pa, skip (t ≈ 0, not interior)
             }
             let cross = edge.cross(sp);
             if cross.norm_squared() <= COLLINEAR_TOL_SQ * edge_len_sq * sp_len_sq {
                 let t = sp.dot(edge) / edge_len_sq;
-                if t > SEG_MARGIN && t < 1.0 - SEG_MARGIN {
+                if t > PARAM_MARGIN && t < 1.0 - PARAM_MARGIN {
                     cut_params.push(t);
                 }
             }
@@ -674,7 +749,7 @@ pub fn inject_cap_seam_into_barrels(
 
         // Sort and deduplicate cut parameters, then emit sub-interval SnapSegments.
         cut_params.sort_by(|a, b| a.total_cmp(b));
-        cut_params.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
+        cut_params.dedup_by(|a, b| (*a - *b).abs() < PARAM_DEDUP_TOL);
 
         params.clear();
         params.push(0.0);
@@ -683,12 +758,12 @@ pub fn inject_cap_seam_into_barrels(
 
         for w in params.windows(2) {
             let (t0, t1) = (w[0], w[1]);
-            if (t1 - t0).abs() < 1e-12 {
+            if (t1 - t0).abs() < PARAM_MIN_SPAN {
                 continue;
             }
             let start_3d = pa + edge * t0;
             let end_3d = pa + edge * t1;
-            if (end_3d - start_3d).norm_squared() < 1e-20 {
+            if (end_3d - start_3d).norm_squared() < DEGENERATE_LEN_SQ {
                 continue;
             }
             if face_idx < segs_out.len() {
