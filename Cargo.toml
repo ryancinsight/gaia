@@ -208,6 +208,11 @@ name = "tpms_performance"
 path = "benches/tpms_performance.rs"
 harness = false
 
+[[bench]]
+name = "topology_performance"
+path = "benches/topology_performance.rs"
+harness = false
+
 # ── Primitive validation examples ─────────────────────────────────────────────
 
 [[example]]

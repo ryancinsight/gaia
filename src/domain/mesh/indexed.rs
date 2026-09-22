@@ -13,6 +13,7 @@ use crate::domain::core::index::{FaceId, RegionId, VertexId};
 use crate::domain::core::scalar::Scalar;
 use crate::domain::geometry::aabb::Aabb;
 use crate::domain::topology::Cell;
+use crate::domain::topology::PackedRows;
 use crate::infrastructure::storage::attribute::AttributeStore;
 use crate::infrastructure::storage::edge_store::EdgeStore;
 use crate::infrastructure::storage::face_store::FaceStore;
@@ -514,14 +515,44 @@ impl<T: Scalar> IndexedMesh<T> {
             return;
         }
 
-        // Per-face normals (None = degenerate).
+        // Per-face normals (None = degenerate) and centroid X.  Both are read
+        // once here rather than re-derived per component: the seed search
+        // below runs once per component, so per-face work placed inside it is
+        // multiplied by the component count.
         let mut face_normals: Vec<Option<Vector3<T>>> = Vec::with_capacity(n_faces);
+        let mut centroid_x: Vec<T> = Vec::with_capacity(n_faces);
+        let third = <T as Scalar>::from_f64(3.0);
         for face in &face_list {
             let a = self.vertices.position(face.vertices[0]);
             let b = self.vertices.position(face.vertices[1]);
             let c = self.vertices.position(face.vertices[2]);
             face_normals.push(triangle_normal(a, b, c));
+            centroid_x.push((a.x + b.x + c.x) / third);
         }
+
+        // Seed order: the faces a BFS may legally start from, highest centroid
+        // X first, ties broken by ascending face index.  This reproduces the
+        // "unvisited non-degenerate face with the maximum centroid X" rule
+        // exactly, but computes the order once — O(n log n) — instead of
+        // rescanning every face for every component, which is O(components x
+        // faces) and is what made a many-island mesh quadratic.
+        //
+        // `centroid_x > -inf` is the exact selectability predicate: the scan it
+        // replaces began at `neg_infinity()`, so a face with a NaN or -infinite
+        // centroid could never win it and must not be selectable here either.
+        let neg_inf = <T as eunomia::RealField>::neg_infinity();
+        let mut seed_order: Vec<u32> = (0..n_faces as u32)
+            .filter(|&fi| {
+                let fi = fi as usize;
+                face_normals[fi].is_some() && centroid_x[fi] > neg_inf
+            })
+            .collect();
+        seed_order.sort_unstable_by(|&a, &b| {
+            let (xa, xb) = (centroid_x[a as usize], centroid_x[b as usize]);
+            xb.partial_cmp(&xa)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.cmp(&b))
+        });
 
         // Undirected edge -> adjacent face indices.
         // In a valid 2-manifold boundary mesh, every edge is shared by exactly 2 faces.
@@ -560,33 +591,24 @@ impl<T: Scalar> IndexedMesh<T> {
         let mut queue: VecDeque<usize> = VecDeque::with_capacity(n_faces);
 
         // Outer loop handles disconnected components — each gets its own seed.
+        //
+        // `seed_cursor` walks `seed_order` once for the whole traversal.  A
+        // face's orientation is only ever set, never cleared, so an entry the
+        // cursor has passed can never become selectable again and the walk is
+        // amortised O(n) in total rather than O(n) per component.
+        let mut seed_cursor = 0usize;
         loop {
-            // Find the unvisited non-degenerate face with the maximum
-            // centroid X.  Computed on-the-fly to avoid a dedicated
-            // `face_centroid_x` allocation.
-            let seed_fi = {
-                let mut best_x = <T as eunomia::RealField>::neg_infinity();
-                let mut best: Option<usize> = None;
-                let third = <T as Scalar>::from_f64(3.0);
-                for fi in 0..n_faces {
-                    if orientation[fi].is_some() || face_normals[fi].is_none() {
-                        continue;
-                    }
-                    let face = &face_list[fi];
-                    let ax = self.vertices.position(face.vertices[0]).x;
-                    let bx = self.vertices.position(face.vertices[1]).x;
-                    let cx = self.vertices.position(face.vertices[2]).x;
-                    let centroid_x = (ax + bx + cx) / third;
-                    if centroid_x > best_x {
-                        best_x = centroid_x;
-                        best = Some(fi);
-                    }
-                }
-                match best {
-                    Some(fi) => fi,
-                    None => break,
-                }
-            };
+            while seed_cursor < seed_order.len()
+                && orientation[seed_order[seed_cursor] as usize].is_some()
+            {
+                seed_cursor += 1;
+            }
+            if seed_cursor >= seed_order.len() {
+                break;
+            }
+            // The unvisited non-degenerate face with the maximum centroid X:
+            // the highest such entry the cursor has not yet passed.
+            let seed_fi = seed_order[seed_cursor] as usize;
 
             component_seeds.push(seed_fi);
 
@@ -646,19 +668,28 @@ impl<T: Scalar> IndexedMesh<T> {
             current_component += 1;
         }
 
+        // Nesting verdict per component, applied once at the end.  Carrying a
+        // flag is what lets the nesting loop below stop rewriting
+        // `orientation` face-by-face, which was a second O(components x faces)
+        // scan; a flag costs one byte per component.
+        let mut flip_component: Vec<bool> = Vec::new();
+
         if current_component > 1 {
             let component_count = current_component;
-            let mut component_face_counts = vec![0; component_count];
+            let mut component_face_counts = vec![0usize; component_count];
             for fi in 0..n_faces {
                 let comp = component_id[fi];
                 if comp != usize::MAX && face_normals[fi].is_some() {
                     component_face_counts[comp] += 1;
                 }
             }
-            let mut component_faces: Vec<Vec<FaceData>> = component_face_counts
-                .into_iter()
-                .map(Vec::with_capacity)
-                .collect();
+            // Per-component face grouping in the CSR shape `AdjacencyGraph`
+            // already owns: one offset table plus one contiguous buffer rather
+            // than one `Vec` per component.  The count pass above and the fill
+            // pass below are a counting sort over `component_id`, which the BFS
+            // has already populated.
+            let (mut component_faces, mut face_cursors) =
+                PackedRows::<u32>::from_counts(component_face_counts);
             let mut component_aabbs: Vec<Aabb<T>> = vec![Aabb::empty(); component_count];
 
             for (fi, face) in face_list.iter().enumerate() {
@@ -667,67 +698,67 @@ impl<T: Scalar> IndexedMesh<T> {
                     continue;
                 }
 
-                let corrected_face = if orientation[fi] == Some(false) {
-                    FaceData::new(
-                        face.vertices[0],
-                        face.vertices[2],
-                        face.vertices[1],
-                        face.region,
-                    )
-                } else {
-                    *face
-                };
-
-                component_faces[comp].push(corrected_face);
-                component_aabbs[comp].expand(self.vertices.position(corrected_face.vertices[0]));
-                component_aabbs[comp].expand(self.vertices.position(corrected_face.vertices[1]));
-                component_aabbs[comp].expand(self.vertices.position(corrected_face.vertices[2]));
+                // The AABB spans the same three vertices whichever way the
+                // face is wound, so it is expanded from the face as read rather
+                // than from a corrected copy.
+                component_aabbs[comp].expand(self.vertices.position(face.vertices[0]));
+                component_aabbs[comp].expand(self.vertices.position(face.vertices[1]));
+                component_aabbs[comp].expand(self.vertices.position(face.vertices[2]));
+                component_faces.write(&mut face_cursors, comp, fi as u32);
             }
 
-            let prepared_components: Vec<Vec<PreparedFace>> = component_faces
-                .iter()
-                .map(|faces| {
-                    faces
-                        .iter()
-                        .map(|face| {
-                            let a = self.vertices.position(face.vertices[0]);
-                            let b = self.vertices.position(face.vertices[1]);
-                            let c = self.vertices.position(face.vertices[2]);
-                            let a = crate::domain::core::scalar::Point3r::new(
-                                a.x.to_f64(),
-                                a.y.to_f64(),
-                                a.z.to_f64(),
-                            );
-                            let b = crate::domain::core::scalar::Point3r::new(
-                                b.x.to_f64(),
-                                b.y.to_f64(),
-                                b.z.to_f64(),
-                            );
-                            let c = crate::domain::core::scalar::Point3r::new(
-                                c.x.to_f64(),
-                                c.y.to_f64(),
-                                c.z.to_f64(),
-                            );
-                            let ab = b - a;
-                            let ac = c - a;
-                            let normal = ab.cross(ac);
-                            let centroid = crate::domain::core::scalar::Point3r::new(
-                                (a.x + b.x + c.x) / 3.0,
-                                (a.y + b.y + c.y) / 3.0,
-                                (a.z + b.z + c.z) / 3.0,
-                            );
-                            PreparedFace {
-                                a,
-                                b,
-                                c,
-                                centroid,
-                                normal,
-                                area: 0.5 * normal.norm(),
-                            }
-                        })
-                        .collect()
-                })
-                .collect();
+            // Prepared geometry, laid out in the partition's own order, so one
+            // component is a slice of this buffer taken at the partition's
+            // offsets.  Winding is corrected here, which is the only place it
+            // matters: `normal` is built from the corrected vertex order.
+            let mut prepared: Vec<PreparedFace> =
+                Vec::with_capacity(component_faces.values().len());
+            for &fi in component_faces.values() {
+                let fi = fi as usize;
+                let v = face_list[fi].vertices;
+                let (i0, i1, i2) = if orientation[fi] == Some(false) {
+                    (v[0], v[2], v[1])
+                } else {
+                    (v[0], v[1], v[2])
+                };
+                let a = self.vertices.position(i0);
+                let b = self.vertices.position(i1);
+                let c = self.vertices.position(i2);
+                let a = crate::domain::core::scalar::Point3r::new(
+                    a.x.to_f64(),
+                    a.y.to_f64(),
+                    a.z.to_f64(),
+                );
+                let b = crate::domain::core::scalar::Point3r::new(
+                    b.x.to_f64(),
+                    b.y.to_f64(),
+                    b.z.to_f64(),
+                );
+                let c = crate::domain::core::scalar::Point3r::new(
+                    c.x.to_f64(),
+                    c.y.to_f64(),
+                    c.z.to_f64(),
+                );
+                let ab = b - a;
+                let ac = c - a;
+                let normal = ab.cross(ac);
+                let centroid = crate::domain::core::scalar::Point3r::new(
+                    (a.x + b.x + c.x) / 3.0,
+                    (a.y + b.y + c.y) / 3.0,
+                    (a.z + b.z + c.z) / 3.0,
+                );
+                prepared.push(PreparedFace {
+                    a,
+                    b,
+                    c,
+                    centroid,
+                    normal,
+                    area: 0.5 * normal.norm(),
+                });
+            }
+
+            let component_offsets = component_faces.offsets();
+            flip_component = vec![false; component_count];
 
             for comp in 0..component_count {
                 let seed_fi = component_seeds[comp];
@@ -770,7 +801,9 @@ impl<T: Scalar> IndexedMesh<T> {
 
                 let mut nesting_depth = 0usize;
                 for other in 0..component_count {
-                    if other == comp || prepared_components[other].is_empty() {
+                    let (other_start, other_end) =
+                        (component_offsets[other], component_offsets[other + 1]);
+                    if other == comp || other_start == other_end {
                         continue;
                     }
 
@@ -788,7 +821,7 @@ impl<T: Scalar> IndexedMesh<T> {
                         classify_fragment_prepared(
                             &probe,
                             &probe_normal,
-                            &prepared_components[other]
+                            &prepared[other_start..other_end]
                         ),
                         FragmentClass::Inside
                     ) {
@@ -797,18 +830,22 @@ impl<T: Scalar> IndexedMesh<T> {
                 }
 
                 if nesting_depth % 2 == 1 {
-                    for (fi, face_comp) in component_id.iter().enumerate() {
-                        if *face_comp == comp {
-                            orientation[fi] = orientation[fi].map(|state| !state);
-                        }
-                    }
+                    flip_component[comp] = true;
                 }
             }
         }
 
-        // Flip inward faces in-place (swap v1 ↔ v2).
+        // Flip inward faces in-place (swap v1 ↔ v2).  The nesting verdict is
+        // applied here, in one pass over the faces, instead of being written
+        // back into `orientation` per component.
         for (fi, face) in self.faces.iter_mut().enumerate() {
-            if orientation[fi] == Some(false) {
+            let comp = component_id[fi];
+            let outward = if flip_component.get(comp).copied().unwrap_or(false) {
+                orientation[fi].map(|state| !state)
+            } else {
+                orientation[fi]
+            };
+            if outward == Some(false) {
                 face.flip();
             }
         }
@@ -1166,6 +1203,80 @@ mod tests {
         assert_eq!(mesh.face_count(), before_faces);
         assert_eq!(mesh.vertex_count(), before_vertices);
         assert_eq!(mesh.boundary_label(FaceId::from_usize(0)), Some("first"));
+    }
+
+    /// `orient_outward` seeds every component from its own extremal face.
+    ///
+    /// The seed rule is "the unvisited non-degenerate face with the maximum
+    /// centroid X", re-evaluated for each component.  The three cubes below are
+    /// added in the order `x = 10`, `x = 5`, `x = 20`, and each is wound
+    /// inward, so every component needs repair and the seed order
+    /// (`20`, `10`, `5`) is not the face-index order.  A cube is used rather
+    /// than a tetrahedron because a tetrahedron's three apex faces tie for the
+    /// maximum centroid X, which leaves the seed's sign heuristic free to pick
+    /// either winding; a cube's `+X` face is the unique maximum.
+    ///
+    /// Each cube has volume 1, so three repaired components sum to 3.  A cursor
+    /// that fails to advance past a visited entry — or a single global ordering
+    /// — leaves one component inward, which reads 1 instead.
+    #[test]
+    fn orient_outward_seeds_each_component_from_its_own_extremum() {
+        let mut mesh: IndexedMesh<f64> = IndexedMesh::with_cell_size(1.0e-6);
+
+        for offset_x in [10.0_f64, 5.0, 20.0] {
+            let corner = {
+                let mut v = |dx: f64, dy: f64, dz: f64| {
+                    mesh.add_vertex_pos(Point3::new(offset_x + dx, dy, dz))
+                };
+                [
+                    v(-0.5, -0.5, -0.5),
+                    v(0.5, -0.5, -0.5),
+                    v(-0.5, 0.5, -0.5),
+                    v(0.5, 0.5, -0.5),
+                    v(-0.5, -0.5, 0.5),
+                    v(0.5, -0.5, 0.5),
+                    v(-0.5, 0.5, 0.5),
+                    v(0.5, 0.5, 0.5),
+                ]
+            };
+            let [c000, c100, c010, c110, c001, c101, c011, c111] = corner;
+
+            // The outward winding of a unit cube, with each triangle reversed,
+            // so every component starts consistently inward.
+            for (a, b, c) in [
+                (c000, c110, c010),
+                (c000, c100, c110),
+                (c001, c111, c101),
+                (c001, c011, c111),
+                (c000, c011, c001),
+                (c000, c010, c011),
+                (c100, c111, c110),
+                (c100, c101, c111),
+                (c000, c101, c100),
+                (c000, c001, c101),
+                (c010, c111, c011),
+                (c010, c110, c111),
+            ] {
+                mesh.add_face(a, b, c);
+            }
+        }
+
+        mesh.orient_outward();
+
+        let volume = crate::domain::geometry::measure::total_signed_volume(
+            mesh.faces.iter_enumerated().map(|(_, face)| {
+                (
+                    mesh.vertices.position(face.vertices[0]),
+                    mesh.vertices.position(face.vertices[1]),
+                    mesh.vertices.position(face.vertices[2]),
+                )
+            }),
+        );
+        assert!(
+            (volume - 3.0).abs() < 1.0e-9,
+            "three outward unit cubes must sum to 3; got {volume}, which means \
+             a component was seeded from the wrong extremum"
+        );
     }
 
     #[test]
