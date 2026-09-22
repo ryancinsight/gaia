@@ -18,7 +18,19 @@ test = false
 doc = false
 
 [[bin]]
-name = "fuzz_read_stl_he"
-path = "fuzz_targets/fuzz_read_stl_he.rs"
+name = "fuzz_read_obj"
+path = "fuzz_targets/fuzz_read_obj.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "fuzz_read_ply"
+path = "fuzz_targets/fuzz_read_ply.rs"
+test = false
+doc = false
+
+# `fuzz_read_stl_he` was removed rather than repaired: it targeted
+# `read_stl_he`, which no longer exists — the crate went watertight-first
+# indexed and the half-edge STL reader went with it — and there is no
+# replacement path to fuzz, since nothing converts an `IndexedMesh` into a
+# `HalfEdgeMesh`. The target had never compiled.
