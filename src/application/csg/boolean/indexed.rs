@@ -1,9 +1,12 @@
 //! `IndexedMesh` wrapper API for CSG Boolean operations
 
+use core::cmp::Ordering;
+
 use crate::application::csg::boolean::BooleanOp;
 use crate::application::csg::reconstruct;
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::index::{FaceId, VertexId};
+use crate::domain::core::scalar::Vector3r;
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::mesh::IndexedMesh;
 use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
@@ -1870,20 +1873,47 @@ fn split_non_manifold_edges(mesh: &mut IndexedMesh) {
 
         // Pick the best consistent pair (one forward, one reverse) by
         // maximum normal dot product (smoothest dihedral).
+        //
+        // A face with no usable normal has no orientation to be consistent
+        // with, so it is not a candidate. Dropping such faces here, rather
+        // than substituting a sentinel dot product, leaves `best_pair` as
+        // `None` when no *valid* pair exists — which is what routes control to
+        // the index fallback below. With a sentinel the sentinel wins a tie
+        // against itself, so the fallback was unreachable whenever both sides
+        // were non-empty and every normal was degenerate.
+        //
+        // Each face's normal is computed once: it is a pure function of the
+        // face and the vertex pool, and the nested loop would otherwise
+        // recompute it once per pairing, costing O(|forward| × |reverse|)
+        // normal evaluations instead of O(|forward| + |reverse|).
+        let forward_normals: Vec<(usize, Vector3r)> = forward
+            .iter()
+            .filter_map(|&fi| face_normal_of(&face_list[fi], &mesh.vertices).map(|n| (fi, n)))
+            .collect();
+        let reverse_normals: Vec<(usize, Vector3r)> = reverse
+            .iter()
+            .filter_map(|&fi| face_normal_of(&face_list[fi], &mesh.vertices).map(|n| (fi, n)))
+            .collect();
+
         let mut best_pair: Option<(usize, usize, f64)> = None;
-        for &fi_fwd in &forward {
-            let n_fwd = face_normal_of(&face_list[fi_fwd], &mesh.vertices);
-            for &fi_rev in &reverse {
-                let n_rev = face_normal_of(&face_list[fi_rev], &mesh.vertices);
-                let dot = match (n_fwd, n_rev) {
-                    (Some(a), Some(b)) => a.dot(b),
-                    _ => f64::NEG_INFINITY,
-                };
+        for &(fi_fwd, n_fwd) in &forward_normals {
+            for &(fi_rev, n_rev) in &reverse_normals {
+                let dot = n_fwd.dot(n_rev);
                 let better = match best_pair {
                     None => true,
                     Some((best_fwd, best_rev, best_dot)) => {
-                        dot > best_dot
-                            || (dot == best_dot && fi_fwd.min(fi_rev) < best_fwd.min(best_rev))
+                        // `total_cmp` is a total order over every `f64`, so a
+                        // one-ULP difference compares strictly rather than
+                        // falling through to the index tie-break, and a `NaN`
+                        // cannot make both comparisons false and be silently
+                        // skipped.
+                        match dot.total_cmp(&best_dot) {
+                            Ordering::Greater => true,
+                            // An exact tie is broken by the lower face index,
+                            // so the choice does not depend on iteration order.
+                            Ordering::Equal => fi_fwd.min(fi_rev) < best_fwd.min(best_rev),
+                            Ordering::Less => false,
+                        }
                     }
                 };
                 if better {

@@ -997,3 +997,38 @@ fn quadfurcation_union_euler_characteristic_is_2() {
         report.euler_characteristic,
     );
 }
+
+/// A non-manifold edge whose incident faces are all degenerate must still
+/// reach the documented index fallback.
+///
+/// No face on the edge has a usable normal, so no `(forward, reverse)` pair is
+/// a *consistent* pair, and the choice must fall through to keeping the two
+/// lowest face indices. A sentinel dot product would instead compare equal to
+/// itself and select a pair that carries no orientation information, which is
+/// why this pins the fallback rather than just the removal count.
+#[test]
+fn split_non_manifold_edges_falls_back_when_no_face_has_a_normal() {
+    let mut mesh = IndexedMesh::new();
+    // Every vertex lies on the x axis, so each face below is collinear and
+    // `face_normal_of` returns `None` for all of them.
+    let u = mesh.add_vertex_pos(Point3r::new(0.0, 0.0, 0.0));
+    let v = mesh.add_vertex_pos(Point3r::new(1.0, 0.0, 0.0));
+    let a = mesh.add_vertex_pos(Point3r::new(2.0, 0.0, 0.0));
+    let b = mesh.add_vertex_pos(Point3r::new(3.0, 0.0, 0.0));
+    let c = mesh.add_vertex_pos(Point3r::new(4.0, 0.0, 0.0));
+
+    // Only the edge (u, v) is non-manifold: each face contributes exactly one
+    // undirected (u, v) edge, and every other edge is incident to one face.
+    mesh.add_face(u, v, a); // u→v, forward
+    mesh.add_face(u, v, b); // u→v, forward
+    mesh.add_face(v, u, c); // v→u, reverse
+
+    split_non_manifold_edges(&mut mesh);
+
+    let kept: Vec<FaceData> = mesh.faces.iter().copied().collect();
+    assert_eq!(
+        kept,
+        vec![FaceData::untagged(u, v, a), FaceData::untagged(u, v, b)],
+        "the fallback keeps the two lowest face indices, dropping the reverse face"
+    );
+}
