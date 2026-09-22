@@ -14,12 +14,14 @@
 //! | [`watertight`] | Manifold checking, Euler characteristic, sealing, repair |
 //! | [`welding`] | Vertex deduplication (spatial hash + union-find) |
 //! | [`hierarchy`] | Mesh format conversions (hex ↔ tet) |
+//! | [`render`] | Orbit camera, z-buffered software rasteriser, flat shading |
 
 pub mod channel;
 pub mod csg;
 pub mod delaunay;
 pub mod hierarchy;
 pub mod quality;
+pub mod render;
 
 pub mod watertight;
 pub mod welding;
