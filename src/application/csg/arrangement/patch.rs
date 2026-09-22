@@ -60,6 +60,7 @@ use crate::application::csg::diagnostics::trace_enabled;
 use crate::application::csg::predicates3d::triangle_is_degenerate_exact;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Real;
+use crate::domain::topology::boundary_loops;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -279,7 +280,8 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
             break;
         }
 
-        let loops = stitch::trace_loops(&boundary_edges, MAX_PATCH_LOOP * 4, MAX_PATCH_LOOP);
+        let loops =
+            boundary_loops::trace_loops(&boundary_edges, MAX_PATCH_LOOP * 4, MAX_PATCH_LOOP);
 
         // -- (d) Step 6: collapse collinear degenerate loops. -----------------
         {
@@ -353,7 +355,7 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
         if boundary_edges_after_collapse.is_empty() {
             break;
         }
-        let loops_after = stitch::trace_loops(
+        let loops_after = boundary_loops::trace_loops(
             &boundary_edges_after_collapse,
             MAX_PATCH_LOOP * 4,
             MAX_PATCH_LOOP,

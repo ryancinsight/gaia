@@ -4,6 +4,11 @@
 //! the `EdgeStore` provides persistent adjacency.
 
 pub mod adjacency;
+/// Closed-loop extraction from directed boundary edges.
+///
+/// Crate-internal: a pure graph walk shared by the hole-sealing and seam-repair
+/// callers, neither of which owns it. Not public API.
+pub(crate) mod boundary_loops;
 pub mod connectivity;
 pub mod halfedge;
 pub mod manifold;

@@ -15,7 +15,7 @@
 //! - Held (2001) "FIST: Fast Industrial-Strength Triangulation of Polygons"
 //! - Shewchuk (1996) "Triangle: Engineering a 2D Quality Mesh Generator..."
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 
 use super::mesh_ops::{boundary_half_edges, dedup_faces_unordered};
 use crate::application::csg::clip::polygon2d::geometry::point_in_polygon;
@@ -25,6 +25,7 @@ use crate::application::delaunay::{Cdt, Pslg};
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{orient_2d_arr, Orientation};
+use crate::domain::topology::boundary_loops;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -104,7 +105,9 @@ pub(crate) fn fill_boundary_loops(faces: &mut Vec<FaceData>, pool: &VertexPool) 
             break;
         }
 
-        let loops = trace_loops(&boundary, MAX_LOOP, MAX_LOOP);
+        // Both bounds are `MAX_LOOP`: this caller fills the loops it traces, so
+        // a loop it would not fill is not worth walking past.
+        let loops = boundary_loops::trace_loops(&boundary, MAX_LOOP, MAX_LOOP);
         if loops.is_empty() {
             break;
         }
@@ -141,90 +144,6 @@ pub(crate) fn fill_boundary_loops(faces: &mut Vec<FaceData>, pool: &VertexPool) 
             );
         }
     }
-}
-
-/// Trace closed boundary loops from directed boundary edges using greedy DFS
-/// with inner-cycle extraction for figure-8 topologies.
-pub(crate) fn trace_loops(
-    boundary: &[(VertexId, VertexId)],
-    max_path_len: usize,
-    max_loop_len: usize,
-) -> Vec<Vec<VertexId>> {
-    let mut adj: HashMap<VertexId, Vec<VertexId>> = HashMap::with_capacity(boundary.len());
-    for &(vi, vj) in boundary {
-        adj.entry(vi)
-            .or_insert_with(|| Vec::with_capacity(2))
-            .push(vj);
-    }
-    for v in adj.values_mut() {
-        v.sort();
-    }
-
-    let mut used: HashSet<(VertexId, VertexId)> = HashSet::new();
-    let mut loops: Vec<Vec<VertexId>> = Vec::new();
-    let mut starts: Vec<VertexId> = adj.keys().copied().collect();
-    starts.sort();
-
-    for start in starts {
-        let nexts = match adj.get(&start) {
-            Some(s) => s.as_slice(),
-            None => continue,
-        };
-        for &first_next in nexts {
-            if used.contains(&(start, first_next)) {
-                continue;
-            }
-            let mut path: Vec<VertexId> = vec![start, first_next];
-            used.insert((start, first_next));
-            let mut cur = first_next;
-            let mut closed = false;
-
-            loop {
-                if path.len() > max_path_len {
-                    break;
-                }
-                let succs = match adj.get(&cur) {
-                    Some(s) => s,
-                    None => break,
-                };
-                let mut found = false;
-                for &n in succs {
-                    if used.contains(&(cur, n)) {
-                        continue;
-                    }
-                    used.insert((cur, n));
-                    if n == start {
-                        closed = true;
-                        found = true;
-                        break;
-                    }
-                    // Inner-cycle extraction for figure-8 boundaries.
-                    if let Some(pos) = path.iter().position(|&v| v == n) {
-                        let inner = path[pos..].to_vec();
-                        if inner.len() >= 3 && inner.len() <= max_loop_len {
-                            loops.push(inner);
-                        }
-                        path.truncate(pos + 1);
-                        cur = n;
-                        found = true;
-                        break;
-                    }
-                    path.push(n);
-                    cur = n;
-                    found = true;
-                    break;
-                }
-                if !found || closed {
-                    break;
-                }
-            }
-
-            if closed && path.len() >= 3 && path.len() <= max_loop_len {
-                loops.push(path);
-            }
-        }
-    }
-    loops
 }
 
 /// Fill a single boundary loop using constrained Delaunay triangulation (CDT).
