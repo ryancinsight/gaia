@@ -73,9 +73,19 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &VertexPool) {
     const MAX_PATCH_LOOP: usize = 256;
     // (2e-3)^2 -- spatial tolerance for near-duplicate boundary vertex merging.
-    // Widened from 4e-8 (=2e-4 mm) to 4e-6 (=2e-3 mm) to match corefine.rs
-    // WELD_TOL_SQ, ensuring arithmetic-drift Steiner vertices from shallow-angle
-    // elbow-cylinder junctions are welded during the patch pass.
+    //
+    // Widened from 4e-8 (=2e-4 mm) to 4e-6 (=2e-3 mm) so that arithmetic-drift
+    // Steiner vertices at shallow-angle elbow-cylinder junctions are welded
+    // during the patch pass rather than left as a boundary loop.
+    //
+    // This does *not* match `corefine`'s `WELD_TOL_SQ`, which is the SSOT
+    // `COREFINE_WELD_TOL_SQ` = 1e-12. An earlier comment here claimed it did;
+    // that claim was false by a factor of 1e6, and the widening it justified was
+    // empirically motivated rather than derived. The value is 2e-3 linear, 1000x
+    // the same-named consolidation tolerance in `multi_mesh_resolution` and 1000x
+    // `fragment_refinement`'s -- three passes merging cross-mesh near-duplicates
+    // at three different scales. Whether that spread is intended has not been
+    // established; see the tolerance-policy item in the Atlas backlog.
     const BOUNDARY_MERGE_TOL_SQ: Real = 4e-6;
 
     // Collinear loop threshold: area^2 / diameter^4 < this -> degenerate.

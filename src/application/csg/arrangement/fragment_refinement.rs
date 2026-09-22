@@ -7,6 +7,7 @@ use hashbrown::{HashMap, HashSet};
 use super::super::corefine::{corefine_face, CorefinerScratch, SeamVertexMap};
 use super::super::intersect::SnapSegment;
 use super::classify::FragRecord;
+use crate::domain::core::constants::COREFINE_WELD_TOL_SQ;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Real;
 use crate::infrastructure::storage::face_store::FaceData;
@@ -234,10 +235,25 @@ fn build_cross_mesh_merge_map(
 ///
 /// Uses a spatial hash and union-find over vertices that are exclusive to A or
 /// exclusive to B. Vertices shared by both sources are preserved as seam anchors.
+///
+/// # Tolerance
+///
+/// Twice the corefine Steiner snap tolerance in linear terms, because those snap
+/// rounds are what produce the near-duplicates this pass merges. Two sibling
+/// passes merge cross-mesh near-duplicates at other values -- the same-named
+/// pass in `multi_mesh_resolution` (whose duplicates come from the `VertexPool`
+/// weld) and `patch::patch_small_boundary_holes` (whose duplicates come from
+/// shallow-angle Steiner drift). All three follow one rule: twice the tolerance
+/// of the pass that produced the near-duplicates. The numbers therefore differ
+/// because their upstreams do. Unifying them by value alone would break whichever
+/// pass moved.
 pub(crate) fn consolidate_cross_mesh_vertices(frags: &mut Vec<FragRecord>, pool: &VertexPool) {
-    // Tolerance: 2x the corefine Steiner snap tolerance (which is 1 µm).
-    const CONSOLIDATE_TOL: Real = 2e-6;
-    const CONSOLIDATE_TOL_SQ: Real = CONSOLIDATE_TOL * CONSOLIDATE_TOL;
+    // Twice the corefine Steiner snap tolerance in linear terms, which is four
+    // times it in squared terms -- the same relation `corefine` itself applies
+    // to `WELD_TOL_SQ` at its comparison sites. Derived from the SSOT constant
+    // rather than restated, so a change to the corefine tolerance cannot leave
+    // this pass silently behind.
+    const CONSOLIDATE_TOL_SQ: Real = 4.0 * COREFINE_WELD_TOL_SQ;
 
     let mut vids_a: HashSet<VertexId> = HashSet::with_capacity(frags.len());
     let mut vids_b: HashSet<VertexId> = HashSet::with_capacity(frags.len());
@@ -445,7 +461,12 @@ mod tests {
         let mut pool = VertexPool::default_millifluidic();
         let n = Vector3r::new(0.0, 0.0, 1.0);
         let a0 = pool.insert_or_weld(Point3r::new(0.0, 0.0, 0.0), n);
-        // Keep points outside weld tolerance (1e-4) but within consolidate tol (2e-4).
+        // Placed outside the weld tolerance (1e-4) so the pool keeps it as a
+        // distinct vertex, but inside the 2e-4 tolerance this test passes to
+        // `build_cross_mesh_merge_map`. Note that 2e-4 is the *N-way* pass's
+        // tolerance, not this module's production 2e-6 -- the helper takes the
+        // tolerance as a parameter, and this test exercises it at a spacing the
+        // pool will actually preserve.
         let b0 = pool.insert_or_weld(Point3r::new(1.5e-4, 0.0, 0.0), n);
 
         let map = build_cross_mesh_merge_map(&[a0], &[b0], &pool, 4.0e-8);

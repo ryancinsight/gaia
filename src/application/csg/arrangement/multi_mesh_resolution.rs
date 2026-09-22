@@ -58,7 +58,7 @@ use super::classify::{
 use super::fragment_analysis::is_degenerate_sliver_with_normal;
 use super::tiebreaker::FragmentClass;
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::Point3r;
+use crate::domain::core::scalar::{Point3r, Real};
 use crate::domain::geometry::aabb::Aabb;
 use crate::domain::topology::predicates::{orient3d, Sign};
 use crate::infrastructure::storage::face_store::FaceData;
@@ -265,6 +265,27 @@ fn fragment_survives_against_operand(
     }
 }
 
+/// Cross-mesh vertex merge tolerance for the N-way resolution path.
+///
+/// Twice the `VertexPool` weld tolerance of `1e-4`. The duplicates this pass
+/// merges are the ones the *weld* produced: each operand's surfaces are welded
+/// independently, so a boundary the two operands share lands on two distinct
+/// `VertexId`s up to one weld tolerance apart. Merging at the weld tolerance
+/// itself would leave pairs sitting exactly on a cell boundary unmerged, so the
+/// relation is doubled to cover the whole ambiguity.
+///
+/// # Why this is not the tolerance of the same-named pass elsewhere
+///
+/// `fragment_refinement::consolidate_cross_mesh_vertices` merges duplicates
+/// left by the corefine *Steiner snap* (`1e-6`), so its tolerance is `2e-6`.
+/// This one inherits from the weld (`1e-4`), so it is `2e-4`. A third pass,
+/// `patch::patch_small_boundary_holes`, merges boundary duplicates at `2e-3`.
+/// They differ by up to 1000x because they inherit from different upstream
+/// tolerances, not because any is stale. Each is "twice the tolerance of the
+/// pass that produced the near-duplicates", which is the rule that makes it
+/// correct; unifying the numbers would break whichever pass moved.
+const CONSOLIDATE_TOL: Real = 2e-4;
+
 /// Merge spatially coincident vertices across mesh boundaries.
 ///
 /// After CDT co-refinement, vertices from different operands may occupy
@@ -273,8 +294,8 @@ fn fragment_survives_against_operand(
 /// coincident pairs and rewrites fragment vertex references to canonical
 /// (lowest-ID) representatives.
 fn consolidate_cross_mesh_vertices(frags: &mut Vec<BooleanFragmentRecord>, pool: &VertexPool) {
-    let tol_sq = 4.0e-8_f64; // (2e-4)^2
-    let tol = 2e-4_f64;
+    let tol = CONSOLIDATE_TOL;
+    let tol_sq = tol * tol;
     let inv_cell = 1.0 / tol;
 
     let mut all_vids = Vec::with_capacity(frags.len() * 3);
