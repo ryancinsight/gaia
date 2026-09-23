@@ -331,6 +331,91 @@ pub const SEAM_MIN_HASH_CELL: Real = 1e-6;
 /// splitting at, rather than deciding whether a found crossing is interior.
 pub const SNAP_ROUND_EDGE_PARAM_MARGIN: Real = 5e-3;
 
+// ── Boolean repair, 2-D clip and self-intersection thresholds (SSOT) ────────
+//
+// Folded in from three private clusters so that a threshold is defined once and
+// its *dimension* is stated where it lives. Three of these are not
+// scale-invariant, which the dimension notes record rather than hide: they are
+// the same defect class the seam pass's near-parallel threshold was measured and
+// fixed for, and each needs its own measurement before it moves.
+
+/// Squared world length below which two vertices of a Boolean result are merged
+/// as coincident. `(squared world length)`: `1e-18` is a length of `1e-9`.
+///
+/// The degenerate-face collapse pass treats a degenerate face whose shortest
+/// edge is below this as a coincident-vertex pair and unions the two vertices.
+pub const BOOLEAN_COINCIDENT_LEN_SQ: Real = 1e-18;
+
+/// Squared world length below which the collapse pass calls a face degenerate.
+/// `(squared world length)`: `1e-12` is a length of `1e-6`.
+///
+/// # Dimension note
+///
+/// The pass compares `cross² / max_edge²` against this, which scales as
+/// `length²` — not the dimensionless `sin²θ` of [`DEGENERATE_NORMAL_REL_SQ`],
+/// which divides by the *product* of two edge lengths squared. A length²
+/// threshold classifies the same face differently at different scales, so this
+/// one is recorded as an open item rather than changed here.
+pub const BOOLEAN_DEGENERACY_LEN_SQ: Real = 1e-12;
+
+/// Weld distance for the 2-D clip CDT's point grid and intersection welds.
+/// `(world length)` in the clip plane, which spans the same units as the mesh
+/// it clips.
+pub const CLIP2D_WELD_LEN: Real = 1e-8;
+
+/// Parameter margin for "strictly interior" on a 2-D clip segment.
+/// `(dimensionless parameter)`: an edge crossing counts only within
+/// `(CLIP2D_INTERSECT_PARAM_MARGIN, 1 − CLIP2D_INTERSECT_PARAM_MARGIN)`.
+///
+/// Tighter than [`SEAM_PARAM_MARGIN`] on purpose: here the endpoints are polygon
+/// corners whose own edges already carry the crossing, so accepting a
+/// corner-touching crossing would shatter an edge at a vertex that exists.
+pub const CLIP2D_INTERSECT_PARAM_MARGIN: Real = 1e-10;
+
+/// Parameter margin for the 2-D clip CDT's shattered-edge collector.
+/// `(dimensionless parameter)`.
+///
+/// A different question from [`CLIP2D_INTERSECT_PARAM_MARGIN`] — it screens
+/// which points along an edge are interior enough to become Steiner vertices,
+/// rather than whether a found crossing is interior — so it keeps its own value
+/// even though the two are within two orders of magnitude.
+pub const CLIP2D_SHATTER_PARAM_MARGIN: Real = 1e-8;
+
+/// Squared distance tolerance for the 2-D clip CDT's shattered-edge collector.
+/// `(squared world length)`: `1e-12` is a length of `1e-6`.
+pub const CLIP2D_SHATTER_DIST_SQ: Real = 1e-12;
+
+/// Squared intersection-line direction below which two self-intersection
+/// candidates are treated as coplanar.
+///
+/// # Dimension note
+///
+/// The value is `|n₁ × n₂|²` for *unnormalised* face normals: with edge lengths
+/// `L` each normal scales as `L²`, their cross product as `L⁴`, and this
+/// quantity as `L⁸`. An absolute floor here is therefore strongly
+/// scale-dependent; recorded as an open item rather than changed here.
+pub const SELF_INTERSECT_LINE_DIR_SQ_EPS: Real = 1e-20;
+
+/// Plane-equation value below which a vertex counts as lying on the opposing
+/// triangle's plane, in the self-intersection narrow phase.
+///
+/// # Dimension note
+///
+/// The quantity is `n · p + d` with an unnormalised normal, so it scales as
+/// `L³` with edge length `L` — also not scale-invariant. Recorded as an open
+/// item.
+pub const SELF_INTERSECT_PLANE_EPS: Real = 1e-10;
+
+/// Vertex-consolidation distance for merging cross-mesh duplicates during
+/// multi-resolution arrangement. `(world length)`.
+///
+/// Twice the weld of the pass that produces the near-duplicates, which is what
+/// makes it correct. The passes in this family inherit from different upstream
+/// tolerances rather than being stale copies: this one is `2e-4` (from a `1e-4`
+/// weld) and `patch_small_boundary_holes` merges at `2e-3`. Unifying the numbers
+/// would break whichever pass moved.
+pub const MULTI_MESH_CONSOLIDATE_LEN: Real = 2e-4;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -381,6 +466,12 @@ mod tests {
             DEGENERATE_SEGMENT_REL_SQ,
             DEGENERATE_NORMAL_REL_SQ,
             "a segment floor above the normal floor would collapse real segments",
+        );
+        assert_ordering(
+            BOOLEAN_COINCIDENT_LEN_SQ,
+            BOOLEAN_DEGENERACY_LEN_SQ,
+            "a coincident-vertex floor looser than the degeneracy floor would \
+             merge vertices the pass does not consider degenerate",
         );
     }
 

@@ -12,11 +12,21 @@ use crate::application::csg::arrangement::planar::{
     build_pslg_from_points_and_edges, collect_points_on_segment_interior_indexed,
     insert_shattered_subedges, PlanarEdgeKey, PlanarPointGridIndex,
 };
+use crate::domain::core::constants::{
+    CLIP2D_INTERSECT_PARAM_MARGIN, CLIP2D_SHATTER_DIST_SQ, CLIP2D_SHATTER_PARAM_MARGIN,
+    CLIP2D_WELD_LEN,
+};
 use crate::domain::core::scalar::Real;
 use hashbrown::HashMap;
 
-const WELD_TOL: Real = 1e-8;
-const INTERIOR_TOL: Real = 1e-10;
+/// Weld distance for the point grid and intersection welds.
+///
+/// Delegates to [`CLIP2D_WELD_LEN`] (SSOT).
+const WELD_TOL: Real = CLIP2D_WELD_LEN;
+/// Parameter margin for "strictly interior" on a clip segment.
+///
+/// Delegates to [`CLIP2D_INTERSECT_PARAM_MARGIN`] (SSOT).
+const INTERIOR_TOL: Real = CLIP2D_INTERSECT_PARAM_MARGIN;
 
 #[derive(Clone, Copy, Debug)]
 struct EdgeAabb2d {
@@ -306,8 +316,8 @@ fn add_shattered_edges(
             poly[i],
             poly[j],
             (ri, rj),
-            1e-8,
-            1e-12,
+            CLIP2D_SHATTER_PARAM_MARGIN,
+            CLIP2D_SHATTER_DIST_SQ,
             &mut candidates,
             &mut on_edge,
         );
