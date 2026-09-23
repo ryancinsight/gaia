@@ -1,10 +1,17 @@
 #![cfg(test)]
 
 use super::super::rectangular_prism::rectangular_prism_union;
-use super::*;
+use super::repair::split_non_manifold_edges;
+use super::{csg_boolean, csg_boolean_nary};
+use crate::application::csg::boolean::normalization::{
+    normalization_transform, normalize_operand, NormalizedOperand,
+};
+use crate::application::csg::boolean::BooleanOp;
 use crate::application::watertight::check::check_watertight;
 use crate::domain::core::scalar::Point3r;
 use crate::domain::geometry::primitives::{Cube, Cylinder, Disk, PrimitiveMesh, UvSphere};
+use crate::domain::mesh::IndexedMesh;
+use crate::infrastructure::storage::face_store::FaceData;
 
 fn sphere() -> IndexedMesh {
     UvSphere {
@@ -671,9 +678,9 @@ fn self_union_idempotent() {
     let vol = result.signed_volume();
     let rel_err = ((vol - original_vol) / original_vol).abs();
     assert!(
-            rel_err < 0.05,
-            "self-union volume drift: original={original_vol:.6}, result={vol:.6}, rel_err={rel_err:.4}",
-        );
+        rel_err < 0.05,
+        "self-union volume drift: original={original_vol:.6}, result={vol:.6}, rel_err={rel_err:.4}",
+    );
     // Face count should not explode.
     assert!(
         result.faces.len() <= original_face_count * 3,
@@ -790,9 +797,9 @@ fn nary_matches_iterative_volume() {
     let vol_nary = nary.signed_volume();
     let rel_err = ((vol_iter - vol_nary) / vol_iter).abs();
     assert!(
-            rel_err < 0.05,
-            "n-ary vs iterative volume mismatch: iterative={vol_iter:.6}, nary={vol_nary:.6}, rel_err={rel_err:.4}",
-        );
+        rel_err < 0.05,
+        "n-ary vs iterative volume mismatch: iterative={vol_iter:.6}, nary={vol_nary:.6}, rel_err={rel_err:.4}",
+    );
 }
 
 /// Many-operand n-ary union: 4 overlapping cubes with irrational offsets.

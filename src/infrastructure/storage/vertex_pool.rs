@@ -141,7 +141,7 @@ impl CellIndices {
     pub fn first(&self) -> u32 {
         match self {
             Self::One(idx) => *idx,
-            Self::Many(ref slice) => slice[0],
+            Self::Many(slice) => slice[0],
         }
     }
 
@@ -166,8 +166,8 @@ impl CellIndices {
     #[must_use]
     pub fn as_slice(&self) -> &[u32] {
         match self {
-            Self::One(ref idx) => std::slice::from_ref(idx),
-            Self::Many(ref slice) => slice,
+            Self::One(idx) => std::slice::from_ref(idx),
+            Self::Many(slice) => slice,
         }
     }
 

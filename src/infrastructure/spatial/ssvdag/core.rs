@@ -215,10 +215,10 @@ impl<const B: usize, S: Subdivision<B>> SparseVoxelDag<B, S> {
         }
 
         // Simplify identical children to a leaf
-        if children.iter().all(|&c| c == children[0]) {
-            if let DagNode::Leaf(_) = self.nodes[children[0].0 as usize] {
-                return children[0];
-            }
+        if children.iter().all(|&c| c == children[0])
+            && let DagNode::Leaf(_) = self.nodes[children[0].0 as usize]
+        {
+            return children[0];
         }
 
         self.intern_node(DagNode::Internal(children))

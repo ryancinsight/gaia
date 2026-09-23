@@ -234,8 +234,16 @@ fn report(label: &str, mesh: &mut IndexedMesh, expected: f64, tol: f64, ms: u128
                     if edge.is_boundary() {
                         let p0 = mesh.vertices.position(edge.vertices.0);
                         let p1 = mesh.vertices.position(edge.vertices.1);
-                        println!("         BOUNDARY_EDGE: ({:.5}, {:.5}, {:.5}) -> ({:.5}, {:.5}, {:.5}) len={:.6}", 
-                            p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, (p1-p0).norm());
+                        println!(
+                            "         BOUNDARY_EDGE: ({:.5}, {:.5}, {:.5}) -> ({:.5}, {:.5}, {:.5}) len={:.6}",
+                            p0.x,
+                            p0.y,
+                            p0.z,
+                            p1.x,
+                            p1.y,
+                            p1.z,
+                            (p1 - p0).norm()
+                        );
                     }
                 }
             }
@@ -268,8 +276,10 @@ fn report(label: &str, mesh: &mut IndexedMesh, expected: f64, tol: f64, ms: u128
             let p0 = mesh.vertices.position(face.vertices[0]);
             let p1 = mesh.vertices.position(face.vertices[1]);
             let p2 = mesh.vertices.position(face.vertices[2]);
-            println!("      Face {i}: ({:.2}, {:.2}, {:.2}) -> ({:.2}, {:.2}, {:.2}) -> ({:.2}, {:.2}, {:.2})",
-                p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+            println!(
+                "      Face {i}: ({:.2}, {:.2}, {:.2}) -> ({:.2}, {:.2}, {:.2}) -> ({:.2}, {:.2}, {:.2})",
+                p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z
+            );
         }
     }
 }

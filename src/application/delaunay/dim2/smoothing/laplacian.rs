@@ -303,7 +303,8 @@ mod tests {
         assert!(
             v.x > before_x && v.y > before_y,
             "off-centre vertex should move toward centroid: before=({before_x},{before_y}), after=({},{})",
-            v.x, v.y
+            v.x,
+            v.y
         );
     }
 

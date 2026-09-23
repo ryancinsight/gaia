@@ -138,10 +138,10 @@ impl SparseVoxelDag<8, OctreeSubdivision> {
         }
 
         // Isomorphic DAG compression: all-same-Leaf children collapse to one Leaf.
-        if children.iter().all(|&c| c == children[0]) {
-            if let DagNode::Leaf(_) = self.nodes[children[0].0 as usize] {
-                return children[0];
-            }
+        if children.iter().all(|&c| c == children[0])
+            && let DagNode::Leaf(_) = self.nodes[children[0].0 as usize]
+        {
+            return children[0];
         }
 
         self.intern_node(DagNode::Internal(children))

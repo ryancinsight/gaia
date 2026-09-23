@@ -80,10 +80,10 @@ impl<const B: usize, S: Subdivision<B>> MergeContext<'_, B, S> {
                 for i in 0..B {
                     new_children[i] = self.map_subtree_a(children[i]);
                 }
-                if new_children.iter().all(|&c| c == new_children[0]) {
-                    if let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize] {
-                        return new_children[0];
-                    }
+                if new_children.iter().all(|&c| c == new_children[0])
+                    && let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize]
+                {
+                    return new_children[0];
                 }
                 self.out.intern_node(DagNode::Internal(new_children))
             }
@@ -105,10 +105,10 @@ impl<const B: usize, S: Subdivision<B>> MergeContext<'_, B, S> {
                 for i in 0..B {
                     new_children[i] = self.map_subtree_b(children[i]);
                 }
-                if new_children.iter().all(|&c| c == new_children[0]) {
-                    if let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize] {
-                        return new_children[0];
-                    }
+                if new_children.iter().all(|&c| c == new_children[0])
+                    && let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize]
+                {
+                    return new_children[0];
                 }
                 self.out.intern_node(DagNode::Internal(new_children))
             }
@@ -130,10 +130,10 @@ impl<const B: usize, S: Subdivision<B>> MergeContext<'_, B, S> {
                 for i in 0..B {
                     new_children[i] = self.invert_subtree_b(children[i]);
                 }
-                if new_children.iter().all(|&c| c == new_children[0]) {
-                    if let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize] {
-                        return new_children[0];
-                    }
+                if new_children.iter().all(|&c| c == new_children[0])
+                    && let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize]
+                {
+                    return new_children[0];
                 }
                 self.out.intern_node(DagNode::Internal(new_children))
             }
@@ -214,10 +214,10 @@ impl<const B: usize, S: Subdivision<B>> MergeContext<'_, B, S> {
                     new_children[i] = self.merge_dag(ca[i], cb[i]);
                 }
 
-                if new_children.iter().all(|&c| c == new_children[0]) {
-                    if let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize] {
-                        return new_children[0];
-                    }
+                if new_children.iter().all(|&c| c == new_children[0])
+                    && let DagNode::Leaf(_) = self.out.nodes[new_children[0].0 as usize]
+                {
+                    return new_children[0];
                 }
                 self.out.intern_node(DagNode::Internal(new_children))
             }

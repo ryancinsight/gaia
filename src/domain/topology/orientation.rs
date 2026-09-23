@@ -29,12 +29,12 @@ pub fn check_orientation(face_store: &FaceStore, edge_store: &EdgeStore) -> Mesh
 
         // For consistent orientation, the edge must be traversed in
         // opposite directions: one face has (a→b), the other (b→a).
-        if let (Some(d0), Some(d1)) = (dir0, dir1) {
-            if d0 == d1 {
-                return Err(MeshError::InconsistentWinding {
-                    face: edge.faces[1],
-                });
-            }
+        if let (Some(d0), Some(d1)) = (dir0, dir1)
+            && d0 == d1
+        {
+            return Err(MeshError::InconsistentWinding {
+                face: edge.faces[1],
+            });
         }
     }
     Ok(())
@@ -115,12 +115,12 @@ pub fn fix_orientation(face_store: &mut FaceStore, edge_store: &EdgeStore) -> us
                         let neighbor_face = face_store.get(neighbor_fid);
                         let dir_neighbor = directed_edge_order(neighbor_face.vertices, ea, eb);
 
-                        if let (Some(dc), Some(dn)) = (dir_current, dir_neighbor) {
-                            if dc == dn {
-                                // Same direction -> flip neighbor.
-                                face_store.get_mut(neighbor_fid).flip();
-                                flipped += 1;
-                            }
+                        if let (Some(dc), Some(dn)) = (dir_current, dir_neighbor)
+                            && dc == dn
+                        {
+                            // Same direction -> flip neighbor.
+                            face_store.get_mut(neighbor_fid).flip();
+                            flipped += 1;
                         }
 
                         queue.push_back(neighbor_fid);

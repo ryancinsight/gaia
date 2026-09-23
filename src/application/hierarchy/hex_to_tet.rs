@@ -188,26 +188,23 @@ impl HexToTetConverter {
                     // bias from incidental face/vertex iteration order.
                     if let Some(recovered_order) =
                         Self::recover_hex_vertex_order(c, mesh, volume_tol)
-                    {
-                        if let Some((tets, _)) =
+                        && let Some((tets, _)) =
                             Self::select_hex_decomposition(mesh, recovered_order, volume_tol)
-                        {
-                            for &nodes in tets.as_slice() {
-                                Self::add_tet(&mut new_mesh, &mut face_map, nodes);
-                            }
-                            decomposed = true;
+                    {
+                        for &nodes in tets.as_slice() {
+                            Self::add_tet(&mut new_mesh, &mut face_map, nodes);
                         }
+                        decomposed = true;
                     }
 
-                    if !decomposed {
-                        if let Some((tets, _)) =
+                    if !decomposed
+                        && let Some((tets, _)) =
                             Self::select_hex_decomposition(mesh, hex_vertices, volume_tol)
-                        {
-                            for &nodes in tets.as_slice() {
-                                Self::add_tet(&mut new_mesh, &mut face_map, nodes);
-                            }
-                            decomposed = true;
+                    {
+                        for &nodes in tets.as_slice() {
+                            Self::add_tet(&mut new_mesh, &mut face_map, nodes);
                         }
+                        decomposed = true;
                     }
 
                     if !decomposed {

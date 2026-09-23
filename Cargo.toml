@@ -1,13 +1,17 @@
+[workspace]
+resolver = "3"
+
 [package]
 # Registry name only. The crates.io name `gaia` belongs to an unrelated
 # third-party crate, so this publishes as `gaia-mesh` while `[lib] name` keeps
 # the import path `gaia` — the same split the stack uses for `moirai-runtime`,
 # `mnemosyne-memory`, `themis-topology`, and `iris-viz`. Consumers write
-# `gaia = { package = "gaia-mesh", version = "0.4.0" }` and every `use gaia::…`
+# `gaia = { package = "gaia-mesh", version = "0.5.0" }` and every `use gaia::…`
 # is unchanged.
 name = "gaia-mesh"
 version = "0.5.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.97"
 authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ryancinsight/gaia"
@@ -120,7 +124,7 @@ missing_docs = "deny"
 all = { level = "deny", priority = -2 }
 pedantic = { level = "deny", priority = -1 }
 
-# Library code never panics on an input-dependent path. 4 production sites
+# Library code never panics on an input-dependent path. 2 production sites
 # remain, each carrying a per-site `#[expect]` naming this ratchet; test code
 # is exempt via `#![cfg_attr(test, expect(...))]` at the crate root and a
 # per-file attribute on the example, bench, bin and integration-test targets.
@@ -176,10 +180,10 @@ unused_self = "allow"                # 4
 map_unwrap_or = "allow"              # 4
 explicit_iter_loop = "allow"         # 1
 
-# ── Ratchet: size and shape debt (117) ────────────────────────────────────────
-# 42 files are past the 500-line target; these are the lint-visible symptom.
-too_many_lines = "allow"             # 101
-too_many_arguments = "allow"         # 12
+# ── Ratchet: size and shape debt (118) ────────────────────────────────────────
+# 40 source files currently exceed the 500-line target.
+too_many_lines = "allow"             # 100
+too_many_arguments = "allow"         # 14
 len_without_is_empty = "allow"       # 2
 new_ret_no_self = "allow"            # 2
 

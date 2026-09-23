@@ -346,10 +346,10 @@ impl<T: Scalar> BowyerWatson3D<T> {
         // 1. Seed Discovery: O(1) expected time walk from last insertion.
         let mut seed = usize::MAX;
         let mut curr = self.last_inserted_tet;
-        if self.tetrahedra.get(curr).and_then(|t| t.as_ref()).is_none() {
-            if let Some(valid_idx) = self.tetrahedra.iter().position(|t| t.is_some()) {
-                curr = valid_idx;
-            }
+        if self.tetrahedra.get(curr).and_then(|t| t.as_ref()).is_none()
+            && let Some(valid_idx) = self.tetrahedra.iter().position(|t| t.is_some())
+        {
+            curr = valid_idx;
         }
 
         self.search_q.push(curr);
@@ -378,11 +378,11 @@ impl<T: Scalar> BowyerWatson3D<T> {
         // Fallback: Exact global search (triggers if point is exceptionally distant)
         if seed == usize::MAX {
             for (i, tet_opt) in self.tetrahedra.iter().enumerate() {
-                if let Some(tet) = tet_opt {
-                    if tet.contains_in_circumsphere(&point, &self.vertices) {
-                        seed = i;
-                        break;
-                    }
+                if let Some(tet) = tet_opt
+                    && tet.contains_in_circumsphere(&point, &self.vertices)
+                {
+                    seed = i;
+                    break;
                 }
             }
         }
@@ -415,10 +415,10 @@ impl<T: Scalar> BowyerWatson3D<T> {
                         self.visited_flags[neighbor] = true;
                         self.visited_tets.push(neighbor);
 
-                        if let Some(n_tet) = &self.tetrahedra[neighbor] {
-                            if n_tet.contains_in_circumsphere(&point, &self.vertices) {
-                                self.bad_tets.push(neighbor);
-                            }
+                        if let Some(n_tet) = &self.tetrahedra[neighbor]
+                            && n_tet.contains_in_circumsphere(&point, &self.vertices)
+                        {
+                            self.bad_tets.push(neighbor);
                         }
                     }
                 }

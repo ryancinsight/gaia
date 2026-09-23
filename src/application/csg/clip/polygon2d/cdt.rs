@@ -225,16 +225,15 @@ pub fn cdt_clip(subject: &[[Real; 2]], clip: &[[Real; 2]], op: ClipOp) -> Vec<Ve
     collect_overlapping_edge_pairs_sweep(&subj_edges, &clip_edges, |si, cj| {
         let se = subj_edges[si];
         let ce = clip_edges[cj];
-        if let Some((t, s)) = seg_intersect(se.a, se.b, ce.a, ce.b) {
-            if t > INTERIOR_TOL
-                && t < 1.0 - INTERIOR_TOL
-                && s > INTERIOR_TOL
-                && s < 1.0 - INTERIOR_TOL
-            {
-                let px = se.a[0] + t * (se.b[0] - se.a[0]);
-                let py = se.a[1] + t * (se.b[1] - se.a[1]);
-                let _ = welder.insert_or_weld([px, py], &mut unique);
-            }
+        if let Some((t, s)) = seg_intersect(se.a, se.b, ce.a, ce.b)
+            && t > INTERIOR_TOL
+            && t < 1.0 - INTERIOR_TOL
+            && s > INTERIOR_TOL
+            && s < 1.0 - INTERIOR_TOL
+        {
+            let px = se.a[0] + t * (se.b[0] - se.a[0]);
+            let py = se.a[1] + t * (se.b[1] - se.a[1]);
+            let _ = welder.insert_or_weld([px, py], &mut unique);
         }
     });
 

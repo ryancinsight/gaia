@@ -41,7 +41,7 @@ impl AdjacentFaces {
             Self::Zero => 0,
             Self::One(_) => 1,
             Self::Two(_, _) => 2,
-            Self::Many(ref slice) => slice.len(),
+            Self::Many(slice) => slice.len(),
         }
     }
 
@@ -100,7 +100,7 @@ impl<'a> Iterator for AdjacentFacesIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.faces {
             AdjacentFaces::Zero => None,
-            AdjacentFaces::One(ref f0) => {
+            AdjacentFaces::One(f0) => {
                 if self.index == 0 {
                     self.index += 1;
                     Some(f0)
@@ -108,7 +108,7 @@ impl<'a> Iterator for AdjacentFacesIter<'a> {
                     None
                 }
             }
-            AdjacentFaces::Two(ref f0, ref f1) => {
+            AdjacentFaces::Two(f0, f1) => {
                 if self.index == 0 {
                     self.index += 1;
                     Some(f0)
@@ -119,7 +119,7 @@ impl<'a> Iterator for AdjacentFacesIter<'a> {
                     None
                 }
             }
-            AdjacentFaces::Many(ref slice) => {
+            AdjacentFaces::Many(slice) => {
                 if self.index < slice.len() {
                     let item = &slice[self.index];
                     self.index += 1;
@@ -157,14 +157,14 @@ impl std::ops::Index<usize> for AdjacentFaces {
     fn index(&self, index: usize) -> &Self::Output {
         match self {
             AdjacentFaces::Zero => panic!("index out of bounds: 0 for empty"),
-            AdjacentFaces::One(ref f0) => {
+            AdjacentFaces::One(f0) => {
                 if index == 0 {
                     f0
                 } else {
                     panic!("index out of bounds: {index} for length 1")
                 }
             }
-            AdjacentFaces::Two(ref f0, ref f1) => {
+            AdjacentFaces::Two(f0, f1) => {
                 if index == 0 {
                     f0
                 } else if index == 1 {
@@ -173,7 +173,7 @@ impl std::ops::Index<usize> for AdjacentFaces {
                     panic!("index out of bounds: {index} for length 2")
                 }
             }
-            AdjacentFaces::Many(ref slice) => &slice[index],
+            AdjacentFaces::Many(slice) => &slice[index],
         }
     }
 }

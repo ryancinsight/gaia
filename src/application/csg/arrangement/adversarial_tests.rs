@@ -751,22 +751,22 @@ mod tests {
         .build()
         .expect("c");
 
-        if let Ok(ab) = csg_boolean(BooleanOp::Union, &a, &b) {
-            if let Ok(result) = csg_boolean(BooleanOp::Difference, &ab, &c) {
-                let vol = signed_volume(&result);
-                let vol_ab = signed_volume(&ab);
-                let vol_c = signed_volume(&c);
-                // Result must be smaller than union but non-empty
-                assert!(
-                    vol > 0.0,
-                    "iterated (A∪B)\\C must have positive volume, got {vol:.6}"
-                );
-                assert!(
-                    vol < vol_ab + 0.1,
-                    "iterated result volume {vol:.6} must be ≤ vol(A∪B)={vol_ab:.6}"
-                );
-                let _ = vol_c; // used only to verify C was built
-            }
+        if let Ok(ab) = csg_boolean(BooleanOp::Union, &a, &b)
+            && let Ok(result) = csg_boolean(BooleanOp::Difference, &ab, &c)
+        {
+            let vol = signed_volume(&result);
+            let vol_ab = signed_volume(&ab);
+            let vol_c = signed_volume(&c);
+            // Result must be smaller than union but non-empty
+            assert!(
+                vol > 0.0,
+                "iterated (A∪B)\\C must have positive volume, got {vol:.6}"
+            );
+            assert!(
+                vol < vol_ab + 0.1,
+                "iterated result volume {vol:.6} must be ≤ vol(A∪B)={vol_ab:.6}"
+            );
+            let _ = vol_c; // used only to verify C was built
         }
     }
 
