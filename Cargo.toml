@@ -97,8 +97,9 @@ moirai = { package = "moirai-runtime", version = "0.6.0", git = "https://github.
 
 # ── Lint floor ────────────────────────────────────────────────────────────────
 #
-# gaia is a single package, so the floor is declared here rather than in a
-# `[workspace.lints]` table. It supersedes the inner `#![warn(...)]` /
+# gaia is a single package whose manifest is also its workspace root, so the
+# floor is declared in `[workspace.lints.*]` below and the package inherits it
+# through `[lints] workspace = true`. It supersedes the inner `#![warn(...)]` /
 # `#![allow(...)]` block that used to sit at the top of src/lib.rs: those
 # attributes were never run under `-D warnings` by anything, so the floor was
 # advisory. CI now denies it (.github/workflows/ci.yml).
@@ -114,13 +115,16 @@ moirai = { package = "moirai-runtime", version = "0.6.0", git = "https://github.
 # Counts are emissions, not unique sites — `--all-targets` compiles the library
 # twice (lib and lib-test), so a hit inside a `#[cfg(test)]`-free region is
 # reported once and a shared one twice.
-[lints.rust]
+[lints]
+workspace = true
+
+[workspace.lints.rust]
 # The crate is published; undocumented public API does not compile. Fully
 # enforced — there is no ratchet here, the nine sites that the three blanket
 # `#![allow(missing_docs)]` suppressions used to hide are documented.
 missing_docs = "deny"
 
-[lints.clippy]
+[workspace.lints.clippy]
 all = { level = "deny", priority = -2 }
 pedantic = { level = "deny", priority = -1 }
 
@@ -138,7 +142,7 @@ dbg_macro = "deny"
 
 # `print_stdout` (1 172 hits) and `print_stderr` (47) are NOT denied. Every hit
 # is in an `examples/`, `src/bin/` or `tests/` target — the library proper has
-# zero — and this is a single package, so one `[lints]` table governs the
+# zero — and this is a single package, so one inherited floor governs the
 # library and its 60+ diagnostic examples alike. Denying here would mean 65
 # permanent per-file suppressions on targets whose whole job is printing, which
 # is noise, not a ratchet. The library-code guarantee is the measured zero.
