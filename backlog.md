@@ -32,7 +32,7 @@ missing verification → documentation drift → PM cleanup.
 - **Dependencies**: none — the generic predicate seam landed with GAIA-002
   (PR #73; ADR 0005).
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: in-progress. **Owner**: pi-session — increment 1 (family:
+- **Status**: todo. Claimed by root — GAIA-003 continuation and its ADR 0006/migration ride draft PR #78 (arch/gaia-003-nurbs-migration). Owner: pi-session — increment 1 (family:
   `src/domain/geometry`, 155 sites across 7 files; re-measured total
   2026-09-23: 997 `Real` sites in `src/**/*.rs`, the seeded 848 predates the
   seam/corefine/tolerance splits) — branch
@@ -212,7 +212,7 @@ type-checking, so no bench body has ever been executed by a gate.
 - **Dependencies**: GAIA-003 retires the largest class (1268 cast lints).
 - **ADR**: 0003 — Align CSG repair module ownership with directory paths.
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: review. **Owner**: root.
+- **Status**: todo. In review — the delivery PRs are the hosting fact. **Owner**: root.
 - **Lease**: root — `Cargo.toml`, `rustfmt.toml`, `examples/csg/cube_cube.rs`, `examples/debug_stl.rs`, `src/application/csg/arrangement/adversarial_tests.rs`, `src/application/csg/arrangement/boolean_csg.rs`, `src/application/csg/boolean/indexed.rs`, `src/application/csg/boolean/indexed/csg.rs`, `src/application/csg/boolean/indexed/repair/`, `src/application/csg/boolean/indexed/repair/mod.rs`, `src/application/csg/boolean/indexed_tests.rs`, `docs/adr/README.md`, `docs/adr/0003-indexed-csg-repair-modules.md`, `src/application/csg/clip/polygon2d/cdt.rs`, `src/application/csg/corefine.rs`, `src/application/delaunay/dim2/pslg/graph.rs`, `src/application/delaunay/dim2/smoothing/laplacian.rs`, `src/application/delaunay/dim2/triangulation/bowyer_watson.rs`, `src/application/delaunay/dim3/tetrahedralize.rs`, `src/application/hierarchy/hex_to_tet.rs`, `src/application/quality/normals.rs`, `src/application/welding/welder.rs`, `src/bin/book_mesh_gallery/render.rs`, `src/domain/topology/orientation.rs`, `src/infrastructure/spatial/ssvdag/boolean.rs`, `src/infrastructure/spatial/ssvdag/core.rs`, `src/infrastructure/spatial/ssvdag/rasterize.rs`, `src/infrastructure/storage/attribute.rs`, `src/infrastructure/storage/edge_store.rs`, `src/infrastructure/storage/vertex_pool.rs` — `2026-09-23T08:28:43-04:00`.
 
 Evidence: `cargo clippy --all-targets --all-features -- --force-warn
@@ -236,7 +236,7 @@ lines at branch base and has 40 now.
   ratchet entries; `manual_let_else` (51 allowed) drops as let-chains land.
 - **Dependencies**: none.
 - **Risk / change class**: [patch] — M.
-- **Status**: review. **Owner**: root.
+- **Status**: todo. In review — the delivery PRs are the hosting fact. **Owner**: root.
 
 Evidence: delivered with [GAIA-013](#GAIA-013): the manifest now uses edition
 2024 and resolver 3 with the pinned Rust 1.97.0 toolchain. Strict all-target
