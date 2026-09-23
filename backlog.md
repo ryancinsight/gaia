@@ -87,7 +87,9 @@ both `rust,ignore`.
   cannot silently reappear.
 - **Dependencies**: none.
 - **Risk / change class**: [verification] [patch] — S.
-- **Status**: todo. **Owner**: unclaimed.
+- **Status**: in-progress. **Owner**: pi-session — branch
+  `build/gaia-006-example-targets` (main tree).
+  lease: pi-session examples/ Cargo.toml tests/module_reachability.rs 2026-09-23T15:00:00-04:00
 
 Evidence: `Cargo.toml` sets `autoexamples = false` and declares 63
 `[[example]]` paths; 69 `.rs` files exist under `examples/`. The six above
