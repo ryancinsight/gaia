@@ -17,25 +17,16 @@
 //! fresh allocations, avoiding per-insertion cavity-buffer churn. Capacity
 //! growth remains possible when the caller exceeds the initial heuristic.
 //!
-//! The storage and vector arithmetic are generic over `T: Scalar`. The robust
-//! Shewchuk predicate boundary currently consumes an `f64` coordinate
-//! representation, so this kernel does not claim native-precision predicate
-//! execution for `IndexedMesh<f32>`; that boundary is tracked in the mesh
-//! library gap audit.
+//! The storage, vector arithmetic, and predicate decisions are generic over
+//! `T: Scalar`: the exact Shewchuk predicates evaluate the caller's
+//! stored-precision coordinates directly (`f32` promotes losslessly into
+//! the `f64` expansion arithmetic, `f64` is the identity), so the kernel
+//! honours native precision for both supported scalars (ADR 0005).
 
 use hashbrown::{HashMap, HashSet};
 use leto::geometry::{Point3, Vector3};
 
 use crate::domain::core::scalar::Scalar;
-
-#[inline]
-fn point_to_f64_arr<T: Scalar>(pt: &Point3<T>) -> [f64; 3] {
-    [
-        eunomia::NumericElement::to_f64(pt.x),
-        eunomia::NumericElement::to_f64(pt.y),
-        eunomia::NumericElement::to_f64(pt.z),
-    ]
-}
 
 /// A mathematical representation of a triangulated face.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -70,22 +61,19 @@ pub struct Tetrahedron<T: Scalar> {
 }
 
 impl<T: Scalar> Tetrahedron<T> {
-    /// Construct a tetrahedron and enforce positive orientation at the robust
-    /// `f64` predicate boundary.
+    /// Construct a tetrahedron and enforce positive orientation at the exact
+    /// native-precision predicate boundary.
     pub fn new(mut v: [usize; 4], points: &[Point3<T>]) -> Self {
         use crate::domain::geometry::predicates;
-
-        let a = point_to_f64_arr(&points[v[0]]);
-        let b = point_to_f64_arr(&points[v[1]]);
-        let c = point_to_f64_arr(&points[v[2]]);
-        let d = point_to_f64_arr(&points[v[3]]);
 
         // Shewchuk's exact `insphere` predicate analytically requires the 4 defining vertices
         // to be strictly positively oriented according to HIS convention (gp::orient3d > 0).
         // Since `gaia::predicates::orient_3d` negates `gp::orient3d` to maintain the right-hand rule,
         // a Shewchuk-positive orientation actually corresponds to `gaia::orient_3d.is_negative()`.
         // Therefore, we swap to fix the orientation if `gaia::orient_3d` evaluates as POSITIVE.
-        if predicates::orient_3d(a, b, c, d).is_positive() {
+        if predicates::orient_3d_pts(&points[v[0]], &points[v[1]], &points[v[2]], &points[v[3]])
+            .is_positive()
+        {
             v.swap(2, 3);
         }
 
@@ -95,19 +83,20 @@ impl<T: Scalar> Tetrahedron<T> {
         }
     }
 
-    /// Evaluate circumsphere inclusion using the robust `f64` predicate
-    /// boundary.
+    /// Evaluate circumsphere inclusion using the exact native-precision
+    /// predicates.
     #[inline(always)]
     pub fn contains_in_circumsphere(&self, p: &Point3<T>, points: &[Point3<T>]) -> bool {
         use crate::domain::geometry::predicates;
 
-        let a = point_to_f64_arr(&points[self.v[0]]);
-        let b = point_to_f64_arr(&points[self.v[1]]);
-        let c = point_to_f64_arr(&points[self.v[2]]);
-        let d = point_to_f64_arr(&points[self.v[3]]);
-        let e = point_to_f64_arr(p);
-
-        let orientation = predicates::insphere(a, b, c, d, e);
+        let at = |i: usize| [points[i].x, points[i].y, points[i].z];
+        let orientation = predicates::insphere(
+            at(self.v[0]),
+            at(self.v[1]),
+            at(self.v[2]),
+            at(self.v[3]),
+            [p.x, p.y, p.z],
+        );
 
         // Exact Delaunay property: Points strictly inside the circumsphere invalidate the tetrahedron.
         // Points *exactly* on the circumsphere (Degenerate) are safely excluded to prevent
@@ -506,6 +495,9 @@ impl<T: Scalar> BowyerWatson3D<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::core::index::VertexId;
+    use crate::domain::geometry::predicates::{insphere, orient_3d, Orientation};
+    use crate::domain::mesh::TetrahedralMeshBuilder;
 
     fn sample_points() -> [Point3<f64>; 6] {
         [
@@ -558,5 +550,159 @@ mod tests {
         let external = Point3::new(3.0, 3.0, 3.0);
 
         assert!(!tetrahedron.contains_in_circumsphere(&external, &points));
+    }
+
+    // ── GAIA-002: native-precision f32 oracle ────────────────────────────────
+
+    /// Dyadic fixture: every coordinate is a multiple of `2^-4`, so the same
+    /// values store identically at `f32` and `f64`. No five points are
+    /// co-spherical — the strict-Delaunay assertions below verify that
+    /// premise on the fixture.
+    fn dyadic_points() -> [Point3<f64>; 8] {
+        [
+            Point3::new(0.0, 0.0, 0.0),
+            Point3::new(1.0, 0.0, 0.0),
+            Point3::new(0.0, 1.0, 0.0),
+            Point3::new(0.0, 0.0, 1.0),
+            Point3::new(0.5, 0.4375, 0.5625),
+            Point3::new(0.8125, 0.1875, 0.3125),
+            Point3::new(0.1875, 0.75, 0.375),
+            Point3::new(0.3125, 0.25, 0.8125),
+        ]
+    }
+
+    /// Run the kernel over the unit box at precision `T` and strip the
+    /// super-tetrahedron anchors.
+    fn run_bowyer_watson<T: Scalar>(points: &[Point3<T>]) -> (Vec<Point3<T>>, Vec<[usize; 4]>) {
+        let origin = <T as Scalar>::from_f64;
+        let min = Point3::new(origin(0.0), origin(0.0), origin(0.0));
+        let max = Point3::new(origin(1.0), origin(1.0), origin(1.0));
+        let mut engine = BowyerWatson3D::with_capacity(min, max, points.len());
+        for &point in points {
+            engine.insert_point(point);
+        }
+        engine.finalize()
+    }
+
+    /// GAIA-002 acceptance oracle (a): an `IndexedMesh<f32>` tetrahedralization
+    /// satisfies the empty-circumsphere property at its own stored precision.
+    ///
+    /// The exactness derivation: the predicate promotes the stored `f32`
+    /// coordinates losslessly, so each assertion is evaluated exactly and
+    /// carries no numeric tolerance. The only `f32` error surface is the
+    /// source-to-stored rounding, and its bound here is zero: the fixture is
+    /// dyadic, so `Scalar::from_f64` rounds nothing and the stored
+    /// configuration is the source configuration. A `Degenerate` (exactly
+    /// on-sphere) result would mean a co-spherical five-point subset,
+    /// falsifying the general-position premise, so every non-corner vertex
+    /// must assert strictly-outside.
+    #[test]
+    fn f32_indexed_mesh_tetrahedralization_is_strictly_delaunay() {
+        let source = dyadic_points();
+        let points: Vec<Point3<f32>> = source
+            .iter()
+            .map(|p| {
+                Point3::new(
+                    <f32 as Scalar>::from_f64(p.x),
+                    <f32 as Scalar>::from_f64(p.y),
+                    <f32 as Scalar>::from_f64(p.z),
+                )
+            })
+            .collect();
+        let (vertices, tets) = run_bowyer_watson(&points);
+
+        let mut builder = TetrahedralMeshBuilder::<f32>::new();
+        let ids: Vec<VertexId> = vertices
+            .iter()
+            .map(|v| builder.vertex_array([v.x, v.y, v.z]))
+            .collect();
+        for tet in &tets {
+            builder
+                .tetrahedron([ids[tet[0]], ids[tet[1]], ids[tet[2]], ids[tet[3]]])
+                .expect("invariant: engine-finalized tets are valid builder cells");
+        }
+        let mesh = builder.build();
+
+        assert_eq!(mesh.vertex_count(), source.len());
+        assert_eq!(mesh.cell_count(), tets.len());
+
+        let at = |q: &Point3<f32>| [q.x, q.y, q.z];
+        for cell in &mesh.cells {
+            let mut corners: Vec<&Point3<f32>> = cell
+                .vertex_ids
+                .iter()
+                .map(|&i| mesh.vertices.position(VertexId::from_usize(i)))
+                .collect();
+            // The builder canonicalizes every cell to right-hand-rule
+            // positive orientation — the Shewchuk-negative convention —
+            // while `insphere` requires Shewchuk-positive, so apply the
+            // kernel's own swap rule (`Tetrahedron::new`) first.
+            if orient_3d(
+                at(corners[0]),
+                at(corners[1]),
+                at(corners[2]),
+                at(corners[3]),
+            )
+            .is_positive()
+            {
+                corners.swap(2, 3);
+            }
+            for (vertex_id, _) in mesh.vertices.iter() {
+                if cell.vertex_ids.contains(&vertex_id.as_usize()) {
+                    continue;
+                }
+                let orientation = insphere(
+                    at(corners[0]),
+                    at(corners[1]),
+                    at(corners[2]),
+                    at(corners[3]),
+                    at(mesh.vertices.position(vertex_id)),
+                );
+                assert_eq!(
+                    orientation,
+                    Orientation::Negative,
+                    "vertex {vertex_id:?} must lie strictly outside the circumsphere of cell {:?}",
+                    cell.vertex_ids
+                );
+            }
+        }
+    }
+
+    /// GAIA-002: on dyadic inputs both precisions store identical values and
+    /// evaluate the exact predicates on them. The Delaunay tetrahedralization
+    /// of a point set in general position is unique, and the super-tetrahedron
+    /// anchors are discarded before `finalize`, so the `f32` and `f64` runs
+    /// must produce the identical tet set — the native `f32` path is the same
+    /// computation, not a parallel one.
+    #[test]
+    fn f32_and_f64_tetrahedralizations_agree_on_dyadic_inputs() {
+        let source = dyadic_points();
+        let source32: Vec<Point3<f32>> = source
+            .iter()
+            .map(|p| {
+                Point3::new(
+                    <f32 as Scalar>::from_f64(p.x),
+                    <f32 as Scalar>::from_f64(p.y),
+                    <f32 as Scalar>::from_f64(p.z),
+                )
+            })
+            .collect();
+        let (_, tets32) = run_bowyer_watson(&source32);
+        let (_, tets64) = run_bowyer_watson(&source);
+
+        let canonical = |tets: &[[usize; 4]]| {
+            let mut keys: Vec<[usize; 4]> = tets
+                .iter()
+                .map(|t| {
+                    let mut sorted = *t;
+                    sorted.sort_unstable();
+                    sorted
+                })
+                .collect();
+            keys.sort_unstable();
+            keys
+        };
+
+        assert_eq!(canonical(&tets32), canonical(&tets64));
     }
 }

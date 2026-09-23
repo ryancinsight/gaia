@@ -13,3 +13,4 @@
 | [0002](0002-boundary-quality-criteria.md) | Separate boundary-facet and volume-cell quality criteria | Accepted |
 | [0003](0003-indexed-csg-repair-modules.md) | Align indexed CSG repair modules with their directory | Accepted |
 | [0004](0004-symmetric-gwn-classification-thresholds.md) | Derive symmetric GWN classification thresholds | Accepted |
+| [0005](0005-native-precision-predicate-boundary.md) | Native-precision predicate boundary via exact promotion | Accepted |

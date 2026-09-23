@@ -814,10 +814,6 @@ here.
       row from the `README.md` directory tree — the directory does not exist
       (`src/application/` holds channel, csg, delaunay, hierarchy, quality,
       watertight, welding).
-- [ ] GAIA-002 — close or narrow the 3-D predicate precision boundary.
-    - [ ] Decide: native-`T` predicate path, or an `f64`-only 3-D kernel bound.
-    - [ ] Record the decision as an ADR before implementing (`[arch]`).
-    - [ ] Update the README precision contract in the same change.
 - [ ] GAIA-003 — burn down `Real` toward the `Scalar` seam, module family by
       module family; each increment lowers a `Cargo.toml` ratchet count.
 - [ ] GAIA-004 — add the differential naive-vs-exact predicate suite; prove the

@@ -175,17 +175,18 @@ Those are explicit limits, not hidden validation defaults.
    overlap, touching, and near-degenerate cases for callers that need a full
    geometric-defect policy. The current opt-in crossing policy intentionally
    remains limited to proper non-adjacent 3-D intersections.
-3. Replace the current f64-only robust-predicate boundary in the 3-D
-   tetrahedralizer with an explicit predicate-precision contract. The current
-   implementation is generic in `T` but routes orientation/insphere decisions
-   through f64 predicates; this is a monomorphization audit finding, not a
-   native-precision claim.
-4. Add controlled benchmarks and memory measurements for the refinement,
+3. Add controlled benchmarks and memory measurements for the refinement,
    quality, self-intersection, and SDF paths. Source-level preallocation is
    not evidence of lower RSS or faster execution.
 
 These open items are intentionally not represented as completed capability.
 The corresponding implementation/test work belongs in dependency order:
-predicate contract and tetra quality before constrained refinement; explicit
+tetra quality before constrained refinement; explicit
 self-intersection policy before repair/remeshing; matched benchmarks before
 parallel or layout claims.
+
+The 3-D predicate-precision contract is closed: the exact predicate wrappers
+are generic over the `Scalar` seam and evaluate the stored `T` coordinates
+directly (`f32` promotes losslessly into the `f64` expansion arithmetic,
+`f64` is the identity), so orientation and insphere decisions are exact for
+the caller's precision (ADR 0005).

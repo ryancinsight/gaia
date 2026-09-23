@@ -5,6 +5,13 @@
 //! module run in **exact arithmetic** — they never return a wrong sign due to
 //! floating-point rounding, even for nearly-degenerate configurations.
 //!
+//! Every wrapper is generic over
+//! [`Scalar`]: coordinates of the
+//! caller's precision promote losslessly into the `f64` expansion arithmetic
+//! (`f32` is a strict subset of `f64`; `f64` promotes as the identity), so
+//! the returned sign is exact for the stored `T`-precision configuration —
+//! no decision is made about geometry that is not there (ADR 0005).
+//!
 //! ## Theorem — Shewchuk Adaptive Arithmetic
 //!
 //! Let `fl(e)` denote the floating-point evaluation of an expression `e`.
@@ -43,7 +50,7 @@
 use geometry_predicates as gp;
 use leto::geometry::Point2;
 
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::Scalar;
 
 /// The sign of an orientation determinant.
 ///
@@ -97,14 +104,15 @@ impl Orientation {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-/// Convert a [`Real`] to `f64` for the predicates crate.
+/// Promote a scalar of precision `T` into the predicate's `f64` arithmetic.
 ///
-/// `geometry-predicates` always operates in `f64`.  If the crate is compiled
-/// with `f32`, we upcast — this is safe because `f32` is a strict subset of
-/// `f64`'s representable values.
+/// The promotion is exact over the sealed `Scalar` set: every `f32` value is
+/// exactly representable in `f64` and `f64` promotes as the identity, so the
+/// predicate evaluates the exact sign of the stored `T`-precision
+/// configuration — no coordinate is rounded on the way in (ADR 0005).
 #[inline]
-fn r(v: Real) -> f64 {
-    v
+fn exact_f64<T: Scalar>(v: T) -> f64 {
+    <T as eunomia::NumericElement>::to_f64(v)
 }
 
 // ── 2-D predicates ────────────────────────────────────────────────────────────
@@ -134,18 +142,26 @@ fn r(v: Real) -> f64 {
 /// ```
 #[inline]
 #[must_use]
-pub fn orient_2d(a: &Point2<Real>, b: &Point2<Real>, c: &Point2<Real>) -> Orientation {
-    let det = gp::orient2d([r(a.x), r(a.y)], [r(b.x), r(b.y)], [r(c.x), r(c.y)]);
+pub fn orient_2d<T: Scalar>(a: &Point2<T>, b: &Point2<T>, c: &Point2<T>) -> Orientation {
+    let det = gp::orient2d(
+        [exact_f64(a.x), exact_f64(a.y)],
+        [exact_f64(b.x), exact_f64(b.y)],
+        [exact_f64(c.x), exact_f64(c.y)],
+    );
     Orientation::from_det(det)
 }
 
 /// **Exact 2-D orientation test from raw arrays.**
 ///
-/// Convenience overload accepting `[Real; 2]` arrays.
+/// Convenience overload accepting `[T; 2]` arrays.
 #[inline]
 #[must_use]
-pub fn orient_2d_arr(a: [Real; 2], b: [Real; 2], c: [Real; 2]) -> Orientation {
-    let det = gp::orient2d([r(a[0]), r(a[1])], [r(b[0]), r(b[1])], [r(c[0]), r(c[1])]);
+pub fn orient_2d_arr<T: Scalar>(a: [T; 2], b: [T; 2], c: [T; 2]) -> Orientation {
+    let det = gp::orient2d(
+        [exact_f64(a[0]), exact_f64(a[1])],
+        [exact_f64(b[0]), exact_f64(b[1])],
+        [exact_f64(c[0]), exact_f64(c[1])],
+    );
     Orientation::from_det(det)
 }
 
@@ -176,8 +192,8 @@ pub fn orient_2d_arr(a: [Real; 2], b: [Real; 2], c: [Real; 2]) -> Orientation {
 /// ```
 #[inline]
 #[must_use]
-pub fn orient_3d(a: [Real; 3], b: [Real; 3], c: [Real; 3], d: [Real; 3]) -> Orientation {
-    let to64 = |v: [Real; 3]| [r(v[0]), r(v[1]), r(v[2])];
+pub fn orient_3d<T: Scalar>(a: [T; 3], b: [T; 3], c: [T; 3], d: [T; 3]) -> Orientation {
+    let to64 = |v: [T; 3]| [exact_f64(v[0]), exact_f64(v[1]), exact_f64(v[2])];
     // gp::orient3d returns positive when d is *below* the abc plane (Shewchuk
     // convention).  We negate so that our API convention is "d above = Positive",
     // which matches standard signed-volume / right-hand-rule intuition.
@@ -185,14 +201,14 @@ pub fn orient_3d(a: [Real; 3], b: [Real; 3], c: [Real; 3], d: [Real; 3]) -> Orie
     Orientation::from_det(det)
 }
 
-/// Convenience wrapper: accept `leto::geometry::Point3<Real>`.
+/// Convenience wrapper: accept `leto::geometry::Point3<T>`.
 #[inline]
 #[must_use]
-pub fn orient_3d_pts(
-    a: &leto::geometry::Point3<Real>,
-    b: &leto::geometry::Point3<Real>,
-    c: &leto::geometry::Point3<Real>,
-    d: &leto::geometry::Point3<Real>,
+pub fn orient_3d_pts<T: Scalar>(
+    a: &leto::geometry::Point3<T>,
+    b: &leto::geometry::Point3<T>,
+    c: &leto::geometry::Point3<T>,
+    d: &leto::geometry::Point3<T>,
 ) -> Orientation {
     orient_3d(
         [a.x, a.y, a.z],
@@ -223,17 +239,17 @@ pub fn orient_3d_pts(
 /// Used in Delaunay mesh refinement to enforce the empty-circumcircle property.
 #[inline]
 #[must_use]
-pub fn incircle(
-    a: &Point2<Real>,
-    b: &Point2<Real>,
-    c: &Point2<Real>,
-    d: &Point2<Real>,
+pub fn incircle<T: Scalar>(
+    a: &Point2<T>,
+    b: &Point2<T>,
+    c: &Point2<T>,
+    d: &Point2<T>,
 ) -> Orientation {
     let det = gp::incircle(
-        [r(a.x), r(a.y)],
-        [r(b.x), r(b.y)],
-        [r(c.x), r(c.y)],
-        [r(d.x), r(d.y)],
+        [exact_f64(a.x), exact_f64(a.y)],
+        [exact_f64(b.x), exact_f64(b.y)],
+        [exact_f64(c.x), exact_f64(c.y)],
+        [exact_f64(d.x), exact_f64(d.y)],
     );
     Orientation::from_det(det)
 }
@@ -250,14 +266,8 @@ pub fn incircle(
 ///
 /// Used in 3-D Delaunay mesh generation to enforce the Delaunay property.
 #[must_use]
-pub fn insphere(
-    a: [Real; 3],
-    b: [Real; 3],
-    c: [Real; 3],
-    d: [Real; 3],
-    e: [Real; 3],
-) -> Orientation {
-    let to64 = |v: [Real; 3]| [r(v[0]), r(v[1]), r(v[2])];
+pub fn insphere<T: Scalar>(a: [T; 3], b: [T; 3], c: [T; 3], d: [T; 3], e: [T; 3]) -> Orientation {
+    let to64 = |v: [T; 3]| [exact_f64(v[0]), exact_f64(v[1]), exact_f64(v[2])];
     let det = gp::insphere(to64(a), to64(b), to64(c), to64(d), to64(e));
     Orientation::from_det(det)
 }
@@ -372,6 +382,94 @@ mod tests {
         let d = [-1.0, 0.0, 0.0];
         let e = [2.0, 0.0, 0.0]; // outside unit sphere
         assert_eq!(insphere(a, b, c, d, e), Orientation::Negative);
+    }
+
+    // ── Generic instantiation: exact promotion, identity at f64 ─────────────
+
+    /// Dyadic coordinates store identically at `f32` and `f64`, and the
+    /// promotion into the `f64` predicate arithmetic is lossless, so both
+    /// instantiations must return the same sign for the same stored values
+    /// (ADR 0005). `f64::from` performs the same exact promotion the wrapper
+    /// performs internally.
+    #[test]
+    fn f32_instantiation_matches_f64_on_dyadic_inputs() {
+        let triple_2d = [
+            ([0.0_f32, 0.0], [1.0, 0.0], [0.0, 1.0]),
+            ([0.0_f32, 0.0], [0.0, 1.0], [1.0, 0.0]),
+            ([0.25_f32, 0.125], [0.5, 0.25], [0.125, 0.5]),
+        ];
+        for (a, b, c) in triple_2d {
+            let promote = |v: [f32; 2]| Point2::new(f64::from(v[0]), f64::from(v[1]));
+            assert_eq!(
+                orient_2d(
+                    &Point2::new(a[0], a[1]),
+                    &Point2::new(b[0], b[1]),
+                    &Point2::new(c[0], c[1])
+                ),
+                orient_2d(&promote(a), &promote(b), &promote(c)),
+                "orient_2d must agree across precisions on {a:?} {b:?} {c:?}"
+            );
+        }
+
+        let quad_3d = [
+            (
+                [0.0_f32, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ),
+            (
+                [0.0_f32, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ),
+        ];
+        for (a, b, c, d) in quad_3d {
+            let promote = |v: [f32; 3]| [f64::from(v[0]), f64::from(v[1]), f64::from(v[2])];
+            assert_eq!(
+                orient_3d(a, b, c, d),
+                orient_3d(promote(a), promote(b), promote(c), promote(d)),
+                "orient_3d must agree across precisions on {a:?} {b:?} {c:?} {d:?}"
+            );
+        }
+
+        let sphere = [
+            [1.0_f32, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ];
+        let promoted: [[f64; 3]; 5] =
+            sphere.map(|v| [f64::from(v[0]), f64::from(v[1]), f64::from(v[2])]);
+        assert_eq!(
+            insphere(sphere[0], sphere[1], sphere[2], sphere[3], sphere[4]),
+            insphere(
+                promoted[0],
+                promoted[1],
+                promoted[2],
+                promoted[3],
+                promoted[4]
+            ),
+            "insphere must agree across precisions on the unit-sphere fixture"
+        );
+    }
+
+    /// An exactly-collinear `f32` configuration is collinear after promotion:
+    /// lossless promotion must preserve exact degeneracy, not approximate it.
+    #[test]
+    fn promotion_preserves_exactly_degenerate_f32_configuration() {
+        let a = [0.0_f32, 0.0, 0.0];
+        let b = [0.5_f32, 0.5, 0.5];
+        let c = [1.0_f32, 1.0, 1.0];
+        let d = [2.0_f32, 2.0, 2.0];
+        let promote = |v: [f32; 3]| [f64::from(v[0]), f64::from(v[1]), f64::from(v[2])];
+        assert_eq!(
+            orient_3d(a, b, c, d),
+            orient_3d(promote(a), promote(b), promote(c), promote(d))
+        );
+        assert_eq!(orient_3d(a, b, c, d), Orientation::Degenerate);
     }
 
     // ── Orientation helpers ────────────────────────────────────────────────

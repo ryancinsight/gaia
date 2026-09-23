@@ -43,9 +43,9 @@ Gaia implements exactly-computable geometry and topologically-safe mesh represen
 - **Branded Mesh representation**: Exposes a branded half-edge mesh `Mesh<'id>` for topological traversal, and an `IndexedMesh` for serialized I/O snapshots.
 
 ### 2. Numerical Correctness via Robust Predicates
-- **Shewchuk Adaptive Precision**: Wraps robust geometric predicates (`orient_2d`, `orient_3d`) for the documented `f64` predicate boundary. The predicate implementation protects sign decisions against roundoff in that representation.
+- **Shewchuk Adaptive Precision**: Wraps robust geometric predicates (`orient_2d`, `orient_3d`) generically over the `Scalar` seam. The predicate implementation protects sign decisions against roundoff in the caller's stored precision (`f32` promotes losslessly into the `f64` expansion arithmetic; `f64` is the identity).
 - **Where exactness ends**: exact predicates decide orientation and incircle/insphere signs. They do not decide CSG inside/outside membership — `classify_fragment` uses the generalized winding number thresholds `GWN_OUTSIDE_THRESHOLD` (0.25) and `GWN_INSIDE_THRESHOLD` (0.75), then resolves the band with coplanarity and nearest-face tiebreakers. The symmetric values maximize the minimum additive margin to the closed-solid reference values 0 and 1 and the midpoint of their one-sided boundary limits 0.5; they provide no probability guarantee for arbitrary triangle soups.
-- **Precision contract**: Surface and tetrahedral-builder kernels execute native `T` arithmetic; the 3-D Bowyer-Watson kernel currently converts coordinates to `f64` for its robust predicates. Native-precision 3-D predicates remain an audited extension item.
+- **Precision contract**: Surface and tetrahedral-builder kernels execute native `T` arithmetic, and the exact predicates evaluate the stored `T` coordinates directly — `f32` promotes losslessly into the `f64` expansion arithmetic, `f64` is the identity — so the 3-D Bowyer-Watson kernel honours native precision for both supported scalars.
 
 ### 3. Validated Volume Construction
 - **TetrahedralMeshBuilder**: Builds `IndexedMesh<T>` volume meshes from welded

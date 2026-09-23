@@ -15,32 +15,6 @@ missing verification → documentation drift → PM cleanup.
 
 ---
 
----
-
-## GAIA-002 — Native-precision 3-D predicate boundary
-
-- **Outcome**: the 3-D Bowyer-Watson kernel stops funnelling every coordinate
-  through `f64`, or the `f32` instantiation is removed from the public
-  contract so no caller can request a precision the kernel does not honour.
-- **Scope**: `src/application/delaunay/dim3/tetrahedralize.rs:33-40`
-  (`point_to_f64_arr`), `src/domain/geometry/predicates.rs:100-104` (`fn r`),
-  `src/application/csg/predicates3d.rs`. Non-goals: reimplementing Shewchuk;
-  the `geometry-predicates` dependency stays.
-- **Acceptance oracle**: either (a) an `IndexedMesh<f32>` tetrahedralization
-  test asserting the Delaunay empty-circumsphere property holds under the
-  native predicate path with a derived `f32` error bound, or (b) a compile-time
-  bound that makes the 3-D kernel `f64`-only, with the README precision
-  contract updated to match in the same change.
-- **Dependencies**: none.
-- **Risk / change class**: [arch] [minor] — L.
-- **Status**: todo. **Owner**: unclaimed.
-
-Evidence: `src/application/delaunay/dim3/tetrahedralize.rs:20-24` states the
-gap in its own module docs; `README.md` § 2 "Precision contract" repeats it;
-`docs/mesh_library_gap_audit.md` tracks it. It is disclosed, not closed.
-
----
-
 ## GAIA-003 — Collapse the `Real` alias onto the `Scalar` seam
 
 - **Outcome**: the `T: Scalar` seam is the crate's actual precision contract
@@ -55,8 +29,8 @@ gap in its own module docs; `README.md` § 2 "Precision contract" repeats it;
   `cast_precision_loss` / `cast_possible_truncation` / `cast_sign_loss`
   ratchet counts in `Cargo.toml` (baseline 759 / 297 / 99). The ratchet
   counts only decrease.
-- **Dependencies**: GAIA-002 fixes the same seam at the predicate boundary and
-  should land first for the 3-D kernel.
+- **Dependencies**: none — the generic predicate seam landed with GAIA-002
+  (PR #73; ADR 0005).
 - **Risk / change class**: [arch] [patch] — L.
 - **Status**: todo. **Owner**: unclaimed.
 
@@ -229,12 +203,14 @@ half of the fix and not the tracking half. `rg 'feature = "stl-io"' src` and
 - **Acceptance oracle**: each new ADR cites its board item and the code it
   describes; `python scripts/adr-index.py check` passes; no ADR restates a
   README paragraph without naming the rejected alternative.
-- **Dependencies**: GAIA-002/003 each carry one of the candidates.
+- **Dependencies**: GAIA-003 carries the remaining precision candidate; the
+  predicate boundary and GWN band landed as ADRs 0005 and 0004.
 - **Risk / change class**: [docs] [patch] — M.
 - **Status**: todo. **Owner**: unclaimed.
 
-Evidence: `docs/adr/README.md` indexes two ADRs (0001 channel-path validation,
-0002 boundary quality criteria) for a 73 214-line kernel whose README § Core
+Evidence: `docs/adr/README.md` indexes five ADRs (0001 channel-path validation,
+0002 boundary quality criteria, 0003 indexed CSG repair modules, 0004 GWN
+thresholds, 0005 predicate boundary) for a 73 214-line kernel whose README § Core
 Architecture presents six distinct architectural decisions as settled.
 
 ---
@@ -356,7 +332,8 @@ Clippy and the full nextest suite pass.
   with a proven termination bound and a boundary-feature protection test, or a
   README scope statement naming both as non-goals with the consumer driver
   that would reopen them.
-- **Dependencies**: GAIA-002 (predicate contract).
+- **Dependencies**: none — the predicate contract landed with GAIA-002
+  (PR #73).
 - **Risk / change class**: [arch] [minor] — L.
 - **Status**: todo. **Owner**: unclaimed.
 
