@@ -30,11 +30,11 @@ use std::fs;
 use std::io::BufWriter;
 use std::time::Instant;
 
-use gaia::domain::core::scalar::Real;
-use gaia::application::csg::boolean::{BooleanOp, CsgNode, csg_boolean};
-use gaia::{Cube, IndexedMesh, NormalAnalysis, analyze_normals};
+use gaia::application::csg::boolean::{csg_boolean, BooleanOp, CsgNode};
+use gaia::domain::core::scalar::{Point3r, Real};
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;
+use gaia::{analyze_normals, Cube, IndexedMesh};
 
 // BSP-cut flat-face fragments inherit zero-length vertex normals → low alignment is expected.
 // We validate geometry via exact volume instead; alignment is informational only.
@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=================================================================");
 
     let crate_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let out_dir   = crate_dir.join("outputs").join("csg");
+    let out_dir = crate_dir.join("outputs").join("csg");
     fs::create_dir_all(&out_dir)?;
 
     // ── Shape 1: (CubeA ∪ CubeB) − CubeC  (notched bar) ──────────────────
@@ -56,15 +56,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let t0 = Instant::now();
 
         // CubeA [0,2]³ ∪ CubeB [1,3]×[0,2]×[0,2] → 12 mm³ bar
-        let cube_a = Cube { origin: Point3r::new(0.0, 0.0, 0.0), width: 2.0, height: 2.0, depth: 2.0 }.build()?;
-        let cube_b = Cube { origin: Point3r::new(1.0, 0.0, 0.0), width: 2.0, height: 2.0, depth: 2.0 }.build()?;
+        let cube_a = Cube {
+            origin: Point3r::new(0.0, 0.0, 0.0),
+            width: 2.0,
+            height: 2.0,
+            depth: 2.0,
+        }
+        .build()?;
+        let cube_b = Cube {
+            origin: Point3r::new(1.0, 0.0, 0.0),
+            width: 2.0,
+            height: 2.0,
+            depth: 2.0,
+        }
+        .build()?;
         let union_ab = csg_boolean(BooleanOp::Union, &cube_a, &cube_b)?;
 
         // CubeC [2,4]×[1,3]×[1,3]: overlaps bar at [2,3]×[1,2]×[1,2] = 1 mm³
-        let cube_c = Cube { origin: Point3r::new(2.0, 1.0, 1.0), width: 2.0, height: 2.0, depth: 2.0 }.build()?;
+        let cube_c = Cube {
+            origin: Point3r::new(2.0, 1.0, 1.0),
+            width: 2.0,
+            height: 2.0,
+            depth: 2.0,
+        }
+        .build()?;
 
         let tree = CsgNode::Difference {
-            left:  Box::new(CsgNode::Leaf(Box::new(union_ab))),
+            left: Box::new(CsgNode::Leaf(Box::new(union_ab))),
             right: Box::new(CsgNode::Leaf(Box::new(cube_c))),
         };
         let mut mesh = tree.evaluate()?;
@@ -80,18 +98,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let t0 = Instant::now();
 
         // CubeA [0,3]³ = 27 mm³
-        let cube_a = Cube { origin: Point3r::new(0.0, 0.0, 0.0), width: 3.0, height: 3.0, depth: 3.0 }.build()?;
+        let cube_a = Cube {
+            origin: Point3r::new(0.0, 0.0, 0.0),
+            width: 3.0,
+            height: 3.0,
+            depth: 3.0,
+        }
+        .build()?;
 
         // CubeB [2,4]³ — overlaps corner of A at [2,3]³ = 1 mm³
-        let cube_b = Cube { origin: Point3r::new(2.0, 2.0, 2.0), width: 2.0, height: 2.0, depth: 2.0 }.build()?;
+        let cube_b = Cube {
+            origin: Point3r::new(2.0, 2.0, 2.0),
+            width: 2.0,
+            height: 2.0,
+            depth: 2.0,
+        }
+        .build()?;
         // CubeC [2,4]×[-1,1]×[-1,1] — overlaps opposite corner at [2,3]×[0,1]×[0,1] = 1 mm³
-        let cube_c = Cube { origin: Point3r::new(2.0, -1.0, -1.0), width: 2.0, height: 2.0, depth: 2.0 }.build()?;
+        let cube_c = Cube {
+            origin: Point3r::new(2.0, -1.0, -1.0),
+            width: 2.0,
+            height: 2.0,
+            depth: 2.0,
+        }
+        .build()?;
 
         // Union of the two notch cubes, then subtract from A
         let union_bc = csg_boolean(BooleanOp::Union, &cube_b, &cube_c)?;
 
         let tree = CsgNode::Difference {
-            left:  Box::new(CsgNode::Leaf(Box::new(cube_a))),
+            left: Box::new(CsgNode::Leaf(Box::new(cube_a))),
             right: Box::new(CsgNode::Leaf(Box::new(union_bc))),
         };
         let mut mesh = tree.evaluate()?;
@@ -117,29 +153,51 @@ fn report_mesh(
     out_dir: &std::path::Path,
     t0: std::time::Instant,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let volume   = mesh.signed_volume();
-    let is_wt    = mesh.is_watertight();
-    let normals  = analyze_normals(mesh);
-    let total    = mesh.face_count();
-    let inward_frac = if total > 0 { normals.inward_faces as Real / total as Real } else { 1.0 };
-    let vol_err  = (volume - expected_volume).abs() / expected_volume.abs().max(1e-12);
+    let volume = mesh.signed_volume();
+    let is_wt = mesh.is_watertight();
+    let normals = analyze_normals(mesh);
+    let total = mesh.face_count();
+    let inward_frac = if total > 0 {
+        normals.inward_faces as Real / total as Real
+    } else {
+        1.0
+    };
+    let vol_err = (volume - expected_volume).abs() / expected_volume.abs().max(1e-12);
 
     println!("    Vertices : {}", mesh.vertices.len());
     println!("    Faces    : {}", mesh.face_count());
-    println!("    Volume   : {:.4} mm³  (expected {:.4}, err {:.2}%)",
-        volume, expected_volume, vol_err * 100.0);
+    println!(
+        "    Volume   : {:.4} mm³  (expected {:.4}, err {:.2}%)",
+        volume,
+        expected_volume,
+        vol_err * 100.0
+    );
     println!("    Watertight: {}", is_wt);
-    println!("    Normals  : outward={}, inward={} ({:.1}%), degen={}",
-        normals.outward_faces, normals.inward_faces, inward_frac * 100.0,
-        normals.degenerate_faces);
-    println!("    Align    : mean={:.4}, min={:.4}",
-        normals.face_vertex_alignment_mean, normals.face_vertex_alignment_min);
+    println!(
+        "    Normals  : outward={}, inward={} ({:.1}%), degen={}",
+        normals.outward_faces,
+        normals.inward_faces,
+        inward_frac * 100.0,
+        normals.degenerate_faces
+    );
+    println!(
+        "    Align    : mean={:.4}, min={:.4}",
+        normals.face_vertex_alignment_mean, normals.face_vertex_alignment_min
+    );
 
     let alignment_ok = normals.face_vertex_alignment_mean >= MIN_FACE_VERTEX_ALIGN_MEAN;
-    let volume_ok    = vol_err <= vol_tol;
-    let status = if volume_ok && alignment_ok { "PASS" } else { "FAIL" };
-    println!("    Status   : {} (vol_err={:.2}%, align_mean={:.4})",
-        status, vol_err * 100.0, normals.face_vertex_alignment_mean);
+    let volume_ok = vol_err <= vol_tol;
+    let status = if volume_ok && alignment_ok {
+        "PASS"
+    } else {
+        "FAIL"
+    };
+    println!(
+        "    Status   : {} (vol_err={:.2}%, align_mean={:.4})",
+        status,
+        vol_err * 100.0,
+        normals.face_vertex_alignment_mean
+    );
 
     let stl_path = out_dir.join(format!("compound_{}.stl", name));
     {
@@ -152,4 +210,3 @@ fn report_mesh(
 
     Ok(())
 }
-
