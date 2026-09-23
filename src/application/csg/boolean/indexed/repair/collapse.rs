@@ -1,7 +1,7 @@
 //! Repair pass: collapse degenerate (zero-area) faces.
 
 use super::uf_find;
-use crate::domain::core::constants::{BOOLEAN_COINCIDENT_LEN_SQ, BOOLEAN_DEGENERACY_LEN_SQ};
+use crate::domain::core::constants::{BOOLEAN_COINCIDENT_LEN_SQ, BOOLEAN_DEGENERACY_SIN2_TOL};
 use crate::domain::core::index::VertexId;
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::mesh::IndexedMesh;
@@ -13,12 +13,12 @@ use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
 /// Delegates to [`BOOLEAN_COINCIDENT_LEN_SQ`] (SSOT).
 const COINCIDENT_TOLERANCE_SQUARED: f64 = BOOLEAN_COINCIDENT_LEN_SQ;
 
-/// Squared world length below which `cross² / max_edge²` marks a face degenerate.
+/// `sin²θ` at which a face counts as degenerate, and gets repaired.
 ///
-/// Named for its dimension rather than for being "relative": the ratio it is
-/// compared against scales as `length²`, unlike the dimensionless
-/// `DEGENERATE_NORMAL_REL_SQ`. Delegates to [`BOOLEAN_DEGENERACY_LEN_SQ`] (SSOT).
-const DEGENERACY_LEN_SQ_TOL: f64 = BOOLEAN_DEGENERACY_LEN_SQ;
+/// Dimensionless, so the same face is treated the same way at any mesh scale:
+/// the test is `cross² < TOL × |ab|² × |ac|²`, the shape `DEGENERATE_NORMAL_REL_SQ`
+/// uses. Delegates to [`BOOLEAN_DEGENERACY_SIN2_TOL`] (SSOT).
+const DEGENERACY_SIN2_TOL: f64 = BOOLEAN_DEGENERACY_SIN2_TOL;
 
 enum FaceGeometry {
     Degenerate { edge_lengths_squared: [f64; 3] },
@@ -111,8 +111,16 @@ fn face_geometry(mesh: &IndexedMesh, face: &FaceData) -> FaceGeometry {
     let max_edge_squared = edge_lengths_squared[0]
         .max(edge_lengths_squared[1])
         .max(edge_lengths_squared[2]);
-    let nondegenerate =
-        max_edge_squared > 0.0 && cross_squared / max_edge_squared >= DEGENERACY_LEN_SQ_TOL;
+    // `|ab × ac| = |ab||ac|·sinθ`, so dividing by the two edge lengths squared
+    // leaves `sin²θ` — scale-free, unlike the `cross² / max_edge²` ratio this
+    // replaced, which carried a `length²` and so classified the same face
+    // differently at different mesh scales.
+    let ab_sq = edge_lengths_squared[0];
+    let ac_sq = edge_lengths_squared[2];
+    let nondegenerate = max_edge_squared > 0.0
+        && ab_sq > 0.0
+        && ac_sq > 0.0
+        && cross_squared >= DEGENERACY_SIN2_TOL * ab_sq * ac_sq;
 
     if nondegenerate {
         FaceGeometry::Nondegenerate
@@ -422,4 +430,55 @@ fn canonical_face_key(mut vertices: [VertexId; 3]) -> [VertexId; 3] {
         vertices.swap(0, 1);
     }
     vertices
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::core::scalar::{Point3r, Vector3r};
+
+    /// A face with `sin²θ = sin2` at vertex `a`, scaled by `scale`:
+    /// `ab = (L, 0, 0)` and `ac = (L, L·t, 0)` with `t = sin2/√(1 − sin2)`.
+    fn face_with_sin2(scale: f64, sin2: f64) -> (IndexedMesh, FaceData) {
+        let t = (sin2 / (1.0 - sin2)).sqrt();
+        let mut mesh: IndexedMesh = IndexedMesh::with_cell_size(scale * 1e-6);
+        let n = Vector3r::zeros();
+        let a = mesh.add_vertex(Point3r::new(0.0, 0.0, 0.0), n);
+        let b = mesh.add_vertex(Point3r::new(scale, 0.0, 0.0), n);
+        let c = mesh.add_vertex(Point3r::new(scale, scale * t, 0.0), n);
+        let face = FaceData::untagged(a, b, c);
+        (mesh, face)
+    }
+
+    fn is_degenerate(mesh: &IndexedMesh, face: &FaceData) -> bool {
+        matches!(face_geometry(mesh, face), FaceGeometry::Degenerate { .. })
+    }
+
+    /// The degeneracy decision must not depend on the mesh's scale: a face with a
+    /// given `sin²θ` is repaired or kept identically at 10 µm and at 1 km.
+    ///
+    /// Under the previous `cross² / max_edge²` threshold this failed — that ratio
+    /// carries a `length²`, so the same face drifted across the boundary with
+    /// scale.
+    #[test]
+    fn degeneracy_decision_is_scale_invariant() {
+        // Deliberately away from the threshold: at exactly `sin²θ = tol` the
+        // comparison is a rounding coin flip and pins nothing.
+        for &sin2 in &[1e-14_f64, 1e-10] {
+            let mut decisions = Vec::new();
+            for scale in [1e-5_f64, 1e-3, 1.0, 1e3, 1e5] {
+                let (mesh, face) = face_with_sin2(scale, sin2);
+                decisions.push(is_degenerate(&mesh, &face));
+            }
+            assert!(
+                decisions.windows(2).all(|w| w[0] == w[1]),
+                "sin²θ = {sin2:e} must be classified the same at every scale: {decisions:?}"
+            );
+            assert_eq!(
+                decisions[0],
+                sin2 < DEGENERACY_SIN2_TOL,
+                "the decision must follow the sin²θ bound"
+            );
+        }
+    }
 }

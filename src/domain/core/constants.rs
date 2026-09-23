@@ -346,17 +346,30 @@ pub const SNAP_ROUND_EDGE_PARAM_MARGIN: Real = 5e-3;
 /// edge is below this as a coincident-vertex pair and unions the two vertices.
 pub const BOOLEAN_COINCIDENT_LEN_SQ: Real = 1e-18;
 
-/// Squared world length below which the collapse pass calls a face degenerate.
-/// `(squared world length)`: `1e-12` is a length of `1e-6`.
+/// `sin²θ` below which the collapse pass repairs a face as degenerate.
+/// `(dimensionless)`: the pass tests `cross² < BOOLEAN_DEGENERACY_SIN2_TOL ×
+/// |ab|² × |ac|²`, the same shape as [`DEGENERATE_NORMAL_REL_SQ`], so a face's
+/// classification does not depend on the mesh's scale.
 ///
-/// # Dimension note
+/// Distinct from [`DEGENERATE_NORMAL_REL_SQ`] (`1e-20`) because the two answer
+/// different questions: that one decides whether a *fragment* is a numerical
+/// sliver worth excluding from classification, this one whether a *face* is worth
+/// repairing — and a repair pass may reasonably act on geometry that
+/// classification should not silently drop. The value is the one the pass already
+/// had: at unit edge length the previous `cross² / max_edge² < 1e-12` was the
+/// same test, so unit-scale behaviour is unchanged and only the scale dependence
+/// is gone.
+pub const BOOLEAN_DEGENERACY_SIN2_TOL: Real = 1e-12;
+
+/// The historical name for [`BOOLEAN_DEGENERACY_SIN2_TOL`], kept because it is
+/// public.
 ///
-/// The pass compares `cross² / max_edge²` against this, which scales as
-/// `length²` — not the dimensionless `sin²θ` of [`DEGENERATE_NORMAL_REL_SQ`],
-/// which divides by the *product* of two edge lengths squared. A length²
-/// threshold classifies the same face differently at different scales, so this
-/// one is recorded as an open item rather than changed here.
-pub const BOOLEAN_DEGENERACY_LEN_SQ: Real = 1e-12;
+/// The name asserts a squared length, and that claim *was* the defect: the pass
+/// compared a `cross² / max_edge²` ratio — which carries a `length²` — against
+/// this value, so the same face at a given `sin²θ` was classified differently at
+/// different mesh scales. The value is dimensionless now; prefer
+/// [`BOOLEAN_DEGENERACY_SIN2_TOL`], which says what the threshold measures.
+pub const BOOLEAN_DEGENERACY_LEN_SQ: Real = BOOLEAN_DEGENERACY_SIN2_TOL;
 
 /// Weld distance for the 2-D clip CDT's point grid and intersection welds.
 /// `(world length)` in the clip plane, which spans the same units as the mesh
@@ -468,10 +481,10 @@ mod tests {
             "a segment floor above the normal floor would collapse real segments",
         );
         assert_ordering(
-            BOOLEAN_COINCIDENT_LEN_SQ,
-            BOOLEAN_DEGENERACY_LEN_SQ,
-            "a coincident-vertex floor looser than the degeneracy floor would \
-             merge vertices the pass does not consider degenerate",
+            DEGENERATE_NORMAL_REL_SQ,
+            BOOLEAN_DEGENERACY_SIN2_TOL,
+            "the repair bound must be looser than the sliver bound, or a repair \
+             pass would ignore faces classification already drops",
         );
     }
 
