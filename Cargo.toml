@@ -366,7 +366,11 @@ path = "examples/primitives/frd_sphere.rs"
 name = "primitives_fischer_koch_cy_sphere"
 path = "examples/primitives/fischer_koch_cy_sphere.rs"
 
-# ── CSG boolean operation examples ────────────────────────────────────────────
+[[example]]
+name = "primitives_serpentine_tube"
+path = "examples/primitives/serpentine_tube.rs"
+
+# ── CSG boolean operation examples ────────────────────────────────────────────────
 
 [[example]]
 name = "csg_cube_cube"
@@ -431,6 +435,22 @@ path = "examples/csg/cylinder_cylinder_quadfurcation.rs"
 [[example]]
 name = "csg_cylinder_cylinder_pentafurcation"
 path = "examples/csg/cylinder_cylinder_pentafurcation.rs"
+
+[[example]]
+name = "csg_union"
+path = "examples/csg/union.rs"
+
+[[example]]
+name = "csg_difference"
+path = "examples/csg/difference.rs"
+
+[[example]]
+name = "csg_intersection"
+path = "examples/csg/intersection.rs"
+
+[[example]]
+name = "csg_compound"
+path = "examples/csg/compound.rs"
 
 # ── Coplanar 2-D Boolean examples ──────────────────────────────────────────────
 

@@ -72,30 +72,6 @@ both `rust,ignore`.
 
 ---
 
-## GAIA-006 — Six example files are not build targets
-
-- **Outcome**: every `.rs` file under `examples/` is either a declared target
-  that CI compiles, or deleted.
-- **Scope**: `examples/csg/{union,difference,intersection,compound}.rs`,
-  `examples/primitives/{serpentine_tube,y_junction}.rs`, and the
-  `[[example]]` table in `Cargo.toml`. Non-goals: adding new examples;
-  `examples/well_plate_schematic.png` is a separate output-hygiene item
-  (GAIA-009).
-- **Acceptance oracle**: `find examples -name '*.rs' | wc -l` equals the
-  `[[example]]` count in `Cargo.toml` (currently 69 vs 63), and the
-  `module_reachability` gate is extended to cover `examples/` so the class
-  cannot silently reappear.
-- **Dependencies**: none.
-- **Risk / change class**: [verification] [patch] — S.
-- **Status**: todo. **Owner**: unclaimed.
-
-Evidence: `Cargo.toml` sets `autoexamples = false` and declares 63
-`[[example]]` paths; 69 `.rs` files exist under `examples/`. The six above
-appear in no target, so `cargo clippy --all-targets` never sees them.
-`tests/module_reachability.rs:8` scans `src/` only.
-
----
-
 ## GAIA-007 — Miri gate for the GhostCell `Send`/`Sync` impls
 
 - **Outcome**: the crate's only two `unsafe` items are covered by the

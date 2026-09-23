@@ -14,11 +14,11 @@ use std::fs;
 use std::io::BufWriter;
 use std::time::Instant;
 
-use gaia::domain::core::scalar::Real;
-use gaia::application::csg::boolean::{BooleanOp, csg_boolean};
+use gaia::application::csg::boolean::{csg_boolean, BooleanOp};
+use gaia::domain::core::scalar::{Point3r, Real};
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;
-use gaia::{Cube, IndexedMesh, NormalAnalysis, analyze_normals};
+use gaia::{analyze_normals, Cube};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=================================================================");
@@ -27,55 +27,91 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // CubeA: [0,2]×[0,2]×[0,2]   CubeB: [1,3]×[0,2]×[0,2]
     // Overlap: [1,2]×[0,2]×[0,2] = 1×2×2 = 4 mm³
-    let v_a      = 2.0_f64.powi(3); // 8 mm³
-    let v_b      = 2.0_f64.powi(3); // 8 mm³
+    let v_a = 2.0_f64.powi(3); // 8 mm³
+    let v_b = 2.0_f64.powi(3); // 8 mm³
     let v_overlap = 1.0 * 2.0 * 2.0; // 4 mm³
-    let expected  = v_a + v_b - v_overlap; // 12 mm³
+    let expected = v_a + v_b - v_overlap; // 12 mm³
 
     println!("  Cube A : 2×2×2 mm, origin (0,0,0)  V = {:.4} mm³", v_a);
-    println!("  Cube B : 2×2×2 mm, origin (1,0,0)  V = {:.4} mm³  overlap = {:.4} mm³", v_b, v_overlap);
+    println!(
+        "  Cube B : 2×2×2 mm, origin (1,0,0)  V = {:.4} mm³  overlap = {:.4} mm³",
+        v_b, v_overlap
+    );
     println!("  Expected union: {:.4} mm³", expected);
     println!();
 
     let crate_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let out_dir   = crate_dir.join("outputs").join("csg");
+    let out_dir = crate_dir.join("outputs").join("csg");
     fs::create_dir_all(&out_dir)?;
 
     let t0 = Instant::now();
 
-    let cube_a = Cube { origin: Point3r::new(0.0, 0.0, 0.0), width: 2.0, height: 2.0, depth: 2.0 }.build()?;
-    let cube_b = Cube { origin: Point3r::new(1.0, 0.0, 0.0), width: 2.0, height: 2.0, depth: 2.0 }.build()?;
+    let cube_a = Cube {
+        origin: Point3r::new(0.0, 0.0, 0.0),
+        width: 2.0,
+        height: 2.0,
+        depth: 2.0,
+    }
+    .build()?;
+    let cube_b = Cube {
+        origin: Point3r::new(1.0, 0.0, 0.0),
+        width: 2.0,
+        height: 2.0,
+        depth: 2.0,
+    }
+    .build()?;
 
     println!("  Cube A : {} faces", cube_a.face_count());
     println!("  Cube B : {} faces", cube_b.face_count());
 
     let mut mesh = csg_boolean(BooleanOp::Union, &cube_a, &cube_b)?;
 
-    let volume    = mesh.signed_volume();
-    let is_wt     = mesh.is_watertight();
-    let normals   = analyze_normals(&mesh);
-    let total     = mesh.face_count();
-    let inward_frac = if total > 0 { normals.inward_faces as Real / total as Real } else { 1.0 };
-    let vol_err   = (volume - expected).abs() / expected.abs().max(1e-12);
+    let volume = mesh.signed_volume();
+    let is_wt = mesh.is_watertight();
+    let normals = analyze_normals(&mesh);
+    let total = mesh.face_count();
+    let inward_frac = if total > 0 {
+        normals.inward_faces as Real / total as Real
+    } else {
+        1.0
+    };
+    let vol_err = (volume - expected).abs() / expected.abs().max(1e-12);
 
     println!("  Result : {} faces", total);
     println!();
-    println!("  Volume        : {:.4} mm³  (expected {:.4})", volume, expected);
+    println!(
+        "  Volume        : {:.4} mm³  (expected {:.4})",
+        volume, expected
+    );
     println!("  Volume error  : {:.2}%", vol_err * 100.0);
     println!("  Watertight    : {}", is_wt);
     println!("  Normal analysis:");
-    println!("    outward={}, inward={} ({:.1}%), degenerate={}",
-        normals.outward_faces, normals.inward_faces, inward_frac * 100.0,
-        normals.degenerate_faces);
-    println!("    face↔vertex alignment: mean={:.4}, min={:.4}",
-        normals.face_vertex_alignment_mean, normals.face_vertex_alignment_min);
+    println!(
+        "    outward={}, inward={} ({:.1}%), degenerate={}",
+        normals.outward_faces,
+        normals.inward_faces,
+        inward_frac * 100.0,
+        normals.degenerate_faces
+    );
+    println!(
+        "    face↔vertex alignment: mean={:.4}, min={:.4}",
+        normals.face_vertex_alignment_mean, normals.face_vertex_alignment_min
+    );
 
     // Flat-face BSP is exact — tight volume tolerance; all faces outward
-    let vol_ok        = vol_err <= 0.02;
+    let vol_ok = vol_err <= 0.02;
     let align_mean_ok = normals.face_vertex_alignment_mean >= 0.30;
-    let status = if vol_ok && align_mean_ok { "PASS" } else { "FAIL" };
-    println!("  Status: {} (vol_err={:.2}%, align_mean={:.4})",
-        status, vol_err * 100.0, normals.face_vertex_alignment_mean);
+    let status = if vol_ok && align_mean_ok {
+        "PASS"
+    } else {
+        "FAIL"
+    };
+    println!(
+        "  Status: {} (vol_err={:.2}%, align_mean={:.4})",
+        status,
+        vol_err * 100.0,
+        normals.face_vertex_alignment_mean
+    );
 
     let stl_path = out_dir.join("union_cube_cube.stl");
     {
@@ -88,4 +124,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=================================================================");
     Ok(())
 }
-

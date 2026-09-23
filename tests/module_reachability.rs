@@ -28,6 +28,56 @@ fn every_source_module_is_reachable_from_a_crate_root() {
     );
 }
 
+/// GAIA-006 gate: with `autoexamples = false`, the `[[example]]` table is
+/// the sole source of build targets — a file outside it never compiles in
+/// CI and rots invisibly (the class that produced six dead files). Every
+/// `.rs` file under `examples/` must be declared, and every declaration
+/// must resolve.
+#[test]
+fn every_example_file_is_a_declared_target() {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let examples_root = manifest_dir.join("examples");
+    let mut example_files = BTreeSet::new();
+    if let Err(error) = collect_rust_files(&examples_root, &mut example_files) {
+        panic!("example enumeration failed: {error}");
+    }
+
+    let manifest = fs::read_to_string(manifest_dir.join("Cargo.toml"))
+        .expect("invariant: the crate manifest is readable");
+    assert!(
+        manifest.contains("autoexamples = false"),
+        "the example gate presumes autoexamples = false; auto-discovery would bypass the declared-target contract"
+    );
+
+    let declared: BTreeSet<String> = manifest
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            trimmed
+                .strip_prefix("path = \"examples/")
+                .and_then(|value| value.strip_suffix('"'))
+                .map(|relative| format!("examples/{relative}"))
+        })
+        .collect();
+
+    let on_disk: BTreeSet<String> = example_files
+        .iter()
+        .map(|path| {
+            path.strip_prefix(manifest_dir)
+                .map(|relative| relative.display().to_string())
+                .unwrap_or_else(|_| path.display().to_string())
+        })
+        .map(|path| path.replace('\\', "/"))
+        .collect();
+
+    let undeclared: Vec<_> = on_disk.difference(&declared).collect();
+    let missing: Vec<_> = declared.difference(&on_disk).collect();
+    assert!(
+        undeclared.is_empty() && missing.is_empty(),
+        "example/target mismatch — undeclared files: {undeclared:?}; declared-but-missing: {missing:?}"
+    );
+}
+
 fn reachable_modules(source_root: &Path) -> Result<BTreeSet<PathBuf>, String> {
     let roots = crate_roots(source_root)?;
     let mut reachable = BTreeSet::new();
