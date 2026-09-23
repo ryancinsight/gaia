@@ -262,6 +262,98 @@ fn inject_cap_seam_position_beside_rim_edge_is_rejected() {
     );
 }
 
+// ── Axis-pair threshold ───────────────────────────────────────────────────
+
+/// The near-parallel rejection threshold must be a length²: it is compared
+/// against a 2-D determinant of two in-plane lengths.
+///
+/// A threshold of degree 1 would make the accepted angle grow with scale, so
+/// the same geometry at 10 µm and at 1 m would be classified differently — the
+/// failure class `scale_robustness_tests` exists to catch.
+#[test]
+fn min_axis_determinant_is_homogeneous_of_degree_two() {
+    use super::seam::min_axis_determinant;
+
+    let (edge_len_sq, seg_len_sq) = (1.0_f64, 0.25_f64);
+    let base = min_axis_determinant(edge_len_sq, seg_len_sq);
+    assert!(base > 0.0);
+    for scale in [1e-5_f64, 1e-3, 1e3, 1e5] {
+        let scaled = min_axis_determinant(edge_len_sq * scale * scale, seg_len_sq * scale * scale);
+        let expected = base * scale * scale;
+        assert!(
+            (scaled - expected).abs() <= expected * 1e-12,
+            "threshold must scale as length²: at scale {scale:e} got {scaled:e}, want {expected:e}"
+        );
+    }
+}
+
+/// The same near-parallel configuration must be accepted or rejected the same
+/// way at every scale: scaling the mesh must not change the decision.
+///
+/// Under the previous length-form threshold this failed — the ratio of
+/// determinant to threshold grew linearly with scale, so a genuinely
+/// near-parallel pair was rejected on a micro-scale mesh and accepted on the
+/// same mesh scaled up.
+#[test]
+fn near_parallel_rejection_is_scale_equivariant() {
+    use super::seam::min_axis_determinant;
+
+    // 2-D determinant of edge × segment for a pair `tilt` radians apart, at unit
+    // scale: ≈ |e||s|·sin(tilt).
+    let tilt = 1.0e-14_f64;
+    let unit_decision = tilt < min_axis_determinant(1.0, 1.0);
+    for scale in [1e-5_f64, 1e-3, 1.0, 1e3, 1e5] {
+        let determinant = tilt * scale * scale;
+        let threshold = min_axis_determinant(scale * scale, scale * scale);
+        assert_eq!(
+            determinant < threshold,
+            unit_decision,
+            "decision must not depend on scale (scale {scale:e})"
+        );
+    }
+}
+
+/// Two triangles sharing an edge along +X, plus a snap segment `tilt` radians
+/// off that edge and offset off the edge line so it is not read as collinear.
+fn near_parallel_scenario(
+    scale: Real,
+    tilt: Real,
+) -> (VertexPool, Vec<FaceData>, Vec<Vec<SnapSegment>>) {
+    let mut pool = VertexPool::new(scale * 1e-3);
+    let n = Vector3r::new(0.0, 0.0, 1.0);
+    let a = pool.insert_or_weld(Point3r::new(0.0, 0.0, 0.0), n);
+    let b = pool.insert_or_weld(Point3r::new(scale, 0.0, 0.0), n);
+    let c = pool.insert_or_weld(Point3r::new(0.5 * scale, scale, 0.0), n);
+    let d = pool.insert_or_weld(Point3r::new(0.5 * scale, -scale, 0.0), n);
+    let faces = vec![FaceData::untagged(a, b, c), FaceData::untagged(b, a, d)];
+    let mut segs = vec![Vec::new(); 2];
+    segs[0].push(SnapSegment {
+        start: Point3r::new(0.25 * scale, 0.02 * scale, 0.0),
+        end: Point3r::new(0.75 * scale, 0.02 * scale + tilt * 0.5 * scale, 0.0),
+    });
+    (pool, faces, segs)
+}
+
+/// The widened threshold must not change the decisions taken on unit-scale or
+/// macro-scale geometry — it only stops over-rejecting below micro scale.
+///
+/// This runs the pass on a near-parallel pair at five scales: all five must
+/// agree on the number of injected sub-segments, so the scale-equivariance the
+/// threshold now has is also what the pass exhibits.
+#[test]
+fn near_parallel_propagation_agrees_across_scales() {
+    let mut injected = Vec::new();
+    for scale in [1e-5_f64, 1e-3, 1.0, 1e3, 1e5] {
+        let (pool, faces, mut segs) = near_parallel_scenario(scale, 1e-12);
+        propagate_seam_vertices(&faces, &mut segs, &pool);
+        injected.push(segs[1].len());
+    }
+    assert!(
+        injected.windows(2).all(|w| w[0] == w[1]),
+        "the same near-parallel configuration must propagate identically at every scale: {injected:?}"
+    );
+}
+
 #[test]
 fn adjacent_faces_preserves_more_than_u8_incident_faces() {
     let mut adjacent = AdjacentFaces::default();
