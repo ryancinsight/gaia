@@ -33,7 +33,8 @@
 //! All evaluations in this module maintain this invariant.
 
 use super::knot::KnotVector;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::Scalar;
+use eunomia::NumericElement;
 
 const STACK_DEGREE_LIMIT: usize = 8;
 const STACK_WORK_LEN: usize = STACK_DEGREE_LIMIT + 1;
@@ -46,33 +47,40 @@ fn assert_output_len(name: &str, len: usize, required: usize) {
     );
 }
 
+/// Divide, mapping a near-zero denominator (repeated knots) to zero.
+///
+/// The guard is an absolute threshold carried at `T` precision via
+/// [`Scalar::from_f64`]; knot values live in `[0, 1]`, where it fires only
+/// for genuinely degenerate spans.
 #[inline]
-fn safe_div(num: Real, denom: Real) -> Real {
-    if denom.abs() < 1e-15 {
-        0.0
+fn safe_div<T: Scalar>(num: T, denom: T) -> T {
+    if denom.abs() < <T as Scalar>::from_f64(1e-15) {
+        <T as NumericElement>::ZERO
     } else {
         num / denom
     }
 }
 
-fn fill_basis(
+fn fill_basis<T: Scalar>(
     span: usize,
-    t: Real,
+    t: T,
     p: usize,
-    knots: &KnotVector,
-    out: &mut [Real],
-    left: &mut [Real],
-    right: &mut [Real],
+    knots: &KnotVector<T>,
+    out: &mut [T],
+    left: &mut [T],
+    right: &mut [T],
 ) {
     debug_assert!(out.len() > p);
     debug_assert!(left.len() > p);
     debug_assert!(right.len() > p);
 
-    out[0] = 1.0;
+    let zero = <T as NumericElement>::ZERO;
+    let one = <T as NumericElement>::ONE;
+    out[0] = one;
     for j in 1..=p {
         left[j] = t - knots.get(span + 1 - j);
         right[j] = knots.get(span + j) - t;
-        let mut saved = 0.0;
+        let mut saved = zero;
         for r in 0..j {
             let temp = safe_div(out[r], right[r + 1] + left[j - r]);
             out[r] = saved + right[r + 1] * temp;
@@ -92,13 +100,19 @@ fn fill_basis(
 ///
 /// Panics if `out.len() < p + 1`, or if `span`, `p`, and `knots` do not
 /// describe a valid active knot span.
-pub fn eval_basis_to_slice(span: usize, t: Real, p: usize, knots: &KnotVector, out: &mut [Real]) {
+pub fn eval_basis_to_slice<T: Scalar>(
+    span: usize,
+    t: T,
+    p: usize,
+    knots: &KnotVector<T>,
+    out: &mut [T],
+) {
     let required = p + 1;
     assert_output_len("basis output", out.len(), required);
 
     if p <= STACK_DEGREE_LIMIT {
-        let mut left = [0.0; STACK_WORK_LEN];
-        let mut right = [0.0; STACK_WORK_LEN];
+        let mut left = [<T as NumericElement>::ZERO; STACK_WORK_LEN];
+        let mut right = [<T as NumericElement>::ZERO; STACK_WORK_LEN];
         fill_basis(
             span,
             t,
@@ -109,8 +123,8 @@ pub fn eval_basis_to_slice(span: usize, t: Real, p: usize, knots: &KnotVector, o
             &mut right[..required],
         );
     } else {
-        let mut left = vec![0.0; required];
-        let mut right = vec![0.0; required];
+        let mut left = vec![<T as NumericElement>::ZERO; required];
+        let mut right = vec![<T as NumericElement>::ZERO; required];
         fill_basis(span, t, p, knots, out, &mut left, &mut right);
     }
 }
@@ -119,8 +133,8 @@ pub fn eval_basis_to_slice(span: usize, t: Real, p: usize, knots: &KnotVector, o
 ///
 /// Returns a heap-allocated vector. Use [`eval_basis_to_slice`] to avoid allocation.
 #[must_use]
-pub fn eval_basis(span: usize, t: Real, p: usize, knots: &KnotVector) -> Vec<Real> {
-    let mut n = vec![0.0 as Real; p + 1];
+pub fn eval_basis<T: Scalar>(span: usize, t: T, p: usize, knots: &KnotVector<T>) -> Vec<T> {
+    let mut n = vec![<T as NumericElement>::ZERO; p + 1];
     eval_basis_to_slice(span, t, p, knots, &mut n);
     n
 }
@@ -141,13 +155,13 @@ pub fn eval_basis(span: usize, t: Real, p: usize, knots: &KnotVector) -> Vec<Rea
 ///
 /// Panics if either output slice has length `< p + 1`, or if `span`, `p`, and
 /// `knots` do not describe a valid active knot span.
-pub fn eval_basis_and_deriv_to_slice(
+pub fn eval_basis_and_deriv_to_slice<T: Scalar>(
     span: usize,
-    t: Real,
+    t: T,
     p: usize,
-    knots: &KnotVector,
-    out_n: &mut [Real],
-    out_dn: &mut [Real],
+    knots: &KnotVector<T>,
+    out_n: &mut [T],
+    out_dn: &mut [T],
 ) {
     let required = p + 1;
     assert_output_len("basis output", out_n.len(), required);
@@ -156,30 +170,30 @@ pub fn eval_basis_and_deriv_to_slice(
     eval_basis_to_slice(span, t, p, knots, out_n);
 
     if p == 0 {
-        out_dn[0] = 0.0;
+        out_dn[0] = <T as NumericElement>::ZERO;
         return;
     }
 
-    let mut lower_stack = [0.0; STACK_WORK_LEN];
+    let mut lower_stack = [<T as NumericElement>::ZERO; STACK_WORK_LEN];
     let mut lower_heap;
     let lower = if p <= STACK_DEGREE_LIMIT {
         &mut lower_stack[..p]
     } else {
-        lower_heap = vec![0.0; p];
+        lower_heap = vec![<T as NumericElement>::ZERO; p];
         &mut lower_heap
     };
     eval_basis_to_slice(span, t, p - 1, knots, lower);
 
-    let pp = p as Real;
+    let pp = <T as Scalar>::from_f64(p as f64);
     for j in 0..=p {
         let i = span - p + j;
         let left = if j == 0 {
-            0.0
+            <T as NumericElement>::ZERO
         } else {
             safe_div(lower[j - 1], knots.get(i + p) - knots.get(i))
         };
         let right = if j == p {
-            0.0
+            <T as NumericElement>::ZERO
         } else {
             safe_div(lower[j], knots.get(i + p + 1) - knots.get(i + 1))
         };
@@ -192,14 +206,14 @@ pub fn eval_basis_and_deriv_to_slice(
 /// Returns a pair of heap-allocated vectors. Use
 /// [`eval_basis_and_deriv_to_slice`] to avoid allocation.
 #[must_use]
-pub fn eval_basis_and_deriv(
+pub fn eval_basis_and_deriv<T: Scalar>(
     span: usize,
-    t: Real,
+    t: T,
     p: usize,
-    knots: &KnotVector,
-) -> (Vec<Real>, Vec<Real>) {
-    let mut n = vec![0.0 as Real; p + 1];
-    let mut dn = vec![0.0 as Real; p + 1];
+    knots: &KnotVector<T>,
+) -> (Vec<T>, Vec<T>) {
+    let mut n = vec![<T as NumericElement>::ZERO; p + 1];
+    let mut dn = vec![<T as NumericElement>::ZERO; p + 1];
     eval_basis_and_deriv_to_slice(span, t, p, knots, &mut n, &mut dn);
     (n, dn)
 }
@@ -212,7 +226,7 @@ mod tests {
     #[test]
     fn partition_of_unity() {
         // Cubic with 5 control points, clamped uniform
-        let kv = KnotVector::clamped_uniform(4, 3);
+        let kv = KnotVector::<f64>::clamped_uniform(4, 3);
         for &t in &[0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0] {
             let span = kv.find_span(t, 4);
             let n = eval_basis(span, t, 3, &kv);
@@ -226,7 +240,7 @@ mod tests {
 
     #[test]
     fn non_negativity() {
-        let kv = KnotVector::clamped_uniform(5, 3);
+        let kv = KnotVector::<f64>::clamped_uniform(5, 3);
         for i in 0..20 {
             let t = f64::from(i) / 20.0;
             let span = kv.find_span(t, 5);
@@ -240,7 +254,7 @@ mod tests {
     #[test]
     fn linear_basis_midpoint() {
         // Linear (p=1), 2 control points: knots = [0,0,1,1]
-        let kv = KnotVector::try_new(vec![0.0, 0.0, 1.0, 1.0]).unwrap();
+        let kv = KnotVector::<f64>::try_new(vec![0.0, 0.0, 1.0, 1.0]).unwrap();
         let span = kv.find_span(0.5, 1);
         let n = eval_basis(span, 0.5, 1, &kv);
         // Both basis functions should be 0.5 at t=0.5
@@ -250,7 +264,7 @@ mod tests {
 
     #[test]
     fn slice_basis_matches_allocating_basis_for_stack_degree() {
-        let kv = KnotVector::clamped_uniform(5, 3);
+        let kv = KnotVector::<f64>::clamped_uniform(5, 3);
         let t = 0.375;
         let span = kv.find_span(t, 5);
         let expected = eval_basis(span, t, 3, &kv);
@@ -263,7 +277,7 @@ mod tests {
 
     #[test]
     fn slice_basis_matches_allocating_basis_for_heap_degree() {
-        let kv = KnotVector::clamped_uniform(9, 9);
+        let kv = KnotVector::<f64>::clamped_uniform(9, 9);
         let t = 0.5;
         let span = kv.find_span(t, 9);
         let expected = eval_basis(span, t, 9, &kv);
@@ -276,7 +290,7 @@ mod tests {
 
     #[test]
     fn derivative_slice_matches_allocating_wrapper() {
-        let kv = KnotVector::clamped_uniform(6, 3);
+        let kv = KnotVector::<f64>::clamped_uniform(6, 3);
         let t = 0.42;
         let span = kv.find_span(t, 6);
         let (expected_n, expected_dn) = eval_basis_and_deriv(span, t, 3, &kv);
@@ -291,7 +305,7 @@ mod tests {
 
     #[test]
     fn derivatives_match_central_difference_inside_span() {
-        let kv = KnotVector::clamped_uniform(6, 3);
+        let kv = KnotVector::<f64>::clamped_uniform(6, 3);
         let t = 0.42;
         let h = 1.0e-6;
         let span = kv.find_span(t, 6);
@@ -308,6 +322,44 @@ mod tests {
                 (dn[j] - finite_difference).abs() < 1.0e-9,
                 "basis derivative mismatch at j={j}: analytic={}, finite_difference={finite_difference}",
                 dn[j]
+            );
+        }
+    }
+
+    /// The scalar seam monomorphizes: the `f32` instantiation holds the
+    /// partition-of-unity invariant at its own precision. Tolerance derives
+    /// from the Cox–de Boor error growth at degree 3 — O(p²·ε_f32) ≈
+    /// 9 · 2⁻⁴⁴ ≈ 5.4e-7 — with 4× headroom; knot values are exact dyadics.
+    #[test]
+    fn f32_partition_of_unity() {
+        let kv = KnotVector::<f32>::clamped_uniform(4, 3);
+        for i in 0..=8 {
+            let t = <f32 as Scalar>::from_f64(f64::from(i)) / 8.0;
+            let span = kv.find_span(t, 4);
+            let n = eval_basis(span, t, 3, &kv);
+            let sum: f32 = n.iter().sum();
+            assert!(
+                (sum - 1.0).abs() < 2e-6,
+                "f32 partition of unity violated at t={t}: sum={sum}"
+            );
+        }
+    }
+
+    /// Partition of unity at `f32` on the heap-degree path: degree 9 exceeds
+    /// the stack limit of 8, so the evaluation exercises the allocating
+    /// branch. Error growth is O(p²·ε_f32) ≈ 81·2⁻²⁴ ≈ 4.8e-6; the
+    /// assertion carries 4× headroom.
+    #[test]
+    fn f32_partition_of_unity_at_heap_degree() {
+        let kv = KnotVector::<f32>::clamped_uniform(9, 9);
+        for i in 0..=8 {
+            let t = <f32 as Scalar>::from_f64(f64::from(i)) / 8.0;
+            let span = kv.find_span(t, 9);
+            let n = eval_basis(span, t, 9, &kv);
+            let sum: f32 = n.iter().sum();
+            assert!(
+                (sum - 1.0).abs() < 2e-5,
+                "f32 heap-degree partition of unity violated at t={t}: sum={sum}"
             );
         }
     }

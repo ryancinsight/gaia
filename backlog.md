@@ -32,7 +32,13 @@ missing verification → documentation drift → PM cleanup.
 - **Dependencies**: none — the generic predicate seam landed with GAIA-002
   (PR #73; ADR 0005).
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: todo. **Owner**: unclaimed.
+- **Status**: in-progress. **Owner**: pi-session — increment 1 (family:
+  `src/domain/geometry`, 155 sites across 7 files; re-measured total
+  2026-09-23: 997 `Real` sites in `src/**/*.rs`, the seeded 848 predates the
+  seam/corefine/tolerance splits) — branch
+  `arch/gaia-003-geometry-family`, lane
+  `worktrees/gaia-gaia-003-geometry-family`.
+  lease: pi-session src/domain/geometry/ Cargo.toml 2026-09-23T13:10:00-04:00
 
 Evidence: `src/domain/core/scalar.rs:114` `pub type Real = f64;`; 848 `Real`
 sites vs 130 `T: Scalar` sites; `IndexedMesh` appears 431× without a type

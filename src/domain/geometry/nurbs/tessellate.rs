@@ -20,8 +20,9 @@
 
 use super::curve::NurbsCurve;
 use super::surface::NurbsSurface;
-use crate::domain::core::scalar::{Point3r, Real};
+use crate::domain::core::scalar::{Real, Scalar};
 use crate::domain::mesh::IndexedMesh;
+use eunomia::NumericElement;
 use leto::geometry::UnitVector3;
 
 // ---------------------------------------------------------------------------
@@ -30,10 +31,10 @@ use leto::geometry::UnitVector3;
 
 /// Options controlling curvature-adaptive tessellation.
 #[derive(Clone, Debug)]
-pub struct TessellationOptions {
+pub struct TessellationOptions<T = Real> {
     /// Maximum angle (degrees) between adjacent surface/curve normals
     /// before a cell or segment is subdivided. Default: 5.0.
-    pub max_angle_deg: Real,
+    pub max_angle_deg: T,
     /// Minimum number of segments per parametric direction (>= 1).
     /// The tessellation always produces at least this many divisions
     /// even on flat faces. Default: 4.
@@ -42,17 +43,17 @@ pub struct TessellationOptions {
     pub max_depth: usize,
 }
 
-impl Default for TessellationOptions {
+impl<T: Scalar> Default for TessellationOptions<T> {
     fn default() -> Self {
         Self {
-            max_angle_deg: 5.0,
+            max_angle_deg: <T as Scalar>::from_f64(5.0),
             min_segments: 4,
             max_depth: 6,
         }
     }
 }
 
-impl TessellationOptions {
+impl<T: Scalar> TessellationOptions<T> {
     /// Create with default settings.
     #[must_use]
     pub fn new() -> Self {
@@ -61,7 +62,7 @@ impl TessellationOptions {
 
     /// Set the maximum deviation angle in degrees (builder pattern).
     #[must_use]
-    pub fn with_max_angle(mut self, deg: Real) -> Self {
+    pub fn with_max_angle(mut self, deg: T) -> Self {
         self.max_angle_deg = deg;
         self
     }
@@ -80,14 +81,17 @@ impl TessellationOptions {
 
 /// Angle in degrees between two unit vectors (clamped to [0, 180]).
 #[inline]
-fn angle_deg(a: UnitVector3<Real>, b: UnitVector3<Real>) -> Real {
-    let cos_t = a.into_inner().dot(b.into_inner()).clamp(-1.0, 1.0);
+fn angle_deg<T: Scalar>(a: UnitVector3<T>, b: UnitVector3<T>) -> T {
+    let cos_t = a
+        .into_inner()
+        .dot(b.into_inner())
+        .clamp(<T as Scalar>::from_f64(-1.0), <T as Scalar>::from_f64(1.0));
     cos_t.acos().to_degrees()
 }
 
 /// Maximum normal deviation (degrees) at the four corners of a parameter quad.
 /// Returns 0.0 if fewer than 2 normals could be computed (degenerate surface).
-fn quad_max_angle_deg(surf: &NurbsSurface, u0: Real, v0: Real, u1: Real, v1: Real) -> Real {
+fn quad_max_angle_deg<T: Scalar>(surf: &NurbsSurface<T>, u0: T, v0: T, u1: T, v1: T) -> T {
     let corners = [(u0, v0), (u1, v0), (u0, v1), (u1, v1)];
     let mut normals = [UnitVector3::new_normalize(leto::geometry::Vector3::z()); 4];
     let mut count = 0;
@@ -98,7 +102,7 @@ fn quad_max_angle_deg(surf: &NurbsSurface, u0: Real, v0: Real, u1: Real, v1: Rea
         }
     }
 
-    let mut max_a: Real = 0.0;
+    let mut max_a: T = <T as NumericElement>::ZERO;
     for i in 0..count {
         for j in (i + 1)..count {
             let a = angle_deg(normals[i], normals[j]);
@@ -113,15 +117,15 @@ fn quad_max_angle_deg(surf: &NurbsSurface, u0: Real, v0: Real, u1: Real, v1: Rea
 /// Recursively subdivide a parameter quad until the normal deviation falls
 /// below the threshold or the maximum depth is reached.
 /// Appends leaf quads `(u0, v0, u1, v1)` to `leaves`.
-fn subdivide_quad(
-    surf: &NurbsSurface,
-    u0: Real,
-    v0: Real,
-    u1: Real,
-    v1: Real,
+fn subdivide_quad<T: Scalar>(
+    surf: &NurbsSurface<T>,
+    u0: T,
+    v0: T,
+    u1: T,
+    v1: T,
     depth: usize,
-    opts: &TessellationOptions,
-    leaves: &mut Vec<(Real, Real, Real, Real)>,
+    opts: &TessellationOptions<T>,
+    leaves: &mut Vec<(T, T, T, T)>,
 ) {
     if depth >= opts.max_depth {
         leaves.push((u0, v0, u1, v1));
@@ -134,12 +138,13 @@ fn subdivide_quad(
     // Bisect the longer parametric edge
     let du = u1 - u0;
     let dv = v1 - v0;
+    let half = <T as Scalar>::from_f64(0.5);
     if du >= dv {
-        let um = (u0 + u1) * 0.5;
+        let um = (u0 + u1) * half;
         subdivide_quad(surf, u0, v0, um, v1, depth + 1, opts, leaves);
         subdivide_quad(surf, um, v0, u1, v1, depth + 1, opts, leaves);
     } else {
-        let vm = (v0 + v1) * 0.5;
+        let vm = (v0 + v1) * half;
         subdivide_quad(surf, u0, v0, u1, vm, depth + 1, opts, leaves);
         subdivide_quad(surf, u0, vm, u1, v1, depth + 1, opts, leaves);
     }
@@ -164,24 +169,37 @@ fn subdivide_quad(
 /// assert!(mesh.face_count() > 0);
 /// ```
 #[must_use]
-pub fn tessellate_surface(surf: &NurbsSurface, opts: &TessellationOptions) -> IndexedMesh {
+pub fn tessellate_surface<T: Scalar>(
+    surf: &NurbsSurface<T>,
+    opts: &TessellationOptions<T>,
+) -> IndexedMesh<T> {
     let ((u0, u1), (v0, v1)) = surf.domain();
     let segs = opts.min_segments.max(1);
 
     // Collect all leaf quads via adaptive subdivision
-    let mut leaves: Vec<(Real, Real, Real, Real)> = Vec::with_capacity(segs * segs);
+    let mut leaves: Vec<(T, T, T, T)> = Vec::with_capacity(segs * segs);
     for i in 0..segs {
         for j in 0..segs {
-            let ua = u0 + (u1 - u0) * (i as Real / segs as Real);
-            let ub = u0 + (u1 - u0) * ((i + 1) as Real / segs as Real);
-            let va = v0 + (v1 - v0) * (j as Real / segs as Real);
-            let vb = v0 + (v1 - v0) * ((j + 1) as Real / segs as Real);
+            let ua = u0
+                + (u1 - u0)
+                    * (<T as Scalar>::from_f64(i as f64) / <T as Scalar>::from_f64(segs as f64));
+            let ub = u0
+                + (u1 - u0)
+                    * (<T as Scalar>::from_f64((i + 1) as f64)
+                        / <T as Scalar>::from_f64(segs as f64));
+            let va = v0
+                + (v1 - v0)
+                    * (<T as Scalar>::from_f64(j as f64) / <T as Scalar>::from_f64(segs as f64));
+            let vb = v0
+                + (v1 - v0)
+                    * (<T as Scalar>::from_f64((j + 1) as f64)
+                        / <T as Scalar>::from_f64(segs as f64));
             subdivide_quad(surf, ua, va, ub, vb, 0, opts, &mut leaves);
         }
     }
 
     // Triangulate leaf quads; VertexPool welds shared corners automatically
-    let mut mesh = IndexedMesh::new();
+    let mut mesh = IndexedMesh::<T>::new();
     for (qu0, qv0, qu1, qv1) in &leaves {
         let p00 = surf.point(*qu0, *qv0);
         let p10 = surf.point(*qu1, *qv0);
@@ -215,17 +233,24 @@ pub fn tessellate_surface(surf: &NurbsSurface, opts: &TessellationOptions) -> In
 /// assert!(pts.len() >= 2);
 /// ```
 #[must_use]
-pub fn tessellate_curve(curve: &NurbsCurve<3>, opts: &TessellationOptions) -> Vec<Point3r> {
+pub fn tessellate_curve<T: Scalar>(
+    curve: &NurbsCurve<3, T>,
+    opts: &TessellationOptions<T>,
+) -> Vec<leto::geometry::Point3<T>> {
     let (t0, t1) = curve.domain();
     let segs = opts.min_segments.max(1);
 
     // Start with the first point, then adaptively fill in each segment
-    let mut result: Vec<Point3r> = Vec::with_capacity(segs * 2 + 1);
-    result.push(Point3r::from(curve.point(t0)));
+    let mut result: Vec<leto::geometry::Point3<T>> = Vec::with_capacity(segs * 2 + 1);
+    result.push(leto::geometry::Point3::from(curve.point(t0)));
 
     for i in 0..segs {
-        let ta = t0 + (t1 - t0) * (i as Real / segs as Real);
-        let tb = t0 + (t1 - t0) * ((i + 1) as Real / segs as Real);
+        let ta = t0
+            + (t1 - t0)
+                * (<T as Scalar>::from_f64(i as f64) / <T as Scalar>::from_f64(segs as f64));
+        let tb = t0
+            + (t1 - t0)
+                * (<T as Scalar>::from_f64((i + 1) as f64) / <T as Scalar>::from_f64(segs as f64));
         subdivide_curve_segment(curve, ta, tb, 0, opts, &mut result);
     }
     result
@@ -237,16 +262,16 @@ pub fn tessellate_curve(curve: &NurbsCurve<3>, opts: &TessellationOptions) -> Ve
 
 /// Recursively subdivide a curve segment `[ta, tb]`, appending points up to
 /// (but not including) `ta`'s value, and including `tb`'s endpoint.
-fn subdivide_curve_segment(
-    curve: &NurbsCurve<3>,
-    ta: Real,
-    tb: Real,
+fn subdivide_curve_segment<T: Scalar>(
+    curve: &NurbsCurve<3, T>,
+    ta: T,
+    tb: T,
     depth: usize,
-    opts: &TessellationOptions,
-    result: &mut Vec<Point3r>,
+    opts: &TessellationOptions<T>,
+    result: &mut Vec<leto::geometry::Point3<T>>,
 ) {
     if depth >= opts.max_depth {
-        result.push(Point3r::from(curve.point(tb)));
+        result.push(leto::geometry::Point3::from(curve.point(tb)));
         return;
     }
 
@@ -255,21 +280,21 @@ fn subdivide_curve_segment(
     let (_, tan_b) = curve.point_and_tangent(tb);
 
     let need_split = if let (Some(ua), Some(ub)) = (
-        UnitVector3::try_new(tan_a, 1e-15),
-        UnitVector3::try_new(tan_b, 1e-15),
+        UnitVector3::try_new(tan_a, <T as Scalar>::from_f64(1e-15)),
+        UnitVector3::try_new(tan_b, <T as Scalar>::from_f64(1e-15)),
     ) {
         angle_deg(ua, ub) > opts.max_angle_deg
     } else {
-        // Degenerate tangent â€” insert midpoint to be safe
+        // Degenerate tangent — insert midpoint to be safe
         true
     };
 
     if need_split {
-        let tm = (ta + tb) * 0.5;
+        let tm = (ta + tb) * <T as Scalar>::from_f64(0.5);
         subdivide_curve_segment(curve, ta, tm, depth + 1, opts, result);
         subdivide_curve_segment(curve, tm, tb, depth + 1, opts, result);
     } else {
-        result.push(Point3r::from(curve.point(tb)));
+        result.push(leto::geometry::Point3::from(curve.point(tb)));
     }
 }
 
@@ -283,6 +308,7 @@ mod tests {
     use super::super::knot::KnotVector;
     use super::super::surface::{ControlGrid, NurbsSurface};
     use super::*;
+    use crate::domain::core::scalar::Point3r;
     use leto::geometry::Vector as SVector;
 
     type V3 = SVector<Real, 3>;
@@ -417,5 +443,154 @@ mod tests {
             opts.min_segments + 1,
             "should have min_segments+1 points"
         );
+    }
+
+    /// The tessellation parameters are computed in native `T` arithmetic:
+    /// for a dyadic flat patch with `min_segments = 3` and no subdivision,
+    /// the welded vertex set must bit-match the surface evaluated at the
+    /// test-computed `f32` grid parameters `from_f64(i)/from_f64(3)` —
+    /// pinning the in-`T` division against a widen-compute-narrow
+    /// regression.
+    #[test]
+    fn tessellation_parameters_evaluate_natively_at_t() {
+        let corners32 = [
+            leto::geometry::Point3::<f32>::new(0.0, 0.0, 0.0),
+            leto::geometry::Point3::<f32>::new(1.0, 0.0, 0.0),
+            leto::geometry::Point3::<f32>::new(0.0, 1.0, 0.0),
+            leto::geometry::Point3::<f32>::new(1.0, 1.0, 0.0),
+        ];
+        let surf =
+            NurbsSurface::<f32>::clamped(ControlGrid::new(corners32.to_vec(), 2, 2), 1, 1).unwrap();
+        let opts = TessellationOptions::<f32> {
+            min_segments: 3,
+            max_angle_deg: <f32 as Scalar>::from_f64(180.0),
+            max_depth: 0,
+        };
+        let mesh = tessellate_surface(&surf, &opts);
+        assert_eq!(
+            mesh.vertex_count(),
+            16,
+            "the 4x4 parameter grid has 16 corners"
+        );
+
+        let mesh_bits: Vec<[u32; 3]> = mesh
+            .vertices
+            .positions()
+            .map(|p| [p.x.to_bits(), p.y.to_bits(), p.z.to_bits()])
+            .collect();
+        let segs = <f32 as Scalar>::from_f64(3.0);
+        for i in 0..4 {
+            for j in 0..4 {
+                let u = <f32 as Scalar>::from_f64(i as f64) / segs;
+                let v = <f32 as Scalar>::from_f64(j as f64) / segs;
+                let expected = surf.point(u, v);
+                let key = [
+                    expected.x.to_bits(),
+                    expected.y.to_bits(),
+                    expected.z.to_bits(),
+                ];
+                assert!(
+                    mesh_bits.contains(&key),
+                    "native-parameter position ({i}, {j}) must be welded into the mesh bit-for-bit"
+                );
+            }
+        }
+    }
+
+    /// The scalar seam monomorphizes: a dyadic flat patch tessellates into an
+    /// `IndexedMesh<f32>` with the same topology as the `f64` run, and every
+    /// welded vertex coordinate is exactly representable at both precisions.
+    #[test]
+    fn f32_tessellation_matches_f64_on_dyadic_patch() {
+        let corners32 = [
+            leto::geometry::Point3::<f32>::new(0.0, 0.0, 0.0),
+            leto::geometry::Point3::<f32>::new(1.0, 0.0, 0.0),
+            leto::geometry::Point3::<f32>::new(0.0, 1.0, 0.0),
+            leto::geometry::Point3::<f32>::new(1.0, 1.0, 0.0),
+        ];
+        let corners64 = [
+            leto::geometry::Point3::<f64>::new(0.0, 0.0, 0.0),
+            leto::geometry::Point3::<f64>::new(1.0, 0.0, 0.0),
+            leto::geometry::Point3::<f64>::new(0.0, 1.0, 0.0),
+            leto::geometry::Point3::<f64>::new(1.0, 1.0, 0.0),
+        ];
+        let surf32 =
+            NurbsSurface::<f32>::clamped(ControlGrid::new(corners32.to_vec(), 2, 2), 1, 1).unwrap();
+        let surf64 =
+            NurbsSurface::<f64>::clamped(ControlGrid::new(corners64.to_vec(), 2, 2), 1, 1).unwrap();
+        let opts32 = TessellationOptions::<f32> {
+            min_segments: 2,
+            max_angle_deg: <f32 as Scalar>::from_f64(5.0),
+            max_depth: 3,
+        };
+        let opts64 = TessellationOptions::<f64> {
+            min_segments: 2,
+            max_angle_deg: 5.0,
+            max_depth: 3,
+        };
+        let mesh32 = tessellate_surface(&surf32, &opts32);
+        let mesh64 = tessellate_surface(&surf64, &opts64);
+        assert_eq!(mesh32.face_count(), mesh64.face_count());
+        assert_eq!(mesh32.vertex_count(), mesh64.vertex_count());
+        for i in 0..mesh32.vertex_count() {
+            let p32 = mesh32
+                .vertices
+                .position(crate::domain::core::index::VertexId::new(i as u32));
+            let p64 = mesh64
+                .vertices
+                .position(crate::domain::core::index::VertexId::new(i as u32));
+            assert_eq!(p32.x.to_bits(), <f32 as Scalar>::from_f64(p64.x).to_bits());
+            assert_eq!(p32.y.to_bits(), <f32 as Scalar>::from_f64(p64.y).to_bits());
+            assert_eq!(p32.z.to_bits(), <f32 as Scalar>::from_f64(p64.z).to_bits());
+        }
+    }
+
+    /// A dyadic linear curve tessellates identically at `f32` and `f64`:
+    /// the quarter-point parameters and straight-line evaluations are exact
+    /// at both precisions.
+    #[test]
+    fn f32_curve_tessellation_matches_f64_on_dyadic_segment() {
+        let curve32 = NurbsCurve::<3, f32>::new(
+            vec![
+                SVector::<f32, 3>::new(0.0, 0.0, 0.0),
+                SVector::<f32, 3>::new(1.0, 0.5, 0.25),
+            ],
+            vec![1.0_f32; 2],
+            KnotVector::<f32>::clamped_uniform(1, 1),
+            1,
+        )
+        .unwrap();
+        let curve64 = NurbsCurve::<3, f64>::new(
+            vec![
+                SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+                SVector::<f64, 3>::new(1.0, 0.5, 0.25),
+            ],
+            vec![1.0_f64; 2],
+            KnotVector::<f64>::clamped_uniform(1, 1),
+            1,
+        )
+        .unwrap();
+        let pts32 = tessellate_curve(
+            &curve32,
+            &TessellationOptions::<f32> {
+                min_segments: 4,
+                max_angle_deg: <f32 as Scalar>::from_f64(5.0),
+                max_depth: 2,
+            },
+        );
+        let pts64 = tessellate_curve(
+            &curve64,
+            &TessellationOptions::<f64> {
+                min_segments: 4,
+                max_angle_deg: 5.0,
+                max_depth: 2,
+            },
+        );
+        assert_eq!(pts32.len(), pts64.len());
+        for (p32, p64) in pts32.iter().zip(pts64.iter()) {
+            assert_eq!(p32.x.to_bits(), <f32 as Scalar>::from_f64(p64.x).to_bits());
+            assert_eq!(p32.y.to_bits(), <f32 as Scalar>::from_f64(p64.y).to_bits());
+            assert_eq!(p32.z.to_bits(), <f32 as Scalar>::from_f64(p64.z).to_bits());
+        }
     }
 }
