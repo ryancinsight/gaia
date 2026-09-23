@@ -3,19 +3,18 @@
 //! Covers adversarial edge cases known to cause failures in mesh libraries:
 //! - Near-surface GWN instability
 //! - Scale-invariant GWN evaluation
-//! - WNNC normal consistency
 //! - BVH vs linear agreement on large meshes
 //! - Near-vertex and degenerate-face handling
-//! - Bounded GWN convergence at surface
+//! - Per-triangle bounded GWN clipping
 //! - Open mesh behaviour
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use crate::application::csg::arrangement::classify::{
-        classify_fragment, gwn_bvh, prepare_bvh_mesh, prepare_classification_faces, wnnc_score,
-        FragmentClass,
+        classify_fragment, gwn_bvh, prepare_bvh_mesh, prepare_classification_faces, FragmentClass,
     };
     use crate::application::csg::arrangement::gwn::{gwn, gwn_prepared};
+    use crate::domain::core::constants::{GWN_INSIDE_THRESHOLD, GWN_OUTSIDE_THRESHOLD};
     use crate::domain::core::scalar::{Point3r, Vector3r};
     use crate::infrastructure::storage::face_store::FaceData;
     use crate::infrastructure::storage::vertex_pool::VertexPool;
@@ -23,7 +22,7 @@ mod tests {
     // ── Helpers ────────────────────────────────────────────────────────────
 
     /// Build a unit cube (edge = 1, centred at origin) with 12 triangles.
-    fn unit_cube_mesh() -> (VertexPool, Vec<FaceData>) {
+    pub(crate) fn unit_cube_mesh() -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
         let n = leto::geometry::Vector3::zeros();
         let s = 0.5_f64;
@@ -55,7 +54,7 @@ mod tests {
     }
 
     /// Build a scaled cube with given half-edge length.
-    fn scaled_cube_mesh(half: f64) -> (VertexPool, Vec<FaceData>) {
+    pub(crate) fn scaled_cube_mesh(half: f64) -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
         let n = leto::geometry::Vector3::zeros();
         let mut v = |x, y, z| pool.insert_or_weld(Point3r::new(x, y, z), n);
@@ -86,7 +85,7 @@ mod tests {
     }
 
     /// Build a tessellated unit sphere with `n_lat` latitude bands.
-    fn sphere_mesh(n_lat: usize) -> (VertexPool, Vec<FaceData>) {
+    pub(crate) fn sphere_mesh(n_lat: usize) -> (VertexPool, Vec<FaceData>) {
         let mut pool = VertexPool::default_millifluidic();
         let n = leto::geometry::Vector3::zeros();
         let n_lon = 2 * n_lat;
@@ -146,24 +145,69 @@ mod tests {
 
     // ── Near-surface GWN stability ─────────────────────────────────────────
 
-    /// A point very close to a face plane (distance ε) must still classify
-    /// correctly using GWN (|wn| in the [0.35, 0.65] band, triggering
-    /// tiebreakers).  The point must NOT erroneously classify as clearly
-    /// inside/outside.
+    /// Exterior queries against a closed cube remain exterior arbitrarily
+    /// close to its face; open-face ambiguity is covered by the classifier's
+    /// exact coplanar-oracle test.
     #[test]
-    fn gwn_near_surface_enters_band() {
+    fn gwn_near_surface_closed_cube_remains_outside() {
         let (pool, faces) = unit_cube_mesh();
         let prepared = prepare_classification_faces(&faces, &pool);
         // Point just above the +Z face (z = 0.5 + ε)
         for &eps in &[1e-3, 1e-6, 1e-9, 1e-12] {
             let q = Point3r::new(0.0, 0.0, 0.5 + eps);
             let wn = gwn_prepared(&q, &prepared).abs();
-            // Should be exterior (just outside) but near 0.5
             assert!(
-                wn < 0.99,
-                "ε={eps}: near-surface GWN should not be ≈1.0, got {wn:.6}"
+                wn < crate::domain::core::constants::GWN_OUTSIDE_THRESHOLD,
+                "ε={eps}: exterior GWN {wn:.6} must remain below the outside threshold"
+            );
+            let class = classify_fragment(&q, &Vector3r::new(0.0, 0.0, 1.0), &faces, &pool);
+            assert_eq!(
+                class,
+                FragmentClass::Outside,
+                "ε={eps}: point above the +Z face must classify outside"
             );
         }
+    }
+
+    /// A closed-cube face-center query falls in the decision band and uses the
+    /// geometric tiebreaker to classify either orientation of the fragment.
+    #[test]
+    fn gwn_closed_cube_face_center_uses_coplanar_tiebreak() {
+        let (pool, faces) = unit_cube_mesh();
+        let prepared = prepare_classification_faces(&faces, &pool);
+        let query = Point3r::new(0.0, 0.0, 0.5);
+        let winding = gwn_prepared(&query, &prepared);
+        assert!(
+            winding.is_finite(),
+            "boundary GWN must be finite, got {winding}"
+        );
+        assert!(
+            (GWN_OUTSIDE_THRESHOLD..=GWN_INSIDE_THRESHOLD).contains(&winding.abs()),
+            "face-center winding {winding} must reach the decision band"
+        );
+
+        let outward = Vector3r::new(0.0, 0.0, 1.0);
+        let inward = Vector3r::new(0.0, 0.0, -1.0);
+        assert_eq!(
+            classify_fragment(&query, &outward, &faces, &pool),
+            FragmentClass::CoplanarSame
+        );
+        assert_eq!(
+            classify_fragment(&query, &inward, &faces, &pool),
+            FragmentClass::CoplanarOpposite
+        );
+        assert_eq!(
+            crate::application::csg::arrangement::classify::classify_fragment_prepared(
+                &query, &outward, &prepared
+            ),
+            FragmentClass::CoplanarSame
+        );
+        assert_eq!(
+            crate::application::csg::arrangement::classify::classify_fragment_prepared(
+                &query, &inward, &prepared
+            ),
+            FragmentClass::CoplanarOpposite
+        );
     }
 
     /// Points just inside (below) each face should have GWN close to 1.
@@ -319,7 +363,7 @@ mod tests {
         }
     }
 
-    // ── Bounded GWN convergence ────────────────────────────────────────────
+    // ── Bounded GWN clipping ───────────────────────────────────────────────
 
     /// Bounded GWN must agree with standard GWN for interior/exterior
     /// points (where no triangle reaches the clip boundary).
@@ -365,133 +409,12 @@ mod tests {
         }
     }
 
-    // ── WNNC normal consistency ────────────────────────────────────────────
-
-    /// For a closed manifold (unit cube), the WNNC score at face centroids
-    /// with outward normals should be positive (consistent).
-    ///
-    /// The query must be ON the surface (where GWN ≈ 0.5 and the gradient
-    /// is maximal) rather than offset into the exterior (where GWN is
-    /// exactly 0 and the gradient vanishes).
-    #[test]
-    fn wnnc_closed_cube_normals_consistent() {
-        let (pool, faces) = unit_cube_mesh();
-        let prepared = prepare_classification_faces(&faces, &pool);
-        // Test WNNC at each face centroid with its outward normal.
-        // On the surface, GWN transitions from 1 (inside) to 0 (outside),
-        // so -∇GWN points in the outward normal direction → positive score.
-        for pf in &prepared {
-            let face_n = pf.normal; // unnormalised outward normal
-            let n_len = face_n.norm();
-            if n_len < 1e-15 {
-                continue;
-            }
-            let unit_n = face_n / n_len;
-            // Query at the face centroid (on the surface).
-            let score = wnnc_score(&pf.centroid, &unit_n, &prepared);
-            assert!(
-                score > 0.0,
-                "WNNC score should be positive for outward normal, got {score:.4} \
-                 at centroid {c:?}",
-                c = pf.centroid
-            );
-        }
-    }
-
-    /// For a closed manifold, WNNC with flipped normals should give a
-    /// negative score (inconsistent).
-    #[test]
-    fn wnnc_flipped_normals_negative() {
-        let (pool, faces) = unit_cube_mesh();
-        let prepared = prepare_classification_faces(&faces, &pool);
-        // Use the first face and flip its normal
-        let pf = &prepared[0];
-        let n_len = pf.normal.norm();
-        let unit_n = pf.normal / n_len;
-        let flipped = -unit_n;
-        // Query at the face centroid (on the surface).
-        let score = wnnc_score(&pf.centroid, &flipped, &prepared);
-        assert!(
-            score < 0.0,
-            "WNNC score should be negative for flipped normal, got {score:.4}"
-        );
-    }
-
-    // ── Scale-relative tiebreaker ──────────────────────────────────────────
-
-    /// The nearest-face tiebreaker must handle large-scale meshes correctly.
-    /// With absolute 1e-9, a 1km cube would incorrectly classify near-surface
-    /// points.  The scale-relative fix should classify correctly.
-    #[test]
-    fn tiebreaker_scale_relative_large_mesh() {
-        let scale = 1000.0; // 1 km cube
-        let (pool, faces) = scaled_cube_mesh(scale * 0.5);
-        // Point on +Z face plane
-        let c = Point3r::new(0.0, 0.0, scale * 0.5);
-        let n = Vector3r::new(0.0, 0.0, 1.0);
-        let cls = classify_fragment(&c, &n, &faces, &pool);
-        assert!(
-            matches!(cls, FragmentClass::CoplanarSame | FragmentClass::Outside),
-            "1 km scale: on-face point should be CoplanarSame/Outside, got {cls:?}"
-        );
-    }
-
-    /// Same test at small scale (1 µm cube).
-    #[test]
-    fn tiebreaker_scale_relative_small_mesh() {
-        let scale = 1e-6; // 1 µm cube
-        let (pool, faces) = scaled_cube_mesh(scale * 0.5);
-        let c = Point3r::new(0.0, 0.0, scale * 0.5);
-        let n = Vector3r::new(0.0, 0.0, 1.0);
-        let cls = classify_fragment(&c, &n, &faces, &pool);
-        assert!(
-            matches!(cls, FragmentClass::CoplanarSame | FragmentClass::Outside),
-            "1 µm scale: on-face point should be CoplanarSame/Outside, got {cls:?}"
-        );
-    }
-
-    // ── Sphere GWN symmetry ────────────────────────────────────────────────
-
-    /// WNNC on a tessellated sphere should agree: outward-pointing normals
-    /// at surface points should yield positive consistency scores.
-    ///
-    /// Queries are placed at face centroids (on the surface) where the GWN
-    /// gradient is strongest.
-    #[test]
-    fn wnnc_sphere_normals_consistent() {
-        let (pool, faces) = sphere_mesh(8); // 8 latitude bands → ~240 faces
-        let prepared = prepare_classification_faces(&faces, &pool);
-        let mut positive_count = 0;
-        let mut total_checked = 0;
-        for pf in &prepared {
-            let n_len = pf.normal.norm();
-            if n_len < 1e-15 {
-                continue;
-            }
-            let unit_n = pf.normal / n_len;
-            // Query at the face centroid (on the surface).
-            let score = wnnc_score(&pf.centroid, &unit_n, &prepared);
-            if score > 0.0 {
-                positive_count += 1;
-            }
-            total_checked += 1;
-        }
-        // At least 90% of faces should have consistent normals
-        // (some near poles may have marginal scores due to tessellation)
-        let ratio = f64::from(positive_count) / f64::from(total_checked);
-        assert!(
-            ratio > 0.9,
-            "WNNC: only {positive_count}/{total_checked} ({r:.1}%) faces consistent",
-            r = ratio * 100.0
-        );
-    }
-
     // ── Open mesh GWN ──────────────────────────────────────────────────────
 
-    /// An open mesh (single triangle) should not classify any point as
-    /// clearly inside (|wn| ≈ 1).
+    /// These queries on an open single-triangle mesh remain below the inside
+    /// threshold; this does not establish a binary rule for arbitrary soups.
     #[test]
-    fn gwn_open_mesh_never_fully_inside() {
+    fn gwn_single_triangle_queries_below_inside_threshold() {
         let mut pool = VertexPool::default_millifluidic();
         let n = leto::geometry::Vector3::zeros();
         let v0 = pool.insert_or_weld(Point3r::new(-1.0, -1.0, 0.0), n);
@@ -508,8 +431,8 @@ mod tests {
         for q in &test_points {
             let wn = gwn_prepared(q, &prepared).abs();
             assert!(
-                wn < 0.6,
-                "open mesh: |wn| should be < 0.6 (max ≈ 0.5), got {wn:.6} at {q:?}"
+                wn < GWN_INSIDE_THRESHOLD,
+                "open mesh query must remain below the inside threshold, got {wn:.6} at {q:?}"
             );
         }
     }

@@ -15,32 +15,6 @@ missing verification → documentation drift → PM cleanup.
 
 ---
 
-## GAIA-001 — Derive or replace the GWN classification band
-
-- **Outcome**: `GWN_INSIDE_THRESHOLD` (0.65) and `GWN_OUTSIDE_THRESHOLD` (0.35)
-  either carry a written derivation bounding the misclassification probability
-  for the supported operand class, or are replaced by a derived, scale-aware
-  criterion. `classify_fragment`'s tiebreaker band stops being an unexplained
-  literal at the one place the README admits exactness ends.
-- **Scope**: `src/domain/core/constants.rs:95-102`,
-  `src/application/csg/arrangement/classify.rs`,
-  `src/application/csg/arrangement/gwn.rs`. Non-goals: changing the exact
-  predicate boundary; re-tuning the constants to make a failing case pass
-  (that is the prohibited empirical hack).
-- **Acceptance oracle**: the constant's Rustdoc carries a derivation in the
-  form already used by `GWN_SOLID_ANGLE_CLIP`
-  (`src/domain/core/constants.rs:86-93`), plus an adversarial test whose inputs
-  sit inside the band and whose expected classification comes from an
-  independent oracle (exact orient/insphere sign or analytic membership), not
-  from the current implementation's output.
-- **Dependencies**: none.
-- **Risk / change class**: [correctness] [patch] — M.
-- **Status**: todo. **Owner**: unclaimed.
-
-Evidence: `README.md` "Where exactness ends"; `src/domain/core/constants.rs:96`
-and `:102` document what the constants *do* and never why those values;
-the sibling constant at `:86-93` shows the standard this repo already holds.
-
 ---
 
 ## GAIA-002 — Native-precision 3-D predicate boundary
@@ -255,7 +229,7 @@ half of the fix and not the tracking half. `rg 'feature = "stl-io"' src` and
 - **Acceptance oracle**: each new ADR cites its board item and the code it
   describes; `python scripts/adr-index.py check` passes; no ADR restates a
   README paragraph without naming the rejected alternative.
-- **Dependencies**: GAIA-001/002/003 each carry one of the candidates.
+- **Dependencies**: GAIA-002/003 each carry one of the candidates.
 - **Risk / change class**: [docs] [patch] — M.
 - **Status**: todo. **Owner**: unclaimed.
 
@@ -280,7 +254,7 @@ Architecture presents six distinct architectural decisions as settled.
   1997 for the predicates, Ruppert 1995 for refinement, Jacobson et al. for the
   generalized winding number) with a locator, and states its domain of
   validity.
-- **Dependencies**: GAIA-001 (the GWN chapter needs the derived band).
+- **Dependencies**: none; the GWN band decision is recorded in ADR 0004.
 - **Risk / change class**: [docs] [patch] — L.
 - **Status**: todo. **Owner**: unclaimed.
 
@@ -382,8 +356,7 @@ Clippy and the full nextest suite pass.
   with a proven termination bound and a boundary-feature protection test, or a
   README scope statement naming both as non-goals with the consumer driver
   that would reopen them.
-- **Dependencies**: GAIA-002 (predicate contract), GAIA-001 (tolerance
-  discipline).
+- **Dependencies**: GAIA-002 (predicate contract).
 - **Risk / change class**: [arch] [minor] — L.
 - **Status**: todo. **Owner**: unclaimed.
 

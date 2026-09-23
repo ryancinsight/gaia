@@ -149,6 +149,9 @@ pub(crate) mod stitch;
 #[cfg(test)]
 pub mod tests;
 pub(crate) mod tiebreaker;
+pub(crate) mod wnnc;
+#[cfg(test)]
+pub mod wnnc_tests;
 
 use classify::FragRecord;
 use coplanar_groups::{build_coplanar_group_index, process_coplanar_groups};

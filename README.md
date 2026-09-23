@@ -44,7 +44,7 @@ Gaia implements exactly-computable geometry and topologically-safe mesh represen
 
 ### 2. Numerical Correctness via Robust Predicates
 - **Shewchuk Adaptive Precision**: Wraps robust geometric predicates (`orient_2d`, `orient_3d`) for the documented `f64` predicate boundary. The predicate implementation protects sign decisions against roundoff in that representation.
-- **Where exactness ends**: exact predicates decide orientation and incircle/insphere signs. They do not decide CSG inside/outside membership — `classify_fragment` thresholds a generalized winding number against the tolerance constants `GWN_INSIDE_THRESHOLD` (0.65) and `GWN_OUTSIDE_THRESHOLD` (0.35) in `domain/core/constants.rs`, and resolves the band between them with coplanarity and nearest-face tiebreakers that are themselves tolerance-based.
+- **Where exactness ends**: exact predicates decide orientation and incircle/insphere signs. They do not decide CSG inside/outside membership — `classify_fragment` uses the generalized winding number thresholds `GWN_OUTSIDE_THRESHOLD` (0.25) and `GWN_INSIDE_THRESHOLD` (0.75), then resolves the band with coplanarity and nearest-face tiebreakers. The symmetric values maximize the minimum additive margin to the closed-solid reference values 0 and 1 and the midpoint of their one-sided boundary limits 0.5; they provide no probability guarantee for arbitrary triangle soups.
 - **Precision contract**: Surface and tetrahedral-builder kernels execute native `T` arithmetic; the 3-D Bowyer-Watson kernel currently converts coordinates to `f64` for its robust predicates. Native-precision 3-D predicates remain an audited extension item.
 
 ### 3. Validated Volume Construction

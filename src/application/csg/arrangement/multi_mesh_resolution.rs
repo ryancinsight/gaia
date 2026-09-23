@@ -23,20 +23,30 @@
 //! **orientation-reversed** (winding order flipped) to form the inner
 //! surface of the cavity.
 //!
-//! ## Theorem — Fragment Classification Completeness
+//! ## GWN classification limits
 //!
-//! For any fragment `f` from mesh `i`, the classification against mesh `j`
-//! is well-defined if and only if:
-//! 1. The fragment centroid does not lie exactly on mesh `j`'s surface.
-//! 2. The fragment is not a degenerate sliver (zero-area triangle).
+//! For an embedded, consistently oriented watertight solid, the exact winding
+//! number is zero outside and signed one inside, away from the boundary. Across
+//! a planar boundary face, the one-sided limits differ by one; their midpoint is
+//! signed one-half. Evaluation at the discontinuity can select a one-sided value.
+//! The winding number is dimensionless and invariant under uniform scaling.
 //!
-//! *Proof.*  Outside the surface, the generalized winding number (GWN) is
-//! 0 ± ε; inside, it is 1 ± ε.  The `classify_fragment_prepared` function
-//! uses GWN with a 0.5 threshold.  For non-degenerate fragments whose
-//! centroid is not on the surface, the GWN is bounded away from 0.5 (by
-//! the smoothness of the solid angle integral), so classification is
-//! unambiguous.  Degenerate slivers are filtered before classification.
-//! Coplanar fragments are handled by the separate coplanar dispatch.  ∎
+//! These identities do not bound floating-point summation or the bounded-GWN
+//! refinement. They also do not make one threshold valid for open, non-manifold,
+//! duplicated, or otherwise ambiguous face soups: on those inputs the
+//! generalized winding number is a confidence field, not a binary indicator.
+//! The implementation has no input-error distribution from which to derive a
+//! misclassification probability. Its threshold band is therefore a
+//! deterministic decision policy, with no probability guarantee.
+//!
+//! `classify_fragment_prepared` uses the constants
+//! `GWN_OUTSIDE_THRESHOLD` and `GWN_INSIDE_THRESHOLD`, then tries bounded GWN,
+//! exact coplanarity, and a nearest-face signed-distance fallback. Those steps
+//! define the current behavior; they do not prove classification completeness.
+//!
+//! Reference: Jacobson et al. (2013), *Robust Inside-Outside Segmentation using
+//! Generalized Winding Numbers*, §§4.1–4.2
+//! ([paper](https://igl.ethz.ch/projects/winding-number/robust-inside-outside-segmentation-using-generalized-winding-numbers-siggraph-2013-compressed-jacobson-et-al.pdf)).
 //!
 //! ## Complexity
 //!

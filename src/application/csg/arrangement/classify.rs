@@ -40,9 +40,10 @@
 
 // ── Public re-exports (stable API for fragment classification and callers) ───
 
-pub use super::gwn::{gwn, prepare_classification_faces, wnnc_score, PreparedFace};
+pub use super::gwn::{gwn, prepare_classification_faces, PreparedFace};
 pub use super::gwn_bvh::{gwn_bvh, prepare_bvh_mesh, PreparedBvhMesh};
 pub use super::tiebreaker::FragmentClass;
+pub use super::wnnc::wnnc_score;
 
 use super::gwn::{gwn_bounded_prepared, gwn_prepared};
 use super::tiebreaker::{
@@ -158,6 +159,7 @@ pub fn tri_normal(tri: &[Point3r; 3]) -> Vector3r {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::topology::predicates::{orient3d, Sign};
     use crate::infrastructure::storage::face_store::FaceData;
     use crate::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -215,23 +217,56 @@ mod tests {
     }
 
     #[test]
-    fn classify_coplanar_same_fragment() {
+    fn face_interior_surface_query_uses_exact_orientation_oracle() {
         let mut pool = VertexPool::default_millifluidic();
-        let n = leto::geometry::Vector3::zeros();
-        let v0 = pool.insert_or_weld(Point3r::new(-0.5, -0.5, 0.5), n);
-        let v1 = pool.insert_or_weld(Point3r::new(0.5, -0.5, 0.5), n);
-        let v2 = pool.insert_or_weld(Point3r::new(-0.5, 0.5, 0.5), n);
-        let v3 = pool.insert_or_weld(Point3r::new(0.5, 0.5, 0.5), n);
+        let zero = leto::geometry::Vector3::zeros();
+        let v0 = pool.insert_or_weld(Point3r::new(-0.5, -0.5, 0.5), zero);
+        let v1 = pool.insert_or_weld(Point3r::new(0.5, -0.5, 0.5), zero);
+        let v2 = pool.insert_or_weld(Point3r::new(-0.5, 0.5, 0.5), zero);
+        let v3 = pool.insert_or_weld(Point3r::new(0.5, 0.5, 0.5), zero);
         let faces = vec![
             FaceData::untagged(v0, v1, v2),
             FaceData::untagged(v1, v3, v2),
         ];
-        let c = Point3r::new(0.0, 0.0, 0.5);
-        let frag_n = Vector3r::new(0.0, 0.0, 1.0);
-        let cls = classify_fragment(&c, &frag_n, &faces, &pool);
-        assert!(
-            matches!(cls, FragmentClass::CoplanarSame | FragmentClass::Outside),
-            "outward-coplanar fragment should be CoplanarSame or Outside, got {cls:?}"
+        let face = faces.first().expect("fixture contains a face");
+        let a = pool.position(face.vertices[0]);
+        let b = pool.position(face.vertices[1]);
+        let c = pool.position(face.vertices[2]);
+        let q = triangle_centroid(a, b, c);
+        let normal = triangle_area_normal::<f64>(a, b, c);
+        let reversed_normal = Vector3r::new(-normal.x, -normal.y, -normal.z);
+
+        assert_eq!(orient3d(a, b, c, &q), Sign::Zero);
+        assert!(normal.z > 0.0, "fixture face normal must point outward");
+
+        let prepared = prepare_classification_faces(&faces, &pool);
+        let winding_values = [
+            gwn::<f64>(&q, &faces, &pool).abs(),
+            gwn_prepared(&q, &prepared).abs(),
+            gwn_bounded_prepared(&q, &prepared).abs(),
+        ];
+        for winding in winding_values {
+            assert!(
+                (GWN_OUTSIDE_THRESHOLD..=GWN_INSIDE_THRESHOLD).contains(&winding),
+                "face-interior surface winding {winding} must reach the tie band"
+            );
+        }
+
+        assert_eq!(
+            classify_fragment(&q, &normal, &faces, &pool),
+            FragmentClass::CoplanarSame
+        );
+        assert_eq!(
+            classify_fragment(&q, &reversed_normal, &faces, &pool),
+            FragmentClass::CoplanarOpposite
+        );
+        assert_eq!(
+            classify_fragment_prepared(&q, &normal, &prepared),
+            FragmentClass::CoplanarSame
+        );
+        assert_eq!(
+            classify_fragment_prepared(&q, &reversed_normal, &prepared),
+            FragmentClass::CoplanarOpposite
         );
     }
 

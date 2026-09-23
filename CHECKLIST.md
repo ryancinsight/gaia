@@ -814,11 +814,6 @@ here.
       row from the `README.md` directory tree — the directory does not exist
       (`src/application/` holds channel, csg, delaunay, hierarchy, quality,
       watertight, welding).
-- [ ] GAIA-001 — derive or replace the GWN classification band.
-    - [ ] Write the derivation for the 0.65 / 0.35 band, or the replacing
-      criterion, in the form used by `GWN_SOLID_ANGLE_CLIP`.
-    - [ ] Add in-band adversarial cases with an independent membership oracle.
-    - [ ] Draft the accompanying ADR (feeds GAIA-010).
 - [ ] GAIA-002 — close or narrow the 3-D predicate precision boundary.
     - [ ] Decide: native-`T` predicate path, or an `f64`-only 3-D kernel bound.
     - [ ] Record the decision as an ADR before implementing (`[arch]`).
