@@ -28,6 +28,7 @@ use super::mesh_ops::{boundary_half_edges, dedup_faces_unordered};
 #[cfg(test)]
 use crate::application::csg::diagnostics::trace_enabled;
 use crate::application::csg::predicates3d::point_on_segment_exact;
+use crate::domain::core::constants::{POINT_ON_EDGE_SIN2_TOL, SNAP_ROUND_EDGE_PARAM_MARGIN};
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Real;
 use crate::infrastructure::storage::face_store::FaceData;
@@ -37,12 +38,17 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 /// A boundary vertex V is considered to lie on face edge [A,B] if:
 ///   distance(V, line(A,B)) < sqrt(SNAP_TOL_SQ) * |AB|
 /// i.e., sin(angle(AV, AB)) < sqrt(SNAP_TOL_SQ) ≈ 0.001
-const SNAP_TOL_SQ: Real = 1e-6;
+///
+/// Delegates to [`POINT_ON_EDGE_SIN2_TOL`] (SSOT): the seam passes test the same
+/// angular condition, so "on the edge" means one thing across the crate.
+const SNAP_TOL_SQ: Real = POINT_ON_EDGE_SIN2_TOL;
 /// Endpoint margin for edge-parameter test `t`.
 ///
 /// Candidate split vertices must be strictly interior to the edge and at least
 /// this fraction away from either endpoint.
-const SNAP_EDGE_PARAM_EPS: Real = 5e-3;
+///
+/// Delegates to [`SNAP_ROUND_EDGE_PARAM_MARGIN`] (SSOT).
+const SNAP_EDGE_PARAM_EPS: Real = SNAP_ROUND_EDGE_PARAM_MARGIN;
 
 type FaceEdgeRef = (usize, VertexId, VertexId);
 
