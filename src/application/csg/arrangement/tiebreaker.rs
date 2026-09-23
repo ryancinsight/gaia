@@ -1,8 +1,9 @@
 //! Tiebreaker predicates for GWN boundary fragments in CSG classification.
 //!
-//! When GWN(q, M) lies in the band `[GWN_OUTSIDE_THRESHOLD, GWN_INSIDE_THRESHOLD]`
-//! (nominally 0.35 ≤ |wn| ≤ 0.65), the fragment centroid lies on or very near the
-//! opposing mesh surface.  Two tiebreakers resolve ambiguity in order:
+//! When GWN(q, M) lies in the band
+//! `[GWN_OUTSIDE_THRESHOLD, GWN_INSIDE_THRESHOLD]`, the fragment centroid may
+//! lie on or near the opposing mesh surface. Two tiebreakers resolve ambiguity
+//! in order:
 //!
 //! 1. **Coplanarity + normal comparison** (`coplanarity_tiebreak_*`):
 //!    For each reference face whose plane exactly contains the centroid
@@ -215,6 +216,8 @@ fn classify_by_sign(sign: f64, normal_norm_sq: f64) -> FragmentClass {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::application::csg::arrangement::classify::classify_fragment;
+    use crate::application::csg::arrangement::gwn_robustness_tests::tests::scaled_cube_mesh;
     use crate::domain::core::scalar::Point3r;
     use crate::infrastructure::storage::face_store::FaceData;
     use crate::infrastructure::storage::vertex_pool::VertexPool;
@@ -274,6 +277,34 @@ mod tests {
         assert!(
             matches!(result, Some(FragmentClass::CoplanarSame)),
             "co-directed normals → exterior (CoplanarSame), got {result:?}"
+        );
+    }
+
+    /// The nearest-face tiebreaker remains stable for a kilometre-scale cube.
+    #[test]
+    fn nearest_face_classification_at_large_scale() {
+        let half_edge = 500.0;
+        let (pool, faces) = scaled_cube_mesh(half_edge);
+        let point = Point3r::new(0.0, 0.0, half_edge);
+        let normal = Vector3r::new(0.0, 0.0, 1.0);
+        let class = classify_fragment(&point, &normal, &faces, &pool);
+        assert!(
+            matches!(class, FragmentClass::CoplanarSame | FragmentClass::Outside),
+            "kilometre-scale face query classified as {class:?}"
+        );
+    }
+
+    /// The nearest-face tiebreaker remains stable for a micrometre-scale cube.
+    #[test]
+    fn nearest_face_classification_at_small_scale() {
+        let half_edge = 0.5e-6;
+        let (pool, faces) = scaled_cube_mesh(half_edge);
+        let point = Point3r::new(0.0, 0.0, half_edge);
+        let normal = Vector3r::new(0.0, 0.0, 1.0);
+        let class = classify_fragment(&point, &normal, &faces, &pool);
+        assert!(
+            matches!(class, FragmentClass::CoplanarSame | FragmentClass::Outside),
+            "micrometre-scale face query classified as {class:?}"
         );
     }
 }

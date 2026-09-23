@@ -78,28 +78,36 @@ pub const GWN_DENOMINATOR_GUARD: Real = 1e-30;
 
 /// Solid-angle clip margin for bounded GWN evaluation.
 ///
-/// Each per-triangle solid angle `Ω` is clamped to `|Ω| ≤ 2π − δ` where
-/// `δ = GWN_SOLID_ANGLE_CLIP`.  This prevents a single near-coincident
-/// triangle from contributing a full half-winding (±0.5) to the total,
-/// reducing numerical jitter for near-surface query points.
-///
-/// # Theorem — Clip Safety
-///
-/// For a query at distance `d` from the nearest mesh face, the dominant
-/// face subtends `Ω ≈ 2π − O(d²/A)` where A is face area.  The clip
-/// fires only when `O(d²/A) < δ = 1e-6`, i.e. `d < √(A × 1e-6)`.
-/// For A = 1 mm² this is d < 1 nm — safely below any physical resolution.
-/// Interior/exterior queries never trigger the clip. ∎
+/// Each triangle's solid angle is clamped to `|Ω| ≤ 2π − δ`, where
+/// `δ = GWN_SOLID_ANGLE_CLIP`. For a finite triangle, `|Ω| ≤ 2π`, so clamping
+/// changes its winding contribution `Ω/(4π)` by at most `δ/(4π)`. If `k`
+/// triangles are clipped, the total change is at most `kδ/(4π)` by the
+/// triangle inequality. This bound depends on the number of clipped faces;
+/// it gives no query-distance threshold or classification guarantee.
 pub const GWN_SOLID_ANGLE_CLIP: Real = 1e-6;
 
-/// GWN threshold: `|wn| > GWN_INSIDE_THRESHOLD` → query is strictly inside.
-pub const GWN_INSIDE_THRESHOLD: Real = 0.65;
+/// GWN threshold: `|wn| > GWN_INSIDE_THRESHOLD` → query is classified inside.
+///
+/// The symmetric thresholds are `t = GWN_OUTSIDE_THRESHOLD` and `1 − t`.
+/// For a consistently oriented, watertight solid away from its boundary, the
+/// ideal winding magnitudes are 0 outside and 1 inside. Across a planar face,
+/// the one-sided limits differ by one, so their midpoint is 0.5. The minimum
+/// distance from `{0, 0.5, 1}` to the two decision thresholds is
+/// `min(t, 0.5 − t)`, maximized at `t = 0.25`. The resulting values 0.25 and
+/// 0.75 give a deterministic maximin margin for those reference magnitudes.
+///
+/// This is not a finite-precision error bound or a misclassification
+/// probability. The generalized winding number can take other values for open,
+/// non-manifold, duplicated, or inconsistently oriented triangle soups. Its
+/// scale invariance follows from its dimensionless solid-angle definition.
+pub const GWN_INSIDE_THRESHOLD: Real = 0.75;
 
-/// GWN threshold: `|wn| < GWN_OUTSIDE_THRESHOLD` → query is strictly outside.
+/// GWN threshold: `|wn| < GWN_OUTSIDE_THRESHOLD` → query is classified outside.
 ///
 /// The band `[GWN_OUTSIDE_THRESHOLD, GWN_INSIDE_THRESHOLD]` triggers the
-/// tiebreaker predicates in `classify_fragment`.
-pub const GWN_OUTSIDE_THRESHOLD: Real = 0.35;
+/// tiebreaker predicates in `classify_fragment`. Its value is the symmetric
+/// maximin choice derived above.
+pub const GWN_OUTSIDE_THRESHOLD: Real = 0.25;
 
 /// Scale-relative tolerance for the nearest-face signed distance tiebreaker.
 ///
@@ -385,5 +393,11 @@ mod tests {
             tol > 0.0 && tol < 1.0,
             "sin²θ bound must be in (0, 1), got {tol:e}"
         );
+    }
+
+    #[test]
+    fn gwn_thresholds_match_the_derived_symmetric_margin() {
+        assert_eq!(GWN_INSIDE_THRESHOLD, 1.0 - GWN_OUTSIDE_THRESHOLD);
+        assert_eq!(GWN_OUTSIDE_THRESHOLD.min(0.5 - GWN_OUTSIDE_THRESHOLD), 0.25);
     }
 }

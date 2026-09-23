@@ -27,8 +27,13 @@
 //!    per query lie in the "band" where d ≤ R (not skipped, but also not exact
 //!    for interior points).  Each such node's subtree is recursed exactly.
 //! 5. By induction, the total accumulated skip error < `log₂(n) · error_budget`.
-//! 6. For `error_budget = 0.01` and `n = 10 000`, error < 0.14,
-//!    well below the GWN threshold band (width 0.30). ∎
+//! 6. For `error_budget = 0.01` and `n = 10 000`, the stated bound is < 0.14.
+//!    The distance from the ideal closed-solid magnitudes 0 and 1 to their
+//!    nearest threshold is `min(GWN_OUTSIDE_THRESHOLD,
+//!    1 - GWN_INSIDE_THRESHOLD)` = 0.25. This comparison applies only when the
+//!    query is away from the boundary of a consistently oriented watertight
+//!    solid and the skip-error bound holds; it is not a guarantee for arbitrary
+//!    soups or boundary queries. ∎
 //!
 //! ## Complexity
 //!
@@ -278,7 +283,8 @@ fn face_centroid_axis(faces: &[PreparedFace], idx: usize, axis: usize) -> f64 {
 ///
 /// `error_budget` is the maximum acceptable GWN error per skipped cluster.
 /// A value of `0.01` gives < 0.14 total error for meshes with up to 10 000
-/// faces (below the 0.30 threshold band used in classification).
+/// faces (below the band bounded by `GWN_OUTSIDE_THRESHOLD` and
+/// `GWN_INSIDE_THRESHOLD`).
 ///
 /// Returns a value in `[-1.0, 1.0]` (same convention as [`super::gwn::gwn`]).
 #[must_use]
@@ -430,7 +436,7 @@ mod tests {
         }
     }
 
-    /// Interior point should classify as inside (|wn| > 0.65) with BVH-GWN.
+    /// Interior point should exceed the configured inside threshold with BVH-GWN.
     #[test]
     fn gwn_bvh_interior_is_one() {
         let (pool, faces) = unit_cube_faces();
@@ -438,10 +444,13 @@ mod tests {
         let bvh = prepare_bvh_mesh(&prepared).expect("bvh build");
         let q = Point3r::new(0.0, 0.0, 0.0);
         let wn = gwn_bvh(&q, &bvh, 0.01).abs();
-        assert!(wn > 0.65, "interior should have |wn| > 0.65, got {wn:.4}");
+        assert!(
+            wn > crate::domain::core::constants::GWN_INSIDE_THRESHOLD,
+            "interior should exceed the inside threshold, got {wn:.4}"
+        );
     }
 
-    /// Exterior point should classify as outside (|wn| < 0.35) with BVH-GWN.
+    /// Exterior point should fall below the configured outside threshold with BVH-GWN.
     #[test]
     fn gwn_bvh_exterior_is_zero() {
         let (pool, faces) = unit_cube_faces();
@@ -449,7 +458,10 @@ mod tests {
         let bvh = prepare_bvh_mesh(&prepared).expect("bvh build");
         let q = Point3r::new(5.0, 0.0, 0.0);
         let wn = gwn_bvh(&q, &bvh, 0.01).abs();
-        assert!(wn < 0.35, "exterior should have |wn| < 0.35, got {wn:.4}");
+        assert!(
+            wn < crate::domain::core::constants::GWN_OUTSIDE_THRESHOLD,
+            "exterior should fall below the outside threshold, got {wn:.4}"
+        );
     }
 
     /// Empty input yields None.

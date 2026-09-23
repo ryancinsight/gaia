@@ -21,6 +21,7 @@ mod tests {
     use crate::application::csg::arrangement::gwn::gwn;
     use crate::application::csg::boolean::{csg_boolean, BooleanOp};
     use crate::application::csg::detect_self_intersect::detect_self_intersections;
+    use crate::domain::core::constants::{GWN_INSIDE_THRESHOLD, GWN_OUTSIDE_THRESHOLD};
     use crate::domain::core::scalar::Point3r;
     use crate::domain::geometry::primitives::{Cube, Cylinder, PrimitiveMesh};
     use crate::infrastructure::storage::face_store::FaceData;
@@ -137,8 +138,8 @@ mod tests {
             "GWN must be finite for interior point: {wn}"
         );
         assert!(
-            wn.abs() > 0.5,
-            "Interior GWN |wn|={} must be > 0.5",
+            wn.abs() > GWN_INSIDE_THRESHOLD,
+            "Interior GWN |wn|={} must exceed the inside threshold",
             wn.abs()
         );
     }
@@ -255,21 +256,21 @@ mod tests {
 
     // ── Property-based tests (proptest) ────────────────────────────────────
 
-    // Property: GWN of exterior points is approximately 0 (< 0.5 in absolute value)
+    // Property: GWN of exterior points is below the outside threshold
     // for a closed manifold unit cube.
     //
     // For any query point at distance > 1 from the cube surface along +Z,
     // the winding number must be close to 0 (exterior).
     proptest! {
         #[test]
-        fn gwn_exterior_always_below_half(qz in 2.0_f64..100.0) {
+        fn gwn_exterior_below_outside_threshold(qz in 2.0_f64..100.0) {
             let (pool, faces) = unit_cube_faces();
             let q = Point3r::new(0.0, 0.0, qz);
             let wn = gwn::<f64>(&q, &faces, &pool);
             prop_assert!(wn.is_finite(), "GWN must be finite: {wn}");
             prop_assert!(
-                wn.abs() < 0.5,
-                "exterior GWN |wn|={} must be < 0.5 for q=(0,0,{qz})",
+                wn.abs() < GWN_OUTSIDE_THRESHOLD,
+                "exterior GWN |wn|={} must be below the outside threshold for q=(0,0,{qz})",
                 wn.abs()
             );
         }
@@ -1026,24 +1027,6 @@ mod tests {
         assert!(
             rel_err < 0.05,
             "(A∪B)∪C ≠ A∪(B∪C) by volume: {vol_l:.6} vs {vol_r:.6}, err={rel_err:.4}"
-        );
-    }
-
-    /// GWN stability on the boundary face plane: a query exactly on a face
-    /// must not produce NaN or infinity — it should fall in the ambiguous
-    /// tiebreaker band.
-    #[test]
-    fn gwn_on_boundary_face_not_nan() {
-        let (pool, faces) = unit_cube_faces();
-        // Query point on the +Z face (z=0.5), but interior to the face
-        let on_face = Point3r::new(0.0, 0.0, 0.5);
-        let wn = gwn::<f64>(&on_face, &faces, &pool);
-        assert!(wn.is_finite(), "GWN on face must be finite, got {wn}");
-        // Should be near ±0.5 (boundary)
-        assert!(
-            wn.abs() > 0.3 && wn.abs() < 0.7,
-            "GWN on face should be in boundary band: |wn|={:.4}",
-            wn.abs()
         );
     }
 

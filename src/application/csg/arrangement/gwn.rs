@@ -125,10 +125,10 @@ pub fn prepare_classification_faces(
 /// Generalized Winding Number (GWN) of `query` with respect to a closed
 /// triangle mesh.
 ///
-/// Returns a value in [-1, 1] clamped by construction:
-/// - **±1.0**: query is strictly inside the mesh.
-/// - **0.0**:  query is strictly outside the mesh.
-/// - **≈0.5**: query lies on a face plane (seam centroid).
+/// Returns a value in `[-1, 1]`. For a consistently oriented, watertight
+/// surface away from its boundary, the ideal values are ±1 inside and 0
+/// outside. A query on a triangulated boundary has no universal pointwise
+/// value; direct evaluation may select a side-dependent value.
 ///
 /// ## Implementation Note — Norm Efficiency
 ///
@@ -197,7 +197,7 @@ fn solid_angle_f64(
 /// Returns `None` if the query lies within sub-ULP distance of any vertex
 /// (near-vertex guard — prevents `atan2(0, 0) → NaN`).
 #[inline(always)]
-fn vertex_offsets(
+pub(super) fn vertex_offsets(
     query: &Point3r,
     face: &PreparedFace,
 ) -> Option<(
@@ -237,30 +237,27 @@ pub(crate) fn gwn_prepared(query: &Point3r, faces: &[PreparedFace]) -> f64 {
 
 /// Bounded GWN against precomputed `PreparedFace` geometry (f64-only).
 ///
-/// ## Theorem — Per-Triangle Solid-Angle Clamp
+/// Each triangle contribution is independently clamped to
+/// `[-(2π − δ), 2π − δ]`, where `δ = GWN_SOLID_ANGLE_CLIP`. A finite triangle's
+/// solid angle has magnitude at most `2π`; therefore each clipped winding
+/// contribution changes by at most `δ/(4π)`. With `k` clipped triangles, the
+/// total change is at most `kδ/(4π)`. This controls only the change introduced
+/// by the clamp. It does not bound arithmetic error, query distance, or
+/// classification error, and it does not force a boundary query to return
+/// one-half winding.
 ///
-/// The van Oosterom–Strackee solid angle `Ω = 2·atan2(num, den)` lies in
-/// `(-2π, 2π]` by the range of `atan2`.  When query `q` is nearly coplanar
-/// with a triangle and the projection falls inside it, `den → 0⁻` and
-/// `Ω → ±2π`.  This single-face dominance creates numerical jitter near the
-/// surface because the remaining faces' contributions (≈ ∓ 2π total for a
-/// closed mesh) must cancel to the same precision.
-///
-/// Clamping each `|Ω_i| ≤ 2π − δ` for `δ = GWN_SOLID_ANGLE_CLIP` prevents
-/// any single face from contributing a full half-winding.  For far-field and
-/// interior queries, no face reaches the clip boundary (each subtends ≪ 2π),
-/// so `gwn_bounded ≡ gwn`.  For near-surface queries, the dominant face's
-/// contribution is clipped, yielding a stable value that converges to ±0.5
-/// on the surface instead of oscillating.
+/// The ICCV 2025 bounded formulation cited below concerns point-cloud winding
+/// numbers; it does not derive this triangle-mesh clamp.
 ///
 /// ## Complexity — O(n) per query, identical to [`gwn_prepared`].
 ///
 /// ## Reference
 ///
-/// Inspired by "Leaps and Bounds: An Improved Point Cloud Winding Number
-/// Formulation" (ICCV 2025), adapted for triangle meshes.  The point-cloud
-/// paper clips dipole contributions; our triangle-mesh variant clips the
-/// van Oosterom solid angle to achieve the analogous bounded behaviour. ∞
+/// Reference: Koneputugodage et al., "Leaps and Bounds: An Improved Point Cloud
+/// Winding Number Formulation for Fast Normal Estimation and Surface
+/// Reconstruction," ICCV 2025 ([paper](https://openaccess.thecvf.com/content/ICCV2025/html/Koneputugodage_Leaps_and_Bounds_An_Improved_Point_Cloud_Winding_Number_Formulation_ICCV_2025_paper.html)).
+/// The paper's formulation is for point clouds and is not an analysis of this
+/// triangle-mesh clamp.
 #[inline]
 pub(crate) fn gwn_bounded_prepared(query: &Point3r, faces: &[PreparedFace]) -> f64 {
     let mut solid_angle_sum = 0.0_f64;
@@ -272,103 +269,6 @@ pub(crate) fn gwn_bounded_prepared(query: &Point3r, faces: &[PreparedFace]) -> f
         }
     }
     (solid_angle_sum / (4.0 * std::f64::consts::PI)).clamp(-1.0, 1.0)
-}
-
-/// Exact analytical spatial gradient of the Generalized Winding Number ∇GWN(p).
-///
-/// ## Theorem — Solid Angle Spatial Gradient
-/// Derived from the van Oosterom & Strackee exact solid angle formulation:
-/// `∇_p Ω = 2 (D ∇_p N - N ∇_p D) / (N² + D²)`
-/// where `N = va · (vb × vc)`, `D = |va||vb||vc| + (va·vb)|vc| + (vb·vc)|va| + (vc·va)|vb|`
-/// `∇_p N = -normal`  (the unnormalized face normal `(b-a) × (c-a)`)
-/// `∇_p D = -(K_a va + K_b vb + K_c vc)`
-/// where `K_a = (lb·lc + vb·vc)/la + lb + lc` (cyclic for b, c).
-///
-/// This exact $O(N)$ evaluation completely removes numerical finite-difference parameters.
-pub(crate) fn gwn_gradient_prepared(query: &Point3r, faces: &[PreparedFace]) -> Vector3r {
-    let mut grad_sum = Vector3r::zeros();
-    for face in faces {
-        let Some((va, vb, vc)) = vertex_offsets(query, face) else {
-            continue;
-        };
-        let la = va.norm();
-        let lb = vb.norm();
-        let lc = vc.norm();
-
-        // Numerator and Denominator — shared kernel (see solid_angle_f64)
-        let num = va.dot(vb.cross(vc));
-        let den = la * lb * lc + va.dot(vb) * lc + vb.dot(vc) * la + vc.dot(va) * lb;
-
-        let den_sq = den * den + num * num;
-        if den_sq < 1e-60 {
-            continue;
-        }
-
-        // Topological singularity bounds:
-        // If the query point lies exactly on the open face (num ≈ 0, den < 0),
-        // the face itself represents a 4π topological branch cut and its analytical
-        // principal value spatial gradient is entirely zero. We must explicitly skip it
-        // to prevent `atan2` branch-cut derivative explosions.
-        if num.abs() < 1e-12 && den < 0.0 {
-            continue;
-        }
-
-        // Analytical derivatives
-        let k_a = (lb * lc + vb.dot(vc)) / la + lb + lc;
-        let k_b = (la * lc + va.dot(vc)) / lb + la + lc;
-        let k_c = (la * lb + va.dot(vb)) / lc + la + lb;
-
-        let grad_n = -face.normal;
-        let grad_d = -(va * k_a + vb * k_b + vc * k_c);
-
-        let grad_omega = (grad_n * den - grad_d * num) * 2.0 / den_sq;
-        grad_sum += grad_omega;
-    }
-    grad_sum / (4.0 * std::f64::consts::PI)
-}
-
-// ── WNNC normal consistency ───────────────────────────────────────────────────
-
-/// Winding Number Normal Consistency (WNNC) score at a surface point.
-///
-/// ## Theorem — Normal Consistency via GWN Gradient
-///
-/// For a closed orientable 2-manifold M with outward normal field `n`, the
-/// negative gradient of the induced GWN field satisfies:
-///
-/// ```text
-/// −∇GWN(p) ∝ n(p)   for p on M
-/// ```
-///
-/// Therefore `dot(−∇GWN(p), n(p)) > 0` indicates that the normal at `p` is
-/// consistent with the surrounding winding-number field.  A negative score
-/// indicates an inverted or inconsistent normal.
-///
-/// The exact gradient is computed directly via boundary integrals, fully eliminating
-/// parameterized finite-difference approximations (`h`).
-///
-/// The returned score is the cosine of the angle between `−∇GWN` and `normal`:
-/// `score ∈ [-1, 1]`.  Positive values indicate consistent normals.
-///
-/// ## Complexity — O(N) per point.
-///
-/// ## Reference
-///
-/// Feng et al. (2024), *Winding Number Normal Consistency*, adapted for
-/// post-CSG normal validation using exact analytical solid angle gradients. ∎
-#[must_use]
-pub fn wnnc_score(point: &Point3r, normal: &Vector3r, faces: &[PreparedFace]) -> f64 {
-    let grad = gwn_gradient_prepared(point, faces);
-
-    let grad_norm_sq = grad.norm_squared();
-    let normal_norm_sq = normal.norm_squared();
-    if grad_norm_sq < 1e-60 || normal_norm_sq < 1e-60 {
-        return 0.0;
-    }
-    // Score = cos(angle between -∇GWN and normal)
-    //       = dot(-grad, normal) / (|grad| × |normal|)
-    let neg_grad_dot_n = -grad.dot(*normal);
-    neg_grad_dot_n / (grad_norm_sq.sqrt() * normal_norm_sq.sqrt())
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
