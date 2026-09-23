@@ -170,6 +170,17 @@ pub const COREFINE_EDGE_EPS: Real = 1e-6;
 /// edge" means.
 pub const POINT_ON_EDGE_SIN2_TOL: Real = 1e-6;
 
+/// The historical name for [`POINT_ON_EDGE_SIN2_TOL`], kept because it is public.
+///
+/// Three names used to spell this one threshold — this one had no callers, and
+/// its doc stated `|cross|² < SEAM_COLLINEAR_TOL_SQ × |Vb − Va|²`, which is not
+/// the test the call sites perform (they divide by `|Vb − Va|² · |P − Va|²` and
+/// so compare against `sin²θ`). The value now has a single definition above;
+/// this alias exists so that retiring the name does not break a published API.
+///
+/// Prefer [`POINT_ON_EDGE_SIN2_TOL`]: it says what the threshold measures.
+pub const SEAM_COLLINEAR_TOL_SQ: Real = POINT_ON_EDGE_SIN2_TOL;
+
 /// Maximum Steiner vertices per face during CDT co-refinement.
 ///
 /// When the total count (edge Steiners + interior Steiners) exceeds this
