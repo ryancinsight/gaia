@@ -104,12 +104,7 @@ fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
         let _ = write!(
             svg,
             "<polygon points=\"{:.1},{:.1} {:.1},{:.1} {:.1},{:.1}\" fill=\"#60a5fa\" fill-opacity=\"0.28\"/>",
-            points[0][0],
-            points[0][1],
-            points[1][0],
-            points[1][1],
-            points[2][0],
-            points[2][1]
+            points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1]
         );
     }
     svg.push_str("</g><g stroke=\"#0f172a\" stroke-width=\"0.45\" stroke-opacity=\"0.68\">");
@@ -240,12 +235,7 @@ fn diagnostic_mesh_panel(
         let _ = write!(
             svg,
             "<polygon points=\"{:.1},{:.1} {:.1},{:.1} {:.1},{:.1}\" fill=\"#60a5fa\" fill-opacity=\"0.28\"/>",
-            points[0][0],
-            points[0][1],
-            points[1][0],
-            points[1][1],
-            points[2][0],
-            points[2][1]
+            points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1]
         );
     }
     svg.push_str("</g>");
@@ -297,8 +287,7 @@ fn diagnostic_mesh_panel(
         case.report.orientation_consistent,
         case.mesh.vertex_count(),
         case.mesh.faces.len(),
-        case
-            .report
+        case.report
             .euler_characteristic
             .map_or_else(|| "n/a".to_owned(), |value| value.to_string()),
     );

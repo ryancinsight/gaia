@@ -131,10 +131,7 @@ impl core::fmt::Display for PslgValidationError {
                 )
             }
             Self::CoincidentVertices { first, second } => {
-                write!(
-                    f,
-                    "vertices {first:?} and {second:?} are coincident"
-                )
+                write!(f, "vertices {first:?} and {second:?} are coincident")
             }
         }
     }
@@ -490,20 +487,19 @@ impl Pslg {
                         && o_a2 != Orientation::Degenerate
                         && o_b1 != o_b2
                         && o_a1 != o_a2
+                        && let Some((px, py)) = segment_cross_point(&a1, &a2, &b1, &b2)
                     {
-                        if let Some((px, py)) = segment_cross_point(&a1, &a2, &b1, &b2) {
-                            let xid = self.add_vertex(px, py);
-                            let (si_s, si_e) = (si.start, si.end);
-                            let (sj_s, sj_e) = (sj.start, sj.end);
-                            self.segments.swap_remove(j);
-                            self.segments.swap_remove(i);
-                            self.add_segment(si_s, xid);
-                            self.add_segment(xid, si_e);
-                            self.add_segment(sj_s, xid);
-                            self.add_segment(xid, sj_e);
-                            self.dedup_segments();
-                            continue 'outer;
-                        }
+                        let xid = self.add_vertex(px, py);
+                        let (si_s, si_e) = (si.start, si.end);
+                        let (sj_s, sj_e) = (sj.start, sj.end);
+                        self.segments.swap_remove(j);
+                        self.segments.swap_remove(i);
+                        self.add_segment(si_s, xid);
+                        self.add_segment(xid, si_e);
+                        self.add_segment(sj_s, xid);
+                        self.add_segment(xid, sj_e);
+                        self.dedup_segments();
+                        continue 'outer;
                     }
 
                     // ── Case 2: T-intersection (endpoint on interior) ──────────

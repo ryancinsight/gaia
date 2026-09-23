@@ -748,17 +748,17 @@ pub(crate) fn corefine_face(
         if let (Some(v0), Some(v1)) = (vids[0], vids[1]) {
             let p0_opt = vid_to_pslg.get(&v0).copied();
             let p1_opt = vid_to_pslg.get(&v1).copied();
-            if let (Some(p0), Some(p1)) = (p0_opt, p1_opt) {
-                if p0 != p1 {
-                    let pa = unique_pts[p0.idx()];
-                    let pb = unique_pts[p1.idx()];
-                    crate::application::csg::arrangement::planar::collect_points_on_segment_interior_to_buf(
+            if let (Some(p0), Some(p1)) = (p0_opt, p1_opt)
+                && p0 != p1
+            {
+                let pa = unique_pts[p0.idx()];
+                let pb = unique_pts[p1.idx()];
+                crate::application::csg::arrangement::planar::collect_points_on_segment_interior_to_buf(
                         unique_pts, pa, pb, (p0.idx(), p1.idx()), 1e-8, 1e-14, on_edge
                     );
-                    crate::application::csg::arrangement::planar::insert_shattered_subedges(
-                        on_edge, pslg_edges,
-                    );
-                }
+                crate::application::csg::arrangement::planar::insert_shattered_subedges(
+                    on_edge, pslg_edges,
+                );
             }
         }
     }

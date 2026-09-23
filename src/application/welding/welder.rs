@@ -256,10 +256,10 @@ impl MeshWelder {
 
         // If they share a neighbor, the combined face count on that edge cannot exceed 2.
         for &(v, count_src) in src_scratch.iter() {
-            if let Some(entry_dst) = dst_scratch.iter().find(|e| e.0 == v) {
-                if count_src + entry_dst.1 > 2 {
-                    return false;
-                }
+            if let Some(entry_dst) = dst_scratch.iter().find(|e| e.0 == v)
+                && count_src + entry_dst.1 > 2
+            {
+                return false;
             }
         }
 

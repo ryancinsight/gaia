@@ -11,3 +11,4 @@
 | --- | ----- | ------ |
 | [0001](0001-validated-channel-path-construction.md) | Validate channel paths and variable sweeps | Accepted |
 | [0002](0002-boundary-quality-criteria.md) | Separate boundary-facet and volume-cell quality criteria | Accepted |
+| [0003](0003-indexed-csg-repair-modules.md) | Align indexed CSG repair modules with their directory | Accepted |

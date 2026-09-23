@@ -261,11 +261,12 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
                         queue.push_back(nfi);
                     }
                 // Parallel edge (va→vb) in another face → winding flip.
-                } else if let Some(&nfi) = half_edge.get(&(va, vb)) {
-                    if orientation[nfi].is_none() && face_normals[nfi].is_some() {
-                        orientation[nfi] = Some(!is_outward);
-                        queue.push_back(nfi);
-                    }
+                } else if let Some(&nfi) = half_edge.get(&(va, vb))
+                    && orientation[nfi].is_none()
+                    && face_normals[nfi].is_some()
+                {
+                    orientation[nfi] = Some(!is_outward);
+                    queue.push_back(nfi);
                 }
             }
         }

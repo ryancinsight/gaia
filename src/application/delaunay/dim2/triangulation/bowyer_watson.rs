@@ -215,7 +215,7 @@ impl DelaunayTriangulation {
             self.locate_epoch.fill(0);
             self.locate_gen = 1;
         }
-        let gen = self.locate_gen;
+        let r#gen = self.locate_gen;
 
         // Ensure epoch vec covers all triangles.
         if self.locate_epoch.len() < self.triangles.len() {
@@ -234,10 +234,10 @@ impl DelaunayTriangulation {
             if idx >= self.triangles.len() {
                 return None;
             }
-            if self.locate_epoch[idx] == gen {
+            if self.locate_epoch[idx] == r#gen {
                 return None; // Cycle detected.
             }
-            self.locate_epoch[idx] = gen;
+            self.locate_epoch[idx] = r#gen;
 
             let tri = &self.triangles[idx];
             if !tri.alive {

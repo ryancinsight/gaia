@@ -314,33 +314,39 @@ type-checking, so no bench body has ever been executed by a gate.
 
 ---
 
+<a id="GAIA-013"></a>
 ## GAIA-013 — GAIA-LINT-1 ratchet burn-down and file-size debt
 
 - **Outcome**: the counted allow-list in `Cargo.toml` shrinks monotonically and
-  the 42 files past the 500-line target are split along operation-family lines.
+  the source files past the 500-line target are split along operation-family
+  lines.
 - **Scope**: the `[lints.clippy]` ratchet table in `Cargo.toml`; the largest
   offenders first —
   `src/application/csg/arrangement/adversarial_tests.rs` (2324),
-  `src/application/csg/boolean/indexed.rs` (2046),
-  `src/domain/mesh/indexed.rs` (1379),
+  `src/application/csg/boolean/indexed.rs` (2076 at branch base),
+  `src/domain/mesh/indexed.rs` (1490),
   `src/application/csg/corefine.rs` (1131). Non-goals: mechanical slicing that
   breaks domain cohesion; raising any count.
 - **Acceptance oracle**: each increment lowers at least one measured count in
-  the ratchet table and never raises one; the `too_many_lines` count (101) and
-  the >500-line file count (42) both fall. The ratchet's own comment claims
-  "4 production sites remain" for `unwrap_used`; the current count is 2
-  (`src/application/quality/normals.rs:231`, `:243`) — correct the stale
-  number in the first increment that touches the table.
+  the ratchet table and never raises one; this increment lowers forced-warning
+  `too_many_lines` emissions from 101 to 100 and source files over 500 lines
+  from 41 at branch base to 40. Correct stale measurements when touching the
+  table: `too_many_arguments` is 14 emissions, and `unwrap_used` has two
+  production sites (`src/application/quality/normals.rs:235`, `:247`).
 - **Dependencies**: GAIA-003 retires the largest class (1268 cast lints).
+- **ADR**: 0003 — Align CSG repair module ownership with directory paths.
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: in-progress. **Owner**: atlas-pin-collection-20260922.
+- **Status**: review. **Owner**: root.
+- **Lease**: root — `Cargo.toml`, `rustfmt.toml`, `examples/csg/cube_cube.rs`, `examples/debug_stl.rs`, `src/application/csg/arrangement/adversarial_tests.rs`, `src/application/csg/arrangement/boolean_csg.rs`, `src/application/csg/boolean/indexed.rs`, `src/application/csg/boolean/indexed/csg.rs`, `src/application/csg/boolean/indexed/repair/`, `src/application/csg/boolean/indexed/repair/mod.rs`, `src/application/csg/boolean/indexed_tests.rs`, `docs/adr/README.md`, `docs/adr/0003-indexed-csg-repair-modules.md`, `src/application/csg/clip/polygon2d/cdt.rs`, `src/application/csg/corefine.rs`, `src/application/delaunay/dim2/pslg/graph.rs`, `src/application/delaunay/dim2/smoothing/laplacian.rs`, `src/application/delaunay/dim2/triangulation/bowyer_watson.rs`, `src/application/delaunay/dim3/tetrahedralize.rs`, `src/application/hierarchy/hex_to_tet.rs`, `src/application/quality/normals.rs`, `src/application/welding/welder.rs`, `src/bin/book_mesh_gallery/render.rs`, `src/domain/topology/orientation.rs`, `src/infrastructure/spatial/ssvdag/boolean.rs`, `src/infrastructure/spatial/ssvdag/core.rs`, `src/infrastructure/spatial/ssvdag/rasterize.rs`, `src/infrastructure/storage/attribute.rs`, `src/infrastructure/storage/edge_store.rs`, `src/infrastructure/storage/vertex_pool.rs` — `2026-09-23T08:28:43-04:00`.
 
-Evidence: `Cargo.toml` `[lints.clippy]` holds ~2400 measured hits across 30
-allowed classes; `find src -name '*.rs' | xargs wc -l` shows 42 files over
-500 lines.
+Evidence: `cargo clippy --all-targets --all-features -- --force-warn
+clippy::too_many_lines` emits 100 diagnostics at this revision; Cargo.toml at
+the branch base recorded 101. The source inventory had 41 files over 500
+lines at branch base and has 40 now.
 
 ---
 
+<a id="GAIA-014"></a>
 ## GAIA-014 — Edition 2024
 
 - **Outcome**: the crate builds on edition 2024, gaining
@@ -354,10 +360,11 @@ allowed classes; `find src -name '*.rs' | xargs wc -l` shows 42 files over
   ratchet entries; `manual_let_else` (51 allowed) drops as let-chains land.
 - **Dependencies**: none.
 - **Risk / change class**: [patch] — M.
-- **Status**: todo. **Owner**: unclaimed.
+- **Status**: review. **Owner**: root.
 
-Evidence: `Cargo.toml:10` `edition = "2021"`; `rust-toolchain.toml` pins
-1.97.0.
+Evidence: delivered with [GAIA-013](#GAIA-013): the manifest now uses edition
+2024 and resolver 3 with the pinned Rust 1.97.0 toolchain. Strict all-target
+Clippy and the full nextest suite pass.
 
 ---
 

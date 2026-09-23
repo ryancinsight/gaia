@@ -125,77 +125,75 @@ fn resolve_short_circuit_boolean(
         }
     }
 
-    if all_coplanar {
-        if let Some(basis) = reference_basis {
-            // N-ary coplanar Boolean via balanced reduction tree.
-            //
-            // ## Algorithm — Balanced Pairwise Reduction
-            //
-            // Instead of left-folding `((M₀ ⊕ M₁) ⊕ M₂) ⊕ M₃ …` which
-            // accumulates tessellation complexity on the left operand, we
-            // merge adjacent pairs in each level of a binary tree:
-            //
-            //   Level 0:  M₀⊕M₁  M₂⊕M₃  M₄⊕M₅  …
-            //   Level 1:  R₀⊕R₁     R₂⊕R₃   …
-            //   …
-            //
-            // ## Theorem — Reduction Tree Correctness
-            //
-            // For an associative operation ⊕ ∈ {∪, ∩, −} over exact 2D
-            // polygon Booleans, the result is independent of evaluation order
-            // (Sutherland–Hodgman clipping is exact for convex clips; our
-            // pipeline decomposes into convex sub-polygons first).  The tree
-            // structure minimises intermediate operand size for Union,
-            // reducing total clipping work from O(n·F_max) to O(n·F_avg).  ∎
-            //
-            // Note: Difference is left-associative by convention. For n > 2,
-            // `A − B − C = (A − B) − C`, which is handled by the sequential
-            // fallback below.
-            let result = if op == BooleanOp::Difference {
-                // Difference: left-fold (non-commutative)
-                let mut current = meshes[0].clone();
-                for next_faces in &meshes[1..] {
-                    current = crate::application::csg::coplanar::boolean_coplanar(
-                        op, &current, next_faces, pool, &basis,
-                    );
-                    if current.is_empty() {
-                        break;
-                    }
+    if all_coplanar && let Some(basis) = reference_basis {
+        // N-ary coplanar Boolean via balanced reduction tree.
+        //
+        // ## Algorithm — Balanced Pairwise Reduction
+        //
+        // Instead of left-folding `((M₀ ⊕ M₁) ⊕ M₂) ⊕ M₃ …` which
+        // accumulates tessellation complexity on the left operand, we
+        // merge adjacent pairs in each level of a binary tree:
+        //
+        //   Level 0:  M₀⊕M₁  M₂⊕M₃  M₄⊕M₅  …
+        //   Level 1:  R₀⊕R₁     R₂⊕R₃   …
+        //   …
+        //
+        // ## Theorem — Reduction Tree Correctness
+        //
+        // For an associative operation ⊕ ∈ {∪, ∩, −} over exact 2D
+        // polygon Booleans, the result is independent of evaluation order
+        // (Sutherland–Hodgman clipping is exact for convex clips; our
+        // pipeline decomposes into convex sub-polygons first).  The tree
+        // structure minimises intermediate operand size for Union,
+        // reducing total clipping work from O(n·F_max) to O(n·F_avg).  ∎
+        //
+        // Note: Difference is left-associative by convention. For n > 2,
+        // `A − B − C = (A − B) − C`, which is handled by the sequential
+        // fallback below.
+        let result = if op == BooleanOp::Difference {
+            // Difference: left-fold (non-commutative)
+            let mut current = meshes[0].clone();
+            for next_faces in &meshes[1..] {
+                current = crate::application::csg::coplanar::boolean_coplanar(
+                    op, &current, next_faces, pool, &basis,
+                );
+                if current.is_empty() {
+                    break;
                 }
-                current
-            } else {
-                // Union / Intersection: balanced reduction tree (commutative & associative)
-                let mut level: Vec<Vec<FaceData>> = meshes.to_vec();
-                while level.len() > 1 {
-                    let mut next_level = Vec::with_capacity(level.len().div_ceil(2));
-                    let mut i = 0;
-                    while i + 1 < level.len() {
-                        let merged = crate::application::csg::coplanar::boolean_coplanar(
-                            op,
-                            &level[i],
-                            &level[i + 1],
-                            pool,
-                            &basis,
-                        );
-                        next_level.push(merged);
-                        i += 2;
-                    }
-                    if i < level.len() {
-                        // Odd element — promote to next level
-                        next_level.push(std::mem::take(&mut level[i]));
-                    }
-                    level = next_level;
-                }
-                level.into_iter().next().unwrap_or_default()
-            };
-
-            if result.is_empty() {
-                return Some(Err(MeshError::EmptyBooleanResult {
-                    op: format!("{op:?}"),
-                }));
             }
-            return Some(Ok(result));
+            current
+        } else {
+            // Union / Intersection: balanced reduction tree (commutative & associative)
+            let mut level: Vec<Vec<FaceData>> = meshes.to_vec();
+            while level.len() > 1 {
+                let mut next_level = Vec::with_capacity(level.len().div_ceil(2));
+                let mut i = 0;
+                while i + 1 < level.len() {
+                    let merged = crate::application::csg::coplanar::boolean_coplanar(
+                        op,
+                        &level[i],
+                        &level[i + 1],
+                        pool,
+                        &basis,
+                    );
+                    next_level.push(merged);
+                    i += 2;
+                }
+                if i < level.len() {
+                    // Odd element — promote to next level
+                    next_level.push(std::mem::take(&mut level[i]));
+                }
+                level = next_level;
+            }
+            level.into_iter().next().unwrap_or_default()
+        };
+
+        if result.is_empty() {
+            return Some(Err(MeshError::EmptyBooleanResult {
+                op: format!("{op:?}"),
+            }));
         }
+        return Some(Ok(result));
     }
 
     if let [faces_a, faces_b] = meshes {
