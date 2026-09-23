@@ -12,6 +12,25 @@ use super::tolerances::{
     COINCIDENT_LEN_SQ, COLLINEAR_TOL_SQ, DEGENERATE_LEN_SQ, PARAM_DEDUP_TOL, PARAM_MARGIN,
 };
 
+/// Smallest usable 2-D determinant for the axis-pair solve, in **length²**.
+///
+/// The solve below divides by a 2-D cross product of two in-plane lengths, so
+/// the determinant it must not be divided by scales as `length²`. A threshold
+/// that scales as `length` instead makes the effective rejection *angle* grow
+/// as `1 / length`: it rejects more axis pairs on a small mesh than on a
+/// scaled-up copy of the same mesh. That is a scale-dependent decision, in a
+/// pass whose correctness argument is scale consistency, and it is exactly the
+/// failure class `arrangement::scale_robustness_tests` exists to catch.
+///
+/// The form mirrors the same rejection in `csg::corefine`
+/// (`1e-14 * n_sq.sqrt() * (d1.norm() + d2.norm())` — two lengths multiplied),
+/// so both passes agree on what "near-parallel" means at any scale.
+#[must_use]
+pub(super) fn min_axis_determinant(edge_len_sq: Real, seg_len_sq: Real) -> Real {
+    let edge_len = edge_len_sq.sqrt();
+    1e-14 * edge_len * (edge_len + seg_len_sq.sqrt())
+}
+
 /// Ensure that every seam vertex created by CDT co-refinement is injected into
 /// all faces that share the face edge on which the seam vertex lies.
 ///
@@ -174,21 +193,12 @@ fn propagate_seam_vertices_impl(
                         best_s = (e0 * r1 - e1 * r0) / det;
                     }
                 }
-                // Reject a near-parallel axis pair: the 2x2 solve above divides
-                // by this determinant.
-                //
-                // NOTE: unlike `COLLINEAR_TOL_SQ`, this threshold is *not*
-                // dimensionless. `best_det_abs` is a 2-D determinant and scales
-                // as length², while `(edge_len_sq + |sv|²).sqrt()` scales as
-                // length, so the effective rejection angle grows as
-                // `1 / length` — this rejects more at small scale than at unit
-                // scale. The comparable threshold in `corefine.rs` multiplies
-                // two lengths (`1e-14 * n_sq.sqrt() * (d1.norm() + d2.norm())`)
-                // and is therefore a genuine length². Making this one match
-                // would accept more axis pairs on small-scale meshes and so
-                // change arrangement output; it is recorded as an open item
-                // rather than altered on inspection.
-                let min_det = 1e-14 * (edge_len_sq + sv.norm_squared()).sqrt();
+                // Reject a near-parallel axis pair: the 2x2 solve below divides
+                // by this determinant. `best_det_abs` is a 2-D determinant of
+                // two in-plane lengths, so the threshold must be a length² or
+                // the decision stops being scale-equivariant — see
+                // [`min_axis_determinant`].
+                let min_det = min_axis_determinant(edge_len_sq, sv.norm_squared());
                 if best_det_abs < min_det {
                     continue;
                 }
