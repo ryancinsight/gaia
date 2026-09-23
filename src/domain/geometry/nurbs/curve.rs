@@ -772,4 +772,50 @@ mod tests {
             assert!((pb - pn).norm() < 1e-6);
         }
     }
+
+    /// A rational quarter-circle at `f32`: the non-dyadic weight 1/√2
+    /// rounds at `f32` precision, so the radius deviates from 1 by the
+    /// propagated weight error. Bound: `C = A/W` with
+    /// `∂C/∂w₁ = N₁·(P₁ − C)/W`, and `N₁ ≤ 1`, `|P₁ − C| ≤ √2`,
+    /// `W ≥ min wᵢ = √2/2`, so `|r − 1| ≤ 2·δw` with
+    /// `δw = ulp(√2/2) = 2⁻²⁴`; the assertion carries 8× headroom over
+    /// `2·2⁻²⁴ ≈ 1.2e-7`.
+    #[test]
+    fn f32_rational_quarter_circle_radius_is_weight_rounding_bounded() {
+        let w = <f32 as Scalar>::from_f64(std::f64::consts::FRAC_1_SQRT_2);
+        let ctrl = vec![
+            SVector::<f32, 2>::new(1.0, 0.0),
+            SVector::<f32, 2>::new(1.0, 1.0),
+            SVector::<f32, 2>::new(0.0, 1.0),
+        ];
+        let weights = vec![1.0_f32, w, 1.0];
+        let knots = KnotVector::<f32>::try_new(vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0]).unwrap();
+        let curve = NurbsCurve::<2, f32>::new(ctrl, weights, knots, 2).unwrap();
+        for i in 0..=16 {
+            let t = <f32 as Scalar>::from_f64(f64::from(i) / 16.0);
+            let pt = curve.point(t);
+            let r = (pt[0] * pt[0] + pt[1] * pt[1]).sqrt();
+            assert!(
+                (r - 1.0).abs() < 1e-6,
+                "f32 quarter-circle radius drift exceeds the weight-rounding bound at t={t}: r={r}"
+            );
+        }
+    }
+
+    /// The tangent of a dyadic linear curve evaluates exactly at `f32`:
+    /// every knot, control point, and parameter is dyadic, so the
+    /// degree-lowered recurrence involves no rounding, and the analytic
+    /// value `C' = (P₁ − P₀)/(ξᵢ₊₁ − ξᵢ) = P₁ − P₀` is reproduced bit-for-bit.
+    #[test]
+    fn f32_derivative_of_dyadic_linear_curve_is_exact() {
+        let pts = vec![
+            SVector::<f32, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f32, 3>::new(1.0, 0.5, 0.25),
+        ];
+        let curve = BSplineCurve::<3, f32>::clamped(pts, 1);
+        let (_, tan) = curve.point_and_tangent(0.5);
+        assert_eq!(tan[0].to_bits(), 1.0_f32.to_bits());
+        assert_eq!(tan[1].to_bits(), 0.5_f32.to_bits());
+        assert_eq!(tan[2].to_bits(), 0.25_f32.to_bits());
+    }
 }

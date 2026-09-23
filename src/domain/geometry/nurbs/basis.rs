@@ -344,4 +344,23 @@ mod tests {
             );
         }
     }
+
+    /// Partition of unity at `f32` on the heap-degree path: degree 9 exceeds
+    /// the stack limit of 8, so the evaluation exercises the allocating
+    /// branch. Error growth is O(p²·ε_f32) ≈ 81·2⁻²⁴ ≈ 4.8e-6; the
+    /// assertion carries 4× headroom.
+    #[test]
+    fn f32_partition_of_unity_at_heap_degree() {
+        let kv = KnotVector::<f32>::clamped_uniform(9, 9);
+        for i in 0..=8 {
+            let t = <f32 as Scalar>::from_f64(f64::from(i)) / 8.0;
+            let span = kv.find_span(t, 9);
+            let n = eval_basis(span, t, 9, &kv);
+            let sum: f32 = n.iter().sum();
+            assert!(
+                (sum - 1.0).abs() < 2e-5,
+                "f32 heap-degree partition of unity violated at t={t}: sum={sum}"
+            );
+        }
+    }
 }

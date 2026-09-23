@@ -12,16 +12,6 @@ use eunomia::NumericElement;
 use leto::geometry::{Point3, UnitVector3, Vector3};
 
 // ---------------------------------------------------------------------------
-// Type aliases
-// ---------------------------------------------------------------------------
-
-/// 3-D point (matches `crate::domain::core::scalar::Point3r`).
-pub type Pt3 = Point3<Real>;
-
-/// 3-D vector.
-pub type Vec3 = Vector3<Real>;
-
-// ---------------------------------------------------------------------------
 // ControlGrid
 // ---------------------------------------------------------------------------
 
@@ -630,12 +620,13 @@ impl<T: Scalar> NurbsSurface<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::core::scalar::{Point3r, Vector3r};
 
-    fn pt(x: Real, y: Real, z: Real) -> Pt3 {
-        Pt3::new(x, y, z)
+    fn pt(x: Real, y: Real, z: Real) -> Point3r {
+        Point3r::new(x, y, z)
     }
 
-    fn grid_2x2(pts: &[Pt3]) -> ControlGrid {
+    fn grid_2x2(pts: &[Point3r]) -> ControlGrid {
         ControlGrid::new(pts.to_vec(), 2, 2)
     }
 
@@ -679,7 +670,7 @@ mod tests {
         ];
         let surf = BSplineSurface::clamped(grid_2x2(&pts), 1, 1).unwrap();
         let n = surf.normal(0.5, 0.5).expect("should have valid normal");
-        assert!((n.into_inner().dot(Vec3::new(0.0, 0.0, 1.0)) - 1.0).abs() < 1e-10);
+        assert!((n.into_inner().dot(Vector3r::new(0.0, 0.0, 1.0)) - 1.0).abs() < 1e-10);
     }
 
     #[test]

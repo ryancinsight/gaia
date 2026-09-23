@@ -180,10 +180,20 @@ pub fn tessellate_surface<T: Scalar>(
     let mut leaves: Vec<(T, T, T, T)> = Vec::with_capacity(segs * segs);
     for i in 0..segs {
         for j in 0..segs {
-            let ua = u0 + (u1 - u0) * <T as Scalar>::from_f64(i as f64 / segs as f64);
-            let ub = u0 + (u1 - u0) * <T as Scalar>::from_f64((i + 1) as f64 / segs as f64);
-            let va = v0 + (v1 - v0) * <T as Scalar>::from_f64(j as f64 / segs as f64);
-            let vb = v0 + (v1 - v0) * <T as Scalar>::from_f64((j + 1) as f64 / segs as f64);
+            let ua = u0
+                + (u1 - u0)
+                    * (<T as Scalar>::from_f64(i as f64) / <T as Scalar>::from_f64(segs as f64));
+            let ub = u0
+                + (u1 - u0)
+                    * (<T as Scalar>::from_f64((i + 1) as f64)
+                        / <T as Scalar>::from_f64(segs as f64));
+            let va = v0
+                + (v1 - v0)
+                    * (<T as Scalar>::from_f64(j as f64) / <T as Scalar>::from_f64(segs as f64));
+            let vb = v0
+                + (v1 - v0)
+                    * (<T as Scalar>::from_f64((j + 1) as f64)
+                        / <T as Scalar>::from_f64(segs as f64));
             subdivide_quad(surf, ua, va, ub, vb, 0, opts, &mut leaves);
         }
     }
@@ -235,8 +245,12 @@ pub fn tessellate_curve<T: Scalar>(
     result.push(leto::geometry::Point3::from(curve.point(t0)));
 
     for i in 0..segs {
-        let ta = t0 + (t1 - t0) * <T as Scalar>::from_f64(i as f64 / segs as f64);
-        let tb = t0 + (t1 - t0) * <T as Scalar>::from_f64((i + 1) as f64 / segs as f64);
+        let ta = t0
+            + (t1 - t0)
+                * (<T as Scalar>::from_f64(i as f64) / <T as Scalar>::from_f64(segs as f64));
+        let tb = t0
+            + (t1 - t0)
+                * (<T as Scalar>::from_f64((i + 1) as f64) / <T as Scalar>::from_f64(segs as f64));
         subdivide_curve_segment(curve, ta, tb, 0, opts, &mut result);
     }
     result
@@ -431,6 +445,58 @@ mod tests {
         );
     }
 
+    /// The tessellation parameters are computed in native `T` arithmetic:
+    /// for a dyadic flat patch with `min_segments = 3` and no subdivision,
+    /// the welded vertex set must bit-match the surface evaluated at the
+    /// test-computed `f32` grid parameters `from_f64(i)/from_f64(3)` —
+    /// pinning the in-`T` division against a widen-compute-narrow
+    /// regression.
+    #[test]
+    fn tessellation_parameters_evaluate_natively_at_t() {
+        let corners32 = [
+            leto::geometry::Point3::<f32>::new(0.0, 0.0, 0.0),
+            leto::geometry::Point3::<f32>::new(1.0, 0.0, 0.0),
+            leto::geometry::Point3::<f32>::new(0.0, 1.0, 0.0),
+            leto::geometry::Point3::<f32>::new(1.0, 1.0, 0.0),
+        ];
+        let surf =
+            NurbsSurface::<f32>::clamped(ControlGrid::new(corners32.to_vec(), 2, 2), 1, 1).unwrap();
+        let opts = TessellationOptions::<f32> {
+            min_segments: 3,
+            max_angle_deg: <f32 as Scalar>::from_f64(180.0),
+            max_depth: 0,
+        };
+        let mesh = tessellate_surface(&surf, &opts);
+        assert_eq!(
+            mesh.vertex_count(),
+            16,
+            "the 4x4 parameter grid has 16 corners"
+        );
+
+        let mesh_bits: Vec<[u32; 3]> = mesh
+            .vertices
+            .positions()
+            .map(|p| [p.x.to_bits(), p.y.to_bits(), p.z.to_bits()])
+            .collect();
+        let segs = <f32 as Scalar>::from_f64(3.0);
+        for i in 0..4 {
+            for j in 0..4 {
+                let u = <f32 as Scalar>::from_f64(i as f64) / segs;
+                let v = <f32 as Scalar>::from_f64(j as f64) / segs;
+                let expected = surf.point(u, v);
+                let key = [
+                    expected.x.to_bits(),
+                    expected.y.to_bits(),
+                    expected.z.to_bits(),
+                ];
+                assert!(
+                    mesh_bits.contains(&key),
+                    "native-parameter position ({i}, {j}) must be welded into the mesh bit-for-bit"
+                );
+            }
+        }
+    }
+
     /// The scalar seam monomorphizes: a dyadic flat patch tessellates into an
     /// `IndexedMesh<f32>` with the same topology as the `f64` run, and every
     /// welded vertex coordinate is exactly representable at both precisions.
@@ -473,6 +539,55 @@ mod tests {
             let p64 = mesh64
                 .vertices
                 .position(crate::domain::core::index::VertexId::new(i as u32));
+            assert_eq!(p32.x.to_bits(), <f32 as Scalar>::from_f64(p64.x).to_bits());
+            assert_eq!(p32.y.to_bits(), <f32 as Scalar>::from_f64(p64.y).to_bits());
+            assert_eq!(p32.z.to_bits(), <f32 as Scalar>::from_f64(p64.z).to_bits());
+        }
+    }
+
+    /// A dyadic linear curve tessellates identically at `f32` and `f64`:
+    /// the quarter-point parameters and straight-line evaluations are exact
+    /// at both precisions.
+    #[test]
+    fn f32_curve_tessellation_matches_f64_on_dyadic_segment() {
+        let curve32 = NurbsCurve::<3, f32>::new(
+            vec![
+                SVector::<f32, 3>::new(0.0, 0.0, 0.0),
+                SVector::<f32, 3>::new(1.0, 0.5, 0.25),
+            ],
+            vec![1.0_f32; 2],
+            KnotVector::<f32>::clamped_uniform(1, 1),
+            1,
+        )
+        .unwrap();
+        let curve64 = NurbsCurve::<3, f64>::new(
+            vec![
+                SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+                SVector::<f64, 3>::new(1.0, 0.5, 0.25),
+            ],
+            vec![1.0_f64; 2],
+            KnotVector::<f64>::clamped_uniform(1, 1),
+            1,
+        )
+        .unwrap();
+        let pts32 = tessellate_curve(
+            &curve32,
+            &TessellationOptions::<f32> {
+                min_segments: 4,
+                max_angle_deg: <f32 as Scalar>::from_f64(5.0),
+                max_depth: 2,
+            },
+        );
+        let pts64 = tessellate_curve(
+            &curve64,
+            &TessellationOptions::<f64> {
+                min_segments: 4,
+                max_angle_deg: 5.0,
+                max_depth: 2,
+            },
+        );
+        assert_eq!(pts32.len(), pts64.len());
+        for (p32, p64) in pts32.iter().zip(pts64.iter()) {
             assert_eq!(p32.x.to_bits(), <f32 as Scalar>::from_f64(p64.x).to_bits());
             assert_eq!(p32.y.to_bits(), <f32 as Scalar>::from_f64(p64.y).to_bits());
             assert_eq!(p32.z.to_bits(), <f32 as Scalar>::from_f64(p64.z).to_bits());
