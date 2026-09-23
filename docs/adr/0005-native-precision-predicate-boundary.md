@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-23
-- Board item: GAIA-002 (branch `arch/gaia-002-native-predicates`)
+- Board item: GAIA-002 ([PR #73](https://github.com/ryancinsight/gaia/pull/73))
 
 ## Context
 
