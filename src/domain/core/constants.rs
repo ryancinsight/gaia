@@ -361,6 +361,16 @@ pub const BOOLEAN_COINCIDENT_LEN_SQ: Real = 1e-18;
 /// is gone.
 pub const BOOLEAN_DEGENERACY_SIN2_TOL: Real = 1e-12;
 
+/// The historical name for [`BOOLEAN_DEGENERACY_SIN2_TOL`], kept because it is
+/// public.
+///
+/// The name asserts a squared length, and that claim *was* the defect: the pass
+/// compared a `cross² / max_edge²` ratio — which carries a `length²` — against
+/// this value, so the same face at a given `sin²θ` was classified differently at
+/// different mesh scales. The value is dimensionless now; prefer
+/// [`BOOLEAN_DEGENERACY_SIN2_TOL`], which says what the threshold measures.
+pub const BOOLEAN_DEGENERACY_LEN_SQ: Real = BOOLEAN_DEGENERACY_SIN2_TOL;
+
 /// Weld distance for the 2-D clip CDT's point grid and intersection welds.
 /// `(world length)` in the clip plane, which spans the same units as the mesh
 /// it clips.
