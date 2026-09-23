@@ -18,7 +18,7 @@ Default features are empty; enable the I/O and domain features you need:
 
 ```toml
 [dependencies]
-gaia = { package = "gaia-mesh", version = "0.4.0", features = ["stl-io", "vtk-io"] }
+gaia = { package = "gaia-mesh", version = "0.4.0", features = ["vtk-io"] }
 ```
 
 API documentation is published at [docs.rs/gaia-mesh](https://docs.rs/gaia-mesh).

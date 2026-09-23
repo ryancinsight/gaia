@@ -114,36 +114,6 @@ than twice is a mechanization defect.
 
 ---
 
-## GAIA-009 — Committed run outputs and undeclared features
-
-- **Outcome**: `outputs/` stops being a tracked 5.8 MB directory of generated
-  meshes, OpenFOAM cases and STL dumps; only reviewed golden figures survive,
-  under a named golden-fixture path. Separately, `stl-io` and `millifluidic`
-  either gate something or are deleted, and the README install example stops
-  advertising an inert feature.
-- **Scope**: `outputs/` (106 tracked files), `.gitignore`, the `[features]`
-  table in `Cargo.toml`, `README.md` § Installation. Non-goals: deleting the
-  four reviewed `outputs/book-review/*.png` renders, which the book's figure
-  manifests cite as review evidence.
-- **Acceptance oracle**: `git ls-files outputs | wc -l` covers only the
-  manifest-cited golden renders; the generating examples are documented as the
-  regeneration path; `rg 'feature = "stl-io"|feature = "millifluidic"' src`
-  is non-empty or the features are gone from `Cargo.toml`, with the README's
-  `features = ["stl-io", "vtk-io"]` example corrected in the same change.
-- **Dependencies**: none.
-- **Risk / change class**: [pm-hygiene] [docs] [patch] — S.
-- **Status**: todo. **Owner**: unclaimed.
-
-Evidence: `git ls-files outputs` returns 106 files across
-`schematic_to_openfoam/`, `millifluidic/`, `millifluidic_chip_stl/`,
-`schematic_to_3d/`, `frustum_e2e_test/` (5.8 MB); `Cargo.toml` already
-excludes the directory from the published package, which is the packaging
-half of the fix and not the tracking half. `rg 'feature = "stl-io"' src` and
-`rg 'feature = "millifluidic"' src` both return zero hits, while
-`src/infrastructure/io/mod.rs:1-7` compiles `stl` unconditionally.
-
----
-
 ## GAIA-010 — Retroactive ADRs for the decided architecture
 
 - **Outcome**: the decisions the README already presents as settled have

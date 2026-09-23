@@ -366,7 +366,7 @@ dependencies = [
 [[package]]
 name = "eunomia"
 version = "0.8.0"
-source = "git+https://github.com/ryancinsight/eunomia#487afa6247623329e2f95ccd1e57dbc2e66ec74f"
+source = "git+https://github.com/ryancinsight/eunomia#4647a79cf2899fbebf0322a8ebcb6f00db9b5e68"
 dependencies = [
  "bytemuck",
  "eunomia-derive",
@@ -376,7 +376,7 @@ dependencies = [
 [[package]]
 name = "eunomia-derive"
 version = "0.8.0"
-source = "git+https://github.com/ryancinsight/eunomia#487afa6247623329e2f95ccd1e57dbc2e66ec74f"
+source = "git+https://github.com/ryancinsight/eunomia#4647a79cf2899fbebf0322a8ebcb6f00db9b5e68"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -873,7 +873,7 @@ dependencies = [
 [[package]]
 name = "moirai-core"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 dependencies = [
  "bytemuck",
  "libc",
@@ -885,7 +885,7 @@ dependencies = [
 [[package]]
 name = "moirai-executor"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 dependencies = [
  "melinoe",
  "mnemosyne-memory 0.7.0 (git+https://github.com/ryancinsight/Mnemosyne)",
@@ -899,7 +899,7 @@ dependencies = [
 [[package]]
 name = "moirai-pal"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 dependencies = [
  "accesskit",
  "accesskit_windows",
@@ -916,7 +916,7 @@ dependencies = [
 [[package]]
 name = "moirai-parallel"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 dependencies = [
  "melinoe",
  "moirai-core",
@@ -927,7 +927,7 @@ dependencies = [
 [[package]]
 name = "moirai-runtime"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 dependencies = [
  "moirai-core",
  "moirai-executor",
@@ -941,7 +941,7 @@ dependencies = [
 [[package]]
 name = "moirai-scheduler"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 dependencies = [
  "loom",
  "mnemosyne-memory 0.7.0 (git+https://github.com/ryancinsight/Mnemosyne)",
@@ -953,7 +953,7 @@ dependencies = [
 [[package]]
 name = "moirai-sync"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 dependencies = [
  "libc",
  "moirai-core",
@@ -963,7 +963,7 @@ dependencies = [
 [[package]]
 name = "moirai-transport"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 dependencies = [
  "bytemuck",
  "moirai-core",
@@ -974,7 +974,7 @@ dependencies = [
 [[package]]
 name = "moirai-utils"
 version = "0.6.0"
-source = "git+https://github.com/ryancinsight/Moirai.git#5476571ffa01788a251cdcfbed30d6b07a68a458"
+source = "git+https://github.com/ryancinsight/Moirai.git#68d49e7af6004b14f604e9dee04a4ca0fc7fee64"
 
 [[package]]
 name = "nu-ansi-term"
@@ -1421,7 +1421,7 @@ dependencies = [
 [[package]]
 name = "themis-topology"
 version = "0.10.1"
-source = "git+https://github.com/ryancinsight/themis#49237ab240faf4f4b7953a84be1032ddf357b829"
+source = "git+https://github.com/ryancinsight/themis#bec88d449c733586299eb6c568b924e8841f4461"
 dependencies = [
  "melinoe",
 ]

@@ -823,9 +823,6 @@ here.
 - [ ] GAIA-008 — add `cargo deny`, `cargo machete`, and `cargo semver-checks`
       to CI; retire the hand-run semver comparisons recorded above.
 - [ ] GAIA-012 — add bench and example runtime budgets to CI.
-- [ ] GAIA-009 — untrack `outputs/` except the manifest-cited golden renders;
-      resolve the inert `stl-io` / `millifluidic` features and the README
-      install example together.
 - [ ] GAIA-010 — backfill the as-built ADRs, trigger-driven, one per touching
       item.
 - [ ] GAIA-011 — add the theory chapters to the book.
