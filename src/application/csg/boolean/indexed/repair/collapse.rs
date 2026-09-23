@@ -1,13 +1,24 @@
 //! Repair pass: collapse degenerate (zero-area) faces.
 
 use super::uf_find;
+use crate::domain::core::constants::{BOOLEAN_COINCIDENT_LEN_SQ, BOOLEAN_DEGENERACY_LEN_SQ};
 use crate::domain::core::index::VertexId;
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::mesh::IndexedMesh;
 use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
 
-const COINCIDENT_TOLERANCE_SQUARED: f64 = 1e-18;
-const RELATIVE_DEGENERACY_TOLERANCE_SQUARED: f64 = 1e-12;
+/// Squared world length below which a degenerate face's shortest edge counts as
+/// a coincident-vertex pair.
+///
+/// Delegates to [`BOOLEAN_COINCIDENT_LEN_SQ`] (SSOT).
+const COINCIDENT_TOLERANCE_SQUARED: f64 = BOOLEAN_COINCIDENT_LEN_SQ;
+
+/// Squared world length below which `cross² / max_edge²` marks a face degenerate.
+///
+/// Named for its dimension rather than for being "relative": the ratio it is
+/// compared against scales as `length²`, unlike the dimensionless
+/// `DEGENERATE_NORMAL_REL_SQ`. Delegates to [`BOOLEAN_DEGENERACY_LEN_SQ`] (SSOT).
+const DEGENERACY_LEN_SQ_TOL: f64 = BOOLEAN_DEGENERACY_LEN_SQ;
 
 enum FaceGeometry {
     Degenerate { edge_lengths_squared: [f64; 3] },
@@ -100,8 +111,8 @@ fn face_geometry(mesh: &IndexedMesh, face: &FaceData) -> FaceGeometry {
     let max_edge_squared = edge_lengths_squared[0]
         .max(edge_lengths_squared[1])
         .max(edge_lengths_squared[2]);
-    let nondegenerate = max_edge_squared > 0.0
-        && cross_squared / max_edge_squared >= RELATIVE_DEGENERACY_TOLERANCE_SQUARED;
+    let nondegenerate =
+        max_edge_squared > 0.0 && cross_squared / max_edge_squared >= DEGENERACY_LEN_SQ_TOL;
 
     if nondegenerate {
         FaceGeometry::Nondegenerate

@@ -57,6 +57,7 @@ use super::classify::{
 };
 use super::fragment_analysis::is_degenerate_sliver_with_normal;
 use super::tiebreaker::FragmentClass;
+use crate::domain::core::constants::MULTI_MESH_CONSOLIDATE_LEN;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Point3r, Real};
 use crate::domain::geometry::aabb::Aabb;
@@ -284,7 +285,8 @@ fn fragment_survives_against_operand(
 /// tolerances, not because any is stale. Each is "twice the tolerance of the
 /// pass that produced the near-duplicates", which is the rule that makes it
 /// correct; unifying the numbers would break whichever pass moved.
-const CONSOLIDATE_TOL: Real = 2e-4;
+/// Delegates to [`MULTI_MESH_CONSOLIDATE_LEN`] (SSOT).
+const CONSOLIDATE_TOL: Real = MULTI_MESH_CONSOLIDATE_LEN;
 
 /// Merge spatially coincident vertices across mesh boundaries.
 ///

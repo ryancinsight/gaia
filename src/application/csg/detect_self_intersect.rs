@@ -73,6 +73,7 @@
 //!   *INRIA Research Report 4488*.
 
 use crate::application::csg::broad_phase::triangle_aabb;
+use crate::domain::core::constants::{SELF_INTERSECT_LINE_DIR_SQ_EPS, SELF_INTERSECT_PLANE_EPS};
 use crate::domain::core::scalar::{Point3r, Real};
 use crate::infrastructure::spatial::bvh::with_bvh;
 use crate::infrastructure::storage::face_store::FaceData;
@@ -83,11 +84,17 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 /// Minimum squared magnitude of intersection-line direction below which two
 /// planes are considered parallel/coplanar.  Pairs near this threshold are
 /// conservatively treated as non-intersecting.
-const LINE_DIR_SQ_EPS: Real = 1e-20;
+///
+/// Delegates to [`SELF_INTERSECT_LINE_DIR_SQ_EPS`] (SSOT), whose dimension note
+/// records that the quantity scales as `length⁸` for unnormalised normals.
+const LINE_DIR_SQ_EPS: Real = SELF_INTERSECT_LINE_DIR_SQ_EPS;
 
 /// Signed-distance threshold below which a vertex is considered on the
 /// opposing plane (used for degenerate near-coplanar interval computation).
-const COPLANAR_EPS: Real = 1e-10;
+///
+/// Delegates to [`SELF_INTERSECT_PLANE_EPS`] (SSOT), whose dimension note
+/// records that the plane-equation value scales as `length³`.
+const COPLANAR_EPS: Real = SELF_INTERSECT_PLANE_EPS;
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
