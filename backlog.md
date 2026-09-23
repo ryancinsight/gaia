@@ -132,7 +132,9 @@ than twice is a mechanization defect.
   `features = ["stl-io", "vtk-io"]` example corrected in the same change.
 - **Dependencies**: none.
 - **Risk / change class**: [pm-hygiene] [docs] [patch] — S.
-- **Status**: todo. **Owner**: unclaimed.
+- **Status**: in-progress. **Owner**: pi-session — branch
+  `chore/gaia-009-outputs-and-features` (main tree).
+  lease: pi-session outputs/ .gitignore Cargo.toml README.md 2026-09-23T15:40:00-04:00
 
 Evidence: `git ls-files outputs` returns 106 files across
 `schematic_to_openfoam/`, `millifluidic/`, `millifluidic_chip_stl/`,
