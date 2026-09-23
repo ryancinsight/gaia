@@ -127,8 +127,8 @@ mod tests {
             panic!("invariant: the dyadic midpoint lies strictly inside the segment at both precisions");
         };
         assert_eq!(
-            t32,
-            <f32 as Scalar>::from_f64(t64),
+            t32.to_bits(),
+            <f32 as Scalar>::from_f64(t64).to_bits(),
             "the exact parameter must be precision-independent"
         );
         assert!(

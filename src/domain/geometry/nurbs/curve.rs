@@ -2,7 +2,9 @@
 //!
 //! Provides `BSplineCurve` (non-rational) and `NurbsCurve` (rational) for any
 //! embedding dimension.  Dimension `D` is a const-generic type parameter
-//! so all allocations are stack-based for D ≤ 4.
+//! so all allocations are stack-based for D ≤ 4, and `T` is the
+//! [`Scalar`] precision seam with an
+//! `f64` default, so existing callers compile without annotation.
 //!
 //! ## Mathematical Foundation
 //!
@@ -65,7 +67,8 @@ use thiserror::Error as ThisError;
 
 use super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::knot::{KnotError, KnotVector};
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
+use eunomia::NumericElement;
 use leto::geometry::Vector as SVector;
 
 // ── Errors ────────────────────────────────────────────────────────────────────
@@ -129,24 +132,24 @@ pub enum CurveError {
 /// C(t): ════════════════════════════════  (t ∈ [ξ₀, ξₘ])
 /// ```
 #[derive(Clone, Debug)]
-pub struct BSplineCurve<const D: usize> {
+pub struct BSplineCurve<const D: usize, T = Real> {
     /// Control points in D-dimensional space.
-    control_points: Vec<SVector<Real, D>>,
+    control_points: Vec<SVector<T, D>>,
     /// Validated knot vector.
-    knots: KnotVector,
+    knots: KnotVector<T>,
     /// Polynomial degree.
     degree: usize,
 }
 
-impl<const D: usize> BSplineCurve<D> {
+impl<const D: usize, T: Scalar> BSplineCurve<D, T> {
     /// Create a new B-spline curve.
     ///
     /// # Errors
     /// Returns [`CurveError`] if the knot count, degree, or control-point
-    /// count are inconsistent.
+    /// count is inconsistent.
     pub fn new(
-        control_points: Vec<SVector<Real, D>>,
-        knots: KnotVector,
+        control_points: Vec<SVector<T, D>>,
+        knots: KnotVector<T>,
         degree: usize,
     ) -> Result<Self, CurveError> {
         if control_points.is_empty() {
@@ -177,7 +180,7 @@ impl<const D: usize> BSplineCurve<D> {
     /// # Panics
     /// Panics if `degree == 0` or `control_points.len() < degree + 1`.
     #[must_use]
-    pub fn clamped(control_points: Vec<SVector<Real, D>>, degree: usize) -> Self {
+    pub fn clamped(control_points: Vec<SVector<T, D>>, degree: usize) -> Self {
         assert!(degree >= 1, "degree must be ≥ 1");
         let n = control_points.len() - 1;
         assert!(n >= degree, "need at least degree+1 control points");
@@ -191,7 +194,7 @@ impl<const D: usize> BSplineCurve<D> {
 
     /// The parameter domain `[t_min, t_max]`.
     #[must_use]
-    pub fn domain(&self) -> (Real, Real) {
+    pub fn domain(&self) -> (T, T) {
         self.knots.domain()
     }
 
@@ -215,20 +218,21 @@ impl<const D: usize> BSplineCurve<D> {
     /// # Panics
     /// Panics if `t` is outside the knot domain.
     #[must_use]
-    pub fn point(&self, t: Real) -> SVector<Real, D> {
+    pub fn point(&self, t: T) -> SVector<T, D> {
         let n = self.control_points.len() - 1;
         let span = self.knots.find_span(t, n);
-        let mut basis_buf = [0.0 as Real; 9];
+        let zero = <T as NumericElement>::ZERO;
+        let mut basis_buf = [zero; 9];
         let mut basis_vec;
         let basis = if self.degree <= 8 {
             &mut basis_buf[..=self.degree]
         } else {
-            basis_vec = vec![0.0 as Real; self.degree + 1];
+            basis_vec = vec![zero; self.degree + 1];
             &mut basis_vec[..]
         };
         eval_basis_to_slice(span, t, self.degree, &self.knots, basis);
         let p = self.degree;
-        let mut result = SVector::<Real, D>::zeros();
+        let mut result = SVector::<T, D>::zeros();
         for (j, &b) in basis.iter().enumerate() {
             result += self.control_points[span - p + j] * b;
         }
@@ -242,11 +246,12 @@ impl<const D: usize> BSplineCurve<D> {
     /// # Panics
     /// Panics if `t` is outside the knot domain.
     #[must_use]
-    pub fn point_and_tangent(&self, t: Real) -> (SVector<Real, D>, SVector<Real, D>) {
+    pub fn point_and_tangent(&self, t: T) -> (SVector<T, D>, SVector<T, D>) {
         let n = self.control_points.len() - 1;
         let span = self.knots.find_span(t, n);
-        let mut basis_buf = [0.0 as Real; 9];
-        let mut dbasis_buf = [0.0 as Real; 9];
+        let zero = <T as NumericElement>::ZERO;
+        let mut basis_buf = [zero; 9];
+        let mut dbasis_buf = [zero; 9];
         let mut basis_vec;
         let mut dbasis_vec;
         let (basis, dbasis) = if self.degree <= 8 {
@@ -255,14 +260,14 @@ impl<const D: usize> BSplineCurve<D> {
                 &mut dbasis_buf[..=self.degree],
             )
         } else {
-            basis_vec = vec![0.0 as Real; self.degree + 1];
-            dbasis_vec = vec![0.0 as Real; self.degree + 1];
+            basis_vec = vec![zero; self.degree + 1];
+            dbasis_vec = vec![zero; self.degree + 1];
             (&mut basis_vec[..], &mut dbasis_vec[..])
         };
         eval_basis_and_deriv_to_slice(span, t, self.degree, &self.knots, basis, dbasis);
         let p = self.degree;
-        let mut pt = SVector::<Real, D>::zeros();
-        let mut tan = SVector::<Real, D>::zeros();
+        let mut pt = SVector::<T, D>::zeros();
+        let mut tan = SVector::<T, D>::zeros();
         for j in 0..=p {
             let cp = self.control_points[span - p + j];
             pt += cp * basis[j];
@@ -275,12 +280,15 @@ impl<const D: usize> BSplineCurve<D> {
     ///
     /// Includes both endpoints.
     #[must_use]
-    pub fn sample_uniform(&self, count: usize) -> Vec<SVector<Real, D>> {
+    pub fn sample_uniform(&self, count: usize) -> Vec<SVector<T, D>> {
         assert!(count >= 2, "need at least 2 samples");
         let (lo, hi) = self.domain();
         (0..count)
             .map(|i| {
-                let t = lo + (hi - lo) * (i as Real / (count - 1) as Real);
+                let t = lo
+                    + (hi - lo)
+                        * (<T as Scalar>::from_f64(i as f64)
+                            / <T as Scalar>::from_f64((count - 1) as f64));
                 self.point(t)
             })
             .collect()
@@ -307,18 +315,18 @@ impl<const D: usize> BSplineCurve<D> {
 /// `W(t) = Σ N_{i,p}(t) · wᵢ` satisfy `Σ R_{i,p}(t) = 1`, inheriting
 /// the convex hull and affine invariance properties from B-splines.
 #[derive(Clone, Debug)]
-pub struct NurbsCurve<const D: usize> {
+pub struct NurbsCurve<const D: usize, T = Real> {
     /// Control points in D-dimensional Euclidean space.
-    control_points: Vec<SVector<Real, D>>,
+    control_points: Vec<SVector<T, D>>,
     /// Positive weights, one per control point.
-    weights: Vec<Real>,
+    weights: Vec<T>,
     /// Validated knot vector.
-    knots: KnotVector,
+    knots: KnotVector<T>,
     /// Polynomial degree.
     degree: usize,
 }
 
-impl<const D: usize> NurbsCurve<D> {
+impl<const D: usize, T: Scalar> NurbsCurve<D, T> {
     /// Create a new NURBS curve.
     ///
     /// # Errors
@@ -329,9 +337,9 @@ impl<const D: usize> NurbsCurve<D> {
     /// - Any weight is ≤ 0.
     /// - The knot count doesn't satisfy `n + p + 2`.
     pub fn new(
-        control_points: Vec<SVector<Real, D>>,
-        weights: Vec<Real>,
-        knots: KnotVector,
+        control_points: Vec<SVector<T, D>>,
+        weights: Vec<T>,
+        knots: KnotVector<T>,
         degree: usize,
     ) -> Result<Self, CurveError> {
         if control_points.is_empty() {
@@ -347,7 +355,7 @@ impl<const D: usize> NurbsCurve<D> {
             });
         }
         for (i, &w) in weights.iter().enumerate() {
-            if w <= 0.0 {
+            if w <= <T as NumericElement>::ZERO {
                 return Err(CurveError::NonPositiveWeight { index: i });
             }
         }
@@ -369,9 +377,9 @@ impl<const D: usize> NurbsCurve<D> {
 
     /// Create a NURBS curve from a B-spline (all weights = 1).
     #[must_use]
-    pub fn from_bspline(curve: BSplineCurve<D>) -> Self {
+    pub fn from_bspline(curve: BSplineCurve<D, T>) -> Self {
         let n = curve.control_points.len();
-        let weights = vec![1.0; n];
+        let weights = vec![<T as NumericElement>::ONE; n];
         Self {
             control_points: curve.control_points,
             weights,
@@ -382,7 +390,7 @@ impl<const D: usize> NurbsCurve<D> {
 
     /// The parameter domain `[t_min, t_max]`.
     #[must_use]
-    pub fn domain(&self) -> (Real, Real) {
+    pub fn domain(&self) -> (T, T) {
         self.knots.domain()
     }
 
@@ -400,7 +408,7 @@ impl<const D: usize> NurbsCurve<D> {
 
     /// Weights slice.
     #[must_use]
-    pub fn weights(&self) -> &[Real] {
+    pub fn weights(&self) -> &[T] {
         &self.weights
     }
 
@@ -415,22 +423,23 @@ impl<const D: usize> NurbsCurve<D> {
     /// # Panics
     /// Panics if `t` is outside the knot domain.
     #[must_use]
-    pub fn point(&self, t: Real) -> SVector<Real, D> {
+    pub fn point(&self, t: T) -> SVector<T, D> {
         let n = self.control_points.len() - 1;
         let span = self.knots.find_span(t, n);
-        let mut basis_buf = [0.0 as Real; 9];
+        let zero = <T as NumericElement>::ZERO;
+        let mut basis_buf = [zero; 9];
         let mut basis_vec;
         let basis = if self.degree <= 8 {
             &mut basis_buf[..=self.degree]
         } else {
-            basis_vec = vec![0.0 as Real; self.degree + 1];
+            basis_vec = vec![zero; self.degree + 1];
             &mut basis_vec[..]
         };
         eval_basis_to_slice(span, t, self.degree, &self.knots, basis);
         let p = self.degree;
 
-        let mut num = SVector::<Real, D>::zeros();
-        let mut den: Real = 0.0;
+        let mut num = SVector::<T, D>::zeros();
+        let mut den: T = zero;
         for (j, &b) in basis.iter().enumerate() {
             let w = self.weights[span - p + j];
             let bw = b * w;
@@ -438,7 +447,7 @@ impl<const D: usize> NurbsCurve<D> {
             den += bw;
         }
         // Guard against degenerate knot spans where all basis weights are 0
-        if den.abs() < 1e-15 {
+        if den.abs() < <T as Scalar>::from_f64(1e-15) {
             return self.control_points[span - p];
         }
         num / den
@@ -455,11 +464,12 @@ impl<const D: usize> NurbsCurve<D> {
     /// # Panics
     /// Panics if `t` is outside the knot domain.
     #[must_use]
-    pub fn point_and_tangent(&self, t: Real) -> (SVector<Real, D>, SVector<Real, D>) {
+    pub fn point_and_tangent(&self, t: T) -> (SVector<T, D>, SVector<T, D>) {
         let n = self.control_points.len() - 1;
         let span = self.knots.find_span(t, n);
-        let mut basis_buf = [0.0 as Real; 9];
-        let mut dbasis_buf = [0.0 as Real; 9];
+        let zero = <T as NumericElement>::ZERO;
+        let mut basis_buf = [zero; 9];
+        let mut dbasis_buf = [zero; 9];
         let mut basis_vec;
         let mut dbasis_vec;
         let (basis, dbasis) = if self.degree <= 8 {
@@ -468,17 +478,17 @@ impl<const D: usize> NurbsCurve<D> {
                 &mut dbasis_buf[..=self.degree],
             )
         } else {
-            basis_vec = vec![0.0 as Real; self.degree + 1];
-            dbasis_vec = vec![0.0 as Real; self.degree + 1];
+            basis_vec = vec![zero; self.degree + 1];
+            dbasis_vec = vec![zero; self.degree + 1];
             (&mut basis_vec[..], &mut dbasis_vec[..])
         };
         eval_basis_and_deriv_to_slice(span, t, self.degree, &self.knots, basis, dbasis);
         let p = self.degree;
 
-        let mut a = SVector::<Real, D>::zeros(); // Σ N·w·P
-        let mut da = SVector::<Real, D>::zeros(); // Σ N'·w·P
-        let mut w: Real = 0.0; // Σ N·w
-        let mut dw: Real = 0.0; // Σ N'·w
+        let mut a = SVector::<T, D>::zeros(); // Σ N·w·P
+        let mut da = SVector::<T, D>::zeros(); // Σ N'·w·P
+        let mut w: T = zero; // Σ N·w
+        let mut dw: T = zero; // Σ N'·w
 
         for j in 0..=p {
             let cp = self.control_points[span - p + j];
@@ -489,14 +499,15 @@ impl<const D: usize> NurbsCurve<D> {
             dw += dbasis[j] * wj;
         }
 
-        let pt = if w.abs() < 1e-15 {
+        let guard = <T as Scalar>::from_f64(1e-15);
+        let pt = if w.abs() < guard {
             self.control_points[span - p]
         } else {
             a / w
         };
 
-        let tan = if w.abs() < 1e-15 {
-            SVector::zeros()
+        let tan = if w.abs() < guard {
+            SVector::<T, D>::zeros()
         } else {
             (da - pt * dw) / w
         };
@@ -508,34 +519,39 @@ impl<const D: usize> NurbsCurve<D> {
     ///
     /// Includes both endpoints.
     #[must_use]
-    pub fn sample_uniform(&self, count: usize) -> Vec<SVector<Real, D>> {
+    pub fn sample_uniform(&self, count: usize) -> Vec<SVector<T, D>> {
         assert!(count >= 2, "need at least 2 samples");
         let (lo, hi) = self.domain();
         (0..count)
             .map(|i| {
-                let t = lo + (hi - lo) * (i as Real / (count - 1) as Real);
+                let t = lo
+                    + (hi - lo)
+                        * (<T as Scalar>::from_f64(i as f64)
+                            / <T as Scalar>::from_f64((count - 1) as f64));
                 self.point(t)
             })
             .collect()
     }
 }
 
-impl NurbsCurve<3> {
+impl<T: Scalar> NurbsCurve<3, T> {
     /// Compute an axis-aligned bounding box over `resolution` samples.
     ///
     /// By the convex hull property of NURBS, the bounding box of the control
     /// points is a conservative bound; this provides a tighter empirical bound.
     #[must_use]
-    pub fn aabb(&self, resolution: usize) -> crate::domain::geometry::Aabb {
-        use crate::domain::core::scalar::Point3r;
+    pub fn aabb(&self, resolution: usize) -> crate::domain::geometry::Aabb<T> {
         use crate::domain::geometry::Aabb;
-        let mut aabb = Aabb::empty();
+        use leto::geometry::Point3;
+        let mut aabb = Aabb::<T>::empty();
         let (lo, hi) = self.domain();
         let res = resolution.max(8);
         for i in 0..=res {
-            let t = lo + (hi - lo) * (i as Real / res as Real);
+            let t = lo
+                + (hi - lo)
+                    * (<T as Scalar>::from_f64(i as f64) / <T as Scalar>::from_f64(res as f64));
             let pt = self.point(t);
-            aabb.expand(&Point3r::new(pt[0], pt[1], pt[2]));
+            aabb.expand(&Point3::new(pt[0], pt[1], pt[2]));
         }
         aabb
     }
@@ -636,7 +652,7 @@ mod tests {
     fn nurbs_quarter_circle() {
         // Exact unit quarter-circle in XY plane:
         // P0=(1,0), w0=1  P1=(1,1), w1=1/√2  P2=(0,1), w2=1
-        let sq2_inv: Real = std::f64::consts::FRAC_1_SQRT_2 as Real;
+        let sq2_inv: Real = <Real as Scalar>::from_f64(std::f64::consts::FRAC_1_SQRT_2);
         let ctrl = vec![V2::new(1.0, 0.0), V2::new(1.0, 1.0), V2::new(0.0, 1.0)];
         let weights = vec![1.0, sq2_inv, 1.0];
         let knots = KnotVector::try_new(vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0]).unwrap();
@@ -697,5 +713,63 @@ mod tests {
         let curve = NurbsCurve::new(ctrl, weights, knots, 2).unwrap();
         let (_, tan) = curve.point_and_tangent(0.5);
         assert!(tan.norm() > 0.0, "tangent at midpoint should be non-zero");
+    }
+
+    // ── Generic instantiation ───────────────────────────────────────────────
+
+    /// A dyadic linear curve evaluates identically at `f32` and `f64`:
+    /// all knot values, parameters, and control coordinates are exact at
+    /// both precisions, so native-`T` evaluation is the same computation.
+    #[test]
+    fn f32_instantiation_interpolates_dyadic_endpoints() {
+        let curve32 = {
+            let pts = vec![
+                SVector::<f32, 3>::new(0.0, 0.0, 0.0),
+                SVector::<f32, 3>::new(1.0, 0.5, 0.25),
+            ];
+            BSplineCurve::<3, f32>::clamped(pts, 1)
+        };
+        let curve64 = {
+            let pts = vec![
+                SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+                SVector::<f64, 3>::new(1.0, 0.5, 0.25),
+            ];
+            BSplineCurve::<3, f64>::clamped(pts, 1)
+        };
+        for i in 0..=8 {
+            let t32 = <f32 as Scalar>::from_f64(f64::from(i) / 8.0);
+            let t64 = f64::from(i) / 8.0;
+            let p32 = curve32.point(t32);
+            let p64 = curve64.point(t64);
+            for k in 0..3 {
+                assert_eq!(
+                    p32[k].to_bits(),
+                    <f32 as Scalar>::from_f64(p64[k]).to_bits()
+                );
+            }
+        }
+        let start = curve32.point(0.0);
+        let end = curve32.point(1.0);
+        assert_eq!(start[0].to_bits(), 0.0_f32.to_bits());
+        assert_eq!(end[2].to_bits(), 0.25_f32.to_bits());
+    }
+
+    /// Unit-weight NURBS equals the B-spline at `f32` — the identity holds
+    /// per instantiation, not only at `f64`.
+    #[test]
+    fn f32_unit_weight_nurbs_matches_bspline() {
+        let pts32 = vec![
+            SVector::<f32, 3>::new(0.0, 0.0, 0.0),
+            SVector::<f32, 3>::new(0.5, 1.0, 0.0),
+            SVector::<f32, 3>::new(1.0, 0.0, 0.0),
+        ];
+        let bs = BSplineCurve::<3, f32>::clamped(pts32.clone(), 2);
+        let nc = NurbsCurve::<3, f32>::from_bspline(bs.clone());
+        for i in 0..=10 {
+            let t = <f32 as Scalar>::from_f64(f64::from(i) / 10.0);
+            let pb = bs.point(t);
+            let pn = nc.point(t);
+            assert!((pb - pn).norm() < 1e-6);
+        }
     }
 }

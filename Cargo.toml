@@ -143,57 +143,56 @@ dbg_macro = "deny"
 # permanent per-file suppressions on targets whose whole job is printing, which
 # is noise, not a ratchet. The library-code guarantee is the measured zero.
 
-# ── Ratchet: numeric-conversion debt (1 268) ──────────────────────────────────
+# ── Ratchet: numeric-conversion debt (748) ──────────────────────────────────
 # The real fix is a `Scalar`-parameterized conversion boundary, not blanket
 # `as` casts from index to coordinate space.
-cast_precision_loss = "allow"        # 759
-cast_possible_truncation = "allow"   # 297
-cast_sign_loss = "allow"             # 99
-unreadable_literal = "allow"         # 44
-float_cmp = "allow"                  # 37 — separately tracked as the CSG
-                                     #      epsilon-classification item
-cast_possible_wrap = "allow"         # 29
+cast_precision_loss = "allow"        # 437
+cast_possible_truncation = "allow"   # 160
+cast_sign_loss = "allow"             # 53
+unreadable_literal = "allow"         # 34
+float_cmp = "allow"                  # 44 — separately tracked as the CSG
+                                     #      epsilon-classification item; 7
+                                     #      sites accrued since the 37
+                                     #      baseline join that burn-down
+cast_possible_wrap = "allow"         # 17
 cast_lossless = "allow"              # 3
 
-# ── Ratchet: documentation debt (520) ─────────────────────────────────────────
-doc_markdown = "allow"               # 368
-missing_errors_doc = "allow"         # 86
-missing_panics_doc = "allow"         # 34
-must_use_candidate = "allow"         # 24
-return_self_not_must_use = "allow"   # 4
-doc_overindented_list_items = "allow" # 2
-empty_line_after_doc_comments = "allow" # 2
+# ── Ratchet: documentation debt (334) ─────────────────────────────────────────
+doc_markdown = "allow"               # 258
+missing_errors_doc = "allow"         # 43
+missing_panics_doc = "allow"         # 17
+must_use_candidate = "allow"         # 12
+return_self_not_must_use = "allow"   # 2
+doc_overindented_list_items = "allow" # 1
+empty_line_after_doc_comments = "allow" # 1
 
-# ── Ratchet: naming and style debt (449) ──────────────────────────────────────
-similar_names = "allow"              # 131
-many_single_char_names = "allow"     # 82
-items_after_statements = "allow"     # 53
-manual_let_else = "allow"            # 51
+# ── Ratchet: naming and style debt (265) ──────────────────────────────────────
+similar_names = "allow"              # 72
+many_single_char_names = "allow"     # 50
+items_after_statements = "allow"     # 22
+manual_let_else = "allow"            # 24
 uninlined_format_args = "allow"      # 43
-redundant_closure_for_method_calls = "allow" # 31
-inline_always = "allow"              # 16
+redundant_closure_for_method_calls = "allow" # 18
+inline_always = "allow"              # 8
 semicolon_if_nothing_returned = "allow" # 13
-needless_pass_by_value = "allow"     # 10
-unnecessary_wraps = "allow"          # 6
-trivially_copy_pass_by_ref = "allow" # 4
-unused_self = "allow"                # 4
-map_unwrap_or = "allow"              # 4
+needless_pass_by_value = "allow"     # 5
+unnecessary_wraps = "allow"          # 3
+trivially_copy_pass_by_ref = "allow" # 2
+unused_self = "allow"                # 2
+map_unwrap_or = "allow"              # 2
 explicit_iter_loop = "allow"         # 1
 
-# ── Ratchet: size and shape debt (118) ────────────────────────────────────────
-# 40 source files currently exceed the 500-line target.
-too_many_lines = "allow"             # 100
-too_many_arguments = "allow"         # 14
-len_without_is_empty = "allow"       # 2
-new_ret_no_self = "allow"            # 2
+# ── Ratchet: size and shape debt (67) ────────────────────────────────────────
+# Source files over the 500-line target are the split backlog.
+too_many_lines = "allow"             # 58
+too_many_arguments = "allow"         # 7
+len_without_is_empty = "allow"       # 1
+new_ret_no_self = "allow"            # 1
 
-# ── Ratchet: default-warn (clippy::all) debt (46) ─────────────────────────────
-needless_range_loop = "allow"        # 30
-manual_clamp = "allow"               # 4
-same_item_push = "allow"             # 4
-format_push_string = "allow"         # 4
-if_same_then_else = "allow"          # 2
-comparison_chain = "allow"           # 2
+# ── Ratchet: default-warn (clippy::all) debt (19) ─────────────────────────────
+needless_range_loop = "allow"        # 16
+manual_clamp = "allow"               # 1
+format_push_string = "allow"         # 2
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 

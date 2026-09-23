@@ -2,11 +2,13 @@
 //!
 //! `BSplineSurface` is the non-rational case (all weights == 1).
 //! `NurbsSurface` is the rational case with per-control-point positive weights.
-//! Both are parameterised over a rectangular domain `[u0,u1]` x `[v0,v1]`.
+//! Both are parameterised over a rectangular domain `[u0,u1] x [v0,v1]` and
+//! generic over the scalar seam `T` with an `f64` default.
 
 use super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::knot::KnotVector;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
+use eunomia::NumericElement;
 use leto::geometry::{Point3, UnitVector3, Vector3};
 
 // ---------------------------------------------------------------------------
@@ -28,19 +30,19 @@ pub type Vec3 = Vector3<Real>;
 /// `grid.get(i, j)` returns the control point at row `i` (u-direction),
 /// column `j` (v-direction).
 #[derive(Clone, Debug)]
-pub struct ControlGrid {
-    data: Vec<Pt3>,
+pub struct ControlGrid<T = Real> {
+    data: Vec<Point3<T>>,
     n_rows: usize,
     n_cols: usize,
 }
 
-impl ControlGrid {
+impl<T: Scalar> ControlGrid<T> {
     /// Create from a flat row-major vector.
     ///
     /// # Panics
     /// Panics if `data.len() != n_rows * n_cols`.
     #[must_use]
-    pub fn new(data: Vec<Pt3>, n_rows: usize, n_cols: usize) -> Self {
+    pub fn new(data: Vec<Point3<T>>, n_rows: usize, n_cols: usize) -> Self {
         assert_eq!(
             data.len(),
             n_rows * n_cols,
@@ -68,7 +70,7 @@ impl ControlGrid {
     /// Access control point at `(row, col)`.
     #[inline]
     #[must_use]
-    pub fn get(&self, i: usize, j: usize) -> Pt3 {
+    pub fn get(&self, i: usize, j: usize) -> Point3<T> {
         self.data[i * self.n_cols + j]
     }
 }
@@ -79,18 +81,18 @@ impl ControlGrid {
 
 /// A rectangular grid of positive NURBS weights, stored row-major.
 #[derive(Clone, Debug)]
-pub struct WeightGrid {
-    data: Vec<Real>,
+pub struct WeightGrid<T = Real> {
+    data: Vec<T>,
     n_rows: usize,
     n_cols: usize,
 }
 
-impl WeightGrid {
+impl<T: Scalar> WeightGrid<T> {
     /// All-ones weight grid (equivalent to B-spline).
     #[must_use]
     pub fn uniform(n_rows: usize, n_cols: usize) -> Self {
         Self {
-            data: vec![1.0; n_rows * n_cols],
+            data: vec![<T as NumericElement>::ONE; n_rows * n_cols],
             n_rows,
             n_cols,
         }
@@ -101,10 +103,13 @@ impl WeightGrid {
     /// # Panics
     /// Panics if any weight <= 0 or length mismatch.
     #[must_use]
-    pub fn new(data: Vec<Real>, n_rows: usize, n_cols: usize) -> Self {
+    pub fn new(data: Vec<T>, n_rows: usize, n_cols: usize) -> Self {
         assert_eq!(data.len(), n_rows * n_cols);
         for (i, &w) in data.iter().enumerate() {
-            assert!(w > 0.0, "weight[{i}] = {w} is not positive");
+            assert!(
+                w > <T as NumericElement>::ZERO,
+                "weight[{i}] = {w} is not positive"
+            );
         }
         Self {
             data,
@@ -116,7 +121,7 @@ impl WeightGrid {
     /// Access weight at `(row, col)`.
     #[inline]
     #[must_use]
-    pub fn get(&self, i: usize, j: usize) -> Real {
+    pub fn get(&self, i: usize, j: usize) -> T {
         self.data[i * self.n_cols + j]
     }
 
@@ -177,23 +182,23 @@ pub enum SurfaceError {
 /// where N_{i,p} and N_{j,q} are B-spline basis functions computed by
 /// Cox-de Boor recursion.
 #[derive(Clone, Debug)]
-pub struct BSplineSurface {
+pub struct BSplineSurface<T = Real> {
     /// Control point grid, row-major in (u, v).
-    pub control_grid: ControlGrid,
+    pub control_grid: ControlGrid<T>,
     /// Knot vector in the u direction.
-    pub knots_u: KnotVector,
+    pub knots_u: KnotVector<T>,
     /// Knot vector in the v direction.
-    pub knots_v: KnotVector,
+    pub knots_v: KnotVector<T>,
     /// Degree in the u direction.
     pub degree_u: usize,
     /// Degree in the v direction.
     pub degree_v: usize,
 }
 
-fn validate_surface_dims(
-    control_grid: &ControlGrid,
-    knots_u: &KnotVector,
-    knots_v: &KnotVector,
+fn validate_surface_dims<T: Scalar>(
+    control_grid: &ControlGrid<T>,
+    knots_u: &KnotVector<T>,
+    knots_v: &KnotVector<T>,
     degree_u: usize,
     degree_v: usize,
 ) -> Result<(), SurfaceError> {
@@ -226,12 +231,12 @@ fn validate_surface_dims(
     Ok(())
 }
 
-impl BSplineSurface {
+impl<T: Scalar> BSplineSurface<T> {
     /// Create a B-spline surface, validating knot / control-point consistency.
     pub fn new(
-        control_grid: ControlGrid,
-        knots_u: KnotVector,
-        knots_v: KnotVector,
+        control_grid: ControlGrid<T>,
+        knots_u: KnotVector<T>,
+        knots_v: KnotVector<T>,
         degree_u: usize,
         degree_v: usize,
     ) -> Result<Self, SurfaceError> {
@@ -247,7 +252,7 @@ impl BSplineSurface {
 
     /// Create with clamped uniform knot vectors constructed automatically.
     pub fn clamped(
-        control_grid: ControlGrid,
+        control_grid: ControlGrid<T>,
         degree_u: usize,
         degree_v: usize,
     ) -> Result<Self, SurfaceError> {
@@ -263,31 +268,32 @@ impl BSplineSurface {
 
     /// Parameter domain `((u_min, u_max), (v_min, v_max))`.
     #[must_use]
-    pub fn domain(&self) -> ((Real, Real), (Real, Real)) {
+    pub fn domain(&self) -> ((T, T), (T, T)) {
         (self.knots_u.domain(), self.knots_v.domain())
     }
 
     /// Evaluate the surface at `(u, v)`.
     #[must_use]
-    pub fn point(&self, u: Real, v: Real) -> Pt3 {
+    pub fn point(&self, u: T, v: T) -> Point3<T> {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
         let sv = self.knots_v.find_span(v, n_v);
-        let mut bu_buf = [0.0 as Real; 9];
-        let mut bv_buf = [0.0 as Real; 9];
+        let zero = <T as NumericElement>::ZERO;
+        let mut bu_buf = [zero; 9];
+        let mut bv_buf = [zero; 9];
         let mut bu_vec;
         let mut bv_vec;
         let bu = if self.degree_u <= 8 {
             &mut bu_buf[..=self.degree_u]
         } else {
-            bu_vec = vec![0.0 as Real; self.degree_u + 1];
+            bu_vec = vec![zero; self.degree_u + 1];
             &mut bu_vec[..]
         };
         let bv = if self.degree_v <= 8 {
             &mut bv_buf[..=self.degree_v]
         } else {
-            bv_vec = vec![0.0 as Real; self.degree_v + 1];
+            bv_vec = vec![zero; self.degree_v + 1];
             &mut bv_vec[..]
         };
         eval_basis_to_slice(su, u, self.degree_u, &self.knots_u, bu);
@@ -295,27 +301,28 @@ impl BSplineSurface {
 
         let pu = self.degree_u;
         let pv = self.degree_v;
-        let mut res = Vec3::zeros();
+        let mut res = Vector3::<T>::zeros();
         for (j, &nu) in bu.iter().enumerate() {
             for (k, &nv) in bv.iter().enumerate() {
                 // get(row, col) = get(v_idx, u_idx)
                 res += self.control_grid.get(sv - pv + k, su - pu + j).coords * (nu * nv);
             }
         }
-        Pt3::from(res)
+        Point3::from(res)
     }
 
     /// Evaluate surface point and partial derivatives `(S, dS/du, dS/dv)`.
     #[must_use]
-    pub fn point_and_derivs(&self, u: Real, v: Real) -> (Pt3, Vec3, Vec3) {
+    pub fn point_and_derivs(&self, u: T, v: T) -> (Point3<T>, Vector3<T>, Vector3<T>) {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
         let sv = self.knots_v.find_span(v, n_v);
-        let mut bu_buf = [0.0 as Real; 9];
-        let mut dbu_buf = [0.0 as Real; 9];
-        let mut bv_buf = [0.0 as Real; 9];
-        let mut dbv_buf = [0.0 as Real; 9];
+        let zero = <T as NumericElement>::ZERO;
+        let mut bu_buf = [zero; 9];
+        let mut dbu_buf = [zero; 9];
+        let mut bv_buf = [zero; 9];
+        let mut dbv_buf = [zero; 9];
         let mut bu_vec;
         let mut dbu_vec;
         let mut bv_vec;
@@ -326,8 +333,8 @@ impl BSplineSurface {
                 &mut dbu_buf[..=self.degree_u],
             )
         } else {
-            bu_vec = vec![0.0 as Real; self.degree_u + 1];
-            dbu_vec = vec![0.0 as Real; self.degree_u + 1];
+            bu_vec = vec![zero; self.degree_u + 1];
+            dbu_vec = vec![zero; self.degree_u + 1];
             (&mut bu_vec[..], &mut dbu_vec[..])
         };
         let (bv, dbv) = if self.degree_v <= 8 {
@@ -336,8 +343,8 @@ impl BSplineSurface {
                 &mut dbv_buf[..=self.degree_v],
             )
         } else {
-            bv_vec = vec![0.0 as Real; self.degree_v + 1];
-            dbv_vec = vec![0.0 as Real; self.degree_v + 1];
+            bv_vec = vec![zero; self.degree_v + 1];
+            dbv_vec = vec![zero; self.degree_v + 1];
             (&mut bv_vec[..], &mut dbv_vec[..])
         };
         eval_basis_and_deriv_to_slice(su, u, self.degree_u, &self.knots_u, bu, dbu);
@@ -345,9 +352,9 @@ impl BSplineSurface {
 
         let pu = self.degree_u;
         let pv = self.degree_v;
-        let mut s = Vec3::zeros();
-        let mut ds_du = Vec3::zeros();
-        let mut ds_dv = Vec3::zeros();
+        let mut s = Vector3::<T>::zeros();
+        let mut ds_du = Vector3::<T>::zeros();
+        let mut ds_dv = Vector3::<T>::zeros();
 
         for (j, (&nu, &dnu)) in bu.iter().zip(dbu.iter()).enumerate() {
             for (k, (&nv, &dnv)) in bv.iter().zip(dbv.iter()).enumerate() {
@@ -357,15 +364,15 @@ impl BSplineSurface {
                 ds_dv += pt * (nu * dnv);
             }
         }
-        (Pt3::from(s), ds_du, ds_dv)
+        (Point3::from(s), ds_du, ds_dv)
     }
 
     /// Unit surface normal at `(u, v)` = normalize(dS/du cross dS/dv).
     /// Returns `None` if the surface is degenerate at `(u, v)`.
     #[must_use]
-    pub fn normal(&self, u: Real, v: Real) -> Option<UnitVector3<Real>> {
+    pub fn normal(&self, u: T, v: T) -> Option<UnitVector3<T>> {
         let (_, du, dv) = self.point_and_derivs(u, v);
-        UnitVector3::try_new(du.cross(dv), 1e-15)
+        UnitVector3::try_new(du.cross(dv), <T as Scalar>::from_f64(1e-15))
     }
 }
 
@@ -381,28 +388,28 @@ impl BSplineSurface {
 ///
 /// Exact conics (spheres, cylinders) arise from specific weight configurations.
 #[derive(Clone, Debug)]
-pub struct NurbsSurface {
+pub struct NurbsSurface<T = Real> {
     /// Control point grid.
-    pub control_grid: ControlGrid,
+    pub control_grid: ControlGrid<T>,
     /// Positive weight at each control point.
-    pub weights: WeightGrid,
+    pub weights: WeightGrid<T>,
     /// Knot vector in the u direction.
-    pub knots_u: KnotVector,
+    pub knots_u: KnotVector<T>,
     /// Knot vector in the v direction.
-    pub knots_v: KnotVector,
+    pub knots_v: KnotVector<T>,
     /// Degree in the u direction.
     pub degree_u: usize,
     /// Degree in the v direction.
     pub degree_v: usize,
 }
 
-impl NurbsSurface {
+impl<T: Scalar> NurbsSurface<T> {
     /// Create a NURBS surface, validating all dimensions.
     pub fn new(
-        control_grid: ControlGrid,
-        weights: WeightGrid,
-        knots_u: KnotVector,
-        knots_v: KnotVector,
+        control_grid: ControlGrid<T>,
+        weights: WeightGrid<T>,
+        knots_u: KnotVector<T>,
+        knots_v: KnotVector<T>,
         degree_u: usize,
         degree_v: usize,
     ) -> Result<Self, SurfaceError> {
@@ -422,7 +429,7 @@ impl NurbsSurface {
 
     /// Create a NURBS surface from a B-spline (all weights = 1).
     #[must_use]
-    pub fn from_bspline(s: BSplineSurface) -> Self {
+    pub fn from_bspline(s: BSplineSurface<T>) -> Self {
         let w = WeightGrid::uniform(s.control_grid.n_rows(), s.control_grid.n_cols());
         Self {
             control_grid: s.control_grid,
@@ -436,7 +443,7 @@ impl NurbsSurface {
 
     /// Create with automatic clamped uniform knot vectors and uniform weights.
     pub fn clamped(
-        control_grid: ControlGrid,
+        control_grid: ControlGrid<T>,
         degree_u: usize,
         degree_v: usize,
     ) -> Result<Self, SurfaceError> {
@@ -446,18 +453,18 @@ impl NurbsSurface {
 
     /// Parameter domain `((u_min, u_max), (v_min, v_max))`.
     #[must_use]
-    pub fn domain(&self) -> ((Real, Real), (Real, Real)) {
+    pub fn domain(&self) -> ((T, T), (T, T)) {
         (self.knots_u.domain(), self.knots_v.domain())
     }
 
     /// Evaluate the NURBS surface at `(u, v)`.
     #[must_use]
-    pub fn point(&self, u: Real, v: Real) -> Pt3 {
+    pub fn point(&self, u: T, v: T) -> Point3<T> {
         let (num, den) = self.rational_eval(u, v);
-        if den.abs() < 1e-15 {
+        if den.abs() < <T as Scalar>::from_f64(1e-15) {
             return self.control_grid.get(0, 0);
         }
-        Pt3::from(num / den)
+        Point3::from(num / den)
     }
 
     /// Evaluate surface point and partial derivatives `(S, dS/du, dS/dv)`.
@@ -466,15 +473,16 @@ impl NurbsSurface {
     ///   dS/du = (dA/du * W - A * dW/du) / W^2
     /// where A = sum `N_i(u)` `N_j(v)` `w_ij` `P_ij` and W = sum `N_i` `N_j` `w_ij`.
     #[must_use]
-    pub fn point_and_derivs(&self, u: Real, v: Real) -> (Pt3, Vec3, Vec3) {
+    pub fn point_and_derivs(&self, u: T, v: T) -> (Point3<T>, Vector3<T>, Vector3<T>) {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
         let sv = self.knots_v.find_span(v, n_v);
-        let mut bu_buf = [0.0 as Real; 9];
-        let mut dbu_buf = [0.0 as Real; 9];
-        let mut bv_buf = [0.0 as Real; 9];
-        let mut dbv_buf = [0.0 as Real; 9];
+        let zero = <T as NumericElement>::ZERO;
+        let mut bu_buf = [zero; 9];
+        let mut dbu_buf = [zero; 9];
+        let mut bv_buf = [zero; 9];
+        let mut dbv_buf = [zero; 9];
         let mut bu_vec;
         let mut dbu_vec;
         let mut bv_vec;
@@ -485,8 +493,8 @@ impl NurbsSurface {
                 &mut dbu_buf[..=self.degree_u],
             )
         } else {
-            bu_vec = vec![0.0 as Real; self.degree_u + 1];
-            dbu_vec = vec![0.0 as Real; self.degree_u + 1];
+            bu_vec = vec![zero; self.degree_u + 1];
+            dbu_vec = vec![zero; self.degree_u + 1];
             (&mut bu_vec[..], &mut dbu_vec[..])
         };
         let (bv, dbv) = if self.degree_v <= 8 {
@@ -495,8 +503,8 @@ impl NurbsSurface {
                 &mut dbv_buf[..=self.degree_v],
             )
         } else {
-            bv_vec = vec![0.0 as Real; self.degree_v + 1];
-            dbv_vec = vec![0.0 as Real; self.degree_v + 1];
+            bv_vec = vec![zero; self.degree_v + 1];
+            dbv_vec = vec![zero; self.degree_v + 1];
             (&mut bv_vec[..], &mut dbv_vec[..])
         };
         eval_basis_and_deriv_to_slice(su, u, self.degree_u, &self.knots_u, bu, dbu);
@@ -505,12 +513,12 @@ impl NurbsSurface {
         let pu = self.degree_u;
         let pv = self.degree_v;
 
-        let mut a = Vec3::zeros();
-        let mut da_du = Vec3::zeros();
-        let mut da_dv = Vec3::zeros();
-        let mut w: Real = 0.0;
-        let mut dw_du: Real = 0.0;
-        let mut dw_dv: Real = 0.0;
+        let mut a = Vector3::<T>::zeros();
+        let mut da_du = Vector3::<T>::zeros();
+        let mut da_dv = Vector3::<T>::zeros();
+        let mut w: T = zero;
+        let mut dw_du: T = zero;
+        let mut dw_dv: T = zero;
 
         for (j, (&nu, &dnu)) in bu.iter().zip(dbu.iter()).enumerate() {
             for (k, (&nv, &dnv)) in bv.iter().zip(dbv.iter()).enumerate() {
@@ -526,35 +534,43 @@ impl NurbsSurface {
             }
         }
 
-        if w.abs() < 1e-15 {
-            return (self.control_grid.get(0, 0), Vec3::zeros(), Vec3::zeros());
+        if w.abs() < <T as Scalar>::from_f64(1e-15) {
+            return (
+                self.control_grid.get(0, 0),
+                Vector3::<T>::zeros(),
+                Vector3::<T>::zeros(),
+            );
         }
         let s = a / w;
         // Quotient rule: d(a/w)/du = (da/du - s * dw/du) / w
         let ds_du = (da_du - s * dw_du) / w;
         let ds_dv = (da_dv - s * dw_dv) / w;
-        (Pt3::from(s), ds_du, ds_dv)
+        (Point3::from(s), ds_du, ds_dv)
     }
 
     /// Unit surface normal at `(u, v)`.
     /// Returns `None` if degenerate (zero cross product).
     #[must_use]
-    pub fn normal(&self, u: Real, v: Real) -> Option<UnitVector3<Real>> {
+    pub fn normal(&self, u: T, v: T) -> Option<UnitVector3<T>> {
         let (_, du, dv) = self.point_and_derivs(u, v);
-        UnitVector3::try_new(du.cross(dv), 1e-15)
+        UnitVector3::try_new(du.cross(dv), <T as Scalar>::from_f64(1e-15))
     }
 
     /// Axis-aligned bounding box from a resolution x resolution sample grid.
     #[must_use]
-    pub fn aabb(&self, resolution: usize) -> crate::domain::geometry::Aabb {
+    pub fn aabb(&self, resolution: usize) -> crate::domain::geometry::Aabb<T> {
         use crate::domain::geometry::Aabb;
-        let mut aabb = Aabb::empty();
+        let mut aabb = Aabb::<T>::empty();
         let ((u0, u1), (v0, v1)) = self.domain();
         let res = resolution.max(4);
         for i in 0..=res {
-            let u = u0 + (u1 - u0) * (i as Real / res as Real);
+            let u = u0
+                + (u1 - u0)
+                    * (<T as Scalar>::from_f64(i as f64) / <T as Scalar>::from_f64(res as f64));
             for j in 0..=res {
-                let v = v0 + (v1 - v0) * (j as Real / res as Real);
+                let v = v0
+                    + (v1 - v0)
+                        * (<T as Scalar>::from_f64(j as f64) / <T as Scalar>::from_f64(res as f64));
                 let pt = self.point(u, v);
                 aabb.expand(&pt);
             }
@@ -564,25 +580,26 @@ impl NurbsSurface {
 
     // -- internal --
 
-    fn rational_eval(&self, u: Real, v: Real) -> (Vec3, Real) {
+    fn rational_eval(&self, u: T, v: T) -> (Vector3<T>, T) {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
         let sv = self.knots_v.find_span(v, n_v);
-        let mut bu_buf = [0.0 as Real; 9];
-        let mut bv_buf = [0.0 as Real; 9];
+        let zero = <T as NumericElement>::ZERO;
+        let mut bu_buf = [zero; 9];
+        let mut bv_buf = [zero; 9];
         let mut bu_vec;
         let mut bv_vec;
         let bu = if self.degree_u <= 8 {
             &mut bu_buf[..=self.degree_u]
         } else {
-            bu_vec = vec![0.0 as Real; self.degree_u + 1];
+            bu_vec = vec![zero; self.degree_u + 1];
             &mut bu_vec[..]
         };
         let bv = if self.degree_v <= 8 {
             &mut bv_buf[..=self.degree_v]
         } else {
-            bv_vec = vec![0.0 as Real; self.degree_v + 1];
+            bv_vec = vec![zero; self.degree_v + 1];
             &mut bv_vec[..]
         };
         eval_basis_to_slice(su, u, self.degree_u, &self.knots_u, bu);
@@ -590,8 +607,8 @@ impl NurbsSurface {
 
         let pu = self.degree_u;
         let pv = self.degree_v;
-        let mut num = Vec3::zeros();
-        let mut den: Real = 0.0;
+        let mut num = Vector3::<T>::zeros();
+        let mut den: T = zero;
 
         for (j, &nu) in bu.iter().enumerate() {
             for (k, &nv) in bv.iter().enumerate() {
@@ -758,5 +775,39 @@ mod tests {
         let ku = KnotVector::clamped_uniform(1, 1);
         let kv = KnotVector::clamped_uniform(1, 1);
         assert!(NurbsSurface::new(grid, wrong_weights, ku, kv, 1, 1).is_err());
+    }
+
+    /// The scalar seam monomorphizes: a dyadic bilinear patch evaluates
+    /// identically at `f32` and `f64` — every control coordinate, knot, and
+    /// parameter is exact at both precisions.
+    #[test]
+    fn f32_instantiation_matches_f64_on_dyadic_patch() {
+        let corners32 = [
+            Point3::<f32>::new(0.0, 0.0, 0.0),
+            Point3::<f32>::new(1.0, 0.0, 0.25),
+            Point3::<f32>::new(0.0, 1.0, 0.5),
+            Point3::<f32>::new(1.0, 1.0, 0.75),
+        ];
+        let corners64 = [
+            Point3::<f64>::new(0.0, 0.0, 0.0),
+            Point3::<f64>::new(1.0, 0.0, 0.25),
+            Point3::<f64>::new(0.0, 1.0, 0.5),
+            Point3::<f64>::new(1.0, 1.0, 0.75),
+        ];
+        let s32 = BSplineSurface::<f32>::clamped(ControlGrid::new(corners32.to_vec(), 2, 2), 1, 1)
+            .unwrap();
+        let s64 = BSplineSurface::<f64>::clamped(ControlGrid::new(corners64.to_vec(), 2, 2), 1, 1)
+            .unwrap();
+        for i in 0..=4 {
+            for j in 0..=4 {
+                let u = f64::from(i) / 4.0;
+                let v = f64::from(j) / 4.0;
+                let p32 = s32.point(<f32 as Scalar>::from_f64(u), <f32 as Scalar>::from_f64(v));
+                let p64 = s64.point(u, v);
+                assert_eq!(p32.x.to_bits(), <f32 as Scalar>::from_f64(p64.x).to_bits());
+                assert_eq!(p32.y.to_bits(), <f32 as Scalar>::from_f64(p64.y).to_bits());
+                assert_eq!(p32.z.to_bits(), <f32 as Scalar>::from_f64(p64.z).to_bits());
+            }
+        }
     }
 }
