@@ -417,7 +417,7 @@ impl<T: Scalar> VertexPool<T> {
         }
 
         // No match — insert new vertex.
-        let idx = self.vertices.len() as u32;
+        let idx = VertexId::raw_from_usize(self.vertices.len());
         self.vertices.push(VertexData::new(position, normal));
         self.spatial_hash
             .entry(key)
@@ -428,7 +428,7 @@ impl<T: Scalar> VertexPool<T> {
 
     /// Insert a vertex **without** deduplication (forced insert).
     pub fn insert_unique(&mut self, position: Point3<T>, normal: Vector3<T>) -> VertexId {
-        let idx = self.vertices.len() as u32;
+        let idx = VertexId::raw_from_usize(self.vertices.len());
         let key = CellKey::from_point(&position, self.inv_cell_size);
         self.vertices.push(VertexData::new(position, normal));
         self.spatial_hash
@@ -482,7 +482,7 @@ impl<T: Scalar> VertexPool<T> {
         self.vertices
             .iter()
             .enumerate()
-            .map(|(i, v)| (VertexId::new(i as u32), v))
+            .map(|(i, v)| (VertexId::from_usize(i), v))
     }
 
     /// Iterate over all vertex positions.
@@ -517,10 +517,11 @@ impl<T: Scalar> VertexPool<T> {
         let vertex_count = self.vertices.len();
         for index in 0..vertex_count {
             let key = CellKey::from_point(&self.vertices[index].position, self.inv_cell_size);
+            let raw = VertexId::raw_from_usize(index);
             self.spatial_hash
                 .entry(key)
-                .and_modify(|indices| indices.push(index as u32))
-                .or_insert(CellIndices::One(index as u32));
+                .and_modify(|indices| indices.push(raw))
+                .or_insert(CellIndices::One(raw));
         }
     }
 
