@@ -207,6 +207,102 @@ fn corners(bounds: &Aabb<Real>) -> [Point3r; 8] {
     ]
 }
 
+/// The sphere is the framing primitive: the silhouette is the worst case, so a
+/// probe set on the surface must land inside the viewport, and the distance must
+/// clear the sphere by the margin from the narrower half-angle.
+#[test]
+fn fit_sphere_frames_the_sphere() {
+    let cases = [
+        (Point3r::new(0.0, 0.0, 0.0), 2.0),
+        (Point3r::new(-5.0, 3.0, 1.0), 0.25),
+        (Point3r::new(1.0e3, -2.0e3, 3.0), 10.0),
+    ];
+    for aspect in [0.5_f64, 1.0, 16.0 / 9.0] {
+        for (center, radius) in cases {
+            let mut cam = OrbitCamera::new(Point3r::new(0.0, 0.0, 0.0), 1.0);
+            cam.orbit(0.7, 0.4);
+            cam.fit_sphere(center, radius, aspect);
+            assert_eq!(cam.target(), center, "the sphere centre becomes the target");
+
+            let half_fov_y = cam.fov_y() * 0.5;
+            let half_fov_x = (half_fov_y.tan() * aspect).atan();
+            let half_fov = half_fov_x.min(half_fov_y);
+            assert!(
+                cam.distance() * half_fov.sin() >= radius,
+                "distance {} does not clear radius {radius}",
+                cam.distance()
+            );
+
+            let vp = cam.view_projection(aspect).expect("usable camera");
+            for (i, probe) in surface_probes(center, radius).into_iter().enumerate() {
+                let clip = transform(&vp, &to_homogeneous(&probe));
+                assert!(clip[3] > 0.0, "probe {i} is behind the camera");
+                let (ndc_x, ndc_y) = (clip[0] / clip[3], clip[1] / clip[3]);
+                assert!(
+                    ndc_x.abs() <= 1.0 && ndc_y.abs() <= 1.0,
+                    "probe {i} at ({ndc_x}, {ndc_y}) is outside the viewport"
+                );
+            }
+        }
+    }
+}
+
+/// Six surface points: the sphere's extent along each world axis. The silhouette
+/// is the true worst case, so these are inside it.
+fn surface_probes(center: Point3r, radius: Real) -> [Point3r; 6] {
+    [
+        center + Vector3r::new(radius, 0.0, 0.0),
+        center + Vector3r::new(-radius, 0.0, 0.0),
+        center + Vector3r::new(0.0, radius, 0.0),
+        center + Vector3r::new(0.0, -radius, 0.0),
+        center + Vector3r::new(0.0, 0.0, radius),
+        center + Vector3r::new(0.0, 0.0, -radius),
+    ]
+}
+
+#[test]
+fn fit_sphere_leaves_the_camera_alone_for_a_degenerate_sphere() {
+    let mut cam = OrbitCamera::new(Point3r::new(0.0, 0.0, 0.0), 5.0);
+    let before = cam;
+    let c = Point3r::new(1.0, 2.0, 3.0);
+    cam.fit_sphere(c, 0.0, 1.0);
+    cam.fit_sphere(c, -1.0, 1.0);
+    cam.fit_sphere(c, f64::NAN, 1.0);
+    cam.fit_sphere(c, f64::INFINITY, 1.0);
+    cam.fit_sphere(c, 1.0, 0.0);
+    cam.fit_sphere(c, 1.0, -2.0);
+    cam.fit_sphere(c, 1.0, f64::NAN);
+    assert_eq!(cam, before);
+}
+
+/// `fit` is the box case of the sphere primitive: it frames the box's
+/// circumscribed sphere, so the two must agree for every box.
+#[test]
+fn fit_is_the_circumscribed_sphere_of_the_box() {
+    let cases = [
+        Aabb::new(Point3r::new(0.0, 0.0, 0.0), Point3r::new(4.0, 4.0, 4.0)),
+        Aabb::new(
+            Point3r::new(-10.0, -1.0, -1.0),
+            Point3r::new(10.0, 1.0, 1.0),
+        ),
+        Aabb::new(Point3r::new(0.5, -0.25, 2.0), Point3r::new(0.75, 0.25, 2.5)),
+    ];
+    for aspect in [0.5_f64, 1.0, 16.0 / 9.0] {
+        for bounds in &cases {
+            let mut by_box = OrbitCamera::new(Point3r::new(0.0, 0.0, 0.0), 1.0);
+            by_box.orbit(0.7, 0.4);
+            by_box.fit(bounds, aspect);
+
+            let half = (bounds.max - bounds.min) * 0.5;
+            let mut by_sphere = OrbitCamera::new(Point3r::new(0.0, 0.0, 0.0), 1.0);
+            by_sphere.orbit(0.7, 0.4);
+            by_sphere.fit_sphere(bounds.center(), half.norm(), aspect);
+
+            assert_eq!(by_box, by_sphere, "fit must be the sphere case of the box");
+        }
+    }
+}
+
 #[test]
 fn fit_leaves_the_camera_alone_for_a_degenerate_box() {
     let mut cam = OrbitCamera::new(Point3r::new(0.0, 0.0, 0.0), 5.0);

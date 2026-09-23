@@ -26,9 +26,11 @@
 //!
 //! # Narrowing casts
 //!
-//! `from_usize` casts `usize → u32` with a saturating `as u32` — valid for
-//! meshes with < 4Gi elements.  When element counts may exceed `u32::MAX` use
-//! `TryFrom<usize>` which returns `Err` instead of wrapping.
+//! `from_usize` and `raw_from_usize` narrow `usize → u32` through
+//! `TryFrom<usize>` and panic past `u32::MAX` — valid for meshes with < 4Gi
+//! elements. They do not wrap: a wrapped index aliases a different element.
+//! When element counts may legitimately exceed `u32::MAX` use `TryFrom<usize>`,
+//! which returns `Err` instead.
 
 use slotmap::new_key_type;
 use std::fmt;
@@ -94,7 +96,23 @@ impl VertexId {
     #[inline]
     #[must_use]
     pub fn from_usize(n: usize) -> Self {
-        Self::try_from(n).expect("Index exceeds u32::MAX")
+        Self(Self::raw_from_usize(n))
+    }
+    /// Create from a `usize` index, returning the raw `u32`.
+    ///
+    /// The one narrowing point for a store that keeps raw `u32` indices
+    /// internally — a spatial hash, a flat cell list. Panics past `u32::MAX`
+    /// rather than wrapping, because a wrapped index aliases a different
+    /// element, so the index space and any table keyed by it would silently
+    /// disagree instead of failing.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n` exceeds `u32::MAX`.
+    #[inline]
+    #[must_use]
+    pub fn raw_from_usize(n: usize) -> u32 {
+        u32::try_from(n).expect("Index exceeds u32::MAX")
     }
     /// Return the raw `u32` index.
     #[inline]
@@ -274,6 +292,19 @@ mod tests {
         assert_eq!(id.raw(), 7);
         assert_eq!(id.as_usize(), 7);
         assert_eq!(VertexId::from_usize(42).as_usize(), 42);
+    }
+
+    /// The raw narrowing point must agree with the keyed constructor, since
+    /// stores that keep raw indices and callers that hold `VertexId`s have to
+    /// index the same element.
+    #[test]
+    fn raw_narrowing_agrees_with_the_keyed_constructor() {
+        assert_eq!(VertexId::raw_from_usize(0), 0);
+        assert_eq!(VertexId::raw_from_usize(9), VertexId::from_usize(9).raw());
+        assert_eq!(
+            VertexId::raw_from_usize(9),
+            VertexId::try_from(9_usize).expect("in range").raw()
+        );
     }
 
     #[test]

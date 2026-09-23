@@ -263,18 +263,22 @@ impl OrbitCamera {
         self.dolly(DOLLY_STEP.powf(steps));
     }
 
-    /// Frame `bounds` so the whole box is visible from the current angles.
+    /// Frame a sphere of `radius` about `center` from the current angles.
+    ///
+    /// This is the framing primitive. A box is framed through its circumscribed
+    /// sphere (see [`Self::fit`]), and a caller holding a bounding sphere — a
+    /// mesh's, or one fitted to a point set — can frame it without inventing a
+    /// box around it.
     ///
     /// The clip planes are reset from the resulting distance, because a viewer
     /// that frames a small part after a large one needs a near plane tight
     /// enough to keep depth precision. The distance is chosen from the
-    /// *narrower* of the horizontal and vertical half-angles, so a wide box in
-    /// a tall viewport is still fully framed.
+    /// *narrower* of the horizontal and vertical half-angles, so a wide sphere
+    /// in a tall viewport is still fully framed.
     ///
-    /// An empty or degenerate box leaves the camera unchanged.
-    pub fn fit(&mut self, bounds: &Aabb<Real>, aspect: Real) {
-        let half = (bounds.max - bounds.min) * 0.5;
-        let radius = half.norm();
+    /// A non-positive or non-finite radius, or an unusable `aspect`
+    /// (non-finite or `<= 0`), leaves the camera unchanged.
+    pub fn fit_sphere(&mut self, center: Point3r, radius: Real, aspect: Real) {
         if !radius.is_finite() || radius <= 0.0 || aspect.is_nan() || aspect <= 0.0 {
             return;
         }
@@ -287,10 +291,21 @@ impl OrbitCamera {
         }
         // A small margin keeps the silhouette off the viewport edge.
         let distance = clamp_distance(radius / sin_half * 1.1);
-        self.target = bounds.center();
+        self.target = center;
         self.distance = distance;
         self.near = (distance * 1.0e-3).max(1.0e-9);
         self.far = (distance + radius * 4.0).max(self.near * 1.0e3);
+    }
+
+    /// Frame `bounds` so the whole box is visible from the current angles.
+    ///
+    /// The box is framed through its circumscribed sphere, so this is
+    /// [`Self::fit_sphere`] with the half-diagonal as the radius.
+    ///
+    /// An empty or degenerate box leaves the camera unchanged.
+    pub fn fit(&mut self, bounds: &Aabb<Real>, aspect: Real) {
+        let half = (bounds.max - bounds.min) * 0.5;
+        self.fit_sphere(bounds.center(), half.norm(), aspect);
     }
 }
 
