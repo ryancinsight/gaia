@@ -43,9 +43,6 @@ path = "src/lib.rs"
 
 [features]
 default = []
-millifluidic = []
-
-stl-io = []
 vtk-io = []
 three-mf-io = ["dep:zip"]
 

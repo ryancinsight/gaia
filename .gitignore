@@ -22,6 +22,11 @@
 *.csv
 *.tsv
 target/
-target_tmp/
-target_ag/
 
+
+# Run-output segregation (GAIA-009): everything under outputs/ is generated
+# state — meshes, OpenFOAM cases, STL dumps, and review rasters — regenerated
+# by the examples (`cargo run --example <name>`) and the book gallery bin.
+# Reviewed golden figures are the committed SVGs in docs/book/figures/; review
+# rasters regenerate from them on demand (rsvg-convert) and stay out of git.
+outputs/
