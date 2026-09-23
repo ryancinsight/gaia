@@ -398,26 +398,39 @@ pub const CLIP2D_SHATTER_PARAM_MARGIN: Real = 1e-8;
 /// `(squared world length)`: `1e-12` is a length of `1e-6`.
 pub const CLIP2D_SHATTER_DIST_SQ: Real = 1e-12;
 
-/// Squared intersection-line direction below which two self-intersection
-/// candidates are treated as coplanar.
+/// `sin²θ` between two face normals below which the self-intersection narrow
+/// phase treats their planes as parallel, and conservatively reports no
+/// intersection. `(dimensionless)`.
 ///
-/// # Dimension note
-///
-/// The value is `|n₁ × n₂|²` for *unnormalised* face normals: with edge lengths
-/// `L` each normal scales as `L²`, their cross product as `L⁴`, and this
-/// quantity as `L⁸`. An absolute floor here is therefore strongly
-/// scale-dependent; recorded as an open item rather than changed here.
-pub const SELF_INTERSECT_LINE_DIR_SQ_EPS: Real = 1e-20;
+/// The test is `|n₁ × n₂|² < TOL × |n₁|²|n₂|²`, which divides out to
+/// `sin²θ(n₁, n₂)`. The previous form compared `|n₁ × n₂|²` directly — a
+/// quantity that scales as `L⁸` for unnormalised normals — so the same pair of
+/// planes was judged parallel at one mesh scale and not at another.
+pub const SELF_INTERSECT_NORMAL_SIN2_TOL: Real = 1e-20;
 
-/// Plane-equation value below which a vertex counts as lying on the opposing
-/// triangle's plane, in the self-intersection narrow phase.
+/// Plane-band width for the self-intersection narrow phase, relative to the
+/// longest edge of the triangles involved. `(dimensionless)`.
 ///
-/// # Dimension note
+/// A vertex counts as lying *on* the opposing plane when its true distance to
+/// that plane is within `SELF_INTERSECT_PLANE_REL × edge_scale`. The previous
+/// form compared the plane equation `n · p + d` directly, which scales as `L³`
+/// for an unnormalised normal, so the band's real width drifted with mesh scale.
+pub const SELF_INTERSECT_PLANE_REL: Real = 1e-10;
+
+/// The historical name for [`SELF_INTERSECT_NORMAL_SIN2_TOL`], kept because it
+/// is public.
 ///
-/// The quantity is `n · p + d` with an unnormalised normal, so it scales as
-/// `L³` with edge length `L` — also not scale-invariant. Recorded as an open
-/// item.
-pub const SELF_INTERSECT_PLANE_EPS: Real = 1e-10;
+/// Its name asserts a squared direction and its doc recorded the `L⁸` scaling as
+/// an open item; the quantity is dimensionless once the normals are normalised,
+/// which is what made the old test scale-dependent. Prefer the constant above.
+pub const SELF_INTERSECT_LINE_DIR_SQ_EPS: Real = SELF_INTERSECT_NORMAL_SIN2_TOL;
+
+/// The historical name for [`SELF_INTERSECT_PLANE_REL`], kept because it is
+/// public.
+///
+/// It was an absolute plane-equation value (`L³` for an unnormalised normal);
+/// the band is now relative to the triangle scale. Prefer the constant above.
+pub const SELF_INTERSECT_PLANE_EPS: Real = SELF_INTERSECT_PLANE_REL;
 
 /// Vertex-consolidation distance for merging cross-mesh duplicates during
 /// multi-resolution arrangement. `(world length)`.
