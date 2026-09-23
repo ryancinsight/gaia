@@ -65,7 +65,9 @@ boundary, not blanket `as` casts".
   `orient_3d(a,b,c,d) == -orient_3d(a,b,d,c)` under permutation.
 - **Dependencies**: none.
 - **Risk / change class**: [verification] [patch] — S.
-- **Status**: todo. **Owner**: unclaimed.
+- **Status**: in-progress. **Owner**: pi-session — branch
+  `test/gaia-004-predicate-regression` (main tree).
+  lease: pi-session src/domain/geometry/predicates.rs src/domain/topology/predicates.rs 2026-09-23T14:05:00-04:00
 
 Evidence: `src/domain/geometry/predicates.rs:255-330` — every existing
 predicate test uses unit-scale, well-separated or exactly-zero inputs
