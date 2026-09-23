@@ -819,8 +819,6 @@ here.
     - [ ] Family `src/domain/geometry` (155 sites, 7 files): generic types
       over `T: Scalar` with `f64` defaults; delete the family's
       concrete-`Real` helper surface.
-- [ ] GAIA-004 — add the differential naive-vs-exact predicate suite; prove the
-      check is live by confirming the naive form disagrees.
 - [ ] GAIA-005 — convert the 39 ignored doctests, module by module.
 - [ ] GAIA-006 — declare or delete the six undeclared `examples/` files and
       extend `tests/module_reachability.rs` to cover `examples/`.

@@ -48,32 +48,6 @@ boundary, not blanket `as` casts".
 
 ---
 
-## GAIA-004 — Near-degenerate predicate regression suite
-
-- **Outcome**: the exactness claim in `predicates.rs` is verified at gaia's own
-  boundary, not assumed from the dependency.
-- **Scope**: `src/domain/geometry/predicates.rs` tests,
-  `src/domain/topology/predicates.rs`. Non-goals: testing
-  `geometry-predicates` itself; the target is gaia's wrappers, its sign
-  convention negation, and its `Orientation::from_det` mapping.
-- **Acceptance oracle**: a differential test that evaluates each wrapper
-  against a naive `f64` determinant on inputs constructed to make the naive
-  form return the wrong sign (collinear-to-within-ULP triples, cospherical
-  point sets, coordinates spanning many binades), asserting the wrapper's sign
-  and that the naive form disagrees — the disagreement is what proves the
-  check is live. Plus a `should_panic`-free property test that
-  `orient_3d(a,b,c,d) == -orient_3d(a,b,d,c)` under permutation.
-- **Dependencies**: none.
-- **Risk / change class**: [verification] [patch] — S.
-- **Status**: todo. **Owner**: unclaimed.
-
-Evidence: `src/domain/geometry/predicates.rs:255-330` — every existing
-predicate test uses unit-scale, well-separated or exactly-zero inputs
-(`(0,0)`,`(1,0)`,`(0,1)`). None would fail if the wrappers called naive `f64`
-arithmetic, so none tests the property the module header claims.
-
----
-
 ## GAIA-005 — Retire the 39 ignored doctests
 
 - **Outcome**: the public API's documented examples compile and run, so
