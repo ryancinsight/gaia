@@ -33,7 +33,10 @@ missing verification → documentation drift → PM cleanup.
   contract updated to match in the same change.
 - **Dependencies**: none.
 - **Risk / change class**: [arch] [minor] — L.
-- **Status**: todo. **Owner**: unclaimed.
+- **Status**: in-progress. **Owner**: pi-session — branch
+  `arch/gaia-002-native-predicates`, lane
+  `worktrees/gaia-gaia-002-native-predicates`.
+  lease: pi-session src/domain/geometry/predicates.rs src/application/csg/predicates3d.rs src/application/delaunay/dim3/tetrahedralize.rs README.md docs/mesh_library_gap_audit.md docs/adr/ 2026-09-23T12:26:00-04:00
 
 Evidence: `src/application/delaunay/dim3/tetrahedralize.rs:20-24` states the
 gap in its own module docs; `README.md` § 2 "Precision contract" repeats it;
