@@ -149,11 +149,26 @@ pub const COREFINE_WELD_TOL_SQ: Real = 1e-12;
 /// are treated as corner snaps, not interior edge Steiner insertions.
 pub const COREFINE_EDGE_EPS: Real = 1e-6;
 
-/// Seam propagation collinearity tolerance squared.
+/// Angular tolerance for "this point lies on that edge", as `sin²θ`.
 ///
-/// A point P is on edge [Va, Vb] if
-/// `|cross(Vb − Va, P − Va)|² < SEAM_COLLINEAR_TOL_SQ × |Vb − Va|²`.
-pub const SEAM_COLLINEAR_TOL_SQ: Real = 1e-6;
+/// A point P lies on edge `[Va, Vb]` when
+///
+/// ```text
+/// |cross(Vb − Va, P − Va)|² < POINT_ON_EDGE_SIN2_TOL × |Vb − Va|² × |P − Va|²
+/// ```
+///
+/// # Dimensionless
+///
+/// `|cross(u, v)| = |u||v|sinθ`, so dividing through by `|u|²|v|²` leaves
+/// `sin²θ < POINT_ON_EDGE_SIN2_TOL` — no world units, and therefore the same
+/// decision at 10 µm and at 1 km. `1e-6` accepts `sinθ < 1e-3`, i.e. θ below
+/// 0.057°.
+///
+/// The perpendicular-distance form of the same test (`d_perp < tol × |edge|`)
+/// is equivalent, which is why both seam passes and `snap_round` share this
+/// constant: they differ in what they do with the answer, not in what "on the
+/// edge" means.
+pub const POINT_ON_EDGE_SIN2_TOL: Real = 1e-6;
 
 /// Maximum Steiner vertices per face during CDT co-refinement.
 ///
@@ -228,3 +243,136 @@ pub const SLIVER_AREA2D_REL: Real = 1e-10;
 /// mesh dimensions.  Using a relative tolerance ensures the gap test
 /// is uniform across scales. ∎
 pub const INTERVAL_OVERLAP_REL: Real = 1e-12;
+
+// ── Seam propagation and snap-round thresholds (SSOT) ───────────────────────
+//
+// The seam passes (general propagation, barrel cap-seam injection) ask three
+// different questions about the same parameter space, and need two
+// squared-length floors at different scales. Every value below is defined here
+// and re-exported under its local name by the module that uses it, so a
+// threshold has one definition and one stated unit — the arrangement passes
+// previously kept private copies, one of which had drifted from this module's
+// doc for the same threshold.
+
+/// Squared world length below which a direction (edge, segment, normal) is
+/// treated as a point. `(squared world length)`: `1e-20` is a length of `1e-10`.
+///
+/// An edge this short has no direction to project onto, so every downstream
+/// parameter would be a division by zero.
+pub const SEAM_DEGENERATE_LEN_SQ: Real = 1e-20;
+
+/// Squared world length below which two points count as coincident.
+/// `(squared world length)`: `1e-30` is `1e-15`, the `f64` noise floor at unit
+/// scale.
+///
+/// Deliberately tighter than [`SEAM_DEGENERATE_LEN_SQ`]: the angular
+/// collinearity test divides by `|P − Va|²`, so a point that *is* the edge start
+/// would make that ratio `0/0` and read as collinear at every angle.
+pub const SEAM_COINCIDENT_LEN_SQ: Real = 1e-30;
+
+/// Parameter margin for "strictly interior" on a normalised segment.
+/// `(dimensionless parameter)`: a `t ∈ (SEAM_PARAM_MARGIN, 1 − SEAM_PARAM_MARGIN)`
+/// counts as interior.
+///
+/// An endpoint touch is not an interior crossing — it is already a vertex of the
+/// neighbouring face — so accepting it here would inject a zero-length snap
+/// segment and split the edge at a duplicate Steiner vertex.
+pub const SEAM_PARAM_MARGIN: Real = 1e-7;
+
+/// Tolerance for merging two intersection parameters that describe the same
+/// crossing. `(dimensionless parameter)` on the same normalised segment.
+///
+/// One crossing solved from two different axis pairs can land a few ULP apart;
+/// emitting both would split the neighbouring edge twice at points it cannot
+/// distinguish.
+pub const SEAM_PARAM_DEDUP_TOL: Real = 1e-9;
+
+/// Shortest sub-interval, in parameter space, worth emitting as a snap segment.
+/// `(dimensionless parameter)`.
+///
+/// Tighter than [`SEAM_PARAM_DEDUP_TOL`] because it answers a different
+/// question: dedup asks "are these the same crossing?", this asks "is this
+/// interval anything at all?" — a zero-width interval yields a zero-length
+/// segment.
+pub const SEAM_PARAM_MIN_SPAN: Real = 1e-12;
+
+/// Floor on the seam-position spatial-hash cell size. `(world length)`.
+///
+/// The cell is sized from the longest rim edge (`edge_len / 8`, so the 27-cell
+/// neighbourhood stays complete for every rim face in the pass); a degenerate or
+/// single-point rim would give a cell of zero and an infinite inverse, so the
+/// cell is floored rather than left to the geometry.
+pub const SEAM_MIN_HASH_CELL: Real = 1e-6;
+
+/// Endpoint margin for the snap-round edge-parameter test `t`.
+/// `(dimensionless parameter)`: candidate split vertices must be strictly
+/// interior to the edge and at least this fraction away from either endpoint.
+///
+/// Wider than [`SEAM_PARAM_MARGIN`] because it screens which vertices are worth
+/// splitting at, rather than deciding whether a found crossing is interior.
+pub const SNAP_ROUND_EDGE_PARAM_MARGIN: Real = 5e-3;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Compared through a call so the check is not folded into an assertion on a
+    /// constant (which the workspace lint rejects) while still pinning the
+    /// documented ordering.
+    fn assert_ordering(lo: Real, hi: Real, why: &str) {
+        assert!(lo < hi, "{why} (got {lo:e} < {hi:e})");
+    }
+
+    /// The docs above state these orderings; an edit that breaks one silently
+    /// changes which failure mode the pair catches, so they are pinned.
+    #[test]
+    fn documented_tolerance_orderings_hold() {
+        assert_ordering(
+            SEAM_COINCIDENT_LEN_SQ,
+            SEAM_DEGENERATE_LEN_SQ,
+            "a coincidence floor looser than the degenerate-direction floor would \
+             let a zero-direction edge reach a division",
+        );
+        assert_ordering(
+            SEAM_PARAM_MIN_SPAN,
+            SEAM_PARAM_DEDUP_TOL,
+            "span below dedup",
+        );
+        assert_ordering(
+            SEAM_PARAM_DEDUP_TOL,
+            SEAM_PARAM_MARGIN,
+            "dedup below margin",
+        );
+        assert_ordering(
+            SEAM_PARAM_MARGIN,
+            SNAP_ROUND_EDGE_PARAM_MARGIN,
+            "the snap-round screen is wider than the interior test it feeds",
+        );
+        assert_ordering(
+            GWN_OUTSIDE_THRESHOLD,
+            GWN_INSIDE_THRESHOLD,
+            "the tiebreaker band [OUTSIDE, INSIDE] must be non-empty",
+        );
+        assert_ordering(
+            SLIVER_AREA_RATIO_SQ,
+            SLIVER_AREA2D_REL,
+            "the classification sliver bound is tighter than the corefine one",
+        );
+        assert_ordering(
+            DEGENERATE_SEGMENT_REL_SQ,
+            DEGENERATE_NORMAL_REL_SQ,
+            "a segment floor above the normal floor would collapse real segments",
+        );
+    }
+
+    /// `POINT_ON_EDGE_SIN2_TOL` bounds `sin²θ`, so it must lie strictly inside
+    /// `(0, 1)`: at `0` the test never fires, at `≥ 1` it always does.
+    #[test]
+    fn point_on_edge_tolerance_is_a_valid_sin_squared_bound() {
+        let tol = POINT_ON_EDGE_SIN2_TOL;
+        assert!(
+            tol > 0.0 && tol < 1.0,
+            "sin²θ bound must be in (0, 1), got {tol:e}"
+        );
+    }
+}
