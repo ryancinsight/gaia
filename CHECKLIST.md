@@ -820,9 +820,6 @@ here.
       over `T: Scalar` with `f64` defaults; delete the family's
       concrete-`Real` helper surface.
 - [ ] GAIA-005 — convert the 39 ignored doctests, module by module.
-- [ ] GAIA-006 — declare or delete the six undeclared `examples/` files and
-      extend `tests/module_reachability.rs` to cover `examples/`.
-- [ ] GAIA-007 — add the nightly miri job for the two GhostCell `unsafe impl`s.
 - [ ] GAIA-008 — add `cargo deny`, `cargo machete`, and `cargo semver-checks`
       to CI; retire the hand-run semver comparisons recorded above.
 - [ ] GAIA-012 — add bench and example runtime budgets to CI.
