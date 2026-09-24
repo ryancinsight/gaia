@@ -596,8 +596,15 @@ impl DelaunayTriangulation {
     /// Uses an explicit stack instead of recursion to avoid stack overflow on
     /// large meshes where deep flip cascades can occur.
     fn flip_fix(&mut self, start_tid: TriangleId, start_edge: usize) {
-        let mut stack: Vec<(TriangleId, usize)> = vec![(start_tid, start_edge)];
+        self.restore_delaunay_edges(vec![(start_tid, start_edge)]);
+    }
 
+    /// Restore local Delaunayhood for a stack of candidate edges.
+    ///
+    /// Each stack item is `(triangle_id, local_edge_index)` and is processed
+    /// with iterative Lawson flips until all reachable non-constrained edges
+    /// satisfy the in-circle criterion.
+    pub(crate) fn restore_delaunay_edges(&mut self, mut stack: Vec<(TriangleId, usize)>) {
         while let Some((tid, edge)) = stack.pop() {
             if !self.triangles[tid.idx()].alive {
                 continue;

@@ -37,7 +37,7 @@ use crate::application::delaunay::core::{
     canonical_edge, segment_cross_point, segments_cross_proper,
 };
 use crate::domain::core::scalar::Real;
-use crate::domain::geometry::predicates::{incircle, orient_2d, Orientation};
+use crate::domain::geometry::predicates::{orient_2d, Orientation};
 
 use crate::application::delaunay::dim2::pslg::graph::Pslg;
 use crate::application::delaunay::dim2::pslg::graph::PslgValidationError;
@@ -581,60 +581,7 @@ impl Cdt {
                 }
             }
         }
-
-        // Iterative Delaunay flip restoration (same logic as flip_fix in
-        // bowyer_watson.rs, but operating through the Cdt wrapper).
-        while let Some((tid, edge)) = stack.pop() {
-            let tri = self.dt.triangle(tid);
-            if !tri.alive {
-                continue;
-            }
-            if tri.constrained[edge] {
-                continue;
-            }
-            let nbr_tid = tri.adj[edge];
-            if nbr_tid == GHOST_TRIANGLE {
-                continue;
-            }
-            let nbr = self.dt.triangle(nbr_tid);
-            if !nbr.alive {
-                continue;
-            }
-            let nbr_edge = match nbr.shared_edge(tid) {
-                Some(e) => e,
-                None => continue,
-            };
-
-            let v_opp_t = tri.vertices[edge];
-            let v_opp_n = nbr.vertices[nbr_edge];
-            let (va, vb) = tri.edge_vertices(edge);
-
-            let pa = self.dt.vertex(va).to_point2();
-            let pb = self.dt.vertex(vb).to_point2();
-            let pc = self.dt.vertex(v_opp_t).to_point2();
-            let pd = self.dt.vertex(v_opp_n).to_point2();
-
-            let ort = orient_2d(&pa, &pb, &pc);
-            let inside = if ort == Orientation::Positive {
-                incircle(&pa, &pb, &pc, &pd) == Orientation::Positive
-            } else if ort == Orientation::Negative {
-                incircle(&pb, &pa, &pc, &pd) == Orientation::Positive
-            } else {
-                continue; // Degenerate triangle — skip.
-            };
-
-            if !inside {
-                continue;
-            }
-
-            // Flip the non-Delaunay edge.
-            self.perform_flip(tid, edge);
-
-            // Push the two external edges of the new configuration for
-            // further in-circle checking.
-            stack.push((tid, 0));
-            stack.push((nbr_tid, 1));
-        }
+        self.dt.restore_delaunay_edges(stack);
     }
 
     /// Remove triangles that are inside a hole region via flood-fill.
