@@ -69,6 +69,8 @@ pub mod knot;
 pub mod surface;
 pub mod tessellate;
 
+mod parameter;
+
 pub use curve::NurbsCurve;
 pub use surface::NurbsSurface;
 pub use tessellate::TessellationOptions;
