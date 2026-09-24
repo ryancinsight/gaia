@@ -7,6 +7,10 @@ pub mod graph;
 pub mod segment;
 pub mod vertex;
 
+mod crossings;
+mod intersection;
+mod validation;
+
 pub use graph::Pslg;
 pub use segment::PslgSegmentId;
 pub use vertex::PslgVertexId;
