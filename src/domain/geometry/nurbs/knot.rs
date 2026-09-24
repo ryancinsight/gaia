@@ -241,8 +241,8 @@ mod tests {
         let kv = KnotVector::<f64>::clamped_uniform(5, 3);
         assert_eq!(kv.len(), 10);
         assert!(kv.is_clamped(3));
-        assert_eq!(kv.get(0), 0.0);
-        assert_eq!(kv.get(9), 1.0);
+        assert_eq!(kv.get(0).to_bits(), 0.0_f64.to_bits());
+        assert_eq!(kv.get(9).to_bits(), 1.0_f64.to_bits());
     }
 
     #[test]

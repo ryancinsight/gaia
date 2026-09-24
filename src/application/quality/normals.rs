@@ -399,8 +399,8 @@ mod tests {
         assert_eq!(r.outward_faces, 0);
         assert_eq!(r.inward_faces, 0);
         assert_eq!(r.degenerate_faces, 0);
-        assert_eq!(r.face_vertex_alignment_mean, 0.0);
-        assert_eq!(r.face_vertex_alignment_min, 0.0);
+        assert_eq!(r.face_vertex_alignment_mean.to_bits(), 0.0_f64.to_bits());
+        assert_eq!(r.face_vertex_alignment_min.to_bits(), 0.0_f64.to_bits());
     }
 
     #[test]
@@ -414,7 +414,7 @@ mod tests {
         .build()
         .unwrap();
         let r = analyze_normals(&mesh);
-        assert_eq!(r.inward_fraction(), 0.0);
+        assert_eq!(r.inward_fraction().to_bits(), 0.0_f64.to_bits());
         assert!(r.all_outward());
     }
 

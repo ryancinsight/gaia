@@ -32,13 +32,8 @@ missing verification → documentation drift → PM cleanup.
 - **Dependencies**: none — the generic predicate seam landed with GAIA-002
   (PR #73; ADR 0005).
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: todo. Claimed by root — GAIA-003 continuation and its ADR 0006/migration ride draft PR #78 (arch/gaia-003-nurbs-migration). Owner: pi-session — increment 1 (family:
-  `src/domain/geometry`, 155 sites across 7 files; re-measured total
-  2026-09-23: 997 `Real` sites in `src/**/*.rs`, the seeded 848 predates the
-  seam/corefine/tolerance splits) — branch
-  `arch/gaia-003-geometry-family`, lane
-  `worktrees/gaia-gaia-003-geometry-family`.
-  lease: pi-session src/domain/geometry/ Cargo.toml 2026-09-23T13:10:00-04:00
+- **Status**: todo. Draft PR #78 carries the NURBS derivative-overflow
+  correction. Owner: root.
 
 Evidence: `src/domain/core/scalar.rs:114` `pub type Real = f64;`; 848 `Real`
 sites vs 130 `T: Scalar` sites; `IndexedMesh` appears 431× without a type
@@ -267,3 +262,86 @@ Evidence: re-verified 2026-08-20 against the current tree —
 `rg -li 'remesh|decimat|advancing_front|SizingField' src` returns zero files;
 `sliver` appears only in CSG fragment classification and quality *measurement*,
 never in an optimization pass. The audit's finding still holds.
+
+---
+
+<a id="GAIA-016"></a>
+## GAIA-016 — Pin exact floating-point test values
+
+- outcome: exact IEEE-value contracts compare representations without emitting
+  `clippy::float_cmp` diagnostics.
+- priority: verification
+- needs: none
+- scope: `src/application/quality/normals.rs`, `src/domain/core/scalar.rs`,
+  `src/domain/geometry/nurbs/knot.rs`; test assertions only.
+- acceptance: strict all-target Clippy emits 44 `float_cmp` diagnostics, the
+  recorded ceiling does not rise, and affected tests pass.
+- basis: `34f0229`
+- next: deliver in PR #86.
+
+<a id="GAIA-017"></a>
+## GAIA-017 — Parse float-comparison diagnostics
+
+- outcome: Cargo JSON diagnostics become validated records with workspace-local
+  source and macro-expansion chains.
+- priority: verification
+- needs: GAIA-016
+- scope: `scripts/float_cmp_diagnostics.py` and focused tests.
+- acceptance: malformed messages fail closed; external packages are excluded;
+  local absolute, relative, generated, and expanded sources have exact tests.
+- basis: `34f0229`
+- next: implement the parser and its value-semantic tests under 400 changed lines.
+
+<a id="GAIA-018"></a>
+## GAIA-018 — Reject hidden float-comparison diagnostics
+
+- outcome: Rust lint attributes cannot conceal the measured diagnostic class.
+- priority: verification
+- needs: GAIA-016
+- scope: `scripts/float_cmp_suppressions.py` and focused tests.
+- acceptance: comments and strings are ignored; broad allows and non-local
+  `float_cmp` suppression are rejected; narrow item expectations are accepted.
+- basis: `34f0229`
+- next: implement the scanner and adversarial lexical cases under 400 lines.
+
+<a id="GAIA-019"></a>
+## GAIA-019 — Enforce the float-comparison ceiling
+
+- outcome: the manifest ceiling is machine-checked against diagnostics and its
+  accepted base value.
+- priority: verification
+- needs: GAIA-017, GAIA-018
+- scope: `scripts/float_cmp_budget.py` manifest, base, and count rules plus tests.
+- acceptance: missing, duplicate, malformed, or raised ceilings fail; 44
+  emissions pass and 45 fail; shallow-history base resolution is tested.
+- basis: `34f0229`
+- next: implement the pure budget rules and CLI-free tests under 400 lines.
+
+<a id="GAIA-020"></a>
+## GAIA-020 — Gate float-comparison growth in CI
+
+- outcome: the repository gate runs strict Clippy once and rejects diagnostic or
+  suppression growth on pull requests and main.
+- priority: verification
+- needs: GAIA-019
+- scope: `.github/workflows/ci.yml`, Cargo execution in
+  `scripts/float_cmp_budget.py`, and shared helpers in `scripts/lockfile.py`.
+- acceptance: the script reports the 44-emission inventory, checks the base
+  ceiling and suppressions, and the hosted gate passes on its exact revision.
+- basis: `34f0229`
+- next: integrate the runner and workflow under 400 changed lines.
+
+<a id="GAIA-021"></a>
+## GAIA-021 — Validate finite rational NURBS weights
+
+- outcome: rational curves and surfaces reject non-finite weights at their
+  construction boundary while preserving the positive-weight contract.
+- priority: correctness
+- needs: GAIA-003
+- scope: `src/domain/geometry/nurbs/{curve,surface}.rs`, public construction
+  error enums, tests, Rustdoc, and the breaking-change migration guide.
+- acceptance: NaN and positive infinity return typed exhaustive error variants;
+  finite positive weights remain accepted; cargo-semver-checks classifies the
+  enum change and a major-version migration documents exhaustive-match updates.
+- basis: `34f0229`
+- next: specify the public error migration before implementation.
