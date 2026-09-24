@@ -22,6 +22,7 @@
 //! edges intersect only at shared vertices.  If two segments cross, the
 //! crossing point is not a vertex, violating the subdivision property.
 
+use crate::application::delaunay::core::segment_cross_point;
 use crate::domain::core::scalar::Real;
 
 use super::segment::{PslgSegment, PslgSegmentId};

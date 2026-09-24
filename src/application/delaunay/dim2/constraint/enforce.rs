@@ -33,9 +33,11 @@ use std::collections::VecDeque;
 
 use hashbrown::HashSet;
 
+use crate::application::delaunay::core::{
+    canonical_edge, segment_cross_point, segments_cross_proper,
+};
 use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{incircle, orient_2d, Orientation};
-use leto::geometry::Point2;
 
 use crate::application::delaunay::dim2::pslg::graph::Pslg;
 use crate::application::delaunay::dim2::pslg::graph::PslgValidationError;
@@ -159,7 +161,7 @@ impl Cdt {
     /// finite triangulation, this ensures termination.  ∎
     fn enforce_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
         // Record the constraint.
-        let canonical = if a <= b { (a, b) } else { (b, a) };
+        let canonical = canonical_edge(a, b);
         self.constrained_edges.insert(canonical);
 
         // Check if the edge already exists.
@@ -242,7 +244,7 @@ impl Cdt {
                 let eb = self.dt.vertex(vb).to_point2();
                 let sa = self.dt.vertex(a).to_point2();
                 let sb = self.dt.vertex(b).to_point2();
-                if !segments_cross(&sa, &sb, &ea, &eb) {
+                if !segments_cross_proper(&sa, &sb, &ea, &eb) {
                     continue; // No longer crossing — already resolved.
                 }
             }
@@ -265,7 +267,7 @@ impl Cdt {
                 let new_b = self.dt.vertex(v_opp_n).to_point2();
                 let sa = self.dt.vertex(a).to_point2();
                 let sb = self.dt.vertex(b).to_point2();
-                if segments_cross(&sa, &sb, &new_a, &new_b) {
+                if segments_cross_proper(&sa, &sb, &new_a, &new_b) {
                     // New diagonal still crosses — find which triangle now
                     // contains that edge and re-enqueue.
                     if let Some(new_loc) = self.find_edge_in_triangles(v_opp_t, v_opp_n) {
@@ -338,7 +340,7 @@ impl Cdt {
                 }
                 let ea = self.dt.vertex(va).to_point2();
                 let eb = self.dt.vertex(vb).to_point2();
-                if segments_cross(&sa, &sb, &ea, &eb) {
+                if segments_cross_proper(&sa, &sb, &ea, &eb) {
                     queue.push_back((tid, edge));
                     visited[tid.idx()] = true;
                     let nbr = tri.adj[edge];
@@ -370,7 +372,7 @@ impl Cdt {
                 }
                 let ea = self.dt.vertex(va).to_point2();
                 let eb = self.dt.vertex(vb).to_point2();
-                if segments_cross(&sa, &sb, &ea, &eb) {
+                if segments_cross_proper(&sa, &sb, &ea, &eb) {
                     queue.push_back((tid, edge));
                     let nbr = tri.adj[edge];
                     if nbr != GHOST_TRIANGLE && !visited[nbr.idx()] {
@@ -429,8 +431,12 @@ impl Cdt {
         let pb = self.dt.vertex(vb);
         let pc = self.dt.vertex(a);
         let pd = self.dt.vertex(b);
-        if let Some((ix, iy)) = segment_intersection(pa.x, pa.y, pb.x, pb.y, pc.x, pc.y, pd.x, pd.y)
-        {
+        if let Some((ix, iy)) = segment_cross_point(
+            &pc.to_point2(),
+            &pd.to_point2(),
+            &pa.to_point2(),
+            &pb.to_point2(),
+        ) {
             self.dt.insert_steiner(ix, iy);
         }
     }
@@ -815,7 +821,7 @@ impl Cdt {
     /// Check if an edge is constrained.
     #[must_use]
     pub fn is_constrained(&self, a: PslgVertexId, b: PslgVertexId) -> bool {
-        let canonical = if a <= b { (a, b) } else { (b, a) };
+        let canonical = canonical_edge(a, b);
         self.constrained_edges.contains(&canonical)
     }
 
@@ -834,7 +840,7 @@ impl Cdt {
     ///
     /// Uses vertex-star walk: O(deg(a)) instead of O(T).
     pub(crate) fn remove_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
-        let canonical = if a <= b { (a, b) } else { (b, a) };
+        let canonical = canonical_edge(a, b);
         self.constrained_edges.remove(&canonical);
         // Unmark the edge in the triangulation (it may no longer exist).
         let tris = self.dt.triangles_around_vertex(a);
@@ -848,64 +854,4 @@ impl Cdt {
             }
         }
     }
-}
-
-// ── Geometric helpers ─────────────────────────────────────────────────────────
-
-/// Test if two line segments properly cross (share an interior point).
-fn segments_cross(
-    a1: &Point2<Real>,
-    a2: &Point2<Real>,
-    b1: &Point2<Real>,
-    b2: &Point2<Real>,
-) -> bool {
-    let o1 = orient_2d(a1, a2, b1);
-    let o2 = orient_2d(a1, a2, b2);
-    let o3 = orient_2d(b1, b2, a1);
-    let o4 = orient_2d(b1, b2, a2);
-
-    // Proper crossing: endpoints of each segment lie on opposite sides of the other.
-    o1 != o2
-        && o3 != o4
-        && o1 != Orientation::Degenerate
-        && o2 != Orientation::Degenerate
-        && o3 != Orientation::Degenerate
-        && o4 != Orientation::Degenerate
-}
-
-/// Compute the intersection point of two line segments.
-///
-/// Returns `None` if they are parallel or do not intersect.
-///
-/// Uses a scale-relative parallelism guard: the cross-product denominator
-/// is compared against the product of the edge lengths times $10^{-14}$,
-/// ensuring stability across different coordinate magnitudes.
-fn segment_intersection(
-    ax1: Real,
-    ay1: Real,
-    ax2: Real,
-    ay2: Real,
-    bx1: Real,
-    by1: Real,
-    bx2: Real,
-    by2: Real,
-) -> Option<(Real, Real)> {
-    let dx_a = ax2 - ax1;
-    let dy_a = ay2 - ay1;
-    let dx_b = bx2 - bx1;
-    let dy_b = by2 - by1;
-
-    let denom = dx_a * dy_b - dy_a * dx_b;
-
-    // Scale-relative threshold: |denom| ≈ |e_a|·|e_b|·sin(θ).
-    let len_a_sq = dx_a * dx_a + dy_a * dy_a;
-    let len_b_sq = dx_b * dx_b + dy_b * dy_b;
-    let scale = (len_a_sq * len_b_sq).sqrt().max(1e-30);
-    if denom.abs() < scale * 1e-14 {
-        return None; // Parallel (or near-parallel).
-    }
-
-    let t = ((bx1 - ax1) * dy_b - (by1 - ay1) * dx_b) / denom;
-
-    Some((ax1 + t * dx_a, ay1 + t * dy_a))
 }
