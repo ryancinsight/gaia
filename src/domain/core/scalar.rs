@@ -165,7 +165,7 @@ mod tests {
 
     #[test]
     fn from_f64_identity_f64() {
-        assert_eq!(f64::from_f64(1.0_f64), 1.0_f64);
+        assert_eq!(f64::from_f64(1.0_f64).to_bits(), 1.0_f64.to_bits());
     }
 
     #[test]
@@ -176,19 +176,19 @@ mod tests {
 
     #[test]
     fn sanitize_finite_passthrough() {
-        assert_eq!(sanitize(1.5_f64), 1.5_f64);
-        assert_eq!(sanitize(1.5_f32), 1.5_f32);
+        assert_eq!(sanitize(1.5_f64).to_bits(), 1.5_f64.to_bits());
+        assert_eq!(sanitize(1.5_f32).to_bits(), 1.5_f32.to_bits());
     }
 
     #[test]
     fn sanitize_nan_to_zero() {
-        assert_eq!(sanitize(f64::NAN), 0.0_f64);
-        assert_eq!(sanitize(f32::NAN), 0.0_f32);
+        assert_eq!(sanitize(f64::NAN).to_bits(), 0.0_f64.to_bits());
+        assert_eq!(sanitize(f32::NAN).to_bits(), 0.0_f32.to_bits());
     }
 
     #[test]
     fn sanitize_inf_to_zero() {
-        assert_eq!(sanitize(f64::INFINITY), 0.0_f64);
-        assert_eq!(sanitize(f32::NEG_INFINITY), 0.0_f32);
+        assert_eq!(sanitize(f64::INFINITY).to_bits(), 0.0_f64.to_bits());
+        assert_eq!(sanitize(f32::NEG_INFINITY).to_bits(), 0.0_f32.to_bits());
     }
 }
