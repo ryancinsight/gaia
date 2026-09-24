@@ -99,12 +99,7 @@ impl Pslg {
                             && b1 != a1
                             && b1 != a2
                         {
-                            let xid = sj.start;
-                            let (si_s, si_e) = (si.start, si.end);
-                            self.segments.swap_remove(i);
-                            self.add_segment(si_s, xid);
-                            self.add_segment(xid, si_e);
-                            self.dedup_segments();
+                            self.split_segment_at_vertex(i, sj.start);
                             continue 'outer;
                         }
                         if o_b2 == Orientation::Degenerate
@@ -112,12 +107,7 @@ impl Pslg {
                             && b2 != a1
                             && b2 != a2
                         {
-                            let xid = sj.end;
-                            let (si_s, si_e) = (si.start, si.end);
-                            self.segments.swap_remove(i);
-                            self.add_segment(si_s, xid);
-                            self.add_segment(xid, si_e);
-                            self.dedup_segments();
+                            self.split_segment_at_vertex(i, sj.end);
                             continue 'outer;
                         }
                         if o_a1 == Orientation::Degenerate
@@ -125,12 +115,7 @@ impl Pslg {
                             && a1 != b1
                             && a1 != b2
                         {
-                            let xid = si.start;
-                            let (sj_s, sj_e) = (sj.start, sj.end);
-                            self.segments.swap_remove(j);
-                            self.add_segment(sj_s, xid);
-                            self.add_segment(xid, sj_e);
-                            self.dedup_segments();
+                            self.split_segment_at_vertex(j, si.start);
                             continue 'outer;
                         }
                         if o_a2 == Orientation::Degenerate
@@ -138,12 +123,7 @@ impl Pslg {
                             && a2 != b1
                             && a2 != b2
                         {
-                            let xid = si.end;
-                            let (sj_s, sj_e) = (sj.start, sj.end);
-                            self.segments.swap_remove(j);
-                            self.add_segment(sj_s, xid);
-                            self.add_segment(xid, sj_e);
-                            self.dedup_segments();
+                            self.split_segment_at_vertex(j, si.end);
                             continue 'outer;
                         }
                     }
@@ -235,7 +215,7 @@ impl Pslg {
     }
 
     /// Remove duplicate segments (same canonical endpoints).
-    fn dedup_segments(&mut self) {
+    pub(super) fn dedup_segments(&mut self) {
         let mut seen: hashbrown::HashSet<(PslgVertexId, PslgVertexId)> =
             hashbrown::HashSet::with_capacity(self.segments.len());
         self.segments.retain(|s| {

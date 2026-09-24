@@ -22,7 +22,6 @@
 //! edges intersect only at shared vertices.  If two segments cross, the
 //! crossing point is not a vertex, violating the subdivision property.
 
-use crate::application::delaunay::core::segment_cross_point;
 use crate::domain::core::scalar::Real;
 
 use super::segment::{PslgSegment, PslgSegmentId};
@@ -283,6 +282,18 @@ impl Pslg {
     }
 
     // ── Bounding box ──────────────────────────────────────────────────────
+
+    /// Split segment `seg_index` at an existing vertex and deduplicate.
+    ///
+    /// Shared by [`Self::resolve_crossings`](super::crossings)'s four
+    /// T-intersection arms so the split-and-rejoin sequence exists once.
+    #[inline]
+    pub(super) fn split_segment_at_vertex(&mut self, seg_index: usize, split_vertex: PslgVertexId) {
+        let seg = self.segments.swap_remove(seg_index);
+        self.add_segment(seg.start, split_vertex);
+        self.add_segment(split_vertex, seg.end);
+        self.dedup_segments();
+    }
 
     /// Compute the axis-aligned bounding box `(min, max)`.
     ///
