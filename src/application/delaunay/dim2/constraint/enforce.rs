@@ -89,6 +89,16 @@ pub struct Cdt {
 
 impl Cdt {
     #[inline]
+    fn edge_matches_endpoints(
+        edge_start: PslgVertexId,
+        edge_end: PslgVertexId,
+        a: PslgVertexId,
+        b: PslgVertexId,
+    ) -> bool {
+        (edge_start == a && edge_end == b) || (edge_start == b && edge_end == a)
+    }
+
+    #[inline]
     fn edge_touches_constraint_endpoint(
         edge_start: PslgVertexId,
         edge_end: PslgVertexId,
@@ -542,17 +552,22 @@ impl Cdt {
     /// that share it.
     ///
     /// Uses vertex-star walk: O(deg(a)) ≈ O(6) instead of O(T).
-    fn mark_edge_constrained(&mut self, a: PslgVertexId, b: PslgVertexId) {
+    #[inline]
+    fn set_edge_constraint_flag(&mut self, a: PslgVertexId, b: PslgVertexId, constrained: bool) {
         let tris = self.dt.triangles_around_vertex(a);
         for tid in tris {
             let tri = self.dt.triangle_mut(tid);
             for edge in 0..3 {
                 let (va, vb) = tri.edge_vertices(edge);
-                if (va == a && vb == b) || (va == b && vb == a) {
-                    tri.constrained[edge] = true;
+                if Self::edge_matches_endpoints(va, vb, a, b) {
+                    tri.constrained[edge] = constrained;
                 }
             }
         }
+    }
+
+    fn mark_edge_constrained(&mut self, a: PslgVertexId, b: PslgVertexId) {
+        self.set_edge_constraint_flag(a, b, true);
     }
 
     /// Restore the locally Delaunay property for non-constrained edges near
@@ -738,15 +753,6 @@ impl Cdt {
         let canonical = canonical_edge(a, b);
         self.constrained_edges.remove(&canonical);
         // Unmark the edge in the triangulation (it may no longer exist).
-        let tris = self.dt.triangles_around_vertex(a);
-        for tid in tris {
-            let tri = self.dt.triangle_mut(tid);
-            for edge in 0..3 {
-                let (va, vb) = tri.edge_vertices(edge);
-                if (va == a && vb == b) || (va == b && vb == a) {
-                    tri.constrained[edge] = false;
-                }
-            }
-        }
+        self.set_edge_constraint_flag(a, b, false);
     }
 }
