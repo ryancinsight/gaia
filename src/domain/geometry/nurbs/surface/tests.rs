@@ -228,8 +228,8 @@ fn f32_rational_bilinear_surface_matches_analytic_point_and_partials() {
     assert!((dv.z - 0.48).abs() <= derivative_bound);
 }
 
-/// Basis-weight products are scaled before summation when every raw weight
-/// normalizes below the subnormal range.
+/// Multiplying two tiny basis coefficients before their large weight
+/// underflows even though the complete weighted term is representable.
 fn assert_tiny_active_denominator_terms<T: Scalar>(weight_exponent: i32, coordinate_exponent: i32) {
     let tiny = <T as Scalar>::from_f64(2.0_f64.powi(weight_exponent));
     let large = <T as Scalar>::from_f64(2.0_f64.powi(-weight_exponent));
@@ -262,4 +262,53 @@ fn assert_tiny_active_denominator_terms<T: Scalar>(weight_exponent: i32, coordin
 fn rational_surface_scales_tiny_active_denominator_terms() {
     assert_tiny_active_denominator_terms::<f32>(-100, 20);
     assert_tiny_active_denominator_terms::<f64>(-550, 400);
+}
+
+/// The exact u partial is MAX although the first three terms sum above MAX
+/// before the final cancellation in loop order.
+fn assert_rational_surface_partials_sum_avoids_intermediate_overflow<T: Scalar>(maximum: T) {
+    let half = maximum / <T as Scalar>::from_f64(2.0);
+    let zero = <T as Scalar>::from_f64(0.0);
+    let one = <T as Scalar>::from_f64(1.0);
+    let surface = weighted_patch(
+        [
+            Point3::<T>::new(-half, zero, zero),
+            Point3::<T>::new(maximum, zero, zero),
+            Point3::<T>::new(-half, zero, zero),
+            Point3::<T>::origin(),
+        ],
+        [one; 4],
+    );
+
+    let (point, du, dv) =
+        surface.point_and_derivs(<T as Scalar>::from_f64(1.0), <T as Scalar>::from_f64(0.5));
+    assert_eq!(point.x, half);
+    assert_eq!(du.x, maximum);
+    assert_eq!(dv.x, -maximum);
+}
+
+#[test]
+fn rational_surface_partials_sum_avoids_intermediate_overflow() {
+    assert_rational_surface_partials_sum_avoids_intermediate_overflow::<f32>(f32::MAX);
+    assert_rational_surface_partials_sum_avoids_intermediate_overflow::<f64>(f64::MAX);
+}
+
+fn assert_rational_surface_constant_infinite_coordinate_has_zero_partials<T: Scalar>() {
+    let infinity = <T as Scalar>::from_f64(f64::INFINITY);
+    let zero = <T as Scalar>::from_f64(0.0);
+    let one = <T as Scalar>::from_f64(1.0);
+    let point = Point3::<T>::new(infinity, zero, zero);
+    let surface = weighted_patch([point; 4], [one; 4]);
+
+    let (evaluated, du, dv) =
+        surface.point_and_derivs(<T as Scalar>::from_f64(0.5), <T as Scalar>::from_f64(0.5));
+    assert_eq!(evaluated, point);
+    assert_eq!([du.x, du.y, du.z], [zero; 3]);
+    assert_eq!([dv.x, dv.y, dv.z], [zero; 3]);
+}
+
+#[test]
+fn rational_surface_constant_infinite_coordinate_has_zero_partials() {
+    assert_rational_surface_constant_infinite_coordinate_has_zero_partials::<f32>();
+    assert_rational_surface_constant_infinite_coordinate_has_zero_partials::<f64>();
 }

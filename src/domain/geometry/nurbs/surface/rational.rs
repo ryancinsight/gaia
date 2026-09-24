@@ -1,7 +1,7 @@
 use super::super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::super::knot::KnotVector;
 use super::super::parameter::uniform_parameter;
-use super::super::ratio::{rational_value, scaled_rational_term};
+use super::super::ratio::{rational_value, scaled_rational_sum};
 use super::validate::validate_surface_dims;
 use super::{BSplineSurface, ControlGrid, SurfaceError, WeightGrid};
 use crate::domain::core::scalar::{Real, Scalar};
@@ -152,42 +152,30 @@ impl<T: Scalar> NurbsSurface<T> {
         let (u_start, v_start) = (su - self.degree_u, sv - self.degree_v);
         let mut ds_du = Vector3::<T>::zeros();
         let mut ds_dv = Vector3::<T>::zeros();
-        for (j, (&nu, &dnu)) in bu.iter().zip(dbu.iter()).enumerate() {
-            for (k, (&nv, &dnv)) in bv.iter().zip(dbv.iter()).enumerate() {
-                if (dnu.abs() <= zero || nv.abs() <= zero)
-                    && (nu.abs() <= zero || dnv.abs() <= zero)
-                {
-                    continue;
-                }
-                let point = self.control_grid.get(v_start + k, u_start + j);
-                let surface_point = Point3::from(s);
-                if point == surface_point {
-                    continue;
-                }
-                let wij = self.weights.get(v_start + k, u_start + j);
-                if dnu.abs() > zero && nv.abs() > zero {
-                    add_rational_derivative(
-                        &mut ds_du,
-                        point,
-                        surface_point,
-                        [dnu, nv],
-                        wij,
-                        [<T as NumericElement>::ONE, w],
-                        -exponent,
-                    );
-                }
-                if nu.abs() > zero && dnv.abs() > zero {
-                    add_rational_derivative(
-                        &mut ds_dv,
-                        point,
-                        surface_point,
-                        [nu, dnv],
-                        wij,
-                        [<T as NumericElement>::ONE, w],
-                        -exponent,
-                    );
-                }
-            }
+        for (dimension, (u_partial, v_partial)) in
+            ds_du.data.iter_mut().zip(ds_dv.data.iter_mut()).enumerate()
+        {
+            let u_terms = bv.iter().copied().enumerate().flat_map(|(k, nv)| {
+                dbu.iter().copied().enumerate().filter_map(move |(j, dnu)| {
+                    (dnu.abs() > zero && nv.abs() > zero).then_some((
+                        [dnu, nv, self.weights.get(v_start + k, u_start + j)],
+                        self.control_grid.get(v_start + k, u_start + j).coords.data[dimension],
+                        s.data[dimension],
+                    ))
+                })
+            });
+            *u_partial = scaled_rational_sum(u_terms, w, -exponent);
+
+            let v_terms = bu.iter().copied().enumerate().flat_map(|(j, nu)| {
+                dbv.iter().copied().enumerate().filter_map(move |(k, dnv)| {
+                    (nu.abs() > zero && dnv.abs() > zero).then_some((
+                        [nu, dnv, self.weights.get(v_start + k, u_start + j)],
+                        self.control_grid.get(v_start + k, u_start + j).coords.data[dimension],
+                        s.data[dimension],
+                    ))
+                })
+            });
+            *v_partial = scaled_rational_sum(v_terms, w, -exponent);
         }
         (Point3::from(s), ds_du, ds_dv)
     }
@@ -262,28 +250,6 @@ impl<T: Scalar> NurbsSurface<T> {
         let (point, denominator, exponent) =
             rational_value(terms, self.control_grid.get(0, 0).coords.data);
         (Vector3::from(point), denominator, exponent)
-    }
-}
-
-fn add_rational_derivative<T: Scalar>(
-    derivative: &mut Vector3<T>,
-    point: Point3<T>,
-    surface_point: Point3<T>,
-    basis: [T; 2],
-    raw_weight: T,
-    denominator: [T; 2],
-    exponent_offset: i32,
-) {
-    let factors = [basis[0], basis[1], raw_weight];
-    for (component, (positive, negative)) in derivative
-        .data
-        .iter_mut()
-        .zip(point.coords.data.into_iter().zip(surface_point.coords.data))
-    {
-        if positive != negative {
-            *component +=
-                scaled_rational_term(factors, denominator, positive, negative, exponent_offset);
-        }
     }
 }
 

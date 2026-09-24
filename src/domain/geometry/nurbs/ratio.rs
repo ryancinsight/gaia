@@ -224,6 +224,77 @@ fn scaled_value<T: Scalar>(value: T, exponent: i32) -> Option<ScaledValue<T>> {
     })
 }
 
+/// Sum finite rational derivative terms before rounding their final value.
+/// Equal coordinates are removed before subtraction so equal infinities remain
+/// zero contributions instead of becoming `NaN` through `∞ − ∞`.
+pub(super) fn scaled_rational_sum<T: Scalar>(
+    terms: impl Iterator<Item = ([T; 3], T, T)> + Clone,
+    denominator: T,
+    exponent_offset: i32,
+) -> T {
+    let zero = <T as NumericElement>::ZERO;
+    let one = <T as NumericElement>::ONE;
+    let terms = terms.filter(|(_, positive, negative)| positive != negative);
+    let finite_terms = denominator != zero
+        && <T as NumericElement>::is_finite(denominator)
+        && terms.clone().all(|(factors, positive, negative)| {
+            factors.into_iter().all(<T as NumericElement>::is_finite)
+                && <T as NumericElement>::is_finite(positive)
+                && <T as NumericElement>::is_finite(negative)
+        });
+
+    if finite_terms {
+        return scaled_quotient_sum(
+            terms.map(|(factors, positive, negative)| {
+                scaled_rational_parts(factors, positive, negative, exponent_offset)
+            }),
+            denominator,
+        );
+    }
+
+    terms
+        .map(|(factors, positive, negative)| {
+            scaled_rational_term(
+                factors,
+                [one, denominator],
+                positive,
+                negative,
+                exponent_offset,
+            )
+        })
+        .fold(zero, |sum, term| sum + term)
+}
+
+fn scaled_rational_parts<T: Scalar>(
+    factors: [T; 3],
+    positive: T,
+    negative: T,
+    exponent_offset: i32,
+) -> Option<ScaledValue<T>> {
+    let difference = positive - negative;
+    let (difference, offset) = if <T as NumericElement>::is_finite(difference) {
+        (difference, exponent_offset)
+    } else {
+        let coordinate_exponent = [positive, negative]
+            .into_iter()
+            .filter_map(<T as FloatElement>::binary_exponent)
+            .max()
+            .expect("invariant: finite coordinate subtraction overflow has a nonzero operand");
+        let difference = <T as FloatElement>::scale_binary(positive, -coordinate_exponent)
+            - <T as FloatElement>::scale_binary(negative, -coordinate_exponent);
+        let offset = coordinate_exponent
+            .checked_add(exponent_offset)
+            .expect("invariant: coordinate and rational exponents fit within i32");
+        (difference, offset)
+    };
+    let [first, second, third] = factors;
+    scaled_term_parts(
+        [first, second, third, difference],
+        [<T as NumericElement>::ONE; 2],
+        offset,
+    )
+}
+
 /// Evaluate a rational product term without losing a representable result to
 /// intermediate overflow or underflow.
 ///
