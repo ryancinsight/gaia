@@ -518,76 +518,7 @@ impl Cdt {
     ///
     /// $O(1)$: fixed number of array writes and adjacency patches.
     fn perform_flip(&mut self, tid: TriangleId, edge: usize) {
-        let tri = *self.dt.triangle(tid);
-        let nbr_tid = tri.adj[edge];
-        let nbr = *self.dt.triangle(nbr_tid);
-
-        let nbr_edge = nbr.shared_edge(tid).expect("adjacency broken");
-
-        let v_opp_t = tri.vertices[edge];
-        let v_opp_n = nbr.vertices[nbr_edge];
-        let (va, vb) = tri.edge_vertices(edge);
-
-        let adj_tid_1 = tri.adj[(edge + 1) % 3];
-        let adj_tid_2 = tri.adj[(edge + 2) % 3];
-        // In the neighbor (CCW), shared edge traverses vb→va:
-        //   adj[(nbr_edge+1)%3] = opp vb → edge (v_opp_n, va)
-        //   adj[(nbr_edge+2)%3] = opp va → edge (v_opp_n, vb)
-        let adj_nbr_opp_vb = nbr.adj[(nbr_edge + 1) % 3]; // across (v_opp_n, va)
-        let adj_nbr_opp_va = nbr.adj[(nbr_edge + 2) % 3]; // across (v_opp_n, vb)
-
-        let tri_cons = tri.constrained;
-        let nbr_cons = nbr.constrained;
-
-        let ts = self.dt.triangles_mut();
-
-        // Rewrite tid → (v_opp_t, v_opp_n, vb)
-        //   edge 0 opp v_opp_t = (v_opp_n, vb) → adj_nbr_opp_va
-        //   edge 1 opp v_opp_n = (vb, v_opp_t) → adj_tid_1
-        //   edge 2 opp vb      = shared → nbr_tid
-        ts[tid.idx()].vertices = [v_opp_t, v_opp_n, vb];
-        ts[tid.idx()].adj = [adj_nbr_opp_va, adj_tid_1, nbr_tid];
-        ts[tid.idx()].constrained = [
-            nbr_cons[(nbr_edge + 2) % 3],
-            tri_cons[(edge + 1) % 3],
-            false, // New diagonal is unconstrained.
-        ];
-
-        // Rewrite nbr → (v_opp_n, v_opp_t, va)
-        //   edge 0 opp v_opp_n = (v_opp_t, va) → adj_tid_2
-        //   edge 1 opp v_opp_t = (va, v_opp_n) → adj_nbr_opp_vb
-        //   edge 2 opp va      = shared → tid
-        ts[nbr_tid.idx()].vertices = [v_opp_n, v_opp_t, va];
-        ts[nbr_tid.idx()].adj = [adj_tid_2, adj_nbr_opp_vb, tid];
-        ts[nbr_tid.idx()].constrained = [
-            tri_cons[(edge + 2) % 3],
-            nbr_cons[(nbr_edge + 1) % 3],
-            false, // New diagonal is unconstrained.
-        ];
-
-        // Fix external adjacency: edges that moved between triangle IDs.
-        if adj_nbr_opp_va != GHOST_TRIANGLE {
-            for a in &mut ts[adj_nbr_opp_va.idx()].adj {
-                if *a == nbr_tid {
-                    *a = tid;
-                    break;
-                }
-            }
-        }
-        if adj_tid_2 != GHOST_TRIANGLE {
-            for a in &mut ts[adj_tid_2.idx()].adj {
-                if *a == tid {
-                    *a = nbr_tid;
-                    break;
-                }
-            }
-        }
-
-        // Update vert_to_tri for affected vertices.
-        self.dt.vert_to_tri[v_opp_t.idx()] = tid;
-        self.dt.vert_to_tri[v_opp_n.idx()] = nbr_tid;
-        self.dt.vert_to_tri[va.idx()] = nbr_tid;
-        self.dt.vert_to_tri[vb.idx()] = tid;
+        self.dt.flip_shared_edge(tid, edge);
     }
 
     /// Mark an edge between `a` and `b` as constrained in both triangles

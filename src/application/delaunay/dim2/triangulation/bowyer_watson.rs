@@ -522,6 +522,63 @@ impl DelaunayTriangulation {
         }
     }
 
+    /// Flip a shared internal edge and patch adjacency/constraint metadata.
+    ///
+    /// Rewrites the two incident triangles from `(va, vb)` diagonal to
+    /// `(v_opp_t, v_opp_n)` and updates external neighbors and `vert_to_tri`.
+    ///
+    /// Returns the neighbor triangle ID that shared `edge` before the flip.
+    #[inline]
+    pub(crate) fn flip_shared_edge(&mut self, tid: TriangleId, edge: usize) -> TriangleId {
+        let tri = self.triangles[tid.idx()];
+        let nbr_tid = tri.adj[edge];
+        let nbr_tri = self.triangles[nbr_tid.idx()];
+        let nbr_edge = nbr_tri.shared_edge(tid).expect("adjacency broken");
+
+        // Preserve existing constrained flags on non-flipped boundary edges.
+        let tri_cons = tri.constrained;
+        let nbr_cons = nbr_tri.constrained;
+
+        let v_opp_t = tri.vertices[edge]; // vertex opposite the shared edge in tid
+        let v_opp_n = nbr_tri.vertices[nbr_edge]; // vertex opposite in nbr
+        let (va, vb) = tri.edge_vertices(edge); // shared edge vertices
+
+        let adj_tid_va = tri.adj[(edge + 1) % 3];
+        let adj_tid_vb = tri.adj[(edge + 2) % 3];
+        let adj_nbr_va = nbr_tri.adj[(nbr_edge + 2) % 3];
+        let adj_nbr_vb = nbr_tri.adj[(nbr_edge + 1) % 3];
+
+        // Rewrite tid → (v_opp_t, v_opp_n, vb).
+        self.triangles[tid.idx()].vertices = [v_opp_t, v_opp_n, vb];
+        self.triangles[tid.idx()].adj = [adj_nbr_va, adj_tid_va, nbr_tid];
+        self.triangles[tid.idx()].constrained = [
+            nbr_cons[(nbr_edge + 2) % 3],
+            tri_cons[(edge + 1) % 3],
+            false, // New diagonal is never constrained.
+        ];
+
+        // Rewrite nbr → (v_opp_n, v_opp_t, va).
+        self.triangles[nbr_tid.idx()].vertices = [v_opp_n, v_opp_t, va];
+        self.triangles[nbr_tid.idx()].adj = [adj_tid_vb, adj_nbr_vb, tid];
+        self.triangles[nbr_tid.idx()].constrained = [
+            tri_cons[(edge + 2) % 3],
+            nbr_cons[(nbr_edge + 1) % 3],
+            false, // New diagonal is never constrained.
+        ];
+
+        // Fix external adjacency.
+        self.fix_adjacency(adj_nbr_va, nbr_tid, tid);
+        self.fix_adjacency(adj_tid_vb, tid, nbr_tid);
+
+        // Update vert_to_tri: vertices may have moved between triangles.
+        self.vert_to_tri[v_opp_t.idx()] = tid;
+        self.vert_to_tri[v_opp_n.idx()] = nbr_tid;
+        self.vert_to_tri[va.idx()] = nbr_tid;
+        self.vert_to_tri[vb.idx()] = tid;
+
+        nbr_tid
+    }
+
     /// Iterative Delaunay edge-flip restoration.
     ///
     /// If the edge `edge` of triangle `tid` violates the Delaunay criterion
@@ -559,10 +616,6 @@ impl DelaunayTriangulation {
             let tri = &self.triangles[tid.idx()];
             let nbr_tri = &self.triangles[nbr.idx()];
 
-            // Preserve existing constrained flags on non-flipped boundary edges.
-            let tri_cons = tri.constrained;
-            let nbr_cons = nbr_tri.constrained;
-
             let v_opp_t = tri.vertices[edge]; // vertex opposite the shared edge in tid
             let nbr_edge = nbr_tri.shared_edge(tid).expect("adjacency broken");
             let v_opp_n = nbr_tri.vertices[nbr_edge]; // vertex opposite in nbr
@@ -592,38 +645,7 @@ impl DelaunayTriangulation {
             }
 
             // Perform the edge flip.
-            let adj_tid_va = tri.adj[(edge + 1) % 3];
-            let adj_tid_vb = tri.adj[(edge + 2) % 3];
-            let adj_nbr_va = nbr_tri.adj[(nbr_edge + 2) % 3];
-            let adj_nbr_vb = nbr_tri.adj[(nbr_edge + 1) % 3];
-
-            // Rewrite tid → (v_opp_t, v_opp_n, vb).
-            self.triangles[tid.idx()].vertices = [v_opp_t, v_opp_n, vb];
-            self.triangles[tid.idx()].adj = [adj_nbr_va, adj_tid_va, nbr];
-            self.triangles[tid.idx()].constrained = [
-                nbr_cons[(nbr_edge + 2) % 3],
-                tri_cons[(edge + 1) % 3],
-                false, // New diagonal is never constrained.
-            ];
-
-            // Rewrite nbr → (v_opp_n, v_opp_t, va).
-            self.triangles[nbr.idx()].vertices = [v_opp_n, v_opp_t, va];
-            self.triangles[nbr.idx()].adj = [adj_tid_vb, adj_nbr_vb, tid];
-            self.triangles[nbr.idx()].constrained = [
-                tri_cons[(edge + 2) % 3],
-                nbr_cons[(nbr_edge + 1) % 3],
-                false, // New diagonal is never constrained.
-            ];
-
-            // Fix external adjacency.
-            self.fix_adjacency(adj_nbr_va, nbr, tid);
-            self.fix_adjacency(adj_tid_vb, tid, nbr);
-
-            // Update vert_to_tri: vertices may have moved between triangles.
-            self.vert_to_tri[v_opp_t.idx()] = tid;
-            self.vert_to_tri[v_opp_n.idx()] = nbr;
-            self.vert_to_tri[va.idx()] = nbr;
-            self.vert_to_tri[vb.idx()] = tid;
+            let nbr = self.flip_shared_edge(tid, edge);
 
             // Push the two new external edges for further checking.
             stack.push((tid, 0)); // (v_opp_n, vb) from old nbr
