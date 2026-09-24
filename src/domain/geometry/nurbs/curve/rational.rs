@@ -1,7 +1,7 @@
 use super::super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::super::knot::KnotVector;
 use super::super::parameter::uniform_parameter;
-use super::super::ratio::{rational_value, scaled_rational_term};
+use super::super::ratio::{rational_value, scaled_rational_sum};
 use super::{BSplineCurve, CurveError};
 use crate::domain::core::scalar::{Real, Scalar};
 use eunomia::NumericElement;
@@ -188,27 +188,25 @@ impl<const D: usize, T: Scalar> NurbsCurve<D, T> {
             return (pt, SVector::<T, D>::zeros());
         }
         let p = self.degree;
+        let start = span - p;
         let mut tan = SVector::<T, D>::zeros();
-        for j in 0..=p {
-            if dbasis[j].abs() <= zero {
-                continue;
-            }
-            let cp = self.control_points[span - p + j];
-            if cp == pt {
-                continue;
-            }
-            let raw_weight = self.weights[span - p + j];
-            for dimension in 0..D {
-                if cp[dimension] != pt[dimension] {
-                    tan[dimension] += scaled_rational_term(
-                        [dbasis[j], <T as NumericElement>::ONE, raw_weight],
-                        [<T as NumericElement>::ONE, w],
-                        cp[dimension],
-                        pt[dimension],
-                        -exponent,
-                    );
-                }
-            }
+        for dimension in 0..D {
+            let terms = dbasis
+                .iter()
+                .copied()
+                .enumerate()
+                .filter_map(|(j, derivative)| {
+                    (derivative.abs() > zero).then_some((
+                        [
+                            derivative,
+                            <T as NumericElement>::ONE,
+                            self.weights[start + j],
+                        ],
+                        self.control_points[start + j].data[dimension],
+                        pt.data[dimension],
+                    ))
+                });
+            tan.data[dimension] = scaled_rational_sum(terms, w, -exponent);
         }
         (pt, tan)
     }

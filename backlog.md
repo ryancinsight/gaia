@@ -30,8 +30,7 @@ missing verification → documentation drift → PM cleanup.
   820 line hits) and reduce cast ratchets to zero (initial 759/297/99, current
   437/160/53); each slice updates callers and passes its gate.
 - basis: `72f25c1` (PR #78's NURBS overflow correction is merged).
-- next: finish rational NURBS overflow-safe summation, then remeasure counts and
-  select the next module family by priority.
+- next: remeasure counts and select the next module family by priority.
 
 ---
 

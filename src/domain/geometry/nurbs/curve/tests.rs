@@ -282,6 +282,72 @@ fn rational_curve_derivative_scales_weight_and_coordinate_factors() {
     assert_extreme_weight_curve_tangent::<f64>(f64::from_bits(1), f64::MAX);
 }
 
+/// The cubic Bernstein derivative is -15/16 of MAX, although its first three
+/// finite contributions sum to -135/128 of MAX before the final cancellation.
+fn assert_rational_curve_tangent_sum_avoids_intermediate_overflow<T: Scalar>(
+    maximum: T,
+    epsilon: T,
+) {
+    let zero = <T as Scalar>::from_f64(0.0);
+    let one = <T as Scalar>::from_f64(1.0);
+    let curve = NurbsCurve::<2, T>::new(
+        [
+            maximum,
+            maximum,
+            zero,
+            <T as Scalar>::from_f64(0.75) * maximum,
+        ]
+        .into_iter()
+        .map(|x| SVector::<T, 2>::new(x, zero))
+        .collect(),
+        vec![one; 4],
+        KnotVector::<T>::clamped_uniform(3, 3),
+        3,
+    )
+    .unwrap();
+
+    let (point, tangent) = curve.point_and_tangent(<T as Scalar>::from_f64(0.5));
+    let expected = <T as Scalar>::from_f64(-15.0 / 16.0) * maximum;
+    let unit_roundoff = epsilon / <T as Scalar>::from_f64(2.0);
+    // The point assertion pins the exact 19/32 MAX evaluation; each control
+    // difference is exact (Sterbenz for the nonzero pairs). The four derivative
+    // terms have absolute sum 75/64 MAX. Their scaled products round once, the
+    // expansion retains the sum, and final rounding stays below 4u MAX; 8u MAX
+    // is a conservative forward-error bound.
+    let tolerance = <T as Scalar>::from_f64(8.0) * unit_roundoff * maximum;
+    assert_eq!(point[0], <T as Scalar>::from_f64(19.0 / 32.0) * maximum);
+    assert!((tangent[0] - expected).abs() <= tolerance);
+}
+
+#[test]
+fn rational_curve_tangent_sum_avoids_intermediate_overflow() {
+    assert_rational_curve_tangent_sum_avoids_intermediate_overflow::<f32>(f32::MAX, f32::EPSILON);
+    assert_rational_curve_tangent_sum_avoids_intermediate_overflow::<f64>(f64::MAX, f64::EPSILON);
+}
+
+fn assert_rational_curve_constant_infinite_coordinate_has_zero_tangent<T: Scalar>() {
+    let infinity = <T as Scalar>::from_f64(f64::INFINITY);
+    let zero = <T as Scalar>::from_f64(0.0);
+    let curve = NurbsCurve::<2, T>::new(
+        vec![SVector::<T, 2>::new(infinity, zero); 2],
+        vec![<T as Scalar>::from_f64(1.0); 2],
+        KnotVector::<T>::clamped_uniform(1, 1),
+        1,
+    )
+    .unwrap();
+
+    let (point, tangent) = curve.point_and_tangent(<T as Scalar>::from_f64(0.5));
+    assert_eq!(point[0], infinity);
+    assert_eq!(tangent[0], zero);
+    assert_eq!(tangent[1], zero);
+}
+
+#[test]
+fn rational_curve_constant_infinite_coordinate_has_zero_tangent() {
+    assert_rational_curve_constant_infinite_coordinate_has_zero_tangent::<f32>();
+    assert_rational_curve_constant_infinite_coordinate_has_zero_tangent::<f64>();
+}
+
 /// A small weight multiplied by a large coordinate remains representable even
 /// when normalizing the weight first would underflow to zero.
 #[test]
