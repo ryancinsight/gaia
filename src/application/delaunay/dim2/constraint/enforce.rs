@@ -32,6 +32,7 @@
 use std::collections::VecDeque;
 
 use hashbrown::HashSet;
+use leto::geometry::Point2;
 
 use crate::application::delaunay::core::{
     canonical_edge, segment_cross_point, segments_cross_proper,
@@ -87,6 +88,32 @@ pub struct Cdt {
 }
 
 impl Cdt {
+    #[inline]
+    fn edge_touches_constraint_endpoint(
+        edge_start: PslgVertexId,
+        edge_end: PslgVertexId,
+        constraint_start: PslgVertexId,
+        constraint_end: PslgVertexId,
+    ) -> bool {
+        edge_start == constraint_start
+            || edge_start == constraint_end
+            || edge_end == constraint_start
+            || edge_end == constraint_end
+    }
+
+    #[inline]
+    fn edge_crosses_segment(
+        &self,
+        seg_start: &Point2<Real>,
+        seg_end: &Point2<Real>,
+        edge_start: PslgVertexId,
+        edge_end: PslgVertexId,
+    ) -> bool {
+        let edge_a = self.dt.vertex(edge_start).to_point2();
+        let edge_b = self.dt.vertex(edge_end).to_point2();
+        segments_cross_proper(seg_start, seg_end, &edge_a, &edge_b)
+    }
+
     /// Build a CDT from a PSLG.
     ///
     /// 1. Inserts all PSLG vertices into a Delaunay triangulation.
@@ -239,14 +266,10 @@ impl Cdt {
 
             // Verify the edge still crosses (a, b).
             let (va, vb) = self.dt.triangle(tid).edge_vertices(edge);
-            {
-                let ea = self.dt.vertex(va).to_point2();
-                let eb = self.dt.vertex(vb).to_point2();
-                let sa = self.dt.vertex(a).to_point2();
-                let sb = self.dt.vertex(b).to_point2();
-                if !segments_cross_proper(&sa, &sb, &ea, &eb) {
-                    continue; // No longer crossing — already resolved.
-                }
+            let sa = self.dt.vertex(a).to_point2();
+            let sb = self.dt.vertex(b).to_point2();
+            if !self.edge_crosses_segment(&sa, &sb, va, vb) {
+                continue; // No longer crossing — already resolved.
             }
 
             if self.can_flip(tid, edge) {
@@ -263,11 +286,9 @@ impl Cdt {
                 self.perform_flip(tid, edge);
 
                 // Check if the new diagonal (v_opp_t — v_opp_n) crosses (a, b).
-                let new_a = self.dt.vertex(v_opp_t).to_point2();
-                let new_b = self.dt.vertex(v_opp_n).to_point2();
                 let sa = self.dt.vertex(a).to_point2();
                 let sb = self.dt.vertex(b).to_point2();
-                if segments_cross_proper(&sa, &sb, &new_a, &new_b) {
+                if self.edge_crosses_segment(&sa, &sb, v_opp_t, v_opp_n) {
                     // New diagonal still crosses — find which triangle now
                     // contains that edge and re-enqueue.
                     if let Some(new_loc) = self.find_edge_in_triangles(v_opp_t, v_opp_n) {
@@ -332,15 +353,13 @@ impl Cdt {
             let tri = self.dt.triangle(tid);
             for edge in 0..3 {
                 let (va, vb) = tri.edge_vertices(edge);
-                if va == a || va == b || vb == a || vb == b {
+                if Self::edge_touches_constraint_endpoint(va, vb, a, b) {
                     continue;
                 }
                 if tri.constrained[edge] {
                     continue;
                 }
-                let ea = self.dt.vertex(va).to_point2();
-                let eb = self.dt.vertex(vb).to_point2();
-                if segments_cross_proper(&sa, &sb, &ea, &eb) {
+                if self.edge_crosses_segment(&sa, &sb, va, vb) {
                     queue.push_back((tid, edge));
                     visited[tid.idx()] = true;
                     let nbr = tri.adj[edge];
@@ -363,16 +382,14 @@ impl Cdt {
             }
             for edge in 0..3 {
                 let (va, vb) = tri.edge_vertices(edge);
-                if va == a || va == b || vb == a || vb == b {
+                if Self::edge_touches_constraint_endpoint(va, vb, a, b) {
                     // Check if we reached b — stop walking this direction.
                     continue;
                 }
                 if tri.constrained[edge] {
                     continue;
                 }
-                let ea = self.dt.vertex(va).to_point2();
-                let eb = self.dt.vertex(vb).to_point2();
-                if segments_cross_proper(&sa, &sb, &ea, &eb) {
+                if self.edge_crosses_segment(&sa, &sb, va, vb) {
                     queue.push_back((tid, edge));
                     let nbr = tri.adj[edge];
                     if nbr != GHOST_TRIANGLE && !visited[nbr.idx()] {
