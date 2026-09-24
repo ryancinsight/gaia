@@ -3,24 +3,34 @@
 //! Implements the **Cox–de Boor recursion** for computing B-spline basis
 //! functions `N_{i,p}(ξ)` and their first derivatives `N'_{i,p}(ξ)`.
 //!
-//! ## Algorithm — de Boor's Algorithm
+//! ## Algorithm — triangular basis evaluation
 //!
-//! Rather than computing all `N_{i,p}` recursively (which recomputes shared
-//! sub-expressions), this module uses the *triangular table* approach:
+//! Rather than recursively recomputing shared sub-expressions, this module
+//! uses the triangular recurrence in Piegl and Tiller, Algorithm A2.2
+//! (Chapter 2, §2.5, p. 70):
 //!
 //! ```text
-//! N[0] = [N_{i-p,0}, N_{i-p+1,0}, …, N_{i,0}]  (only the active span is 1)
-//!
-//! For d = 1 to p:
-//!   For j = 0 to p-d:
-//!     left  = ξ − ξ_{i-p+d+j}
-//!     right = ξ_{i+1+j} − ξ
-//!     saved = N[j] * left / (left + right)
-//!     N[j]  = saved + N[j+1] * right / (left + right)
+//! N[0] = 1
+//! for j = 1..=p:
+//!   left[j] = t - U[i+1-j]
+//!   right[j] = U[i+j] - t
+//!   saved = 0
+//!   for r = 0..j:
+//!     current = N[r]
+//!     denominator = right[r+1] + left[j-r]
+//!     N[r] = saved + current * (right[r+1] / denominator)
+//!     saved = current * (left[j-r] / denominator)
+//!   N[j] = saved
 //! ```
 //!
 //! This yields the `p+1` non-zero basis functions `N_{i-p,p}(ξ)` through
-//! `N_{i,p}(ξ)` in O(p²) time.
+//! `N_{i,p}(ξ)` in O(p²) time. A zero knot-difference denominator contributes
+//! zero, as in the Cox–de Boor convention (Piegl and Tiller, §2.2, Eq. 2.10).
+//! Ratios are formed before multiplying by the current basis value so a
+//! finite ratio does not overflow through an intermediate reciprocal.
+//!
+//! Reference: [Piegl and Tiller, *The NURBS Book*, 2nd ed.](https://link.springer.com/book/10.1007/978-3-642-59223-2),
+//! Chapter 2, §§2.2 and 2.5, pp. 47–79.
 //!
 //! ## Theorem — Partition of Unity
 //!
@@ -30,7 +40,8 @@
 //! Σⱼ₌₀ᵖ N_{i-p+j, p}(ξ) = 1
 //! ```
 //!
-//! All evaluations in this module maintain this invariant.
+//! The recurrence preserves this identity in exact arithmetic; floating-point
+//! evaluations incur rounding error.
 
 use super::knot::KnotVector;
 use crate::domain::core::scalar::Scalar;
@@ -47,14 +58,14 @@ fn assert_output_len(name: &str, len: usize, required: usize) {
     );
 }
 
-/// Divide, mapping a near-zero denominator (repeated knots) to zero.
+/// Divide, mapping an exactly zero denominator (repeated knots) to zero.
 ///
-/// The guard is an absolute threshold carried at `T` precision via
-/// [`Scalar::from_f64`]; knot values live in `[0, 1]`, where it fires only
-/// for genuinely degenerate spans.
+/// No absolute small-value threshold is applied. For repeated knots, an exact
+/// zero denominator contributes zero. See Piegl and Tiller, *The NURBS Book*,
+/// 2nd ed., Chapter 2, §2.2, Eq. 2.10.
 #[inline]
 fn safe_div<T: Scalar>(num: T, denom: T) -> T {
-    if denom.abs() < <T as Scalar>::from_f64(1e-15) {
+    if denom == <T as NumericElement>::ZERO {
         <T as NumericElement>::ZERO
     } else {
         num / denom
@@ -82,9 +93,12 @@ fn fill_basis<T: Scalar>(
         right[j] = knots.get(span + j) - t;
         let mut saved = zero;
         for r in 0..j {
-            let temp = safe_div(out[r], right[r + 1] + left[j - r]);
-            out[r] = saved + right[r + 1] * temp;
-            saved = left[j - r] * temp;
+            let current = out[r];
+            let denominator = right[r + 1] + left[j - r];
+            let right_ratio = safe_div(right[r + 1], denominator);
+            let left_ratio = safe_div(left[j - r], denominator);
+            out[r] = saved + current * right_ratio;
+            saved = current * left_ratio;
         }
         out[j] = saved;
     }
@@ -324,6 +338,53 @@ mod tests {
                 dn[j]
             );
         }
+    }
+
+    fn assert_linear_basis_on_span<T: Scalar>(width: T, inverse_width: T) {
+        let zero = <T as NumericElement>::ZERO;
+        let half = <T as Scalar>::from_f64(0.5);
+        let t = width * half;
+        let kv = KnotVector::try_new(vec![zero, zero, width, width]).unwrap();
+        let span = kv.find_span(t, 1);
+
+        let (basis, derivatives) = eval_basis_and_deriv(span, t, 1, &kv);
+
+        assert_eq!(basis.as_slice(), &[half, half]);
+        assert_eq!(
+            derivatives.as_slice(),
+            &[zero - inverse_width, inverse_width]
+        );
+    }
+
+    /// Dyadic knot widths and their reciprocals are exactly representable in
+    /// both scalar types; these exact assertions therefore need no tolerance.
+    #[test]
+    fn narrow_positive_spans_preserve_basis_and_derivatives() {
+        assert_linear_basis_on_span(
+            <f32 as Scalar>::from_f64(2.0_f64.powi(-60)),
+            <f32 as Scalar>::from_f64(2.0_f64.powi(60)),
+        );
+        assert_linear_basis_on_span(
+            <f64 as Scalar>::from_f64(2.0_f64.powi(-60)),
+            <f64 as Scalar>::from_f64(2.0_f64.powi(60)),
+        );
+    }
+
+    /// The ratio remains finite although the reciprocal of this subnormal
+    /// interval exceeds the finite `f32` range.
+    #[test]
+    fn subnormal_positive_span_keeps_f32_basis_finite() {
+        let width = <f32 as Scalar>::from_f64(2.0_f64.powi(-130));
+        let half = <f32 as Scalar>::from_f64(0.5);
+        let zero = <f32 as NumericElement>::ZERO;
+        let t = width * half;
+        let kv = KnotVector::try_new(vec![zero, zero, width, width]).unwrap();
+        let span = kv.find_span(t, 1);
+
+        let basis = eval_basis(span, t, 1, &kv);
+
+        assert_eq!(basis.as_slice(), &[half, half]);
+        assert!(basis.iter().all(|value| value.is_finite()));
     }
 
     /// The scalar seam monomorphizes: the `f32` instantiation holds the
