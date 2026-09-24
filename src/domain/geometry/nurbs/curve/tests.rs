@@ -302,6 +302,91 @@ fn rational_curve_preserves_scaled_point_contributions() {
     assert_eq!(tangent[0], -2.0_f64.powi(-598));
 }
 
+fn assert_constant_rational_curve_coordinate<T: Scalar>(coordinate: T) {
+    let two = <T as Scalar>::from_f64(2.0);
+    assert_constant_rational_curve_coordinate_with_weights(coordinate, [two, two]);
+}
+
+fn assert_constant_rational_curve_coordinate_with_weights<T: Scalar>(
+    coordinate: T,
+    weights: [T; 2],
+) {
+    let zero = <T as Scalar>::from_f64(0.0);
+    let half = <T as Scalar>::from_f64(0.5);
+    let point = SVector::<T, 2>::new(coordinate, zero);
+    let curve = linear_rational_curve([point, point], weights);
+
+    assert_eq!(curve.point(half), point);
+    let (evaluated, tangent) = curve.point_and_tangent(half);
+    assert_eq!(evaluated, point);
+    assert_eq!(tangent, SVector::<T, 2>::zeros());
+}
+
+fn assert_curve_point<T: Scalar>(coordinates: [T; 3], expected: T) {
+    let zero = <T as Scalar>::from_f64(0.0);
+    let one = <T as Scalar>::from_f64(1.0);
+    let curve = NurbsCurve::new(
+        coordinates
+            .into_iter()
+            .map(|x| SVector::<T, 2>::new(x, zero))
+            .collect(),
+        vec![one; 3],
+        KnotVector::<T>::clamped_uniform(2, 2),
+        2,
+    )
+    .unwrap();
+    let half = <T as Scalar>::from_f64(0.5);
+
+    assert_eq!(curve.point(half)[0], expected);
+    assert_eq!(curve.point_and_tangent(half).0[0], expected);
+}
+
+/// Summing weighted point contributions before division preserves a constant
+/// coordinate at the least positive subnormal in both supported precisions.
+#[test]
+fn rational_curve_preserves_least_subnormal_constant_coordinate() {
+    assert_constant_rational_curve_coordinate(f32::from_bits(1));
+    assert_constant_rational_curve_coordinate(f64::from_bits(1));
+    assert_constant_rational_curve_coordinate_with_weights(f32::from_bits(1), [1.0, 2.0]);
+    assert_constant_rational_curve_coordinate_with_weights(f64::from_bits(1), [1.0, 2.0]);
+}
+
+#[test]
+fn rational_curve_averages_maximum_coordinates_without_overflow() {
+    assert_constant_rational_curve_coordinate(f32::MAX);
+    assert_constant_rational_curve_coordinate(f64::MAX);
+    assert_constant_rational_curve_coordinate_with_weights(f32::MAX, [6.0, 31.0]);
+    assert_constant_rational_curve_coordinate_with_weights(f64::MAX, [1.0, 2.0]);
+}
+
+/// Cancellation among large dyadic contributions must not erase smaller
+/// representable residuals placed at multiple basis positions.
+#[test]
+fn rational_curve_reduction_preserves_cancellation_residuals() {
+    let large32 = 2.0_f32.powi(80);
+    let small32 = 2.0_f32.powi(-80);
+    assert_curve_point([large32, -large32 / 2.0, small32], 2.0_f32.powi(-82));
+    assert_curve_point([large32, small32, -large32], 2.0_f32.powi(-81));
+    assert_curve_point(
+        [large32, 1.5 * 2.0_f32.powi(-70), -large32],
+        1.5 * 2.0_f32.powi(-71),
+    );
+
+    let large64 = 2.0_f64.powi(600);
+    let small64 = 2.0_f64.powi(-600);
+    assert_curve_point([large64, -large64 / 2.0, small64], 2.0_f64.powi(-602));
+    assert_curve_point([large64, small64, -large64], 2.0_f64.powi(-601));
+    let boundary_large64 = 2.0_f64.powi(475);
+    assert_curve_point(
+        [
+            boundary_large64,
+            1.5 * 2.0_f64.powi(-600),
+            -boundary_large64,
+        ],
+        1.5 * 2.0_f64.powi(-601),
+    );
+}
+
 /// The tangent of a dyadic linear curve evaluates exactly at `f32`:
 /// every knot, control point, and parameter is dyadic, so the
 /// degree-lowered recurrence involves no rounding, and the analytic
