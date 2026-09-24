@@ -1,10 +1,12 @@
 use super::super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::super::knot::KnotVector;
 use super::super::parameter::uniform_parameter;
+use super::super::ratio::{rational_value, scaled_rational_term};
 use super::{BSplineCurve, CurveError};
 use crate::domain::core::scalar::{Real, Scalar};
 use eunomia::NumericElement;
 use leto::geometry::Vector as SVector;
+
 // ── NurbsCurve ────────────────────────────────────────────────────────────────
 
 /// A rational B-spline (NURBS) curve of degree `p` in `D`-dimensional space.
@@ -146,30 +148,18 @@ impl<const D: usize, T: Scalar> NurbsCurve<D, T> {
             &mut basis_vec[..]
         };
         eval_basis_to_slice(span, t, self.degree, &self.knots, basis);
-        let p = self.degree;
-
-        let mut num = SVector::<T, D>::zeros();
-        let mut den: T = zero;
-        for (j, &b) in basis.iter().enumerate() {
-            let w = self.weights[span - p + j];
-            let bw = b * w;
-            num += self.control_points[span - p + j] * bw;
-            den += bw;
-        }
-        // Guard against degenerate knot spans where all basis weights are 0
-        if den.abs() < <T as Scalar>::from_f64(1e-15) {
-            return self.control_points[span - p];
-        }
-        num / den
+        self.rational_value(span - self.degree, basis).0
     }
 
     /// Evaluate the NURBS curve and its first derivative at parameter `t`.
     ///
-    /// Uses the quotient rule:
+    /// The quotient rule is evaluated in difference form:
     /// ```text
-    /// C'(t) = (A'(t) · W(t) − A(t) · W'(t)) / W(t)²
+    /// C'(t) = Σᵢ N'ᵢ,ₚ(t) · wᵢ · (Pᵢ − C(t)) / W(t)
     /// ```
-    /// where `A(t) = Σ N_{i,p}(t)·wᵢ·Pᵢ` and `W(t) = Σ N_{i,p}(t)·wᵢ`.
+    /// where `W(t) = Σ N_{i,p}(t)·wᵢ`.
+    /// Finite factors and coordinate differences are scaled before
+    /// multiplication or subtraction to preserve representable components.
     ///
     /// # Panics
     /// Panics if `t` is outside the knot domain.
@@ -193,36 +183,54 @@ impl<const D: usize, T: Scalar> NurbsCurve<D, T> {
             (&mut basis_vec[..], &mut dbasis_vec[..])
         };
         eval_basis_and_deriv_to_slice(span, t, self.degree, &self.knots, basis, dbasis);
-        let p = self.degree;
-
-        let mut a = SVector::<T, D>::zeros(); // Σ N·w·P
-        let mut da = SVector::<T, D>::zeros(); // Σ N'·w·P
-        let mut w: T = zero; // Σ N·w
-        let mut dw: T = zero; // Σ N'·w
-
-        for j in 0..=p {
-            let cp = self.control_points[span - p + j];
-            let wj = self.weights[span - p + j];
-            a += cp * (basis[j] * wj);
-            da += cp * (dbasis[j] * wj);
-            w += basis[j] * wj;
-            dw += dbasis[j] * wj;
+        let (pt, w, exponent) = self.rational_value(span - self.degree, basis);
+        if w == zero {
+            return (pt, SVector::<T, D>::zeros());
         }
-
-        let guard = <T as Scalar>::from_f64(1e-15);
-        let pt = if w.abs() < guard {
-            self.control_points[span - p]
-        } else {
-            a / w
-        };
-
-        let tan = if w.abs() < guard {
-            SVector::<T, D>::zeros()
-        } else {
-            (da - pt * dw) / w
-        };
-
+        let p = self.degree;
+        let mut tan = SVector::<T, D>::zeros();
+        for j in 0..=p {
+            if dbasis[j].abs() <= zero {
+                continue;
+            }
+            let cp = self.control_points[span - p + j];
+            if cp == pt {
+                continue;
+            }
+            let raw_weight = self.weights[span - p + j];
+            for dimension in 0..D {
+                if cp[dimension] != pt[dimension] {
+                    tan[dimension] += scaled_rational_term(
+                        [dbasis[j], <T as NumericElement>::ONE, raw_weight],
+                        [<T as NumericElement>::ONE, w],
+                        cp[dimension],
+                        pt[dimension],
+                        -exponent,
+                    );
+                }
+            }
+        }
         (pt, tan)
+    }
+
+    fn rational_value(&self, start: usize, basis: &[T]) -> (SVector<T, D>, T, i32) {
+        let zero = <T as NumericElement>::ZERO;
+        let terms = basis
+            .iter()
+            .copied()
+            .enumerate()
+            .filter_map(|(j, coefficient)| {
+                (coefficient.abs() > zero).then_some((
+                    [
+                        coefficient,
+                        <T as NumericElement>::ONE,
+                        self.weights[start + j],
+                    ],
+                    self.control_points[start + j].data,
+                ))
+            });
+        let (point, denominator, exponent) = rational_value(terms, self.control_points[start].data);
+        (SVector::from(point), denominator, exponent)
     }
 
     /// Sample `count` uniformly spaced points on the curve.

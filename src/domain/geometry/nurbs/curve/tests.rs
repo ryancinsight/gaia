@@ -6,6 +6,19 @@ use leto::geometry::Vector as SVector;
 type V3 = SVector<Real, 3>;
 type V2 = SVector<Real, 2>;
 
+fn linear_rational_curve<T: Scalar>(
+    points: [SVector<T, 2>; 2],
+    weights: [T; 2],
+) -> NurbsCurve<2, T> {
+    NurbsCurve::new(
+        points.to_vec(),
+        weights.to_vec(),
+        KnotVector::<T>::clamped_uniform(1, 1),
+        1,
+    )
+    .unwrap()
+}
+
 fn v3(x: Real, y: Real, z: Real) -> V3 {
     V3::new(x, y, z)
 }
@@ -239,6 +252,54 @@ fn f32_rational_quarter_circle_radius_is_weight_rounding_bounded() {
             "f32 quarter-circle radius drift exceeds the weight-rounding bound at t={t}: r={r}"
         );
     }
+}
+
+fn assert_extreme_weight_curve_tangent<T: Scalar>(tiny: T, large: T) {
+    let zero = <T as Scalar>::from_f64(0.0);
+    let small_point = SVector::<T, 2>::new(tiny, zero);
+    let curve = linear_rational_curve([SVector::<T, 2>::zeros(), small_point], [tiny, large]);
+
+    let (point, tangent) = curve.point_and_tangent(zero);
+    assert_eq!(point, SVector::<T, 2>::zeros());
+    assert_eq!(tangent, SVector::<T, 2>::new(large, zero));
+
+    let half = <T as Scalar>::from_f64(0.5);
+    let curve = linear_rational_curve(
+        [
+            SVector::<T, 2>::new(-(large * half), zero),
+            SVector::<T, 2>::new(large, zero),
+        ],
+        [<T as Scalar>::from_f64(1.0), <T as Scalar>::from_f64(0.25)],
+    );
+    let (_, tangent) = curve.point_and_tangent(zero);
+    assert_eq!(tangent[0], large * <T as Scalar>::from_f64(0.375));
+}
+
+/// The endpoint derivative survives weight-ratio and coordinate-subtraction overflow.
+#[test]
+fn rational_curve_derivative_scales_weight_and_coordinate_factors() {
+    assert_extreme_weight_curve_tangent::<f32>(f32::from_bits(1), f32::MAX);
+    assert_extreme_weight_curve_tangent::<f64>(f64::from_bits(1), f64::MAX);
+}
+
+/// A small weight multiplied by a large coordinate remains representable even
+/// when normalizing the weight first would underflow to zero.
+#[test]
+fn rational_curve_preserves_scaled_point_contributions() {
+    let large = 2.0_f64.powi(600);
+    let tiny = 2.0_f64.powi(-600);
+    let curve = linear_rational_curve(
+        [
+            SVector::<f64, 2>::new(large, 0.0),
+            SVector::<f64, 2>::zeros(),
+        ],
+        [tiny, large],
+    );
+
+    assert_eq!(curve.point(0.5)[0], tiny);
+    let (point, tangent) = curve.point_and_tangent(0.5);
+    assert_eq!(point[0], tiny);
+    assert_eq!(tangent[0], -2.0_f64.powi(-598));
 }
 
 /// The tangent of a dyadic linear curve evaluates exactly at `f32`:

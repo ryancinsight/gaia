@@ -70,6 +70,7 @@ pub mod surface;
 pub mod tessellate;
 
 mod parameter;
+mod ratio;
 
 pub use curve::NurbsCurve;
 pub use surface::NurbsSurface;
