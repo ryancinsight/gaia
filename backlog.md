@@ -357,3 +357,14 @@ never in an optimization pass. The audit's finding still holds.
   enum change and a major-version migration documents exhaustive-match updates.
 - basis: `34f0229`
 - next: specify the public error migration before implementation.
+
+<a id="GAIA-022"></a>
+## GAIA-022 — Preserve narrow positive knot spans
+
+- outcome: basis values and derivatives remain valid for positive spans below `1e-15`.
+- priority: correctness
+- needs: none
+- scope: `src/domain/geometry/nurbs/basis.rs` and tests.
+- acceptance: width `2^-60` yields midpoint basis `0.5` and derivatives `±2^60` in f32/f64; width `2^-130` keeps f32 basis finite at `0.5`.
+- basis: `5cd7c63`
+- next: remove the absolute cutoff and form Cox–de Boor ratios before products.

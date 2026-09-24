@@ -1,11 +1,13 @@
 use super::super::basis::{eval_basis_and_deriv_to_slice, eval_basis_to_slice};
 use super::super::knot::KnotVector;
 use super::super::parameter::uniform_parameter;
+use super::super::ratio::{rational_value, scaled_rational_term};
 use super::validate::validate_surface_dims;
 use super::{BSplineSurface, ControlGrid, SurfaceError, WeightGrid};
 use crate::domain::core::scalar::{Real, Scalar};
 use eunomia::NumericElement;
 use leto::geometry::{Point3, UnitVector3, Vector3};
+
 // NurbsSurface
 // ---------------------------------------------------------------------------
 
@@ -34,6 +36,7 @@ pub struct NurbsSurface<T = Real> {
 
 impl<T: Scalar> NurbsSurface<T> {
     /// Create a NURBS surface, validating all dimensions.
+    ///
     pub fn new(
         control_grid: ControlGrid<T>,
         weights: WeightGrid<T>,
@@ -89,18 +92,17 @@ impl<T: Scalar> NurbsSurface<T> {
     /// Evaluate the NURBS surface at `(u, v)`.
     #[must_use]
     pub fn point(&self, u: T, v: T) -> Point3<T> {
-        let (num, den) = self.rational_eval(u, v);
-        if den.abs() < <T as Scalar>::from_f64(1e-15) {
-            return self.control_grid.get(0, 0);
-        }
-        Point3::from(num / den)
+        self.rational_point(u, v)
     }
 
     /// Evaluate surface point and partial derivatives `(S, dS/du, dS/dv)`.
     ///
-    /// Uses the quotient rule:
-    ///   dS/du = (dA/du * W - A * dW/du) / W^2
-    /// where A = sum `N_i(u)` `N_j(v)` `w_ij` `P_ij` and W = sum `N_i` `N_j` `w_ij`.
+    /// The quotient rule is evaluated in difference form:
+    /// `dS/du = sum(dN_i/du * N_j * w_ij * (P_ij - S)) / W`, with the
+    /// corresponding `N_i * dN_j/dv` coefficient for `dS/dv`; `W` is the
+    /// rational basis-weight sum. Finite factors and coordinate differences
+    /// are scaled before multiplication or subtraction to preserve
+    /// representable partial components.
     #[must_use]
     pub fn point_and_derivs(&self, u: T, v: T) -> (Point3<T>, Vector3<T>, Vector3<T>) {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
@@ -139,41 +141,54 @@ impl<T: Scalar> NurbsSurface<T> {
         eval_basis_and_deriv_to_slice(su, u, self.degree_u, &self.knots_u, bu, dbu);
         eval_basis_and_deriv_to_slice(sv, v, self.degree_v, &self.knots_v, bv, dbv);
 
-        let pu = self.degree_u;
-        let pv = self.degree_v;
-
-        let mut a = Vector3::<T>::zeros();
-        let mut da_du = Vector3::<T>::zeros();
-        let mut da_dv = Vector3::<T>::zeros();
-        let mut w: T = zero;
-        let mut dw_du: T = zero;
-        let mut dw_dv: T = zero;
-
-        for (j, (&nu, &dnu)) in bu.iter().zip(dbu.iter()).enumerate() {
-            for (k, (&nv, &dnv)) in bv.iter().zip(dbv.iter()).enumerate() {
-                // get(row, col) = get(v_idx, u_idx)
-                let wij = self.weights.get(sv - pv + k, su - pu + j);
-                let pt = self.control_grid.get(sv - pv + k, su - pu + j).coords;
-                a += pt * (nu * nv * wij);
-                da_du += pt * (dnu * nv * wij);
-                da_dv += pt * (nu * dnv * wij);
-                w += nu * nv * wij;
-                dw_du += dnu * nv * wij;
-                dw_dv += nu * dnv * wij;
-            }
-        }
-
-        if w.abs() < <T as Scalar>::from_f64(1e-15) {
+        let (s, w, exponent) = self.rational_value(su, sv, bu, bv);
+        if w == zero {
             return (
                 self.control_grid.get(0, 0),
                 Vector3::<T>::zeros(),
                 Vector3::<T>::zeros(),
             );
         }
-        let s = a / w;
-        // Quotient rule: d(a/w)/du = (da/du - s * dw/du) / w
-        let ds_du = (da_du - s * dw_du) / w;
-        let ds_dv = (da_dv - s * dw_dv) / w;
+        let (u_start, v_start) = (su - self.degree_u, sv - self.degree_v);
+        let mut ds_du = Vector3::<T>::zeros();
+        let mut ds_dv = Vector3::<T>::zeros();
+        for (j, (&nu, &dnu)) in bu.iter().zip(dbu.iter()).enumerate() {
+            for (k, (&nv, &dnv)) in bv.iter().zip(dbv.iter()).enumerate() {
+                if (dnu.abs() <= zero || nv.abs() <= zero)
+                    && (nu.abs() <= zero || dnv.abs() <= zero)
+                {
+                    continue;
+                }
+                let point = self.control_grid.get(v_start + k, u_start + j);
+                let surface_point = Point3::from(s);
+                if point == surface_point {
+                    continue;
+                }
+                let wij = self.weights.get(v_start + k, u_start + j);
+                if dnu.abs() > zero && nv.abs() > zero {
+                    add_rational_derivative(
+                        &mut ds_du,
+                        point,
+                        surface_point,
+                        [dnu, nv],
+                        wij,
+                        [<T as NumericElement>::ONE, w],
+                        -exponent,
+                    );
+                }
+                if nu.abs() > zero && dnv.abs() > zero {
+                    add_rational_derivative(
+                        &mut ds_dv,
+                        point,
+                        surface_point,
+                        [nu, dnv],
+                        wij,
+                        [<T as NumericElement>::ONE, w],
+                        -exponent,
+                    );
+                }
+            }
+        }
         (Point3::from(s), ds_du, ds_dv)
     }
 
@@ -205,7 +220,7 @@ impl<T: Scalar> NurbsSurface<T> {
 
     // -- internal --
 
-    fn rational_eval(&self, u: T, v: T) -> (Vector3<T>, T) {
+    fn rational_point(&self, u: T, v: T) -> Point3<T> {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows
         let su = self.knots_u.find_span(u, n_u);
@@ -230,21 +245,45 @@ impl<T: Scalar> NurbsSurface<T> {
         eval_basis_to_slice(su, u, self.degree_u, &self.knots_u, bu);
         eval_basis_to_slice(sv, v, self.degree_v, &self.knots_v, bv);
 
-        let pu = self.degree_u;
-        let pv = self.degree_v;
-        let mut num = Vector3::<T>::zeros();
-        let mut den: T = zero;
+        Point3::from(self.rational_value(su, sv, bu, bv).0)
+    }
 
-        for (j, &nu) in bu.iter().enumerate() {
-            for (k, &nv) in bv.iter().enumerate() {
-                // get(row, col) = get(v_idx, u_idx)
-                let wij = self.weights.get(sv - pv + k, su - pu + j);
-                let bwij = nu * nv * wij;
-                num += self.control_grid.get(sv - pv + k, su - pu + j).coords * bwij;
-                den += bwij;
-            }
+    fn rational_value(&self, su: usize, sv: usize, bu: &[T], bv: &[T]) -> (Vector3<T>, T, i32) {
+        let zero = <T as NumericElement>::ZERO;
+        let (u_start, v_start) = (su - self.degree_u, sv - self.degree_v);
+        let terms = bv.iter().enumerate().flat_map(|(k, &nv)| {
+            bu.iter().enumerate().filter_map(move |(j, &nu)| {
+                (nu.abs() > zero && nv.abs() > zero).then_some((
+                    [nu, nv, self.weights.get(v_start + k, u_start + j)],
+                    self.control_grid.get(v_start + k, u_start + j).coords.data,
+                ))
+            })
+        });
+        let (point, denominator, exponent) =
+            rational_value(terms, self.control_grid.get(0, 0).coords.data);
+        (Vector3::from(point), denominator, exponent)
+    }
+}
+
+fn add_rational_derivative<T: Scalar>(
+    derivative: &mut Vector3<T>,
+    point: Point3<T>,
+    surface_point: Point3<T>,
+    basis: [T; 2],
+    raw_weight: T,
+    denominator: [T; 2],
+    exponent_offset: i32,
+) {
+    let factors = [basis[0], basis[1], raw_weight];
+    for (component, (positive, negative)) in derivative
+        .data
+        .iter_mut()
+        .zip(point.coords.data.into_iter().zip(surface_point.coords.data))
+    {
+        if positive != negative {
+            *component +=
+                scaled_rational_term(factors, denominator, positive, negative, exponent_offset);
         }
-        (num, den)
     }
 }
 
