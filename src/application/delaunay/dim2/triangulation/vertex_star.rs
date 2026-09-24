@@ -15,6 +15,7 @@
 
 use super::bowyer_watson::DelaunayTriangulation;
 use super::triangle::{TriangleId, GHOST_TRIANGLE};
+use crate::application::delaunay::core::canonical_edge;
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
 use crate::domain::geometry::predicates::{incircle, orient_2d, Orientation};
 
@@ -258,7 +259,7 @@ impl DelaunayTriangulation {
                 if self.super_verts.contains(&va) || self.super_verts.contains(&vb) {
                     continue;
                 }
-                let key = if va <= vb { (va, vb) } else { (vb, va) };
+                let key = canonical_edge(va, vb);
                 edges.insert(key);
             }
         }
