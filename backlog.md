@@ -268,6 +268,8 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-016"></a>
 ## GAIA-016 — Pin exact floating-point test values
 
+- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
+
 - outcome: exact IEEE-value contracts compare representations without emitting
   `clippy::float_cmp` diagnostics.
 - priority: verification
@@ -282,6 +284,8 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-017"></a>
 ## GAIA-017 — Parse float-comparison diagnostics
 
+- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
+
 - outcome: Cargo JSON diagnostics become validated records with workspace-local
   source and macro-expansion chains.
 - priority: verification
@@ -295,6 +299,8 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-018"></a>
 ## GAIA-018 — Reject hidden float-comparison diagnostics
 
+- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
+
 - outcome: Rust lint attributes cannot conceal the measured diagnostic class.
 - priority: verification
 - needs: GAIA-016
@@ -306,6 +312,8 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-019"></a>
 ## GAIA-019 — Enforce the float-comparison ceiling
+
+- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
 - outcome: the manifest ceiling is machine-checked against diagnostics and its
   accepted base value.
@@ -320,6 +328,8 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-020"></a>
 ## GAIA-020 — Gate float-comparison growth in CI
 
+- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
+
 - outcome: the repository gate runs strict Clippy once and rejects diagnostic or
   suppression growth on pull requests and main.
 - priority: verification
@@ -333,6 +343,8 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-021"></a>
 ## GAIA-021 — Validate finite rational NURBS weights
+
+- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
 - outcome: rational curves and surfaces reject non-finite weights at their
   construction boundary while preserving the positive-weight contract.
