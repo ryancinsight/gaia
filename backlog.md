@@ -4,8 +4,8 @@ Shared state and ownership board for `gaia-mesh` (import path `gaia`).
 `CHECKLIST.md` holds owner-local execution steps; this file holds priority,
 status, and acceptance. One fact has one owner.
 
-Schema per item: **outcome**, **scope / non-goals**, **acceptance oracle**,
-**dependencies**, **risk / change class**, **status**, **owner**.
+Schema per item: **outcome**, **priority**, **needs**, **scope**,
+**acceptance oracle**, and **next step**; audited items also record **basis**.
 
 Seeded 2026-08-20 by the Atlas gap audit (`atlas-gap-audit`) at
 `4980732`. Every item cites the evidence that opened it.
@@ -15,31 +15,23 @@ missing verification → documentation drift → PM cleanup.
 
 ---
 
+<a id="GAIA-003"></a>
 ## GAIA-003 — Collapse the `Real` alias onto the `Scalar` seam
 
-- **Outcome**: the `T: Scalar` seam is the crate's actual precision contract
-  rather than one of two parallel ones. `Real` survives only as a caller-facing
-  default type parameter, not as the type 848 internal sites are written
-  against.
-- **Scope**: `src/domain/core/scalar.rs:114-120` and its consumers. Non-goals:
-  removing `Point3r`/`Vector3r` as public defaults; a big-bang rewrite — this
-  burns down per module family, each increment green.
-- **Acceptance oracle**: measured drop in concrete-`Real` sites (baseline 848
-  from `rg -c '\bReal\b' src`), and a matching drop in the
-  `cast_precision_loss` / `cast_possible_truncation` / `cast_sign_loss`
-  ratchet counts in `Cargo.toml` (baseline 759 / 297 / 99). The ratchet
-  counts only decrease.
-- **Dependencies**: none — the generic predicate seam landed with GAIA-002
-  (PR #73; ADR 0005).
-- **Risk / change class**: [arch] [patch] — L.
-- **Status**: todo. Draft PR #78 carries the NURBS derivative-overflow
-  correction. Owner: root.
+- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
-Evidence: `src/domain/core/scalar.rs:114` `pub type Real = f64;`; 848 `Real`
-sites vs 130 `T: Scalar` sites; `IndexedMesh` appears 431× without a type
-argument vs 36× as `IndexedMesh<T>`. The Cargo.toml ratchet block names the
-same root cause: "the real fix is a `Scalar`-parameterized conversion
-boundary, not blanket `as` casts".
+- outcome: `T: Scalar` is the internal precision contract; `Real` remains only
+  as the public default type parameter.
+- priority: architecture
+- needs: none; the predicate seam landed in PR #73 / ADR 0005.
+- scope: `src/domain/core/scalar.rs` and its consumer modules; preserve public
+  defaults and migrate one module family per verified increment.
+- acceptance: eliminate internal `Real` sites (initial 848, current baseline
+  820 line hits) and reduce cast ratchets to zero (initial 759/297/99, current
+  437/160/53); each slice updates callers and passes its gate.
+- basis: `72f25c1` (PR #78's NURBS overflow correction is merged).
+- next: finish rational NURBS overflow-safe summation, then remeasure counts and
+  select the next module family by priority.
 
 ---
 
@@ -360,6 +352,8 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-022"></a>
 ## GAIA-022 — Preserve narrow positive knot spans
+
+- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
 - outcome: basis values and derivatives remain valid for positive spans below `1e-15`.
 - priority: correctness
