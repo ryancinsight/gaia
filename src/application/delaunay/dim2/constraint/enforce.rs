@@ -312,6 +312,33 @@ impl Cdt {
         }
     }
 
+    #[inline]
+    fn for_each_crossing_edge_in_triangle<F>(
+        &self,
+        tid: TriangleId,
+        a: PslgVertexId,
+        b: PslgVertexId,
+        seg_start: &Point2<Real>,
+        seg_end: &Point2<Real>,
+        mut on_crossing: F,
+    ) where
+        F: FnMut(usize, TriangleId),
+    {
+        let tri = self.dt.triangle(tid);
+        for edge in 0..3 {
+            let (va, vb) = tri.edge_vertices(edge);
+            if Self::edge_touches_constraint_endpoint(va, vb, a, b) {
+                continue;
+            }
+            if tri.constrained[edge] {
+                continue;
+            }
+            if self.edge_crosses_segment(seg_start, seg_end, va, vb) {
+                on_crossing(edge, tri.adj[edge]);
+            }
+        }
+    }
+
     /// Collect all edges currently crossing segment `(a, b)`.
     ///
     /// # Algorithm — Directed Triangle Walk with BFS Extension
@@ -360,24 +387,13 @@ impl Cdt {
         // Find the starting triangle whose edge opposite `a` crosses (a,b).
         let mut walk_queue: VecDeque<TriangleId> = VecDeque::with_capacity(32);
         for &tid in &star_a {
-            let tri = self.dt.triangle(tid);
-            for edge in 0..3 {
-                let (va, vb) = tri.edge_vertices(edge);
-                if Self::edge_touches_constraint_endpoint(va, vb, a, b) {
-                    continue;
+            self.for_each_crossing_edge_in_triangle(tid, a, b, &sa, &sb, |edge, nbr| {
+                queue.push_back((tid, edge));
+                visited[tid.idx()] = true;
+                if nbr != GHOST_TRIANGLE && !visited[nbr.idx()] {
+                    walk_queue.push_back(nbr);
                 }
-                if tri.constrained[edge] {
-                    continue;
-                }
-                if self.edge_crosses_segment(&sa, &sb, va, vb) {
-                    queue.push_back((tid, edge));
-                    visited[tid.idx()] = true;
-                    let nbr = tri.adj[edge];
-                    if nbr != GHOST_TRIANGLE && !visited[nbr.idx()] {
-                        walk_queue.push_back(nbr);
-                    }
-                }
-            }
+            });
         }
 
         // Continue walking through neighbors of found crossings.
@@ -386,27 +402,15 @@ impl Cdt {
                 continue;
             }
             visited[tid.idx()] = true;
-            let tri = self.dt.triangle(tid);
-            if !tri.alive {
+            if !self.dt.triangle(tid).alive {
                 continue;
             }
-            for edge in 0..3 {
-                let (va, vb) = tri.edge_vertices(edge);
-                if Self::edge_touches_constraint_endpoint(va, vb, a, b) {
-                    // Check if we reached b — stop walking this direction.
-                    continue;
+            self.for_each_crossing_edge_in_triangle(tid, a, b, &sa, &sb, |edge, nbr| {
+                queue.push_back((tid, edge));
+                if nbr != GHOST_TRIANGLE && !visited[nbr.idx()] {
+                    walk_queue.push_back(nbr);
                 }
-                if tri.constrained[edge] {
-                    continue;
-                }
-                if self.edge_crosses_segment(&sa, &sb, va, vb) {
-                    queue.push_back((tid, edge));
-                    let nbr = tri.adj[edge];
-                    if nbr != GHOST_TRIANGLE && !visited[nbr.idx()] {
-                        walk_queue.push_back(nbr);
-                    }
-                }
-            }
+            });
         }
     }
 
