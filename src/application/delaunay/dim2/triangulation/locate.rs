@@ -47,7 +47,7 @@ use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{orient_2d, Orientation};
 use leto::geometry::Point2;
 
-use super::triangle::{TriangleId, GHOST_TRIANGLE};
+use super::triangle::{Triangle, TriangleId, GHOST_TRIANGLE};
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertex;
 
 /// Result of a point location query.
@@ -59,6 +59,101 @@ pub enum Location {
     OnEdge(TriangleId, usize),
     /// The query point coincides with vertex at local index `vi` of triangle `tid`.
     OnVertex(TriangleId, usize),
+}
+
+enum WalkStep {
+    Cross(TriangleId),
+    Found(Location),
+}
+
+#[inline]
+fn classify_triangle_location(
+    vertices: &[PslgVertex],
+    tri: &Triangle,
+    tid: TriangleId,
+    q: &Point2<Real>,
+) -> WalkStep {
+    let v0 = &vertices[tri.vertices[0].idx()];
+    let v1 = &vertices[tri.vertices[1].idx()];
+    let v2 = &vertices[tri.vertices[2].idx()];
+
+    let p0 = Point2::new(v0.x, v0.y);
+    let p1 = Point2::new(v1.x, v1.y);
+    let p2 = Point2::new(v2.x, v2.y);
+
+    let o0 = orient_2d(&p1, &p2, q);
+    if o0 == Orientation::Negative {
+        return WalkStep::Cross(tri.adj[0]);
+    }
+
+    let o1 = orient_2d(&p2, &p0, q);
+    if o1 == Orientation::Negative {
+        return WalkStep::Cross(tri.adj[1]);
+    }
+
+    let o2 = orient_2d(&p0, &p1, q);
+    if o2 == Orientation::Negative {
+        return WalkStep::Cross(tri.adj[2]);
+    }
+
+    if o1 == Orientation::Degenerate && o2 == Orientation::Degenerate {
+        return WalkStep::Found(Location::OnVertex(tid, 0));
+    }
+    if o0 == Orientation::Degenerate && o2 == Orientation::Degenerate {
+        return WalkStep::Found(Location::OnVertex(tid, 1));
+    }
+    if o0 == Orientation::Degenerate && o1 == Orientation::Degenerate {
+        return WalkStep::Found(Location::OnVertex(tid, 2));
+    }
+
+    if o0 == Orientation::Degenerate {
+        return WalkStep::Found(Location::OnEdge(tid, 0));
+    }
+    if o1 == Orientation::Degenerate {
+        return WalkStep::Found(Location::OnEdge(tid, 1));
+    }
+    if o2 == Orientation::Degenerate {
+        return WalkStep::Found(Location::OnEdge(tid, 2));
+    }
+
+    WalkStep::Found(Location::Inside(tid))
+}
+
+pub(in crate::application::delaunay::dim2::triangulation) fn locate_with_visited<F>(
+    vertices: &[PslgVertex],
+    triangles: &[Triangle],
+    start: TriangleId,
+    qx: Real,
+    qy: Real,
+    mut mark_visited: F,
+) -> Option<Location>
+where
+    F: FnMut(usize) -> bool,
+{
+    let q = Point2::new(qx, qy);
+    let mut tid = start;
+    let max_steps = triangles.len() * 3;
+
+    for _ in 0..max_steps {
+        if tid == GHOST_TRIANGLE {
+            return None;
+        }
+        let idx = tid.idx();
+        if idx >= triangles.len() || mark_visited(idx) {
+            return None;
+        }
+        let tri = &triangles[idx];
+        if !tri.alive {
+            return None;
+        }
+
+        match classify_triangle_location(vertices, tri, tid, &q) {
+            WalkStep::Cross(next) => tid = next,
+            WalkStep::Found(location) => return Some(location),
+        }
+    }
+
+    None
 }
 
 /// Locate the triangle containing point `(qx, qy)` using Lawson's oriented walk.
@@ -78,86 +173,15 @@ pub enum Location {
 #[must_use]
 pub fn locate(
     vertices: &[PslgVertex],
-    triangles: &[super::triangle::Triangle],
+    triangles: &[Triangle],
     start: TriangleId,
     qx: Real,
     qy: Real,
 ) -> Option<Location> {
-    let q = Point2::new(qx, qy);
-    let mut tid = start;
-    let max_steps = triangles.len() * 3;
     let mut visited = vec![false; triangles.len()];
-
-    for _ in 0..max_steps {
-        if tid == GHOST_TRIANGLE {
-            return None;
-        }
-        let idx = tid.idx();
-        if idx >= triangles.len() {
-            return None;
-        }
-        if visited[idx] {
-            // Cycle detected — pathological geometry.
-            return None;
-        }
+    locate_with_visited(vertices, triangles, start, qx, qy, |idx| {
+        let was_visited = visited[idx];
         visited[idx] = true;
-        let tri = &triangles[idx];
-        if !tri.alive {
-            return None;
-        }
-
-        let v0 = &vertices[tri.vertices[0].idx()];
-        let v1 = &vertices[tri.vertices[1].idx()];
-        let v2 = &vertices[tri.vertices[2].idx()];
-
-        let p0 = Point2::new(v0.x, v0.y);
-        let p1 = Point2::new(v1.x, v1.y);
-        let p2 = Point2::new(v2.x, v2.y);
-
-        // Check each edge (opposite vertex i = edge from v[(i+1)%3] to v[(i+2)%3])
-        let o0 = orient_2d(&p1, &p2, &q); // edge opposite v0
-        if o0 == Orientation::Negative {
-            tid = tri.adj[0];
-            continue;
-        }
-
-        let o1 = orient_2d(&p2, &p0, &q); // edge opposite v1
-        if o1 == Orientation::Negative {
-            tid = tri.adj[1];
-            continue;
-        }
-
-        let o2 = orient_2d(&p0, &p1, &q); // edge opposite v2
-        if o2 == Orientation::Negative {
-            tid = tri.adj[2];
-            continue;
-        }
-
-        // q is inside or on the boundary of this triangle.
-        // Check for vertex-coincidence first.
-        if o1 == Orientation::Degenerate && o2 == Orientation::Degenerate {
-            return Some(Location::OnVertex(tid, 0));
-        }
-        if o0 == Orientation::Degenerate && o2 == Orientation::Degenerate {
-            return Some(Location::OnVertex(tid, 1));
-        }
-        if o0 == Orientation::Degenerate && o1 == Orientation::Degenerate {
-            return Some(Location::OnVertex(tid, 2));
-        }
-
-        // Check for edge-coincidence.
-        if o0 == Orientation::Degenerate {
-            return Some(Location::OnEdge(tid, 0));
-        }
-        if o1 == Orientation::Degenerate {
-            return Some(Location::OnEdge(tid, 1));
-        }
-        if o2 == Orientation::Degenerate {
-            return Some(Location::OnEdge(tid, 2));
-        }
-
-        return Some(Location::Inside(tid));
-    }
-
-    None
+        was_visited
+    })
 }
