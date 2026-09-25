@@ -207,8 +207,6 @@ impl DelaunayTriangulation {
         qx: Real,
         qy: Real,
     ) -> Option<Location> {
-        use leto::geometry::Point2;
-
         self.locate_gen = self.locate_gen.wrapping_add(1);
         if self.locate_gen == 0 {
             // Epoch wrapped — clear all stamps.
@@ -221,81 +219,14 @@ impl DelaunayTriangulation {
         if self.locate_epoch.len() < self.triangles.len() {
             self.locate_epoch.resize(self.triangles.len(), 0);
         }
-
-        let q = Point2::new(qx, qy);
-        let mut tid = start;
-        let max_steps = self.triangles.len() * 3;
-
-        for _ in 0..max_steps {
-            if tid == GHOST_TRIANGLE {
-                return None;
-            }
-            let idx = tid.idx();
-            if idx >= self.triangles.len() {
-                return None;
-            }
-            if self.locate_epoch[idx] == r#gen {
-                return None; // Cycle detected.
-            }
-            self.locate_epoch[idx] = r#gen;
-
-            let tri = &self.triangles[idx];
-            if !tri.alive {
-                return None;
-            }
-
-            let v0 = &self.vertices[tri.vertices[0].idx()];
-            let v1 = &self.vertices[tri.vertices[1].idx()];
-            let v2 = &self.vertices[tri.vertices[2].idx()];
-
-            let p0 = Point2::new(v0.x, v0.y);
-            let p1 = Point2::new(v1.x, v1.y);
-            let p2 = Point2::new(v2.x, v2.y);
-
-            let o0 = orient_2d(&p1, &p2, &q);
-            if o0 == Orientation::Negative {
-                tid = tri.adj[0];
-                continue;
-            }
-
-            let o1 = orient_2d(&p2, &p0, &q);
-            if o1 == Orientation::Negative {
-                tid = tri.adj[1];
-                continue;
-            }
-
-            let o2 = orient_2d(&p0, &p1, &q);
-            if o2 == Orientation::Negative {
-                tid = tri.adj[2];
-                continue;
-            }
-
-            // Vertex coincidence.
-            if o1 == Orientation::Degenerate && o2 == Orientation::Degenerate {
-                return Some(Location::OnVertex(tid, 0));
-            }
-            if o0 == Orientation::Degenerate && o2 == Orientation::Degenerate {
-                return Some(Location::OnVertex(tid, 1));
-            }
-            if o0 == Orientation::Degenerate && o1 == Orientation::Degenerate {
-                return Some(Location::OnVertex(tid, 2));
-            }
-
-            // Edge coincidence.
-            if o0 == Orientation::Degenerate {
-                return Some(Location::OnEdge(tid, 0));
-            }
-            if o1 == Orientation::Degenerate {
-                return Some(Location::OnEdge(tid, 1));
-            }
-            if o2 == Orientation::Degenerate {
-                return Some(Location::OnEdge(tid, 2));
-            }
-
-            return Some(Location::Inside(tid));
-        }
-
-        None
+        let vertices = &self.vertices;
+        let triangles = &self.triangles;
+        let locate_epoch = &mut self.locate_epoch;
+        super::locate::locate_with_visited(vertices, triangles, start, qx, qy, |idx| {
+            let was_visited = locate_epoch[idx] == r#gen;
+            locate_epoch[idx] = r#gen;
+            was_visited
+        })
     }
 
     /// Insert a vertex into the triangulation via Bowyer-Watson.
