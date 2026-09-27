@@ -47,7 +47,7 @@ impl<T: Scalar> IndexedMesh<T> {
             return 0;
         }
 
-        let largest_size = components.iter().map(std::vec::Vec::len).max().unwrap_or(0);
+        let largest_size = components.iter().map(<[_]>::len).max().unwrap_or(0);
         // Discard if face_count < max(4, largest * 0.05).
         let min_keep = ((largest_size as f64 * 0.05).ceil() as usize).max(4);
 

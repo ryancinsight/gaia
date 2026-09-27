@@ -28,29 +28,39 @@
 //! replaces the previous `HashSet<FaceId>` to eliminate per-element hashing
 //! overhead and reduce memory from ~56 bytes/entry (hash-set bucket) to
 //! 1 byte/entry (bool vec) — a ~56× memory reduction for the visited set.
+//!
+//! # Storage
+//!
+//! Every face lands in exactly one component, so the result is one
+//! `total_faces`-long value buffer partitioned by an offset table
+//! ([`PackedRows`]) rather than one heap `Vec` per component. BFS dequeue order
+//! equals enqueue order, so that buffer is also the BFS queue: a component's
+//! row is the queue segment between its seed and the buffer's end.
 
 use crate::domain::core::index::FaceId;
-use crate::domain::topology::AdjacencyGraph;
+use crate::domain::topology::{AdjacencyGraph, PackedRows};
 use crate::infrastructure::storage::face_store::FaceStore;
 
 /// Identify connected components using BFS on face adjacency.
 ///
-/// Returns a list of components, each being a vector of face IDs.
+/// Returns one row per component, in order of each component's lowest face
+/// ID; a row lists the component's faces in BFS order from that seed.
 ///
 /// # Performance
 ///
 /// Uses a dense `Vec<bool>` for the visited set instead of `HashSet<FaceId>`,
-/// giving cache-friendly sequential access and eliminating hash overhead.
-/// The `VecDeque` is allocated once and reused across components via `clear()`.
+/// giving cache-friendly sequential access and eliminating hash overhead. The
+/// output buffer doubles as the BFS queue, so the traversal allocates only the
+/// visited set, the face buffer, and the offset table.
 #[must_use]
 pub fn connected_components(
     face_store: &FaceStore,
     adjacency: &AdjacencyGraph,
-) -> Vec<Vec<FaceId>> {
+) -> PackedRows<FaceId> {
     let total_faces = face_store.len();
     let mut visited = vec![false; total_faces];
-    let mut components = Vec::new();
-    let mut queue = std::collections::VecDeque::with_capacity(total_faces);
+    let mut faces: Vec<FaceId> = Vec::with_capacity(total_faces);
+    let mut offsets = vec![0usize];
 
     for (fid, _) in face_store.iter_enumerated() {
         let idx = fid.as_usize();
@@ -58,26 +68,25 @@ pub fn connected_components(
             continue;
         }
 
-        let mut component = Vec::new();
-        queue.clear();
-        queue.push_back(fid);
         visited[idx] = true;
+        let mut head = faces.len();
+        faces.push(fid);
 
-        while let Some(current) = queue.pop_front() {
-            component.push(current);
+        while let Some(&current) = faces.get(head) {
+            head += 1;
             for &neighbor in adjacency.face_neighbors(current) {
                 let ni = neighbor.as_usize();
                 if !visited[ni] {
                     visited[ni] = true;
-                    queue.push_back(neighbor);
+                    faces.push(neighbor);
                 }
             }
         }
 
-        components.push(component);
+        offsets.push(faces.len());
     }
 
-    components
+    PackedRows::from_parts(offsets, faces)
 }
 
 #[cfg(test)]
@@ -278,7 +287,7 @@ mod tests {
         assert_eq!(total, store.len());
 
         // No face appears in more than one component.
-        let mut all_fids: Vec<FaceId> = comps.into_iter().flatten().collect();
+        let mut all_fids: Vec<FaceId> = comps.iter().flatten().copied().collect();
         all_fids.sort_unstable();
         all_fids.dedup();
         assert_eq!(all_fids.len(), store.len());
