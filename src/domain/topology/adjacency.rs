@@ -183,13 +183,13 @@ impl AdjacencyGraph {
     /// Number of vertices tracked in the adjacency graph.
     #[must_use]
     pub fn num_vertices(&self) -> usize {
-        self.vertex_neighbors.row_count()
+        self.vertex_neighbors.len()
     }
 
     /// Number of faces tracked in the adjacency graph.
     #[must_use]
     pub fn num_faces(&self) -> usize {
-        self.face_neighbors.row_count()
+        self.face_neighbors.len()
     }
 }
 

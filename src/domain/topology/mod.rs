@@ -14,7 +14,7 @@ pub mod halfedge;
 pub mod manifold;
 pub mod orientation;
 mod packed_rows;
-pub(crate) use packed_rows::PackedRows;
+pub use packed_rows::{PackedRows, Rows};
 pub mod predicates;
 
 pub use adjacency::AdjacencyGraph;
