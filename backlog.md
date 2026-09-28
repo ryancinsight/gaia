@@ -363,17 +363,3 @@ never in an optimization pass. The audit's finding still holds.
 - basis: `e43c3e6` (current main).
 - next: compare each unchecked entry with the current tree, backlog, and PRs.
 
-<a id="GAIA-023"></a>
-## GAIA-023 — Keep split pinch-vertex copies distinct
-
-- status: todo
-- outcome: `split_non_manifold_vertices` creates a distinct vertex for each
-  split component instead of welding the copy back onto the pinch vertex.
-- priority: correctness
-- needs: none
-- scope: `src/application/csg/boolean/indexed/repair/vertices.rs` and its tests.
-- acceptance: the split copy uses `add_vertex_unique`; the two-face figure-8
-  fixture gains one vertex; the CSG example STL outputs are re-derived and any
-  changed output is explained by a pinch that now splits.
-- basis: PR #118 (the characterization test pins the current weld-back).
-- next: switch the insert, flip the pinned test, diff the example outputs.
