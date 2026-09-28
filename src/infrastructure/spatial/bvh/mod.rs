@@ -54,7 +54,9 @@ mod node;
 mod query;
 
 use crate::domain::geometry::aabb::Aabb;
-use crate::infrastructure::permission::{GhostToken, PermissionedArena, SharedGhostToken};
+use crate::infrastructure::permission::{
+    GhostToken, PermissionedArena, SharedGhostToken, TokenAccess,
+};
 use build::{build_centroids, build_recursive};
 use node::BvhNodeKind;
 
@@ -88,15 +90,7 @@ impl<'brand> BvhTree<'brand, '_> {
         token: &GhostToken<'brand>,
         out: &mut Vec<usize>,
     ) {
-        query::query_overlapping(
-            &self.node_aabbs,
-            &self.node_kinds,
-            &self.indices,
-            self.prim_aabbs,
-            query,
-            token,
-            out,
-        );
+        self.query_with(query, token, out);
     }
 
     /// Query all primitive indices whose AABB overlaps `query` using a SharedGhostToken.
@@ -106,13 +100,28 @@ impl<'brand> BvhTree<'brand, '_> {
         token: SharedGhostToken<'_, 'brand>,
         out: &mut Vec<usize>,
     ) {
-        query::query_overlapping_shared(
+        self.query_with(query, token, out);
+    }
+
+    /// Token-generic traversal shared by both public query entry points.
+    ///
+    /// `access` is a [`TokenAccess`] permit — either `&GhostToken` or a
+    /// `SharedGhostToken` — so the single traversal body is monomorphised for
+    /// each permit and neither entry point duplicates it.
+    #[inline]
+    pub(crate) fn query_with<A: TokenAccess<'brand>>(
+        &self,
+        query: &Aabb,
+        access: A,
+        out: &mut Vec<usize>,
+    ) {
+        query::query_overlapping_generic(
             &self.node_aabbs,
             &self.node_kinds,
             &self.indices,
             self.prim_aabbs,
             query,
-            token,
+            access,
             out,
         );
     }

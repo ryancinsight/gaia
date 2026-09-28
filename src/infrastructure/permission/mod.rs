@@ -29,5 +29,6 @@ pub mod cell;
 pub mod token;
 
 pub use arena::PermissionedArena;
+pub(crate) use arena::TokenAccess;
 pub use cell::GhostCell;
 pub use token::{GhostToken, SharedGhostToken};

@@ -135,3 +135,43 @@ impl<T> Default for PermissionedArena<'_, T> {
         Self::new()
     }
 }
+
+/// Uniform, `Copy`, token-gated access to a [`PermissionedArena`].
+///
+/// The arena exposes [`get`](PermissionedArena::get) for the exclusive
+/// [`GhostToken`] and [`get_shared`](PermissionedArena::get_shared) for the
+/// [`SharedGhostToken`] permit.  Any generic traversal that must run under both
+/// permits — the BVH query loop, for instance — otherwise has to be written
+/// twice, once per accessor.  `TokenAccess` unifies the two behind a single
+/// method so the traversal body is monomorphised once and driven by whichever
+/// permit the caller holds.
+pub(crate) trait TokenAccess<'brand>: Copy {
+    /// Borrow element `index` immutably.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index >= arena.len()`.
+    fn get<'a, T>(self, arena: &'a PermissionedArena<'brand, T>, index: usize) -> &'a T
+    where
+        Self: 'a;
+}
+
+impl<'brand> TokenAccess<'brand> for &GhostToken<'brand> {
+    #[inline]
+    fn get<'a, T>(self, arena: &'a PermissionedArena<'brand, T>, index: usize) -> &'a T
+    where
+        Self: 'a,
+    {
+        arena.get(index, self)
+    }
+}
+
+impl<'brand> TokenAccess<'brand> for SharedGhostToken<'_, 'brand> {
+    #[inline]
+    fn get<'a, T>(self, arena: &'a PermissionedArena<'brand, T>, index: usize) -> &'a T
+    where
+        Self: 'a,
+    {
+        arena.get_shared(index, self)
+    }
+}

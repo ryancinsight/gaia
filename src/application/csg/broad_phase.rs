@@ -35,7 +35,8 @@
 //! querying A, produces the same candidate pair set after index re-labeling. ∎
 
 use crate::domain::geometry::aabb::Aabb;
-use crate::infrastructure::spatial::bvh::with_bvh;
+use crate::infrastructure::permission::TokenAccess;
+use crate::infrastructure::spatial::bvh::{with_bvh, BvhTree};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -120,7 +121,49 @@ pub fn broad_phase_pairs(
         return Vec::new();
     }
 
-    let mut pairs = Vec::with_capacity(usize::midpoint(faces_a.len(), faces_b.len()));
+    // Build the SAH-BVH over the smaller side and scan with the larger side.
+    let query_is_a = faces_b.len() <= faces_a.len();
+    let mut pairs = broad_phase_side(faces_a, pool_a, faces_b, pool_b, query_is_a);
+
+    // Lexicographic `(face_a, face_b)` order, independent of scan scheduling.
+    pairs.sort_unstable_by(|x, y| {
+        x.face_a
+            .cmp(&y.face_a)
+            .then_with(|| x.face_b.cmp(&y.face_b))
+    });
+    pairs
+}
+
+/// Per-scan accumulator for the broad-phase query loop.
+///
+/// `hits` is a reusable scratch buffer for one query; `pairs` accumulates the
+/// emitted candidate pairs.
+#[derive(Default)]
+struct WorkerScratch {
+    pairs: Vec<CandidatePair>,
+    hits: Vec<usize>,
+}
+
+/// Scan every face of one side against a BVH built over the opposite side.
+///
+/// `query_is_a` selects which side is scanned; the BVH is always built over the
+/// other side.  This is the single body shared by the parallel
+/// (`fold_reduce_with`) and serial (`for`) schedulers — only the loop driver
+/// differs by `cfg`, deliberately preserving the parallel scheduling shape.
+fn broad_phase_side(
+    faces_a: &[FaceData],
+    pool_a: &VertexPool,
+    faces_b: &[FaceData],
+    pool_b: &VertexPool,
+    query_is_a: bool,
+) -> Vec<CandidatePair> {
+    let (query_faces, query_pool, build_faces, build_pool) = if query_is_a {
+        (faces_a, pool_a, faces_b, pool_b)
+    } else {
+        (faces_b, pool_b, faces_a, pool_a)
+    };
+
+    let mut pairs = Vec::new();
 
     #[cfg(feature = "parallel")]
     {
@@ -128,130 +171,93 @@ pub fn broad_phase_pairs(
         use moirai::Parallel;
         use moirai::ParallelSlice;
 
-        struct WorkerScratch {
-            pairs: Vec<CandidatePair>,
-            hits: Vec<usize>,
-        }
-
-        if faces_b.len() <= faces_a.len() {
-            // Build BVH on B and query A.
-            let aabbs_b = faces_b.par().map_collect(|f| triangle_aabb(f, pool_b));
-            with_bvh(&aabbs_b, |tree, token| {
-                let shared_token = token.share();
-
-                let scratch = fold_reduce_with::<Parallel, _, _, _, _>(
-                    faces_a.len(),
-                    || WorkerScratch {
-                        pairs: Vec::new(),
-                        hits: Vec::new(),
-                    },
-                    |mut s, i| {
-                        s.hits.clear();
-                        let aabb_a = triangle_aabb(&faces_a[i], pool_a);
-                        tree.query_overlapping_shared(&aabb_a, shared_token, &mut s.hits);
-                        s.hits.sort_unstable();
-                        for &j in &s.hits {
-                            s.pairs.push(CandidatePair {
-                                face_a: i,
-                                face_b: j,
-                            });
-                        }
-                        s
-                    },
-                    |mut a, b| {
-                        a.pairs.extend(b.pairs);
-                        a
-                    },
-                );
-                pairs = scratch.pairs;
-            });
-        } else {
-            // Build BVH on A and query B.
-            let aabbs_a = faces_a.par().map_collect(|f| triangle_aabb(f, pool_a));
-            with_bvh(&aabbs_a, |tree, token| {
-                let shared_token = token.share();
-
-                let scratch = fold_reduce_with::<Parallel, _, _, _, _>(
-                    faces_b.len(),
-                    || WorkerScratch {
-                        pairs: Vec::new(),
-                        hits: Vec::new(),
-                    },
-                    |mut s, j| {
-                        s.hits.clear();
-                        let aabb_b = triangle_aabb(&faces_b[j], pool_b);
-                        tree.query_overlapping_shared(&aabb_b, shared_token, &mut s.hits);
-                        for &i in &s.hits {
-                            s.pairs.push(CandidatePair {
-                                face_a: i,
-                                face_b: j,
-                            });
-                        }
-                        s
-                    },
-                    |mut a, b| {
-                        a.pairs.extend(b.pairs);
-                        a
-                    },
-                );
-                pairs = scratch.pairs;
-            });
-        }
-
-        // Sort to ensure absolute determinism across different thread scheduling orders
-        pairs.sort_unstable_by(|x, y| {
-            x.face_a
-                .cmp(&y.face_a)
-                .then_with(|| x.face_b.cmp(&y.face_b))
+        let build_aabbs = build_faces
+            .par()
+            .map_collect(|f| triangle_aabb(f, build_pool));
+        with_bvh(&build_aabbs, |tree, token| {
+            let access = token.share();
+            let scratch = fold_reduce_with::<Parallel, _, _, _, _>(
+                query_faces.len(),
+                WorkerScratch::default,
+                |mut s, i| {
+                    scan_query(
+                        &tree,
+                        access,
+                        &query_faces[i],
+                        query_pool,
+                        i,
+                        query_is_a,
+                        &mut s,
+                    );
+                    s
+                },
+                |mut a, b| {
+                    a.pairs.extend(b.pairs);
+                    a
+                },
+            );
+            pairs = scratch.pairs;
         });
     }
 
     #[cfg(not(feature = "parallel"))]
     {
-        if faces_b.len() <= faces_a.len() {
-            // Build BVH on B and query A.
-            let aabbs_b: Vec<Aabb> = faces_b.iter().map(|f| triangle_aabb(f, pool_b)).collect();
-            with_bvh(&aabbs_b, |tree, token| {
-                let mut hits = Vec::new();
-                for (i, face_a) in faces_a.iter().enumerate() {
-                    let aabb_a = triangle_aabb(face_a, pool_a);
-                    hits.clear();
-                    tree.query_overlapping(&aabb_a, &token, &mut hits);
-                    hits.sort_unstable();
-                    for &j in &hits {
-                        pairs.push(CandidatePair {
-                            face_a: i,
-                            face_b: j,
-                        });
-                    }
-                }
-            });
-        } else {
-            // Build BVH on A and query B.
-            let aabbs_a: Vec<Aabb> = faces_a.iter().map(|f| triangle_aabb(f, pool_a)).collect();
-            with_bvh(&aabbs_a, |tree, token| {
-                let mut hits = Vec::new();
-                for (j, face_b) in faces_b.iter().enumerate() {
-                    let aabb_b = triangle_aabb(face_b, pool_b);
-                    hits.clear();
-                    tree.query_overlapping(&aabb_b, &token, &mut hits);
-                    for &i in &hits {
-                        pairs.push(CandidatePair {
-                            face_a: i,
-                            face_b: j,
-                        });
-                    }
-                }
-            });
-            pairs.sort_unstable_by(|x, y| {
-                x.face_a
-                    .cmp(&y.face_a)
-                    .then_with(|| x.face_b.cmp(&y.face_b))
-            });
-        }
+        let build_aabbs: Vec<Aabb> = build_faces
+            .iter()
+            .map(|f| triangle_aabb(f, build_pool))
+            .collect();
+        with_bvh(&build_aabbs, |tree, token| {
+            let mut scratch = WorkerScratch::default();
+            for i in 0..query_faces.len() {
+                scan_query(
+                    &tree,
+                    &token,
+                    &query_faces[i],
+                    query_pool,
+                    i,
+                    query_is_a,
+                    &mut scratch,
+                );
+            }
+            pairs = scratch.pairs;
+        });
     }
 
     pairs
+}
+
+/// Scan one query face into `scratch`, emitting a candidate pair for every
+/// overlapping primitive.
+///
+/// `query_is_a` fixes the emitted `(face_a, face_b)` orientation, since the BVH
+/// is built over the opposite side.
+#[inline]
+fn scan_query<'brand, A: TokenAccess<'brand>>(
+    tree: &BvhTree<'brand, '_>,
+    access: A,
+    query_face: &FaceData,
+    query_pool: &VertexPool,
+    query_index: usize,
+    query_is_a: bool,
+    scratch: &mut WorkerScratch,
+) {
+    scratch.hits.clear();
+    let query_aabb = triangle_aabb(query_face, query_pool);
+    tree.query_with(&query_aabb, access, &mut scratch.hits);
+    scratch.hits.sort_unstable();
+    for &hit in &scratch.hits {
+        scratch.pairs.push(if query_is_a {
+            CandidatePair {
+                face_a: query_index,
+                face_b: hit,
+            }
+        } else {
+            CandidatePair {
+                face_a: hit,
+                face_b: query_index,
+            }
+        });
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
