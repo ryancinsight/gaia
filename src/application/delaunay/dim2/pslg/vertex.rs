@@ -10,32 +10,34 @@
 
 use std::fmt;
 
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 /// A 2-D vertex position for the Delaunay triangulation.
 ///
-/// Stored contiguously in the PSLG vertex pool.  Coordinates are `Real`
-/// (default `f64`) to maintain full precision in all exact-predicate calls.
+/// Stored contiguously in the PSLG vertex pool. Coordinates use `T`; `f64` is
+/// the default precision.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct PslgVertex {
+pub struct PslgVertex<T = Real> {
     /// X-coordinate.
-    pub x: Real,
+    pub x: T,
     /// Y-coordinate.
-    pub y: Real,
+    pub y: T,
 }
 
-impl PslgVertex {
+impl PslgVertex<Real> {
     /// Create a new vertex at `(x, y)`.
     #[inline]
     #[must_use]
     pub fn new(x: Real, y: Real) -> Self {
         Self { x, y }
     }
+}
 
+impl<T: Scalar> PslgVertex<T> {
     /// Squared Euclidean distance to another vertex.
     #[inline]
     #[must_use]
-    pub fn dist_sq(&self, other: &Self) -> Real {
+    pub fn dist_sq(&self, other: &Self) -> T {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
         dx * dx + dy * dy
@@ -44,7 +46,7 @@ impl PslgVertex {
     /// Euclidean distance to another vertex.
     #[inline]
     #[must_use]
-    pub fn dist(&self, other: &Self) -> Real {
+    pub fn dist(&self, other: &Self) -> T {
         self.dist_sq(other).sqrt()
     }
 
@@ -53,22 +55,22 @@ impl PslgVertex {
     #[must_use]
     pub fn midpoint(&self, other: &Self) -> Self {
         Self {
-            x: 0.5 * (self.x + other.x),
-            y: 0.5 * (self.y + other.y),
+            x: <T as Scalar>::from_f64(0.5) * (self.x + other.x),
+            y: <T as Scalar>::from_f64(0.5) * (self.y + other.y),
         }
     }
 
-    /// Convert to a `leto::geometry::Point2<Real>` for predicate calls.
+    /// Convert to a `leto::geometry::Point2<T>` for predicate calls.
     #[inline]
     #[must_use]
-    pub fn to_point2(&self) -> leto::geometry::Point2<Real> {
+    pub fn to_point2(&self) -> leto::geometry::Point2<T> {
         leto::geometry::Point2::new(self.x, self.y)
     }
 }
 
-impl From<[Real; 2]> for PslgVertex {
+impl<T: Scalar> From<[T; 2]> for PslgVertex<T> {
     #[inline]
-    fn from(arr: [Real; 2]) -> Self {
+    fn from(arr: [T; 2]) -> Self {
         Self {
             x: arr[0],
             y: arr[1],
@@ -76,9 +78,9 @@ impl From<[Real; 2]> for PslgVertex {
     }
 }
 
-impl From<(Real, Real)> for PslgVertex {
+impl<T: Scalar> From<(T, T)> for PslgVertex<T> {
     #[inline]
-    fn from((x, y): (Real, Real)) -> Self {
+    fn from((x, y): (T, T)) -> Self {
         Self { x, y }
     }
 }

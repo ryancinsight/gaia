@@ -1,11 +1,12 @@
-use crate::domain::core::scalar::Real;
+use super::graph::Pslg;
+use super::intersection::{
+    collinear_overlap_interior, on_segment, relative_intersection_tolerance, segment_cross_point,
+};
+use super::vertex::PslgVertexId;
+use crate::domain::core::scalar::Scalar;
 use crate::domain::geometry::predicates::{orient_2d, Orientation};
 
-use super::graph::Pslg;
-use super::intersection::{collinear_overlap_interior, on_segment, segment_cross_point};
-use super::vertex::PslgVertexId;
-
-impl Pslg {
+impl<T: Scalar> Pslg<T> {
     /// Resolve *all* illegal constraint pairs so that [`Self::validate`] passes.
     ///
     /// Three classes of illegality are handled:
@@ -25,11 +26,13 @@ impl Pslg {
     /// Repeats until no illegal pair remains.  For CSG corefine inputs (k = 0–3
     /// crossings) the total work is O(k · n²).
     ///
-    /// After this call [`Self::validate`] will not return
-    /// [`super::graph::PslgValidationError::IntersectingSegments`] for any geometrically
-    /// representable input.  Duplicate-segment errors (produced when two
-    /// previously distinct segments resolve to the same subsegment) are
-    /// removed by deduplication after each restart.
+    /// Orientation signs are exact for the stored coordinates, while crossing
+    /// construction uses `T`. A proper crossing whose normalized determinant
+    /// rounds to zero in `T` cannot be split by this operation; call
+    /// [`Self::validate`] afterward to detect any remaining intersections.
+    /// Duplicate-segment errors (produced when two previously distinct
+    /// segments resolve to the same subsegment) are removed by deduplication
+    /// after each restart.
     pub fn resolve_crossings(&mut self) {
         // Worklist-based crossing resolution: instead of restarting the full
         // O(n²) scan after each split, maintain a set of "dirty" segment
@@ -136,7 +139,7 @@ impl Pslg {
                         && collinear_overlap_interior(&a1, &a2, &b1, &b2)
                     {
                         let use_x = (a2.x - a1.x).abs() >= (a2.y - a1.y).abs();
-                        let coords: [Real; 4] = if use_x {
+                        let coords: [T; 4] = if use_x {
                             [a1.x, a2.x, b1.x, b2.x]
                         } else {
                             [a1.y, a2.y, b1.y, b2.y]
@@ -145,8 +148,9 @@ impl Pslg {
                         sorted.sort_by(|x, y| x.total_cmp(y));
                         let lo_val = sorted[1];
                         let hi_val = sorted[2];
-                        let char_scale = (sorted[3] - sorted[0]).abs().max(1.0);
-                        if (hi_val - lo_val).abs() < char_scale * 1e-14 {
+                        let char_scale = (sorted[3] - sorted[0]).abs();
+                        let relative_tolerance = relative_intersection_tolerance::<T>();
+                        if (hi_val - lo_val).abs() < char_scale * relative_tolerance {
                             continue;
                         }
                         let lo_pt = if use_x {
@@ -163,8 +167,9 @@ impl Pslg {
                             let t = (hi_val - a1.y) / (a2.y - a1.y);
                             (a1.x + t * (a2.x - a1.x), hi_val)
                         };
-                        let weld_tol = char_scale * char_scale * 1e-28;
-                        let find_or_add = |pslg: &mut Pslg, px: Real, py: Real| -> PslgVertexId {
+                        let weld_tol =
+                            char_scale * char_scale * relative_tolerance * relative_tolerance;
+                        let find_or_add = |pslg: &mut Pslg<T>, px: T, py: T| -> PslgVertexId {
                             for (idx, v) in pslg.vertices.iter().enumerate() {
                                 let dx = v.x - px;
                                 let dy = v.y - py;

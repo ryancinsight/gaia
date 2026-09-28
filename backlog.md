@@ -1,8 +1,8 @@
 # Backlog
 
 Shared state and ownership board for `gaia-mesh` (import path `gaia`).
-`CHECKLIST.md` holds owner-local execution steps; this file holds priority,
-status, and acceptance. One fact has one owner.
+This board is the ordered queue of open work. GAIA-022 folds the legacy
+`CHECKLIST.md` execution state into this queue and removes the duplicate.
 
 Schema per item: **outcome**, **priority**, **needs**, **scope**,
 **acceptance oracle**, and **next step**; audited items also record **basis**.
@@ -10,15 +10,14 @@ Schema per item: **outcome**, **priority**, **needs**, **scope**,
 Seeded 2026-08-20 by the Atlas gap audit (`atlas-gap-audit`) at
 `4980732`. Every item cites the evidence that opened it.
 
-Triage order: correctness → security → architecture required for correctness →
-missing verification → documentation drift → PM cleanup.
+Triage order: correctness → architecture → verification → tightening → feature.
 
 ---
 
 <a id="GAIA-003"></a>
 ## GAIA-003 — Collapse the `Real` alias onto the `Scalar` seam
 
-- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
+- status: todo
 
 - outcome: `T: Scalar` is the internal precision contract; `Real` remains only
   as the public default type parameter.
@@ -27,10 +26,11 @@ missing verification → documentation drift → PM cleanup.
 - scope: `src/domain/core/scalar.rs` and its consumer modules; preserve public
   defaults and migrate one module family per verified increment.
 - acceptance: eliminate internal `Real` sites (initial 848, current baseline
-  820 line hits) and reduce cast ratchets to zero (initial 759/297/99, current
-  437/160/53); each slice updates callers and passes its gate.
-- basis: `72f25c1` (PR #78's NURBS overflow correction is merged).
-- next: remeasure counts and select the next module family by priority.
+  793 hits across 98 Rust files) and reduce cast ratchets to zero (initial
+  759/297/99, current 437/160/53); each slice updates callers and passes its
+  gate.
+- basis: `e43c3e6` (current main; `Real` references remeasured).
+- next: make the CSG arrangement generic over the PSLG scalar.
 
 ---
 
@@ -348,3 +348,17 @@ never in an optimization pass. The audit's finding still holds.
   enum change and a major-version migration documents exhaustive-match updates.
 - basis: `34f0229`
 - next: specify the public error migration before implementation.
+
+<a id="GAIA-022"></a>
+## GAIA-022 — Consolidate the legacy execution checklist
+
+- status: todo
+- outcome: every open deliverable has one complete record in this queue.
+- priority: verification
+- needs: none
+- scope: `CHECKLIST.md`, `backlog.md`, and docs linking to checklist anchors.
+- acceptance: revalidate every unchecked entry against the tree and hosting;
+  map it to an existing item or file a complete item; remove stale links;
+  delete `CHECKLIST.md`; leave no references to it.
+- basis: `e43c3e6` (current main).
+- next: compare each unchecked entry with the current tree, backlog, and PRs.

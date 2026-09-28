@@ -1,11 +1,12 @@
-use crate::domain::core::scalar::Real;
-
 use super::graph::{Pslg, PslgValidationError};
 use super::intersection::{collinear_overlap_interior, segments_intersect_closed};
 use super::segment::PslgSegmentId;
 use super::vertex::PslgVertexId;
+use crate::domain::core::scalar::Scalar;
 
-impl Pslg {
+const COINCIDENT_TOLERANCE_ULPS: f64 = 128.0;
+
+impl<T: Scalar> Pslg<T> {
     /// Validate PSLG topological constraints.
     ///
     /// Checks:
@@ -35,16 +36,37 @@ impl Pslg {
         // that coincident-vertex detection works regardless of whether the
         // point cloud has spread (large diagonal) or is clustered near a
         // single location (tiny diagonal, large absolute coordinates).
-        if n_vertices >= 2 {
-            let mut max_abs: Real = 0.0;
-            let (min_x, max_x, min_y, max_y) = self.vertices.iter().fold(
-                (Real::MAX, Real::MIN, Real::MAX, Real::MIN),
-                |(lo_x, hi_x, lo_y, hi_y), v| {
-                    (lo_x.min(v.x), hi_x.max(v.x), lo_y.min(v.y), hi_y.max(v.y))
-                },
-            );
-            for v in &self.vertices {
-                max_abs = max_abs.max(v.x.abs()).max(v.y.abs());
+        if let Some((first, remaining)) = self.vertices.split_first()
+            && !remaining.is_empty()
+        {
+            let mut min_x = first.x;
+            let mut max_x = first.x;
+            let mut min_y = first.y;
+            let mut max_y = first.y;
+            let mut max_abs = if first.x.abs() > first.y.abs() {
+                first.x.abs()
+            } else {
+                first.y.abs()
+            };
+            for v in remaining {
+                if v.x < min_x {
+                    min_x = v.x;
+                }
+                if v.x > max_x {
+                    max_x = v.x;
+                }
+                if v.y < min_y {
+                    min_y = v.y;
+                }
+                if v.y > max_y {
+                    max_y = v.y;
+                }
+                if v.x.abs() > max_abs {
+                    max_abs = v.x.abs();
+                }
+                if v.y.abs() > max_abs {
+                    max_abs = v.y.abs();
+                }
             }
             let diag_sq = {
                 let dx = max_x - min_x;
@@ -52,13 +74,17 @@ impl Pslg {
                 dx * dx + dy * dy
             };
             // Use the larger of (diagonal², max_abs²) as scale².
-            let scale_sq = diag_sq.max(max_abs * max_abs);
-            // Tolerance ≈ (128ε)² × scale² with ε = 2.22e-16 → 8.1e-28.
-            let coin_tol = scale_sq * 8.1e-28;
-            for i in 0..n_vertices {
-                for j in (i + 1)..n_vertices {
-                    let dx = self.vertices[i].x - self.vertices[j].x;
-                    let dy = self.vertices[i].y - self.vertices[j].y;
+            let abs_sq = max_abs * max_abs;
+            let scale_sq = if diag_sq > abs_sq { diag_sq } else { abs_sq };
+            // The former f64 threshold was (128·ε)²; retain that relative
+            // guard using the active scalar's machine epsilon.
+            let tolerance = <T as Scalar>::from_f64(COINCIDENT_TOLERANCE_ULPS)
+                * <T as eunomia::RealField>::EPSILON;
+            let coin_tol = scale_sq * tolerance * tolerance;
+            for (i, first) in self.vertices.iter().enumerate() {
+                for (j, second) in self.vertices.iter().enumerate().skip(i + 1) {
+                    let dx = first.x - second.x;
+                    let dy = first.y - second.y;
                     if dx * dx + dy * dy < coin_tol {
                         return Err(PslgValidationError::CoincidentVertices {
                             first: PslgVertexId::from_usize(i),
@@ -102,20 +128,33 @@ impl Pslg {
             }
         }
 
-        for i in 0..self.segments.len() {
-            for j in (i + 1)..self.segments.len() {
-                let s1 = self.segments[i];
-                let s2 = self.segments[j];
-
+        for (i, s1) in self.segments.iter().enumerate() {
+            for (j, s2) in self.segments.iter().enumerate().skip(i + 1) {
                 let share_endpoint = s1.start == s2.start
                     || s1.start == s2.end
                     || s1.end == s2.start
                     || s1.end == s2.end;
 
-                let a1 = self.vertices[s1.start.idx()].to_point2();
-                let a2 = self.vertices[s1.end.idx()].to_point2();
-                let b1 = self.vertices[s2.start.idx()].to_point2();
-                let b2 = self.vertices[s2.end.idx()].to_point2();
+                let a1 = self
+                    .vertices
+                    .get(s1.start.idx())
+                    .expect("invariant: segment endpoints were range-checked")
+                    .to_point2();
+                let a2 = self
+                    .vertices
+                    .get(s1.end.idx())
+                    .expect("invariant: segment endpoints were range-checked")
+                    .to_point2();
+                let b1 = self
+                    .vertices
+                    .get(s2.start.idx())
+                    .expect("invariant: segment endpoints were range-checked")
+                    .to_point2();
+                let b2 = self
+                    .vertices
+                    .get(s2.end.idx())
+                    .expect("invariant: segment endpoints were range-checked")
+                    .to_point2();
 
                 if !segments_intersect_closed(&a1, &a2, &b1, &b2) {
                     continue;
