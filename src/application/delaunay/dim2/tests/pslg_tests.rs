@@ -4,6 +4,7 @@ use crate::application::delaunay::dim2::pslg::graph::Pslg;
 use crate::application::delaunay::dim2::pslg::graph::PslgValidationError;
 use crate::application::delaunay::dim2::pslg::segment::PslgSegment;
 use crate::application::delaunay::dim2::pslg::vertex::{PslgVertex, PslgVertexId, GHOST_VERTEX};
+use crate::domain::core::scalar::Scalar;
 
 // ── Vertex ────────────────────────────────────────────────────────────────
 
@@ -330,4 +331,135 @@ fn non_finite_vertex_error_display() {
         msg.contains("non-finite"),
         "Display should mention 'non-finite', got: {msg}"
     );
+}
+
+fn assert_pslg_scalar_behavior<T: Scalar>() {
+    let zero = <T as Scalar>::from_f64(0.0);
+    let one = <T as Scalar>::from_f64(1.0);
+    let two = <T as Scalar>::from_f64(2.0);
+    let start = PslgVertex::<T>::from([zero, zero]);
+    let end = PslgVertex::<T>::from((one, one));
+    assert_eq!(start.dist_sq(&end), two);
+    assert_eq!(start.midpoint(&end).x, <T as Scalar>::from_f64(0.5));
+    assert_eq!(start.to_point2().y, zero);
+
+    // Powers of two exercise scale-relative crossing behavior without adding
+    // decimal representation error to the coordinate transformations.
+    for scale in [
+        <T as Scalar>::from_f64(1.0 / 1024.0),
+        one,
+        <T as Scalar>::from_f64(1024.0),
+    ] {
+        let mut pslg = Pslg::<T>::default();
+        let a = pslg.add_vertex(-scale, -scale);
+        let b = pslg.add_vertex(scale, scale);
+        let c = pslg.add_vertex(-scale, scale);
+        let d = pslg.add_vertex(scale, -scale);
+        pslg.add_segment(a, b);
+        pslg.add_segment(c, d);
+
+        pslg.resolve_crossings();
+
+        assert_eq!(pslg.vertex_count(), 5);
+        assert_eq!(pslg.segment_count(), 4);
+        assert_eq!(pslg.vertices()[4].x, zero);
+        assert_eq!(pslg.vertices()[4].y, zero);
+        assert_eq!(pslg.validate(), Ok(()));
+    }
+
+    for offset in [
+        <T as Scalar>::from_f64(256.0) * <T as eunomia::RealField>::EPSILON,
+        <T as Scalar>::from_f64(512.0) * <T as eunomia::RealField>::EPSILON,
+    ] {
+        let mut shallow = Pslg::<T>::default();
+        let a = shallow.add_vertex(zero, zero);
+        let b = shallow.add_vertex(one, zero);
+        let c = shallow.add_vertex(zero, offset);
+        let d = shallow.add_vertex(one, -offset);
+        shallow.add_segment(a, b);
+        shallow.add_segment(c, d);
+
+        shallow.resolve_crossings();
+
+        assert_eq!(shallow.vertex_count(), 5);
+        assert_eq!(shallow.vertices()[4].x, <T as Scalar>::from_f64(0.5));
+        assert_eq!(shallow.vertices()[4].y, zero);
+        assert_eq!(shallow.validate(), Ok(()));
+    }
+
+    let mut overlap = Pslg::<T>::default();
+    let a = overlap.add_vertex(zero, zero);
+    let b = overlap.add_vertex(<T as Scalar>::from_f64(4.0), zero);
+    let c = overlap.add_vertex(one, zero);
+    let d = overlap.add_vertex(<T as Scalar>::from_f64(3.0), zero);
+    overlap.add_segment(a, b);
+    overlap.add_segment(c, d);
+    overlap.resolve_crossings();
+    assert_eq!(overlap.segment_count(), 3);
+    assert_eq!(overlap.validate(), Ok(()));
+
+    let epsilon = <T as eunomia::RealField>::EPSILON;
+    let mut coincident = Pslg::<T>::default();
+    coincident.add_vertex(one, zero);
+    coincident.add_vertex(one + <T as Scalar>::from_f64(32.0) * epsilon, zero);
+    assert!(matches!(
+        coincident.validate(),
+        Err(PslgValidationError::CoincidentVertices { .. })
+    ));
+
+    let mut distinct = Pslg::<T>::default();
+    distinct.add_vertex(one, zero);
+    distinct.add_vertex(one + <T as Scalar>::from_f64(256.0) * epsilon, zero);
+    assert_eq!(distinct.validate(), Ok(()));
+}
+
+#[test]
+fn pslg_geometry_uses_each_supported_scalar_precision() {
+    assert_pslg_scalar_behavior::<f32>();
+    assert_pslg_scalar_behavior::<f64>();
+}
+
+fn assert_crossing_at_scale<T: Scalar>(scale: T) {
+    let zero = <T as Scalar>::from_f64(0.0);
+    let mut pslg = Pslg::<T>::default();
+    let a = pslg.add_vertex(-scale, -scale);
+    let b = pslg.add_vertex(scale, scale);
+    let c = pslg.add_vertex(-scale, scale);
+    let d = pslg.add_vertex(scale, -scale);
+    pslg.add_segment(a, b);
+    pslg.add_segment(c, d);
+
+    pslg.resolve_crossings();
+
+    assert_eq!(pslg.vertex_count(), 5, "scale={scale:?}");
+    assert_eq!(pslg.segment_count(), 4);
+    assert_eq!(pslg.vertices()[4].x, zero);
+    assert_eq!(pslg.vertices()[4].y, zero);
+    assert_eq!(pslg.validate(), Ok(()));
+}
+
+#[test]
+fn pslg_crossing_resolution_scales_determinants_for_f32_and_f64() {
+    assert_crossing_at_scale::<f32>(<f32 as Scalar>::from_f64(2.0_f64.powi(-80)));
+    assert_crossing_at_scale::<f32>(<f32 as Scalar>::from_f64(2.0_f64.powi(80)));
+    assert_crossing_at_scale::<f64>(2.0_f64.powi(-400));
+    assert_crossing_at_scale::<f64>(2.0_f64.powi(400));
+}
+
+#[test]
+fn validation_reports_crossing_when_f32_construction_cancels() {
+    let mut pslg = Pslg::<f32>::default();
+    let a1 = pslg.add_vertex(0.0, 0.0);
+    let a2 = pslg.add_vertex(8192.0, 8191.0);
+    let b1 = pslg.add_vertex(0.5, 0.5);
+    let b2 = pslg.add_vertex(8191.5, 8190.5);
+    pslg.add_segment(a1, a2);
+    pslg.add_segment(b1, b2);
+
+    pslg.resolve_crossings();
+
+    assert!(matches!(
+        pslg.validate(),
+        Err(PslgValidationError::IntersectingSegments { .. })
+    ));
 }

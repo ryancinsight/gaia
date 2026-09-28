@@ -456,9 +456,10 @@ pub(crate) fn corefine_face(
     // ── Step 6: Build CDT ────────────────────────────────────────────────────
     // Resolve any interior segment crossings that arise from 3-D seam curves
     // whose 2-D projections cross (e.g. out-of-plane multi-branch junctions).
-    // `resolve_crossings` now handles proper crossings, T-intersections, and
-    // collinear overlaps, so this error path should be unreachable for all
-    // geometrically valid CSG inputs.
+    // `resolve_crossings` handles proper crossings, T-intersections, and
+    // collinear overlaps when the active-precision construction is
+    // representable. `try_from_pslg` validates the result and keeps this
+    // failure path observable when a crossing cannot be constructed.
     pslg.resolve_crossings();
     let cdt = match Cdt::try_from_pslg(&pslg) {
         Ok(cdt) => cdt,

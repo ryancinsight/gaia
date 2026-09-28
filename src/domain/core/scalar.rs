@@ -74,6 +74,18 @@ pub trait Scalar:
     /// Enables generic code to write `T::from_f64(0.5)` instead of `0.5_T`.
     fn from_f64(v: f64) -> Self;
 
+    /// Compare values using the IEEE 754 total order, including signed zero and NaN.
+    ///
+    /// ```
+    /// use gaia::domain::core::scalar::Scalar;
+    ///
+    /// assert_eq!(
+    ///     Scalar::total_cmp(&-0.0_f64, &0.0_f64),
+    ///     core::cmp::Ordering::Less
+    /// );
+    /// ```
+    fn total_cmp(&self, other: &Self) -> core::cmp::Ordering;
+
     /// Squared tolerance — avoids `sqrt` in distance comparisons.
     #[inline]
     #[must_use]
@@ -92,6 +104,10 @@ impl Scalar for f64 {
     fn from_f64(v: f64) -> Self {
         v
     }
+    #[inline(always)]
+    fn total_cmp(&self, other: &Self) -> core::cmp::Ordering {
+        f64::total_cmp(self, other)
+    }
 }
 
 impl Scalar for f32 {
@@ -102,6 +118,10 @@ impl Scalar for f32 {
     #[inline(always)]
     fn from_f64(v: f64) -> Self {
         v as f32
+    }
+    #[inline(always)]
+    fn total_cmp(&self, other: &Self) -> core::cmp::Ordering {
+        f32::total_cmp(self, other)
     }
 }
 
@@ -161,6 +181,27 @@ mod tests {
             f32::tolerance() > f64::tolerance() as f32,
             "f32 tolerance must be coarser than f64"
         );
+    }
+
+    #[test]
+    fn total_order_distinguishes_signed_zero() {
+        fn assert_total_order<T: Scalar>() {
+            let negative_zero = -<T as Scalar>::from_f64(0.0);
+            let positive_zero = <T as Scalar>::from_f64(0.0);
+            let infinity = <T as eunomia::RealField>::infinity();
+            let nan = <T as eunomia::RealField>::nan();
+            assert_eq!(
+                <T as Scalar>::total_cmp(&negative_zero, &positive_zero),
+                core::cmp::Ordering::Less
+            );
+            assert_eq!(
+                <T as Scalar>::total_cmp(&infinity, &nan),
+                core::cmp::Ordering::Less
+            );
+        }
+
+        assert_total_order::<f32>();
+        assert_total_order::<f64>();
     }
 
     #[test]

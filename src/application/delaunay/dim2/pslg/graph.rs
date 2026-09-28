@@ -22,7 +22,7 @@
 //! edges intersect only at shared vertices.  If two segments cross, the
 //! crossing point is not a vertex, violating the subdivision property.
 
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 use super::segment::{PslgSegment, PslgSegmentId};
 use super::vertex::{PslgVertex, PslgVertexId};
@@ -139,30 +139,30 @@ impl std::error::Error for PslgValidationError {}
 
 /// A Planar Straight-Line Graph — the canonical input to CDT.
 ///
+/// The coordinate type is generic over [`Scalar`] and defaults to [`Real`].
+///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```
 /// use gaia::application::delaunay::Pslg;
 ///
-/// let mut pslg = Pslg::new();
-/// let a = pslg.add_vertex(0.0, 0.0);
-/// let b = pslg.add_vertex(1.0, 0.0);
-/// let c = pslg.add_vertex(0.5, 0.866);
-/// pslg.add_segment(a, b);
-/// pslg.add_segment(b, c);
-/// pslg.add_segment(c, a);
+/// let mut pslg = Pslg::<f32>::default();
+/// let first = pslg.add_vertex(0.0, 0.0);
+/// let second = pslg.add_vertex(1.0, 0.0);
+/// pslg.add_segment(first, second);
+/// assert_eq!(pslg.validate(), Ok(()));
 /// ```
 #[derive(Clone, Debug)]
-pub struct Pslg {
+pub struct Pslg<T = Real> {
     /// Vertex positions.
-    pub(super) vertices: Vec<PslgVertex>,
+    pub(super) vertices: Vec<PslgVertex<T>>,
     /// Constraint segments.
     pub(super) segments: Vec<PslgSegment>,
     /// Hole seed points — each point inside a region to be removed.
-    pub(super) holes: Vec<PslgVertex>,
+    pub(super) holes: Vec<PslgVertex<T>>,
 }
 
-impl Pslg {
+impl Pslg<Real> {
     /// Create an empty PSLG.
     #[must_use]
     pub fn new() -> Self {
@@ -182,18 +182,20 @@ impl Pslg {
             holes: Vec::new(),
         }
     }
+}
 
+impl<T: Scalar> Pslg<T> {
     // ── Vertex operations ─────────────────────────────────────────────────
 
     /// Add a vertex at `(x, y)` and return its ID.
-    pub fn add_vertex(&mut self, x: Real, y: Real) -> PslgVertexId {
+    pub fn add_vertex(&mut self, x: T, y: T) -> PslgVertexId {
         let id = PslgVertexId::from_usize(self.vertices.len());
-        self.vertices.push(PslgVertex::new(x, y));
+        self.vertices.push(PslgVertex { x, y });
         id
     }
 
     /// Add a vertex from a `PslgVertex` value.
-    pub fn add_vertex_value(&mut self, v: PslgVertex) -> PslgVertexId {
+    pub fn add_vertex_value(&mut self, v: PslgVertex<T>) -> PslgVertexId {
         let id = PslgVertexId::from_usize(self.vertices.len());
         self.vertices.push(v);
         id
@@ -209,14 +211,14 @@ impl Pslg {
     /// Get vertex by ID.
     #[inline]
     #[must_use]
-    pub fn vertex(&self, id: PslgVertexId) -> &PslgVertex {
+    pub fn vertex(&self, id: PslgVertexId) -> &PslgVertex<T> {
         &self.vertices[id.idx()]
     }
 
     /// Slice of all vertex positions.
     #[inline]
     #[must_use]
-    pub fn vertices(&self) -> &[PslgVertex] {
+    pub fn vertices(&self) -> &[PslgVertex<T>] {
         &self.vertices
     }
 
@@ -270,14 +272,14 @@ impl Pslg {
     ///
     /// All triangles whose centroid is reachable from this point without
     /// crossing a constraint segment will be removed.
-    pub fn add_hole(&mut self, x: Real, y: Real) {
-        self.holes.push(PslgVertex::new(x, y));
+    pub fn add_hole(&mut self, x: T, y: T) {
+        self.holes.push(PslgVertex { x, y });
     }
 
     /// Slice of all hole seeds.
     #[inline]
     #[must_use]
-    pub fn holes(&self) -> &[PslgVertex] {
+    pub fn holes(&self) -> &[PslgVertex<T>] {
         &self.holes
     }
 
@@ -299,7 +301,7 @@ impl Pslg {
     ///
     /// Returns `None` if the PSLG has fewer than 1 vertex.
     #[must_use]
-    pub fn bounding_box(&self) -> Option<(PslgVertex, PslgVertex)> {
+    pub fn bounding_box(&self) -> Option<(PslgVertex<T>, PslgVertex<T>)> {
         if self.vertices.is_empty() {
             return None;
         }
@@ -321,12 +323,19 @@ impl Pslg {
                 max_y = v.y;
             }
         }
-        Some((PslgVertex::new(min_x, min_y), PslgVertex::new(max_x, max_y)))
+        Some((
+            PslgVertex { x: min_x, y: min_y },
+            PslgVertex { x: max_x, y: max_y },
+        ))
     }
 }
 
-impl Default for Pslg {
+impl<T: Scalar> Default for Pslg<T> {
     fn default() -> Self {
-        Self::new()
+        Self {
+            vertices: Vec::new(),
+            segments: Vec::new(),
+            holes: Vec::new(),
+        }
     }
 }
