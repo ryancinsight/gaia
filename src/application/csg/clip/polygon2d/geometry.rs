@@ -54,11 +54,78 @@ pub(crate) fn is_convex(poly: &[[Real; 2]]) -> bool {
 
 /// Ensure a polygon is in CCW winding order.
 pub(crate) fn ensure_ccw(poly: &mut [[Real; 2]]) {
-    // We can use signed area for CCW check. Alternatively, any sequence
-    // of points gives area orientation. For pure boolean predicates,
-    // Shewchuk orient_2d is better but for macroscopic ordering area is fine.
-    if signed_area(poly) < 0.0 {
+    if winding_ccw(poly) == Some(false) {
         poly.reverse();
+    }
+}
+
+/// Test if the 2-D point `p` lies inside or on the boundary of triangle
+/// `(a, b, c)`.
+///
+/// Exact: the three edge orientations must not mix signs.  A point lying on an
+/// edge is `Degenerate` for that edge and therefore counts as inside
+/// (boundary-inclusive) — which is what the boundary-loop ear test needs.
+#[inline]
+pub(crate) fn point_in_triangle(
+    p: &[Real; 2],
+    a: &[Real; 2],
+    b: &[Real; 2],
+    c: &[Real; 2],
+) -> bool {
+    let d1 = orient_2d_arr(*a, *b, *p);
+    let d2 = orient_2d_arr(*b, *c, *p);
+    let d3 = orient_2d_arr(*c, *a, *p);
+    let has_neg =
+        d1 == Orientation::Negative || d2 == Orientation::Negative || d3 == Orientation::Negative;
+    let has_pos =
+        d1 == Orientation::Positive || d2 == Orientation::Positive || d3 == Orientation::Positive;
+    !(has_neg && has_pos)
+}
+
+/// Determine the winding direction of a 2-D polygon.
+///
+/// Returns `Some(true)` for counter-clockwise and `Some(false)` for clockwise
+/// winding, or `None` when the polygon has no resolvable orientation (fewer
+/// than three vertices, or exactly zero area).
+///
+/// Orientation is resolved with the exact `orient_2d_arr` predicate: starting at
+/// the leftmost-then-lowest vertex (always convex for a simple polygon), the
+/// walk returns the first non-degenerate turn.  The shoelace [`signed_area`] is
+/// kept **only** as a documented fallback for the fully-degenerate case where
+/// every visited turn is exactly collinear.
+pub(crate) fn winding_ccw(pts: &[[Real; 2]]) -> Option<bool> {
+    let n = pts.len();
+    if n < 3 {
+        return None;
+    }
+
+    let mut min_i = 0usize;
+    for i in 1..n {
+        if pts[i][0] < pts[min_i][0] || (pts[i][0] == pts[min_i][0] && pts[i][1] < pts[min_i][1]) {
+            min_i = i;
+        }
+    }
+
+    for k in 0..n {
+        let i = (min_i + k) % n;
+        let prev = (i + n - 1) % n;
+        let next = (i + 1) % n;
+        match orient_2d_arr(pts[prev], pts[i], pts[next]) {
+            Orientation::Positive => return Some(true),
+            Orientation::Negative => return Some(false),
+            Orientation::Degenerate => {}
+        }
+    }
+
+    // Documented fallback: no turn resolved the winding exactly, so use the
+    // shoelace sign.  Only reached for fully-degenerate (collinear) inputs.
+    let area = signed_area(pts);
+    if area > 0.0 {
+        Some(true)
+    } else if area < 0.0 {
+        Some(false)
+    } else {
+        None
     }
 }
 
@@ -207,5 +274,37 @@ mod tests {
                 "axis {axis}: t={t} gives {on_first}, u={u} gives {on_second}"
             );
         }
+    }
+
+    #[test]
+    fn test_winding_ccw_ccw_and_cw_triangles() {
+        let ccw = [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]];
+        let cw = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]];
+        assert_eq!(winding_ccw(&ccw), Some(true));
+        assert_eq!(winding_ccw(&cw), Some(false));
+    }
+
+    #[test]
+    fn test_winding_ccw_degenerate_is_none() {
+        let collinear = [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]];
+        assert_eq!(winding_ccw(&collinear), None);
+        assert_eq!(winding_ccw(&[[0.0, 0.0], [1.0, 1.0]]), None);
+    }
+
+    #[test]
+    fn test_ensure_ccw_normalises_cw_polygon() {
+        let mut cw = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]];
+        ensure_ccw(&mut cw);
+        assert_eq!(winding_ccw(&cw), Some(true));
+    }
+
+    #[test]
+    fn test_point_in_triangle_inside_on_edge_and_outside() {
+        let a = [0.0, 0.0];
+        let b = [1.0, 0.0];
+        let c = [0.0, 1.0];
+        assert!(point_in_triangle(&[0.25, 0.25], &a, &b, &c), "interior");
+        assert!(point_in_triangle(&[0.5, 0.0], &a, &b, &c), "on edge a→b");
+        assert!(!point_in_triangle(&[1.0, 1.0], &a, &b, &c), "exterior");
     }
 }

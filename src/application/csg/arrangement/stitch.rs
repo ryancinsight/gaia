@@ -18,12 +18,15 @@
 use hashbrown::HashMap;
 
 use super::mesh_ops::{boundary_half_edges, dedup_faces_unordered};
-use crate::application::csg::clip::polygon2d::geometry::point_in_polygon;
+use crate::application::csg::clip::polygon2d::geometry::{
+    point_in_polygon, point_in_triangle, winding_ccw,
+};
+use crate::application::csg::coplanar::basis::PlaneBasis;
 #[cfg(test)]
 use crate::application::csg::diagnostics::trace_enabled;
 use crate::application::delaunay::{Cdt, Pslg};
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Point3r, Real};
 use crate::domain::geometry::predicates::{orient_2d_arr, Orientation};
 use crate::domain::topology::boundary_loops;
 use crate::infrastructure::storage::face_store::FaceData;
@@ -179,41 +182,15 @@ pub(crate) fn cdt_fill_loop(
         return 0;
     }
 
-    // Compute polygon normal using Newell's method.
-    let positions: Vec<_> = poly.iter().map(|&v| *pool.position(v)).collect();
-    let (nx, ny, nz) = newell_normal(&positions);
-    let nlen_sq = nx * nx + ny * ny + nz * nz;
-    if nlen_sq < 1e-30 {
-        return 0;
-    }
-    let inv_nlen = 1.0 / nlen_sq.sqrt();
-    let normal = leto::geometry::Vector3::new(nx * inv_nlen, ny * inv_nlen, nz * inv_nlen);
-
-    // Build orthogonal 2D basis from normal (Gram-Schmidt).
-    let seed = if normal.x.abs() < 0.9 {
-        leto::geometry::Vector3::new(1.0, 0.0, 0.0)
-    } else {
-        leto::geometry::Vector3::new(0.0, 1.0, 0.0)
+    // Project the loop onto its plane via the shared `PlaneBasis` (Newell
+    // normal + Gram-Schmidt frame, centred on the loop centroid).
+    let positions: Vec<Point3r> = poly.iter().map(|&v| *pool.position(v)).collect();
+    let basis = match PlaneBasis::from_points_centroid(&positions) {
+        Some(b) => b,
+        None => return 0,
     };
-    let u_axis = (seed - normal * seed.dot(normal)).normalize();
-    let v_axis = normal.cross(u_axis);
-
-    // Centroid for projection origin.
-    let inv_n = 1.0 / n as Real;
-    let cx: Real = positions.iter().map(|p| p.x).sum::<Real>() * inv_n;
-    let cy: Real = positions.iter().map(|p| p.y).sum::<Real>() * inv_n;
-    let cz: Real = positions.iter().map(|p| p.z).sum::<Real>() * inv_n;
-    let centroid = leto::geometry::Vector3::new(cx, cy, cz);
-
-    // Project loop vertices to 2D.
-    let pts2d: Vec<[Real; 2]> = positions
-        .iter()
-        .map(|p| {
-            let d = p.coords - centroid;
-            [d.dot(u_axis), d.dot(v_axis)]
-        })
-        .collect();
-    let poly_ccw = match polygon_winding_ccw(&pts2d) {
+    let pts2d: Vec<[Real; 2]> = positions.iter().map(|p| basis.project(p)).collect();
+    let poly_ccw = match winding_ccw(&pts2d) {
         Some(w) => w,
         None => return 0,
     };
@@ -323,43 +300,17 @@ pub(crate) fn ear_clip_fill(
         return 0;
     }
 
-    // Compute polygon normal using Newell's method.
-    let positions: Vec<_> = poly.iter().map(|&v| *pool.position(v)).collect();
-    let (nx, ny, nz) = newell_normal(&positions);
-    let nlen_sq = nx * nx + ny * ny + nz * nz;
-    if nlen_sq < 1e-30 {
-        return 0; // Degenerate (collinear) polygon — cannot triangulate.
-    }
-    let inv_nlen = 1.0 / nlen_sq.sqrt();
-    let normal = leto::geometry::Vector3::new(nx * inv_nlen, ny * inv_nlen, nz * inv_nlen);
-
-    // Build orthogonal 2D basis from normal (Gram-Schmidt).
-    let seed = if normal.x.abs() < 0.9 {
-        leto::geometry::Vector3::new(1.0, 0.0, 0.0)
-    } else {
-        leto::geometry::Vector3::new(0.0, 1.0, 0.0)
+    // Project the loop onto its plane via the shared `PlaneBasis`.
+    let positions: Vec<Point3r> = poly.iter().map(|&v| *pool.position(v)).collect();
+    let basis = match PlaneBasis::from_points_centroid(&positions) {
+        Some(b) => b,
+        None => return 0, // Degenerate (collinear) polygon — cannot triangulate.
     };
-    let u_axis = (seed - normal * seed.dot(normal)).normalize();
-    let v_axis = normal.cross(u_axis);
-
-    // Centroid for projection origin.
-    let inv_n = 1.0 / n as Real;
-    let cx: Real = positions.iter().map(|p| p.x).sum::<Real>() * inv_n;
-    let cy: Real = positions.iter().map(|p| p.y).sum::<Real>() * inv_n;
-    let cz: Real = positions.iter().map(|p| p.z).sum::<Real>() * inv_n;
-    let centroid = leto::geometry::Vector3::new(cx, cy, cz);
-
-    // Project to 2D.
-    let pts2d: Vec<[Real; 2]> = positions
-        .iter()
-        .map(|p| {
-            let d = p.coords - centroid;
-            [d.dot(u_axis), d.dot(v_axis)]
-        })
-        .collect();
+    let normal = basis.normal;
+    let pts2d: Vec<[Real; 2]> = positions.iter().map(|p| basis.project(p)).collect();
 
     // Determine polygon orientation with exact predicates.
-    let ccw = match polygon_winding_ccw(&pts2d) {
+    let ccw = match winding_ccw(&pts2d) {
         Some(w) => w,
         None => return 0,
     };
@@ -480,86 +431,6 @@ pub(crate) fn ear_clip_fill(
     }
 
     count
-}
-
-/// Compute polygon normal via Newell's method (numerically stable for
-/// non-planar polygons).
-fn newell_normal(positions: &[leto::geometry::Point3<Real>]) -> (Real, Real, Real) {
-    let n = positions.len();
-    let mut nx: Real = 0.0;
-    let mut ny: Real = 0.0;
-    let mut nz: Real = 0.0;
-    for i in 0..n {
-        let j = (i + 1) % n;
-        let pi = &positions[i];
-        let pj = &positions[j];
-        nx += (pi.y - pj.y) * (pi.z + pj.z);
-        ny += (pi.z - pj.z) * (pi.x + pj.x);
-        nz += (pi.x - pj.x) * (pi.y + pj.y);
-    }
-    (nx, ny, nz)
-}
-
-/// Signed area of a 2D polygon. Positive = counter-clockwise.
-fn polygon_signed_area(pts: &[[Real; 2]]) -> Real {
-    let n = pts.len();
-    let mut area: Real = 0.0;
-    for i in 0..n {
-        let j = (i + 1) % n;
-        area += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1];
-    }
-    area * 0.5
-}
-
-/// Determine polygon winding direction.
-///
-/// Returns `Some(true)` for CCW and `Some(false)` for CW.
-/// Uses exact orientation at an extreme vertex when possible, with
-/// shoelace sign as fallback.
-fn polygon_winding_ccw(pts: &[[Real; 2]]) -> Option<bool> {
-    let n = pts.len();
-    if n < 3 {
-        return None;
-    }
-
-    let mut min_i = 0usize;
-    for i in 1..n {
-        if pts[i][0] < pts[min_i][0] || (pts[i][0] == pts[min_i][0] && pts[i][1] < pts[min_i][1]) {
-            min_i = i;
-        }
-    }
-
-    for k in 0..n {
-        let i = (min_i + k) % n;
-        let prev = (i + n - 1) % n;
-        let next = (i + 1) % n;
-        match orient_2d_arr(pts[prev], pts[i], pts[next]) {
-            Orientation::Positive => return Some(true),
-            Orientation::Negative => return Some(false),
-            Orientation::Degenerate => {}
-        }
-    }
-
-    let area = polygon_signed_area(pts);
-    if area > 0.0 {
-        Some(true)
-    } else if area < 0.0 {
-        Some(false)
-    } else {
-        None
-    }
-}
-
-/// Test if point p lies inside (or on edge of) triangle (a, b, c) in 2D.
-fn point_in_triangle(p: &[Real; 2], a: &[Real; 2], b: &[Real; 2], c: &[Real; 2]) -> bool {
-    let d1 = orient_2d_arr(*a, *b, *p);
-    let d2 = orient_2d_arr(*b, *c, *p);
-    let d3 = orient_2d_arr(*c, *a, *p);
-    let has_neg =
-        d1 == Orientation::Negative || d2 == Orientation::Negative || d3 == Orientation::Negative;
-    let has_pos =
-        d1 == Orientation::Positive || d2 == Orientation::Positive || d3 == Orientation::Positive;
-    !(has_neg && has_pos)
 }
 
 #[cfg(test)]

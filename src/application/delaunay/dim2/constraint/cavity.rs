@@ -15,6 +15,7 @@
 //! boundary edge.  Connecting the kernel to each boundary vertex creates
 //! triangles whose interiors lie entirely within the polygon.
 
+use crate::application::csg::clip::polygon2d::geometry::point_in_triangle;
 use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{incircle, orient_2d, Orientation};
 use leto::geometry::Point2;
@@ -114,7 +115,12 @@ pub fn retriangulate_cavity(
             let mut valid = true;
             let mut check = next[ic];
             while check != ia {
-                if point_in_triangle(pa, pb, pc, &points[check]) {
+                if point_in_triangle(
+                    &[points[check].x, points[check].y],
+                    &[pa.x, pa.y],
+                    &[pb.x, pb.y],
+                    &[pc.x, pc.y],
+                ) {
                     valid = false;
                     break;
                 }
@@ -183,17 +189,4 @@ pub fn retriangulate_cavity(
     }
 
     result
-}
-
-/// Check if point `p` lies strictly inside triangle `(a, b, c)` (CCW).
-#[inline]
-fn point_in_triangle(
-    a: &Point2<Real>,
-    b: &Point2<Real>,
-    c: &Point2<Real>,
-    p: &Point2<Real>,
-) -> bool {
-    orient_2d(a, b, p) == Orientation::Positive
-        && orient_2d(b, c, p) == Orientation::Positive
-        && orient_2d(c, a, p) == Orientation::Positive
 }
