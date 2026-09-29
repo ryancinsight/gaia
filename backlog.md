@@ -362,3 +362,4 @@ never in an optimization pass. The audit's finding still holds.
   delete `CHECKLIST.md`; leave no references to it.
 - basis: `e43c3e6` (current main).
 - next: compare each unchecked entry with the current tree, backlog, and PRs.
+

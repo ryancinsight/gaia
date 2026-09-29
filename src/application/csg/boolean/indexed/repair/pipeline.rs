@@ -3,7 +3,7 @@
 use super::collapse::collapse_degenerate_faces;
 use super::edges::{remove_fin_faces, split_non_manifold_edges};
 use super::merge::{merge_coincident_vertices, merge_nearby_boundary_vertices_with_mult};
-use super::vertices::{split_figure8_pinch_vertices, split_non_manifold_vertices};
+use super::vertices::split_figure8_pinch_vertices;
 use crate::application::csg::reconstruct;
 use crate::application::watertight::check::{check_watertight, WatertightReport};
 use crate::domain::core::error::{MeshError, MeshResult};
@@ -122,7 +122,6 @@ fn escalate_boundary_repair(mesh: &mut IndexedMesh) {
         }
     }
 
-    split_non_manifold_vertices(mesh);
     collapse_degenerate_faces(mesh);
     mesh.rebuild_edges();
     mesh.orient_outward();
@@ -280,7 +279,6 @@ pub(in crate::application::csg::boolean::indexed) fn postprocess_boolean_mesh(
     // iterations to fully resolve.
     for _ in 0..8 {
         collapse_degenerate_faces(&mut mesh);
-        split_non_manifold_vertices(&mut mesh);
         let pinch_splits = split_figure8_pinch_vertices(&mut mesh);
         if pinch_splits == 0 {
             break;
