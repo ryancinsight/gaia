@@ -57,6 +57,10 @@ use gaia::domain::topology::AdjacencyGraph;
 use gaia::infrastructure::io::stl;
 use gaia::{analyze_normals, IndexedMesh};
 
+#[expect(
+    clippy::similar_names,
+    reason = "paired cylinder A/B cap coordinates are clearest with matching axis labels"
+)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=================================================================");
     println!("  CSG Cylinder–Cylinder (Asymmetric): Union | Intersection | Difference");
