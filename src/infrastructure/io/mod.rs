@@ -1,8 +1,8 @@
-//! Mesh I/O: STL, OBJ, PLY, 3MF, glTF/GLB, DXF, VTK, `OpenFOAM`, and optional CFDrs scheme import.
+//! Mesh I/O: STL, OBJ, PLY, 3MF, glTF/GLB, DXF, VTK, `OpenFOAM`, and CFDrs scheme import.
 //!
-//! Each format is feature-gated to avoid pulling in unnecessary dependencies,
-//! except for formats with no external dependencies (OBJ, PLY, glTF, DXF,
-//! OpenFOAM, STL).
+//! All format modules are built unconditionally: formats with external
+//! dependencies (STL, 3MF, VTK, scheme) declare those dependencies directly,
+//! and formats with none (OBJ, PLY, glTF, DXF, OpenFOAM) need no gate.
 
 /// Field-level primitives shared by the ASCII importers.
 ///
@@ -22,8 +22,6 @@ pub mod gltf_export;
 
 pub mod dxf;
 
-#[cfg(feature = "three-mf-io")]
 pub mod three_mf;
 
-#[cfg(feature = "vtk-io")]
 pub mod vtk;

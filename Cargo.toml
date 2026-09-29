@@ -41,14 +41,10 @@ exclude = [
 name = "gaia"
 path = "src/lib.rs"
 
-[features]
-default = []
-vtk-io = []
-three-mf-io = ["dep:zip"]
-
-mnemosyne-alloc = ["dep:mnemosyne"]
-parallel = ["dep:moirai"]
-
+# No cargo features. Conditional compilation is the wrong axis here: moirai
+# decides the concurrency method at runtime, so gating source on `parallel`
+# only forked the implementation into two branches that must be kept in step.
+# I/O and the allocator integration are likewise unconditional.
 [dependencies]
 # Math
 
@@ -73,8 +69,8 @@ serde_json = "1.0"
 # Hashing
 hashbrown = "0.15"
 
-# 3MF export (optional)
-zip = { version = "2.0", optional = true, default-features = false, features = ["deflate"] }
+# 3MF export
+zip = { version = "2.0", default-features = false, features = ["deflate"] }
 
 # Logging
 tracing = "0.1"
@@ -83,8 +79,8 @@ tracing = "0.1"
 rand = "0.8"
 
 # Concurrency and Allocator Integrations
-mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", optional = true, default-features = false }
-moirai = { package = "moirai-runtime", version = "0.6.0", git = "https://github.com/ryancinsight/Moirai.git", optional = true, default-features = false, features = ["parallel"] }
+mnemosyne = { package = "mnemosyne-memory", version = "0.7.0", git = "https://github.com/ryancinsight/Mnemosyne.git", default-features = false }
+moirai = { package = "moirai-runtime", version = "0.6.0", git = "https://github.com/ryancinsight/Moirai.git", default-features = false }
 
 [dev-dependencies]
 proptest = "1.4"

@@ -165,7 +165,6 @@ fn broad_phase_side(
 
     let mut pairs = Vec::new();
 
-    #[cfg(feature = "parallel")]
     {
         use moirai::fold_reduce_with;
         use moirai::Parallel;
@@ -196,29 +195,6 @@ fn broad_phase_side(
                     a
                 },
             );
-            pairs = scratch.pairs;
-        });
-    }
-
-    #[cfg(not(feature = "parallel"))]
-    {
-        let build_aabbs: Vec<Aabb> = build_faces
-            .iter()
-            .map(|f| triangle_aabb(f, build_pool))
-            .collect();
-        with_bvh(&build_aabbs, |tree, token| {
-            let mut scratch = WorkerScratch::default();
-            for i in 0..query_faces.len() {
-                scan_query(
-                    &tree,
-                    &token,
-                    &query_faces[i],
-                    query_pool,
-                    i,
-                    query_is_a,
-                    &mut scratch,
-                );
-            }
             pairs = scratch.pairs;
         });
     }

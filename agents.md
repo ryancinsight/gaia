@@ -9,7 +9,7 @@
 ## Verified Audit Snapshot (2026-02-26)
 
 - Verified against `Cargo.toml`, `src/lib.rs`, and the top-level `src/` tree.
-- Cargo features: `csg`, `default`, `millifluidic`, `parallel`, `scheme-io` (compatibility no-op), `stl-io`, `vtk-io`.
+- Cargo features: none — moirai picks the concurrency method at runtime and all I/O is unconditional.
 - `src/lib.rs` public modules: `application`, `domain`, `infrastructure`.
 - Top-level `src/` entries: `application/`, `bin/`, `domain/`, `infrastructure/`, `lib.rs`.
 - Current public surface includes `IndexedMesh`, `MeshBuilder`, patch types (`BoundaryPatch`, `PatchType`), geometry re-exports, channel builders, and quality analysis helpers.

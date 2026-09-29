@@ -25,7 +25,6 @@ use gaia::infrastructure::storage::edge_store::EdgeStore;
 use gaia::infrastructure::storage::face_store::{FaceData, FaceStore};
 use gaia::infrastructure::storage::vertex_pool::VertexPool;
 
-#[cfg(feature = "mnemosyne-alloc")]
 #[global_allocator]
 static ALLOCATOR: mnemosyne::Mnemosyne = mnemosyne::Mnemosyne;
 

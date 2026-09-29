@@ -113,7 +113,6 @@ pub(crate) fn classify_kept_fragments(
     let prepared_b = prepare_classification_faces(faces_b, pool);
 
     // Phase 1: Filter out sliver and coplanar fragments, performing lookups and checks exactly once.
-    #[cfg(feature = "parallel")]
     let valid_frags: Vec<ValidFrag> = {
         use moirai::ParallelSlice;
         let maybe_valid = frags.par().map_collect_index(|frag_idx, frag| {
@@ -127,23 +126,6 @@ pub(crate) fn classify_kept_fragments(
         });
         let mut valid = Vec::with_capacity(maybe_valid.len());
         valid.extend(maybe_valid.into_iter().flatten());
-        valid
-    };
-
-    #[cfg(not(feature = "parallel"))]
-    let valid_frags: Vec<ValidFrag> = {
-        let mut valid = Vec::with_capacity(frags.len());
-        for (frag_idx, frag) in frags.iter().enumerate() {
-            if let Some(vf) = valid_fragment(
-                frag_idx,
-                frag,
-                pool,
-                &coplanar_plane_infos,
-                &component_roots,
-            ) {
-                valid.push(vf);
-            }
-        }
         valid
     };
 
@@ -163,7 +145,6 @@ pub(crate) fn classify_kept_fragments(
         }
     }
 
-    #[cfg(feature = "parallel")]
     let classifications: Vec<FragmentClass> = {
         use moirai::ParallelSlice;
         roots_to_classify.par().map_collect(|&(_, vf_idx)| {
@@ -188,35 +169,6 @@ pub(crate) fn classify_kept_fragments(
                 classify_fragment_prepared(&c, &face_normal, &prepared_a)
             }
         })
-    };
-
-    #[cfg(not(feature = "parallel"))]
-    let classifications: Vec<FragmentClass> = {
-        roots_to_classify
-            .iter()
-            .map(|&(_, vf_idx)| {
-                let vf = &valid_frags[vf_idx];
-                let frag = &frags[vf.frag_idx];
-                let tri = [vf.p0, vf.p1, vf.p2];
-                let c = centroid(&tri);
-                let n = tri_normal(&tri);
-                let nlen = n.norm();
-                let e1 = (vf.p1 - vf.p0).norm();
-                let e2 = (vf.p2 - vf.p0).norm();
-                let edge_product = e1 * e2;
-                let face_normal = if nlen > 1e-10 * edge_product {
-                    n / nlen
-                } else {
-                    Vector3r::zeros()
-                };
-
-                if frag.from_a {
-                    classify_fragment_prepared(&c, &face_normal, &prepared_b)
-                } else {
-                    classify_fragment_prepared(&c, &face_normal, &prepared_a)
-                }
-            })
-            .collect()
     };
 
     let mut class_cache = vec![None; frags.len()];

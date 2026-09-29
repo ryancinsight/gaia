@@ -11,15 +11,12 @@ import path stays `gaia` via the `[lib] name`, so rename the dependency and no
 
 ```toml
 [dependencies]
-gaia = { package = "gaia-mesh", version = "0.4.0" }
+gaia = { package = "gaia-mesh", version = "0.5.0" }
 ```
 
-Default features are empty; enable the I/O and domain features you need:
-
-```toml
-[dependencies]
-gaia = { package = "gaia-mesh", version = "0.4.0", features = ["vtk-io"] }
-```
+The crate has no cargo features: every format module and the moirai-backed
+concurrency are built unconditionally — moirai picks the concurrency method at
+runtime, so there is nothing to enable.
 
 API documentation is published at [docs.rs/gaia-mesh](https://docs.rs/gaia-mesh).
 
