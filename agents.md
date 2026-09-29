@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 14 complete (Lint Ratchet Round 2 — 11 classes removed; GAIA-007 Miri gate for GhostCell Send/Sync).
+> **Rewrite status**: Phase 15 complete (Lint Ratchet Round 3 — 7 classes removed; snap.rs split 783→343 lines; too_many_arguments per-site #[expect]).
 
 ---
 
@@ -711,6 +711,7 @@ proptest! {
 | **12** Delaunay & Hashing | ✅ DONE | `delaunay/dim3/tetrahedralize.rs`, `domain/mesh/indexed.rs`, `domain/grid.rs` | Eliminated BowyerWatson3D BFS seed allocations; completed BTreeMap/BTreeSet migration to HashMap/HashSet; hoisted CSG edge-use map cache. |
 | **13** Lint Ratchet & Safety | ✅ DONE | `Cargo.toml`, `quality/normals.rs`, plus 43 sites across 20 files | Removed 4 lint classes from ratchet: `needless_range_loop` (16→0), `manual_clamp` (1→0), `format_push_string` (2→0), `manual_let_else` (24→0). Fixed GAIA-016 float_cmp test assertions (44→25). Discharged both `unwrap_used` production sites in `normals.rs` by proving seed-BFS invariants, reaching zero production panics. Edition 2024 + resolver 3 already active. 1137 tests pass. |
 | **14** Lint Ratchet Round 2 + GAIA-007 | ✅ DONE | `Cargo.toml`, `permission/cell.rs`, `.github/workflows/ci.yml`, ~93 sites across 30+ files | Removed 11 lint classes: `redundant_closure_for_method_calls` (18), `trivially_copy_pass_by_ref` (2), `needless_pass_by_value` (5), `unnecessary_wraps` (3), `uninlined_format_args` (43), `semicolon_if_nothing_returned` (13), `len_without_is_empty` (1), `new_ret_no_self` (1) [→`GhostToken::scope`], `unused_self` (2), `map_unwrap_or` (2), `explicit_iter_loop` (1). GAIA-007: Added `ghost_cell_send_owned_across_thread` + `ghost_cell_sync_shared_ref_across_threads` tests with inline safety theorems; added `miri` CI job (nightly, `-Zmiri-strict-provenance`). 1139 tests pass. |
+| **15** Lint Ratchet Round 3 + Architecture | ✅ DONE | `Cargo.toml`, `welding/snap.rs`, `welding/snap_tests.rs`, 5 geometric algorithm files, ~63 sites across 20+ files | Removed 7 lint classes: `items_after_statements` (22), `must_use_candidate` (12), `return_self_not_must_use` (2), `inline_always` (8), `doc_overindented_list_items` (1), `empty_line_after_doc_comments` (1), `missing_panics_doc` (17). `too_many_arguments` (7): per-site `#[expect]` with geometric-algorithm reasons at all 5 library sites. `snap.rs` split: tests extracted to `snap_tests.rs`, reducing snap.rs from 783→343 lines (1 fewer oversized file). Ratchet total: 1210 (down from 2400 at Phase 12 start). 1139 tests pass. |
 
 ---
 
