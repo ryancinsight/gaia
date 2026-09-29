@@ -258,6 +258,7 @@ never in an optimization pass. The audit's finding still holds.
 ## GAIA-016 — Pin exact floating-point test values
 
 - Status: todo. Delivered Phase 13 (test assertions) + Phase 17 (full discharge). `float_cmp = "allow"` removed from ratchet; 5 production sites carry `#[expect]` with documented reasons (tie-breaking, identity check, edge guard, convex hull pivot); test-code sites covered by `#![cfg_attr(test, expect(clippy::float_cmp))]` in lib.rs. Count: 44 → 25 (P13) → 0 (P17). **Owner**: root.
+- priority: verification
 
 <a id="GAIA-017"></a>
 ## GAIA-017 — Parse float-comparison diagnostics
