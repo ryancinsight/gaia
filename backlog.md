@@ -73,8 +73,8 @@ both `rust,ignore`.
 - **Status**: todo. Delivered Phase 14 (2026-09-29): two cross-thread tests added to `cell.rs` (Send/Sync theorems documented inline); `miri` CI job added under nightly toolchain with `-Zmiri-strict-provenance`. **Owner**: root.
 
 Evidence: `rg 'unsafe ' src` returns exactly `cell.rs:34` and `cell.rs:40`
-(`unsafe impl Send`/`Sync` for `GhostCell`); `.github/workflows/ci.yml` runs
-fmt, clippy, nextest, doctests and doc — no miri step.
+(`unsafe impl Send`/`Sync` for `GhostCell`); `.github/workflows/ci.yml` now
+includes a `miri` job targeting `infrastructure::permission::cell::tests`.
 
 ---
 
