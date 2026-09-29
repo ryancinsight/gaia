@@ -1,4 +1,4 @@
-//! Normal-orientation analysis for `IndexedMesh` surfaces.
+﻿//! Normal-orientation analysis for `IndexedMesh` surfaces.
 //!
 //! Provides [`NormalAnalysis`] and [`analyze_normals`] — routinely used by CSG
 //! examples and validation tools to report face-winding consistency and

@@ -55,8 +55,9 @@
 //!
 //! ```rust
 //! use gaia::{UvSphere, primitives::PrimitiveMesh};
+//! use leto::geometry::Point3;
 //!
-//! let mesh = UvSphere { radius: 1.0, segments: 8, stacks: 6 }
+//! let mesh = UvSphere { radius: 1.0, center: Point3::origin(), segments: 8, stacks: 6 }
 //!     .build()
 //!     .expect("sphere");
 //! assert!(mesh.signed_volume() > 0.0);

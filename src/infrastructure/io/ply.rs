@@ -1,4 +1,4 @@
-﻿//! Stanford PLY import and export.
+//! Stanford PLY import and export.
 //!
 //! Supports ASCII PLY with vertex positions, normals, and triangular faces.
 
@@ -255,7 +255,7 @@ pub fn read_ply<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
 /// inner body of a `cargo-fuzz` target.
 ///
 /// # Example (in a fuzz target)
-/// ```rust,no_run
+/// ```rust,ignore
 /// #![no_main]
 /// libfuzzer_sys::fuzz_target!(|data: &[u8]| {
 ///     let _ = gaia::infrastructure::io::ply::fuzz_read_ply(data);

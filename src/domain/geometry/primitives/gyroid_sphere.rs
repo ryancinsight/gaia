@@ -24,12 +24,13 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
-/// use gaia::{GyroidSphere, domain::geometry::primitives::PrimitiveMesh};
+/// ```rust
+/// use gaia::{GyroidSphere, primitives::PrimitiveMesh};
 ///
-/// let mesh = GyroidSphere { radius: 5.0, period: 2.5, resolution: 64, iso_value: 0.0 }
+/// let mesh = GyroidSphere { radius: 5.0, period: 2.5, resolution: 8, iso_value: 0.0 }
 ///     .build()
 ///     .expect("gyroid sphere");
+/// assert!(mesh.face_count() > 0);
 /// ```
 #[derive(Clone, Debug)]
 pub struct GyroidSphere {

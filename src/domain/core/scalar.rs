@@ -46,10 +46,14 @@ mod private {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
+/// use gaia::IndexedMesh;
+///
 /// // Both coexist in the same binary — no feature flag, no recompilation:
 /// let hi: IndexedMesh<f64> = IndexedMesh::new();
 /// let lo: IndexedMesh<f32> = IndexedMesh::new();
+/// assert_eq!(hi.vertex_count(), 0);
+/// assert_eq!(lo.vertex_count(), 0);
 /// ```
 pub trait Scalar:
     eunomia::RealField

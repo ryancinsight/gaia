@@ -25,7 +25,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::{FrdSphere, domain::geometry::primitives::PrimitiveMesh};
 ///
 /// let mesh = FrdSphere::default().build().expect("FRD sphere");

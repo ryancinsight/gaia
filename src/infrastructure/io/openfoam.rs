@@ -1,4 +1,4 @@
-//! `OpenFOAM` polyMesh writer.
+﻿//! `OpenFOAM` polyMesh writer.
 //!
 //! Converts an [`IndexedMesh`] or [`crate::domain::mesh::HalfEdgeMesh`] into an `OpenFOAM`
 //! `constant/polyMesh` directory that can be used directly with
@@ -35,9 +35,10 @@
 //!
 //! ## Example
 //!
-//! ```rust,ignore
+//! ```rust,no_run
 //! use std::path::Path;
-//! use gaia::{MeshBuilder, io::openfoam::write_openfoam_polymesh};
+//! use gaia::MeshBuilder;
+//! use gaia::infrastructure::io::openfoam::write_openfoam_polymesh;
 //! use gaia::domain::core::index::RegionId;
 //! use gaia::domain::topology::halfedge::PatchType;
 //!

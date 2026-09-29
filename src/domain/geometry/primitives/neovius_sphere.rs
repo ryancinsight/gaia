@@ -25,7 +25,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::{NeoviusSphere, domain::geometry::primitives::PrimitiveMesh};
 ///
 /// let mesh = NeoviusSphere::default().build().expect("neovius sphere");

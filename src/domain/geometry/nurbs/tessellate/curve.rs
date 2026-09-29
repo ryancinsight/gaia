@@ -1,4 +1,4 @@
-use super::super::curve::NurbsCurve;
+﻿use super::super::curve::NurbsCurve;
 use super::super::parameter::uniform_parameter;
 use super::{angle_deg, TessellationOptions};
 use crate::domain::core::scalar::Scalar;

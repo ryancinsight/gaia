@@ -24,7 +24,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::{IwpSphere, domain::geometry::primitives::PrimitiveMesh};
 ///
 /// let mesh = IwpSphere::default().build().expect("IWP sphere");

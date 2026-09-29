@@ -1,4 +1,4 @@
-use super::super::parameter::uniform_parameter;
+﻿use super::super::parameter::uniform_parameter;
 use super::super::surface::NurbsSurface;
 use super::{angle_deg, TessellationOptions};
 use crate::domain::core::scalar::Scalar;

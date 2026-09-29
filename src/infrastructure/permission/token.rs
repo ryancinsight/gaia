@@ -29,10 +29,15 @@ impl<'brand> GhostToken<'brand> {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
-    /// GhostToken::scope(|token| {
+    /// ```rust
+    /// use gaia::infrastructure::permission::GhostToken;
+    ///
+    /// let result = GhostToken::scope(|token| {
     ///     // `token` is only valid inside this closure
+    ///     let _ = token;
+    ///     42_u32
     /// });
+    /// assert_eq!(result, 42);
     /// ```
     pub fn scope<R>(f: impl for<'new_brand> FnOnce(GhostToken<'new_brand>) -> R) -> R {
         melinoe::brand_scope(|token| f(GhostToken { inner: token }))

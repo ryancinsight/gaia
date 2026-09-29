@@ -18,9 +18,11 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
-/// // Unit cube at origin
+/// ```rust
+/// use gaia::{Cube, primitives::PrimitiveMesh};
 /// let mesh = Cube::unit().build().unwrap();
+/// assert_eq!(mesh.vertex_count(), 8);
+/// assert_eq!(mesh.face_count(), 12);
 /// ```
 #[derive(Clone, Debug)]
 pub struct Cube {

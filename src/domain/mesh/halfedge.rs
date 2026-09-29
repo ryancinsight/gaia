@@ -27,11 +27,14 @@ use slotmap::SlotMap;
 ///
 /// Always create through [`with_mesh`]:
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::with_mesh;
+/// use gaia::domain::topology::halfedge::VertexData;
+/// use leto::geometry::Point3;
 ///
 /// let result = with_mesh(|mut mesh, mut token| {
-///     let vk = mesh.add_vertex(leto::geometry::Point3::origin(), &mut token);
+///     let data = VertexData::new(Point3::origin());
+///     let _vk = mesh.add_vertex(data, &mut token);
 ///     mesh.vertex_count()
 /// });
 /// assert_eq!(result, 1);
@@ -203,7 +206,7 @@ impl std::fmt::Debug for HalfEdgeMesh<'_> {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::with_mesh;
 ///
 /// let n_verts = with_mesh(|_mesh, _token| 0_usize);

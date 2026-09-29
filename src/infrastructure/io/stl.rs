@@ -1,4 +1,4 @@
-﻿//! STL import and export.
+//! STL import and export.
 //!
 //! Supports both ASCII and binary STL formats.
 
@@ -307,7 +307,7 @@ pub fn write_stl_binary<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshRes
 /// inner body of a `cargo-fuzz` target.
 ///
 /// # Example (in a fuzz target)
-/// ```rust,no_run
+/// ```rust,ignore
 /// #![no_main]
 /// libfuzzer_sys::fuzz_target!(|data: &[u8]| {
 ///     let _ = gaia::infrastructure::io::stl::fuzz_read_stl(data);

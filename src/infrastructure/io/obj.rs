@@ -1,4 +1,4 @@
-﻿//! Wavefront OBJ import and export.
+//! Wavefront OBJ import and export.
 //!
 //! Supports triangle meshes with vertex positions and normals.
 
@@ -183,7 +183,7 @@ pub fn read_obj<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
 /// inner body of a `cargo-fuzz` target.
 ///
 /// # Example (in a fuzz target)
-/// ```rust,no_run
+/// ```rust,ignore
 /// #![no_main]
 /// libfuzzer_sys::fuzz_target!(|data: &[u8]| {
 ///     let _ = gaia::infrastructure::io::obj::fuzz_read_obj(data);

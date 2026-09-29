@@ -25,7 +25,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::{LidinoidSphere, domain::geometry::primitives::PrimitiveMesh};
 ///
 /// let mesh = LidinoidSphere::default().build().expect("lidinoid sphere");

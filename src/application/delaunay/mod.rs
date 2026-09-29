@@ -1,4 +1,4 @@
-//! # Delaunay Triangulation — PSLG / CDT / Ruppert Refinement
+﻿//! # Delaunay Triangulation — PSLG / CDT / Ruppert Refinement
 //!
 //! A complete, self-contained 2-D Constrained Delaunay Triangulation (CDT)
 //! engine with Ruppert's mesh refinement, built on the `gaia` `GhostCell` /

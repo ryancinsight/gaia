@@ -27,7 +27,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::{FischerKochCySphere, domain::geometry::primitives::PrimitiveMesh};
 ///
 /// let mesh = FischerKochCySphere::default().build().expect("Fischer-Koch C(Y) sphere");

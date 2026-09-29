@@ -41,18 +41,18 @@
 //!
 //! ## Example
 //!
-//! ```rust,ignore
-//! use gaia::domain::geometry::primitives::{LinearSweep, PrimitiveMesh};
-//! use gaia::domain::core::scalar::Point2r;
+//! ```rust
+//! use gaia::{LinearSweep, primitives::PrimitiveMesh};
 //!
 //! // Square cross-section 2×2, swept 3 mm tall
 //! let profile = vec![
-//!     Point2r::new(-1.0, -1.0),
-//!     Point2r::new( 1.0, -1.0),
-//!     Point2r::new( 1.0,  1.0),
-//!     Point2r::new(-1.0,  1.0),
+//!     LinearSweep::pt(-1.0, -1.0),
+//!     LinearSweep::pt( 1.0, -1.0),
+//!     LinearSweep::pt( 1.0,  1.0),
+//!     LinearSweep::pt(-1.0,  1.0),
 //! ];
 //! let mesh = LinearSweep { profile, height: 3.0 }.build().unwrap();
+//! assert!(mesh.face_count() > 0);
 //! ```
 
 use std::f64::consts::TAU;
@@ -77,8 +77,8 @@ pub type Point2 = leto::geometry::Point2<f64>;
 ///
 /// # Example
 ///
-/// ```rust,ignore
-/// use gaia::domain::geometry::primitives::{LinearSweep, PrimitiveMesh};
+/// ```rust
+/// use gaia::{LinearSweep, primitives::PrimitiveMesh};
 ///
 /// let triangle = LinearSweep {
 ///     profile: vec![
@@ -89,6 +89,7 @@ pub type Point2 = leto::geometry::Point2<f64>;
 ///     height: 2.0,
 /// };
 /// let mesh = triangle.build().unwrap();
+/// assert!(mesh.face_count() > 0);
 /// ```
 #[derive(Clone, Debug)]
 pub struct LinearSweep {

@@ -1,4 +1,4 @@
-//! Surface-Area-Heuristic Bounding Volume Hierarchy — public API.
+﻿//! Surface-Area-Heuristic Bounding Volume Hierarchy — public API.
 //!
 //! # Module layout
 //!

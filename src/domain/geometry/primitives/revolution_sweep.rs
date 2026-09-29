@@ -32,17 +32,18 @@
 //!
 //! ## Example
 //!
-//! ```rust,ignore
-//! use gaia::domain::geometry::primitives::{RevolutionSweep, PrimitiveMesh};
+//! ```rust
+//! use gaia::{RevolutionSweep, primitives::PrimitiveMesh};
 //! use std::f64::consts::TAU;
 //!
 //! // Revolve a rectangular profile → hollow cylinder-like shape
 //! let sweep = RevolutionSweep {
 //!     profile: vec![(0.5, 0.0), (1.0, 0.0), (1.0, 2.0), (0.5, 2.0)],
-//!     segments: 32,
+//!     segments: 8,
 //!     angle: TAU,
 //! };
 //! let mesh = sweep.build().unwrap();
+//! assert!(mesh.face_count() > 0);
 //! ```
 
 use std::f64::consts::TAU;
@@ -64,16 +65,17 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// # Example
 ///
-/// ```rust,ignore
-/// use gaia::domain::geometry::primitives::{RevolutionSweep, PrimitiveMesh};
+/// ```rust
+/// use gaia::{RevolutionSweep, primitives::PrimitiveMesh};
 /// use std::f64::consts::TAU;
 ///
 /// // Full revolution of a circular arc → torus-like ring
 /// let mesh = RevolutionSweep {
 ///     profile: vec![(2.0, -1.0), (3.0, 0.0), (2.0, 1.0)],
-///     segments: 48,
+///     segments: 8,
 ///     angle: TAU,
 /// }.build().unwrap();
+/// assert!(mesh.face_count() > 0);
 /// ```
 #[derive(Clone, Debug)]
 pub struct RevolutionSweep {

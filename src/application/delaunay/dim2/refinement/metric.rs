@@ -1,4 +1,4 @@
-//! Anisotropic metric tensor for metric-weighted Ruppert refinement.
+﻿//! Anisotropic metric tensor for metric-weighted Ruppert refinement.
 //!
 //! ## Background
 //!
@@ -55,8 +55,8 @@ use crate::domain::core::scalar::Real;
 ///
 /// # Examples
 ///
-/// ```rust,ignore
-/// use gaia::application::delaunay::refinement::MetricTensor;
+/// ```rust,no_run
+/// use gaia::application::delaunay::MetricTensor;
 ///
 /// // Isotropic (default)
 /// let iso = MetricTensor::identity();

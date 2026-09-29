@@ -26,7 +26,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::{SchwarzDSphere, domain::geometry::primitives::PrimitiveMesh};
 ///
 /// let mesh = SchwarzDSphere::default().build().expect("schwarz D sphere");

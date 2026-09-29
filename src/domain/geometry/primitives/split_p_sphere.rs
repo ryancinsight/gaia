@@ -24,7 +24,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use gaia::{SplitPSphere, domain::geometry::primitives::PrimitiveMesh};
 ///
 /// let mesh = SplitPSphere::default().build().expect("split P sphere");

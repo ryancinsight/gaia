@@ -1,4 +1,4 @@
-//! # SlotMap-Backed Storage Pools
+﻿//! # SlotMap-Backed Storage Pools
 //!
 //! These types provide the storage layer for [`crate::domain::mesh::HalfEdgeMesh`].
 //! Unlike the legacy [`super::Pool`] (a plain `Vec<T>`) or

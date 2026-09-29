@@ -1,4 +1,4 @@
-//! Ruppert's refinement algorithm.
+﻿//! Ruppert's refinement algorithm.
 //!
 //! # Theorem — Ruppert Termination and Quality Guarantee
 //!

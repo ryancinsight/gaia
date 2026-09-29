@@ -1,4 +1,4 @@
-//! Closed-loop extraction from directed boundary edges.
+﻿//! Closed-loop extraction from directed boundary edges.
 //!
 //! A mesh with holes describes each hole as a set of *directed* boundary edges:
 //! every edge carries the winding the missing face would have had, so the rim of
@@ -58,6 +58,7 @@ use crate::domain::topology::PackedRows;
 /// # Example
 ///
 /// ```rust,ignore
+/// // trace_loops is pub(crate) — used internally; example shown for illustration.
 /// let rim = [(v0, v1), (v1, v2), (v2, v0)];
 /// let loops = trace_loops(&rim, 4096, usize::MAX);
 /// assert_eq!(loops.len(), 1);

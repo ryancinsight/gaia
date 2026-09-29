@@ -13,7 +13,7 @@
 //!
 //! ## Usage
 //!
-//! ```rust,ignore
+//! ```rust
 //! use gaia::infrastructure::permission::{GhostToken, GhostCell};
 //!
 //! GhostToken::scope(|mut token| {

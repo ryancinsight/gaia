@@ -1,4 +1,4 @@
-//! Incremental Bowyer-Watson Delaunay triangulation.
+﻿//! Incremental Bowyer-Watson Delaunay triangulation.
 //!
 //! # Theorem — Bowyer-Watson Correctness
 //!

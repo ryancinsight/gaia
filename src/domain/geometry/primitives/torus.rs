@@ -35,10 +35,12 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ## Example
 ///
-/// ```rust,ignore
+/// ```rust
+/// use gaia::{Torus, primitives::PrimitiveMesh};
 /// let torus = Torus { major_radius: 3.0, minor_radius: 1.0,
-///     major_segments: 48, minor_segments: 24 };
+///     major_segments: 12, minor_segments: 8 };
 /// let mesh = torus.build().unwrap();
+/// assert!(mesh.face_count() > 0);
 /// ```
 #[derive(Clone, Debug)]
 pub struct Torus {
