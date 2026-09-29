@@ -257,18 +257,7 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-016"></a>
 ## GAIA-016 — Pin exact floating-point test values
 
-- Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
-
-- outcome: exact IEEE-value contracts compare representations without emitting
-  `clippy::float_cmp` diagnostics.
-- priority: verification
-- needs: none
-- scope: `src/application/quality/normals.rs`, `src/domain/core/scalar.rs`,
-  `src/domain/geometry/nurbs/knot.rs`; test assertions only.
-- acceptance: strict all-target Clippy emits 44 `float_cmp` diagnostics, the
-  recorded ceiling does not rise, and affected tests pass.
-- basis: `34f0229`
-- next: deliver in PR #86.
+- Status: todo. Delivered Phase 13 (test assertions) + Phase 17 (full discharge). `float_cmp = "allow"` removed from ratchet; 5 production sites carry `#[expect]` with documented reasons (tie-breaking, identity check, edge guard, convex hull pivot); test-code sites covered by `#![cfg_attr(test, expect(clippy::float_cmp))]` in lib.rs. Count: 44 → 25 (P13) → 0 (P17). **Owner**: root.
 
 <a id="GAIA-017"></a>
 ## GAIA-017 — Parse float-comparison diagnostics
