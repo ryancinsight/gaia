@@ -10,9 +10,9 @@ pub use crate::application::csg::arrangement::boolean_csg::BooleanOp;
 ///
 /// # Errors
 ///
-/// Returns [`MeshError::EmptyBooleanResult`] if no boundary faces survive the
+/// Returns [`crate::domain::core::error::MeshError::EmptyBooleanResult`] if no boundary faces survive the
 /// operation, or propagates repair/validation failures such as
-/// [`MeshError::NotWatertight`] from the generalized arrangement pipeline.
+/// [`crate::domain::core::error::MeshError::NotWatertight`] from the generalized arrangement pipeline.
 pub fn csg_boolean(
     op: BooleanOp,
     faces_a: &[FaceData],

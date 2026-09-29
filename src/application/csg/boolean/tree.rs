@@ -82,7 +82,7 @@ impl CsgNode {
     /// # Errors
     ///
     /// Propagates errors from child node evaluation and returns
-    /// [`MeshError::EmptyBooleanResult`] or [`MeshError::NotWatertight`] when
+    /// [`crate::domain::core::error::MeshError::EmptyBooleanResult`] or [`crate::domain::core::error::MeshError::NotWatertight`] when
     /// a Boolean evaluation produces no surviving boundary or cannot be
     /// repaired into a watertight mesh.
     pub fn evaluate(self) -> MeshResult<IndexedMesh> {
