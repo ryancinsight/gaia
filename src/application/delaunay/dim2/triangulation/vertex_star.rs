@@ -234,6 +234,11 @@ impl DelaunayTriangulation {
     /// $O(V + T)$ where $T$ = number of alive triangles.  Uses a
     /// capacity-hinted `hashbrown::HashSet` for edge deduplication,
     /// avoiding repeated incremental rehashing.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the real vertex, edge, or triangle count exceeds
+    /// `isize::MAX`, which is not achievable for practical triangulations.
     #[must_use]
     pub fn satisfies_euler(&self) -> bool {
         let v = self.num_real_vertices;
@@ -263,7 +268,10 @@ impl DelaunayTriangulation {
         let e = edges.len();
 
         // Euler: V - E + F ∈ {1, 2} for a planar triangulation.
-        let euler = (v as isize) - (e as isize) + (f as isize);
+        let v = isize::try_from(v).expect("real vertex count fits in isize");
+        let e = isize::try_from(e).expect("edge count fits in isize");
+        let f = isize::try_from(f).expect("triangle count fits in isize");
+        let euler = v - e + f;
         euler == 1 || euler == 2
     }
 

@@ -148,7 +148,6 @@ dbg_macro = "deny"
 cast_precision_loss = "allow"        # 437
 cast_possible_truncation = "allow"   # 160
 cast_sign_loss = "allow"             # 53
-cast_possible_wrap = "allow"         # 17
 # float_cmp: 5 production sites carry per-function #[expect] with reasons
 # (tie-breaking, identity check, degenerate-edge guard, lexicographic pivot);
 # test-code sites are covered by the crate-root #![cfg_attr(test, expect(...))].

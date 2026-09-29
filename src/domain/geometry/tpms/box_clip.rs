@@ -122,9 +122,9 @@ pub fn build_tpms_box<S: Tpms>(
     for iz in 0..gs {
         for iy in 0..gs {
             for ix in 0..gs {
-                let wx = x0 + (ix as isize - 1) as f64 * dx;
-                let wy = y0 + (iy as isize - 1) as f64 * dy;
-                let wz = z0 + (iz as isize - 1) as f64 * dz;
+                let wx = x0 + (ix as f64 - 1.0) * dx;
+                let wy = y0 + (iy as f64 - 1.0) * dy;
+                let wz = z0 + (iz as f64 - 1.0) * dz;
 
                 let tpms_val = surface.field(wx, wy, wz, k) - iso;
 
@@ -344,9 +344,9 @@ pub fn build_tpms_box_graded<S: Tpms>(
     for iz in 0..gs {
         for iy in 0..gs {
             for ix in 0..gs {
-                let wx = x0 + (ix as isize - 1) as f64 * dx;
-                let wy = y0 + (iy as isize - 1) as f64 * dy;
-                let wz = z0 + (iz as isize - 1) as f64 * dz;
+                let wx = x0 + (ix as f64 - 1.0) * dx;
+                let wy = y0 + (iy as f64 - 1.0) * dy;
+                let wz = z0 + (iz as f64 - 1.0) * dz;
                 let local_period = period_fn(wx, wy, wz).max(1e-12);
                 let local_k = std::f64::consts::TAU / local_period;
                 let tpms_val = surface.field(wx, wy, wz, local_k) - iso;

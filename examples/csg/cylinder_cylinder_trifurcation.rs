@@ -458,7 +458,8 @@ fn connectivity_report(label: &str, mesh: &mut IndexedMesh, expected_components:
     let components = connected_components(&mesh.faces, &adj);
 
     let euler = wt.euler_characteristic.unwrap_or(i64::MIN);
-    let expected_euler = 2 * expected_components as i64;
+    let expected_euler =
+        2 * i64::try_from(expected_components).expect("component count fits in i64");
 
     println!("  ── Connectivity [{label}] ──");
     println!(
@@ -472,9 +473,9 @@ fn connectivity_report(label: &str, mesh: &mut IndexedMesh, expected_components:
                 seen_verts.insert(vid);
             }
         }
-        let v = seen_verts.len() as i64;
-        let e = edges.len() as i64;
-        let f = mesh.faces.len() as i64;
+        let v = i64::try_from(seen_verts.len()).expect("vertex count fits in i64");
+        let e = i64::try_from(edges.len()).expect("edge count fits in i64");
+        let f = i64::try_from(mesh.faces.len()).expect("face count fits in i64");
         println!(
             "    V-E-F      : V={v}  E={e}  F={f}  ({v}-{e}+{f}={})",
             v - e + f

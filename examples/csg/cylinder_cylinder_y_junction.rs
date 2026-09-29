@@ -492,7 +492,8 @@ fn connectivity_report(label: &str, mesh: &mut IndexedMesh, expected_components:
     let components = connected_components(&mesh.faces, &adj);
 
     let euler = wt.euler_characteristic.unwrap_or(i64::MIN);
-    let expected_euler = 2 * expected_components as i64;
+    let expected_euler =
+        2 * i64::try_from(expected_components).expect("component count fits in i64");
 
     println!("  ── Connectivity [{label}] ──");
     println!(

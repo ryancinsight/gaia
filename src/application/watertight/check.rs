@@ -258,6 +258,11 @@ fn validate_watertight_report(
 /// `vertex_pool.len()` is **not** used because it includes dead/welded entries
 /// from CSG input meshes that inflate V incorrectly. Only referenced vertices
 /// (those appearing in at least one face) are counted.
+///
+/// # Panics
+///
+/// Panics only if the referenced vertex, edge, or face count exceeds
+/// `i64::MAX`, which is far beyond any mesh this crate can load in practice.
 #[inline]
 #[must_use]
 pub fn euler_chi_from_stores(face_store: &FaceStore, edge_store: &EdgeStore) -> i64 {
@@ -268,9 +273,9 @@ pub fn euler_chi_from_stores(face_store: &FaceStore, edge_store: &EdgeStore) -> 
         referenced.insert(face.vertices[1]);
         referenced.insert(face.vertices[2]);
     }
-    let v = referenced.len() as i64;
-    let e = edge_store.len() as i64;
-    let f = face_store.len() as i64;
+    let v = i64::try_from(referenced.len()).expect("vertex count fits in i64");
+    let e = i64::try_from(edge_store.len()).expect("edge count fits in i64");
+    let f = i64::try_from(face_store.len()).expect("face count fits in i64");
     v - e + f
 }
 
