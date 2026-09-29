@@ -273,6 +273,52 @@ fn push_unique_face(faces: &mut Vec<u32>, face_id: u32) {
     }
 }
 
+/// Pack the vertex remap array into a `WeldResult`, updating the face store in-place.
+///
+/// Assigns each unique canonical vertex a new contiguous index, rewrites every
+/// face vertex reference, and counts how many face updates and merges occurred.
+#[expect(
+    dead_code,
+    reason = "local welding refactor extracted this helper before the call sites were switched over"
+)]
+fn pack_merged_vertices(
+    n: usize,
+    old_active_count: usize,
+    positions: &[Point3r],
+    remap: &[u32],
+    face_store: &mut FaceStore,
+) -> WeldResult {
+    let mut packed_positions: Vec<Point3r> = Vec::with_capacity(n);
+    let mut pack_map: HashMap<u32, u32> = HashMap::with_capacity(n);
+    let mut faces_updated = 0usize;
+
+    for (_f_id, face) in face_store.iter_mut_enumerated() {
+        let mut changed = false;
+        for v in &mut face.vertices {
+            let old_raw = v.raw();
+            let canonical_id = remap[old_raw as usize];
+            if canonical_id != old_raw {
+                changed = true;
+            }
+            let packed_id = *pack_map.entry(canonical_id).or_insert_with(|| {
+                let new_idx = packed_positions.len() as u32;
+                packed_positions.push(positions[canonical_id as usize]);
+                new_idx
+            });
+            *v = VertexId::new(packed_id);
+        }
+        if changed {
+            faces_updated += 1;
+        }
+    }
+
+    WeldResult {
+        positions: packed_positions,
+        vertices_merged: old_active_count - pack_map.len(),
+        faces_updated,
+    }
+}
+
 impl Default for MeshWelder {
     fn default() -> Self {
         Self::new()

@@ -133,9 +133,6 @@ impl NormalAnalysis {
 /// ```
 #[must_use]
 pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
-    // ── Step 1: collect face normals and detect degenerates ──────────────────
-    // Access the face store as a contiguous slice — FaceData is Copy, avoiding
-    // an intermediate Vec<&FaceData> allocation.
     let face_list = mesh.faces.as_slice();
     let n_faces = face_list.len();
 
@@ -175,105 +172,8 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
         }
     }
 
-    // ── Step 3: BFS / flood orientation from extremal seed ───────────────────
-    //
-    // Invariant: `orientation[fi]` = true  → face fi is outward-consistent
-    //                               = false → face fi is inward-consistent
-    // None = unvisited.
-    let mut orientation: Vec<Option<bool>> = vec![None; n_faces];
-
-    // Cursor-based seed selection: advance monotonically through unvisited,
-    // non-degenerate faces so that total seed-search cost is O(F) across all
-    // connected components, not O(F × number-of-components).
-    //
-    // Within each component we still pick the extremal (+X) face as seed by
-    // scanning only the as-yet-unvisited range starting from `seed_cursor`.
-    let mut seed_cursor = 0usize;
-    let mut queue: std::collections::VecDeque<usize> =
-        std::collections::VecDeque::with_capacity(n_faces);
-
-    // Outer loop handles disconnected patches (multiple connected components).
-    loop {
-        // Advance cursor to the next unvisited, non-degenerate face.
-        while seed_cursor < n_faces
-            && (orientation[seed_cursor].is_some() || face_normals[seed_cursor].is_none())
-        {
-            seed_cursor += 1;
-        }
-        if seed_cursor >= n_faces {
-            break;
-        }
-
-        // Among all unvisited non-degenerate faces find the one with the
-        // vertex carrying the highest X coordinate — the extremal seed for
-        // this component.  O(unvisited faces) per outer-loop iteration,
-        // O(F) total.
-        let mut best_x = f64::NEG_INFINITY;
-        let mut seed_fi = seed_cursor;
-        for fi in seed_cursor..n_faces {
-            if orientation[fi].is_some() || face_normals[fi].is_none() {
-                continue;
-            }
-            for &vid in &face_list[fi].vertices {
-                let px = mesh.vertices.position(vid).x;
-                if px > best_x {
-                    best_x = px;
-                    seed_fi = fi;
-                }
-            }
-        }
-
-        // Orient seed: outward if face normal has positive X component.
-        //
-        // Invariant: face_normals[seed_fi] is always Some here.
-        // - Initial value seed_cursor has face_normals.is_some() — the cursor-
-        //   advance loop above only exits when orientation[seed_cursor].is_none()
-        //   AND face_normals[seed_cursor].is_some().
-        // - The scan loop below updates seed_fi only for fi where
-        //   face_normals[fi].is_some() (the continue skips None rows).
-        // Therefore the else branch is unreachable.
-        let Some(seed_normal) = face_normals[seed_fi] else {
-            continue;
-        };
-        let seed_is_outward = seed_normal.x >= 0.0;
-        orientation[seed_fi] = Some(seed_is_outward);
-
-        queue.clear();
-        queue.push_back(seed_fi);
-
-        while let Some(fi) = queue.pop_front() {
-            // Invariant: every item enqueued had its orientation set before the
-            // push — seed_fi is set to Some immediately above; neighbours are
-            // set via `orientation[nfi] = Some(…)` before `queue.push_back(nfi)`.
-            let Some(is_outward) = orientation[fi] else {
-                continue;
-            };
-            let v = face_list[fi].vertices;
-
-            // Inspect all three directed edges of this face.
-            for k in 0..3 {
-                let j = (k + 1) % 3;
-                let va = v[k];
-                let vb = v[j];
-
-                // The manifold-adjacent face shares the REVERSE edge (vb→va).
-                // Consistent adjacency → neighbour inherits same orientation.
-                if let Some(&nfi) = half_edge.get(&(vb, va)) {
-                    if orientation[nfi].is_none() && face_normals[nfi].is_some() {
-                        orientation[nfi] = Some(is_outward);
-                        queue.push_back(nfi);
-                    }
-                // Parallel edge (va→vb) in another face → winding flip.
-                } else if let Some(&nfi) = half_edge.get(&(va, vb))
-                    && orientation[nfi].is_none()
-                    && face_normals[nfi].is_some()
-                {
-                    orientation[nfi] = Some(!is_outward);
-                    queue.push_back(nfi);
-                }
-            }
-        }
-    }
+    // ── Step 3: BFS flood orientation from extremal seeds ───────────────────
+    let orientation = flood_orientation_bfs(face_list, &face_normals, &half_edge, mesh);
 
     // ── Step 4: count outward / inward / degenerate ──────────────────────────
     let mut outward = 0usize;
@@ -348,6 +248,86 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
         face_vertex_alignment_mean: if acnt > 0 { asum / acnt as Real } else { 0.0 },
         face_vertex_alignment_min: if acnt > 0 { amin } else { 0.0 },
     }
+}
+
+// ── Private helpers ───────────────────────────────────────────────────────────
+
+use crate::infrastructure::storage::face_store::FaceData;
+
+/// BFS orientation flood from extremal seeds.
+///
+/// Returns `orientation[fi]`: `Some(true)` = outward-consistent, `Some(false)` =
+/// inward-consistent, `None` = degenerate or unreachable non-manifold fragment.
+///
+/// Handles disconnected components via a cursor-based outer loop — O(F) total work.
+fn flood_orientation_bfs(
+    face_list: &[FaceData],
+    face_normals: &[Option<Vector3r>],
+    half_edge: &hashbrown::HashMap<(VertexId, VertexId), usize>,
+    mesh: &IndexedMesh,
+) -> Vec<Option<bool>> {
+    let n_faces = face_list.len();
+    let mut orientation: Vec<Option<bool>> = vec![None; n_faces];
+    let mut seed_cursor = 0usize;
+    let mut queue = std::collections::VecDeque::with_capacity(n_faces);
+
+    loop {
+        while seed_cursor < n_faces
+            && (orientation[seed_cursor].is_some() || face_normals[seed_cursor].is_none())
+        {
+            seed_cursor += 1;
+        }
+        if seed_cursor >= n_faces {
+            break;
+        }
+        let mut best_x = f64::NEG_INFINITY;
+        let mut seed_fi = seed_cursor;
+        for fi in seed_cursor..n_faces {
+            if orientation[fi].is_some() || face_normals[fi].is_none() {
+                continue;
+            }
+            for &vid in &face_list[fi].vertices {
+                let px = mesh.vertices.position(vid).x;
+                if px > best_x {
+                    best_x = px;
+                    seed_fi = fi;
+                }
+            }
+        }
+        // Invariant: face_normals[seed_fi].is_some() — cursor exits with is_some();
+        // scan only updates seed_fi for is_some() faces.
+        let Some(seed_normal) = face_normals[seed_fi] else {
+            continue;
+        };
+        orientation[seed_fi] = Some(seed_normal.x >= 0.0);
+        queue.clear();
+        queue.push_back(seed_fi);
+        while let Some(fi) = queue.pop_front() {
+            // Invariant: orientation is set before each push_back.
+            let Some(is_outward) = orientation[fi] else {
+                continue;
+            };
+            let v = face_list[fi].vertices;
+            for k in 0..3 {
+                let j = (k + 1) % 3;
+                let va = v[k];
+                let vb = v[j];
+                if let Some(&nfi) = half_edge.get(&(vb, va)) {
+                    if orientation[nfi].is_none() && face_normals[nfi].is_some() {
+                        orientation[nfi] = Some(is_outward);
+                        queue.push_back(nfi);
+                    }
+                } else if let Some(&nfi) = half_edge.get(&(va, vb))
+                    && orientation[nfi].is_none()
+                    && face_normals[nfi].is_some()
+                {
+                    orientation[nfi] = Some(!is_outward);
+                    queue.push_back(nfi);
+                }
+            }
+        }
+    }
+    orientation
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
