@@ -224,15 +224,17 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
         }
 
         // Orient seed: outward if face normal has positive X component.
-        // The seed scan skips faces whose normal is None, but when the scan
-        // selects nothing `seed_fi` stays at `seed_cursor`, whose normal is not
-        // proven present. Establishing or repairing that invariant is burn-down
-        // work, not a suppression to keep.
-        #[expect(
-            clippy::unwrap_used,
-            reason = "ratchet GAIA-LINT-1: seed-selection invariant unproven"
-        )]
-        let seed_normal = face_normals[seed_fi].unwrap();
+        //
+        // Invariant: face_normals[seed_fi] is always Some here.
+        // - Initial value seed_cursor has face_normals.is_some() — the cursor-
+        //   advance loop above only exits when orientation[seed_cursor].is_none()
+        //   AND face_normals[seed_cursor].is_some().
+        // - The scan loop below updates seed_fi only for fi where
+        //   face_normals[fi].is_some() (the continue skips None rows).
+        // Therefore the else branch is unreachable.
+        let Some(seed_normal) = face_normals[seed_fi] else {
+            continue;
+        };
         let seed_is_outward = seed_normal.x >= 0.0;
         orientation[seed_fi] = Some(seed_is_outward);
 
@@ -240,11 +242,12 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
         queue.push_back(seed_fi);
 
         while let Some(fi) = queue.pop_front() {
-            #[expect(
-                clippy::unwrap_used,
-                reason = "ratchet GAIA-LINT-1: queue-enqueue invariant unproven"
-            )]
-            let is_outward = orientation[fi].unwrap();
+            // Invariant: every item enqueued had its orientation set before the
+            // push — seed_fi is set to Some immediately above; neighbours are
+            // set via `orientation[nfi] = Some(…)` before `queue.push_back(nfi)`.
+            let Some(is_outward) = orientation[fi] else {
+                continue;
+            };
             let v = face_list[fi].vertices;
 
             // Inspect all three directed edges of this face.

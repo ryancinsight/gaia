@@ -121,10 +121,12 @@ missing_docs = "deny"
 all = { level = "deny", priority = -2 }
 pedantic = { level = "deny", priority = -1 }
 
-# Library code never panics on an input-dependent path. 2 production sites
-# remain, each carrying a per-site `#[expect]` naming this ratchet; test code
-# is exempt via `#![cfg_attr(test, expect(...))]` at the crate root and a
-# per-file attribute on the example, bench, bin and integration-test targets.
+# Library code never panics on an input-dependent path. Zero production sites
+# remain — the two former `#[expect]` sites in `quality/normals.rs` were
+# discharged by proving their invariants and replacing the unwraps with
+# `let … else { continue }`.  Test code is exempt via
+# `#![cfg_attr(test, expect(...))]` at the crate root and per-file attributes
+# on example, bench, bin, and integration-test targets.
 # The test carve-outs are `expect`, not `allow`, so they self-expire when a
 # file's last unwrap goes.
 unwrap_used = "deny"
