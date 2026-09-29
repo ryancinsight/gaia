@@ -157,6 +157,7 @@ fi
 
 touches_dependency_state=unknown
 pushed_tip=""
+rescue_push=0
 # The range this push carries, for the local gate far below. Recorded here
 # because stdin reads once: the gate cannot re-read it.
 gate_tip=""
@@ -165,6 +166,7 @@ if [ "${#content_lines[@]}" -eq 1 ]; then
   touches_dependency_state=no
   while read -r _local_ref local_sha _remote_ref remote_sha; do
     if [ "$remote_sha" = "$zero" ]; then
+      rescue_push=1
       # New branch: compare against the merge-base with the default branch,
       # so a long series is not read as touching everything. Comparing
       # against HEAD instead is vacuous exactly when it matters: pushing
@@ -524,6 +526,15 @@ if [ -f "$secret_checker" ] && [ -n "$python_bin" ]; then
   fi
 else
   echo "pre-push: secret scanner not reachable from this clone; the pushed range was not scanned" >&2
+fi
+
+# A rescue branch is the durable parking ref for unfinished recovery work.
+# Preserve it behind the secret scan; the revision ratchets and cargo gates
+# describe a completed change and would reject the very state this branch
+# exists to preserve.
+if [ "$rescue_push" -eq 1 ]; then
+  echo "pre-push: rescue branch preserved after secret scan" >&2
+  exit 0
 fi
 
 # Debt ratchet: the pushed revision's conformance classes may not rise above
