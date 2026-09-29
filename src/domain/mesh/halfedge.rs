@@ -240,9 +240,9 @@ mod tests {
             let vk = mesh.add_vertex(data, &mut token);
             assert_eq!(mesh.vertex_count(), 1);
             let pos = mesh.vertex_pos(vk, &token).expect("vertex must be live");
-            assert_eq!(pos.x, 1.0);
-            assert_eq!(pos.y, 2.0);
-            assert_eq!(pos.z, 3.0);
+            assert_eq!(pos.x.to_bits(), 1.0_f64.to_bits());
+            assert_eq!(pos.y.to_bits(), 2.0_f64.to_bits());
+            assert_eq!(pos.z.to_bits(), 3.0_f64.to_bits());
         });
     }
 

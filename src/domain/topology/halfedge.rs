@@ -322,9 +322,9 @@ mod tests {
     #[test]
     fn vertex_data_position() {
         let v = VertexData::new(Point3::new(1.0, 2.0, 3.0));
-        assert_eq!(v.position.x, 1.0);
-        assert_eq!(v.position.y, 2.0);
-        assert_eq!(v.position.z, 3.0);
+        assert_eq!(v.position.x.to_bits(), 1.0_f64.to_bits());
+        assert_eq!(v.position.y.to_bits(), 2.0_f64.to_bits());
+        assert_eq!(v.position.z.to_bits(), 3.0_f64.to_bits());
     }
 
     #[test]

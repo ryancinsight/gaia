@@ -143,13 +143,13 @@ fn read_binary_stl<R: std::io::Read>(
         let normal = Vector3r::new(Real::from(nx), Real::from(ny), Real::from(nz));
 
         let mut vs = [gaia::domain::core::index::VertexId::new(0); 3];
-        for i in 0..3 {
+        for (i, vertex_id) in vs.iter_mut().enumerate() {
             let o = 12 + i * 12;
             let vx = f32::from_le_bytes(buf[o..o + 4].try_into()?);
             let vy = f32::from_le_bytes(buf[o + 4..o + 8].try_into()?);
             let vz = f32::from_le_bytes(buf[o + 8..o + 12].try_into()?);
             let p = Point3r::new(Real::from(vx), Real::from(vy), Real::from(vz));
-            vs[i] = pool.insert_or_weld(p, normal);
+            *vertex_id = pool.insert_or_weld(p, normal);
         }
 
         faces.push(gaia::infrastructure::storage::face_store::FaceData {

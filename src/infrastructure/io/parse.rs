@@ -144,9 +144,9 @@ mod tests {
     #[test]
     fn parse_point_reads_three_finite_fields() {
         let point = parse_point(["1.0", "-2.5", "3"], 0).unwrap();
-        assert_eq!(point.x, 1.0);
-        assert_eq!(point.y, -2.5);
-        assert_eq!(point.z, 3.0);
+        assert_eq!(point.x.to_bits(), 1.0_f64.to_bits());
+        assert_eq!(point.y.to_bits(), (-2.5_f64).to_bits());
+        assert_eq!(point.z.to_bits(), 3.0_f64.to_bits());
     }
 
     #[test]

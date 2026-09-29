@@ -177,7 +177,7 @@ fn adaptive_reconstruct_tolerance(faces: &[FaceData], pool: &VertexPool) -> Real
     // 1 % of minimum edge length, capped by the proven default.
     // Only tightens tolerance for micro-scale geometry; never loosens
     // beyond 1e-4 for normal / large-scale operands.
-    (0.01 * l_min).min(DEFAULT_TOL).max(1e-15)
+    (0.01 * l_min).clamp(1e-15, DEFAULT_TOL)
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

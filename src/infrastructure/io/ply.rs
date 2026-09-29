@@ -423,9 +423,9 @@ mod tests {
         let mesh = read_ply(std::io::Cursor::new(ply.as_bytes())).unwrap();
         assert_eq!(mesh.vertex_count(), 3);
         for (_vid, vertex) in mesh.vertices.iter() {
-            assert_eq!(vertex.normal.x, 0.0);
-            assert_eq!(vertex.normal.y, 0.0);
-            assert_eq!(vertex.normal.z, 0.0);
+            assert_eq!(vertex.normal.x.to_bits(), 0.0_f64.to_bits());
+            assert_eq!(vertex.normal.y.to_bits(), 0.0_f64.to_bits());
+            assert_eq!(vertex.normal.z.to_bits(), 0.0_f64.to_bits());
         }
     }
 

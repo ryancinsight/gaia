@@ -60,13 +60,11 @@ pub(crate) fn compute_segment(
     let seg1 = edge_crossings_interval([a, b, c], [pa, pb, pc], [da, db, dc]);
     let seg2 = edge_crossings_interval([d, e, f], [pd, pe, pf], [dd, de, df]);
 
-    let (t1_min, t1_max, pt1_enter, pt1_leave) = match seg1 {
-        Some(s) => s,
-        None => return IntersectionType::None,
+    let Some((t1_min, t1_max, pt1_enter, pt1_leave)) = seg1 else {
+        return IntersectionType::None;
     };
-    let (t2_min, t2_max, pt2_enter, pt2_leave) = match seg2 {
-        Some(s) => s,
-        None => return IntersectionType::None,
+    let Some((t2_min, t2_max, pt2_enter, pt2_leave)) = seg2 else {
+        return IntersectionType::None;
     };
 
     // Overlap of the two intervals.

@@ -268,9 +268,7 @@ pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {
         }
     }
 
-    let cdt = if let Ok(c) = crate::application::delaunay::Cdt::try_from_pslg(&pslg) {
-        c
-    } else {
+    let Ok(cdt) = crate::application::delaunay::Cdt::try_from_pslg(&pslg) else {
         // Fallback to naive fan triangulation if exact bounds shatter fails
         let root = deduplicated[0];
         return (1..deduplicated.len() - 1)

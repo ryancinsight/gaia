@@ -89,7 +89,7 @@ pub(crate) fn corefine_face(
 
     if use_seam_map {
         // ── Seam-map path: look up pre-registered Steiners per edge ──────
-        for ei in 0..3_usize {
+        for (ei, edge_steiner) in edge_steiners.iter_mut().enumerate().take(3_usize) {
             let va_id = face.vertices[ei];
             let vb_id = face.vertices[(ei + 1) % 3];
             let key = canonical_edge_key(va_id, vb_id);
@@ -100,7 +100,7 @@ pub(crate) fn corefine_face(
                 let flip = va_id > vb_id;
                 for &(t_canon, vid) in steiners {
                     let t_local = if flip { 1.0 - t_canon } else { t_canon };
-                    edge_steiners[ei].push((t_local, vid));
+                    edge_steiner.push((t_local, vid));
                 }
             }
         }
@@ -167,8 +167,8 @@ pub(crate) fn corefine_face(
             // Corner vertex fallback — if snap endpoint is within WELD_TOL_SQ
             // of a face corner, snap it to the corner VertexId.
             if seg_vids[si][ep].is_none() {
-                for ci in 0..3_usize {
-                    if (p3d - face_pts[ci]).norm_squared() < WELD_TOL_SQ * 4.0 {
+                for (ci, &face_pt) in face_pts.iter().enumerate() {
+                    if (p3d - face_pt).norm_squared() < WELD_TOL_SQ * 4.0 {
                         seg_vids[si][ep] = Some(face.vertices[ci]);
                         break;
                     }
@@ -304,9 +304,9 @@ pub(crate) fn corefine_face(
     let steiner_count: usize = edge_steiners.iter().map(|e| e.len()).sum();
     let boundary_vids = &mut scratch.boundary_vids;
     boundary_vids.reserve(3 + steiner_count);
-    for ei in 0..3_usize {
+    for (ei, edge_steiner) in edge_steiners.iter().enumerate().take(3_usize) {
         boundary_vids.push(face.vertices[ei]);
-        for &(_, vid) in &edge_steiners[ei] {
+        for &(_, vid) in edge_steiner {
             boundary_vids.push(vid);
         }
     }

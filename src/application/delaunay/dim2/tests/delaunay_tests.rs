@@ -283,8 +283,7 @@ fn vert_to_tri_invariant_holds() {
     let dt = DelaunayTriangulation::from_points(&pts);
 
     let hints = dt.vert_to_tri_slice();
-    for vid_idx in 0..dt.vertex_count() {
-        let tid = hints[vid_idx];
+    for (vid_idx, &tid) in hints.iter().take(dt.vertex_count()).enumerate() {
         assert_ne!(tid, GHOST_TRIANGLE, "vertex {vid_idx} has GHOST hint");
         let tri = dt.triangle(tid);
         assert!(tri.alive, "vertex {vid_idx} hints to dead triangle");

@@ -212,9 +212,8 @@ pub(super) fn remove_fin_faces(mesh: &mut IndexedMesh) {
     let mut fin_faces: hashbrown::HashSet<usize> = hashbrown::HashSet::with_capacity(n_faces / 16);
 
     for fi in 0..n_faces {
-        let n_f = match face_normals[fi] {
-            Some(n) => n,
-            None => continue,
+        let Some(n_f) = face_normals[fi] else {
+            continue;
         };
 
         // Gather all distinct edge-neighbor face indices.

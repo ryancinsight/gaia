@@ -59,8 +59,7 @@ pub(super) fn query_overlapping_generic<'brand, A: TokenAccess<'brand>>(
 
         match kind {
             BvhNodeKind::Leaf { start, end } => {
-                for i in (start as usize)..(end as usize) {
-                    let prim_idx = indices[i];
+                for &prim_idx in indices.iter().take(end as usize).skip(start as usize) {
                     // Exact per-primitive check; eliminates false positives
                     // from the conservative union AABB of the leaf node.
                     if prim_aabbs[prim_idx].intersects(query) {

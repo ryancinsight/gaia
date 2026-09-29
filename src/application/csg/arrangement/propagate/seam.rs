@@ -140,9 +140,8 @@ fn propagate_seam_vertices_impl(
             } else {
                 (vb_id, va_id)
             };
-            let adj_faces = match edge_to_faces.get(&edge_key) {
-                Some(f) => f,
-                None => continue,
+            let Some(adj_faces) = edge_to_faces.get(&edge_key) else {
+                continue;
             };
             if !adj_faces.iter().any(|&f| f != fi) {
                 continue;

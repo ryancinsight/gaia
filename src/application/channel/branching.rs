@@ -301,9 +301,8 @@ mod tests {
             ),
         ];
         for (builder, expected) in cases {
-            let error = match builder.build_surface() {
-                Ok(_) => panic!("invalid branching parameters unexpectedly built a mesh"),
-                Err(error) => error,
+            let Err(error) = builder.build_surface() else {
+                panic!("invalid branching parameters unexpectedly built a mesh");
             };
             assert_eq!(error.0, expected);
         }

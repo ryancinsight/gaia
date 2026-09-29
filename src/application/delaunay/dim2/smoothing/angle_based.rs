@@ -267,9 +267,8 @@ mod tests {
         }
         .smooth(&mut cdt);
         let dt = cdt.triangulation();
-        for i in 0..4 {
+        for (i, &(bx, by)) in corners_before.iter().enumerate() {
             let v = dt.vertex(PslgVertexId::from_usize(i));
-            let (bx, by) = corners_before[i];
             assert!(
                 (v.x - bx).abs() < 1e-12 && (v.y - by).abs() < 1e-12,
                 "boundary vertex {i} moved from ({bx},{by}) to ({},{})",

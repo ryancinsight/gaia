@@ -321,15 +321,15 @@ impl<T: Scalar> IndexedMesh<T> {
         for &fid in &b_faces {
             let face = self.faces.get(fid);
             let mut new_vids = [VertexId::default(); 3];
-            for k in 0..3 {
+            for (k, new_vid) in new_vids.iter_mut().enumerate() {
                 let old_vid = face.vertices[k];
                 let old_idx = old_vid.as_usize();
-                new_vids[k] = if let Some(new_vid) = old_to_new_vid[old_idx] {
+                *new_vid = if let Some(new_vid) = old_to_new_vid[old_idx] {
                     new_vid
                 } else {
-                    let new_vid = b_mesh.add_vertex_pos(*self.vertices.position(old_vid));
-                    old_to_new_vid[old_idx] = Some(new_vid);
-                    new_vid
+                    let inserted_vid = b_mesh.add_vertex_pos(*self.vertices.position(old_vid));
+                    old_to_new_vid[old_idx] = Some(inserted_vid);
+                    inserted_vid
                 };
             }
             b_mesh.add_face(new_vids[0], new_vids[1], new_vids[2]);

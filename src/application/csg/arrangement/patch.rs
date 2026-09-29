@@ -197,8 +197,8 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
         let mut exact_collinear = true;
         'exact: for i in 1..n {
             let pi = *pool.position(poly[i]);
-            for j in (i + 1)..n {
-                let pj = *pool.position(poly[j]);
+            for &vj in poly.iter().take(n).skip(i + 1) {
+                let pj = *pool.position(vj);
                 if !triangle_is_degenerate_exact(&p0, &pi, &pj) {
                     exact_collinear = false;
                     break 'exact;

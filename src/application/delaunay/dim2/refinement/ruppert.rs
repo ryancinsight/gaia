@@ -275,9 +275,8 @@ impl RuppertRefiner {
             let insertion_point =
                 off_center(&a, &b, &c, self.max_ratio).or_else(|| circumcenter(&a, &b, &c));
 
-            let (px, py) = match insertion_point {
-                Some(p) => p,
-                None => continue,
+            let Some((px, py)) = insertion_point else {
+                continue;
             };
 
             // Check if the insertion point encroaches any constraint segment.

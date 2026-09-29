@@ -128,8 +128,8 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
     let edge_len_sq = {
         let p0 = verts[0];
         let mut min_sq = f64::INFINITY;
-        for i in 1..60 {
-            let d = (verts[i] - p0).norm_squared();
+        for p in verts.iter().take(60).skip(1) {
+            let d = (*p - p0).norm_squared();
             if d < min_sq {
                 min_sq = d;
             }
@@ -210,9 +210,8 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
                         ca.total_cmp(&cb)
                     })
                     .copied();
-                let candidate = match best {
-                    Some(k) => k,
-                    None => break,
+                let Some(candidate) = best else {
+                    break;
                 };
                 if candidate == start {
                     break;

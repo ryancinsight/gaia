@@ -501,9 +501,8 @@ impl Cdt {
         }
 
         let nbr = self.dt.triangle(nbr_tid);
-        let nbr_edge = match nbr.shared_edge(tid) {
-            Some(e) => e,
-            None => return false,
+        let Some(nbr_edge) = nbr.shared_edge(tid) else {
+            return false;
         };
 
         let v_opp_t = tri.vertices[edge];
@@ -640,11 +639,13 @@ impl Cdt {
         use crate::application::delaunay::dim2::triangulation::locate::Location;
 
         let loc = self.dt.locate_point(start, hx, hy);
-        let seed_tid = match loc {
-            Some(Location::Inside(tid) | Location::OnEdge(tid, _) | Location::OnVertex(tid, _)) => {
-                tid
-            }
-            None => return,
+        let Some(
+            Location::Inside(seed_tid)
+            | Location::OnEdge(seed_tid, _)
+            | Location::OnVertex(seed_tid, _),
+        ) = loc
+        else {
+            return;
         };
 
         // Flood-fill from the seed, stopping at constrained edges.

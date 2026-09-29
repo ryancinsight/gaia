@@ -24,9 +24,8 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
     // with progressively wider multipliers (0.05 → 0.40).
     let mean_edge_len = {
         mesh.rebuild_edges();
-        let edges = match mesh.edges_ref() {
-            Some(e) => e,
-            None => return,
+        let Some(edges) = mesh.edges_ref() else {
+            return;
         };
         let (sum, count) = edges
             .iter()
@@ -55,9 +54,8 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
 
     for _iter in 0..max_iter {
         mesh.rebuild_edges();
-        let edges_ref = match mesh.edges_ref() {
-            Some(e) => e,
-            None => break,
+        let Some(edges_ref) = mesh.edges_ref() else {
+            break;
         };
 
         // Phase 1: collect boundary vertex IDs.
@@ -92,15 +90,13 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
                 hashbrown::HashMap::with_capacity(bv.len());
             let bv_pos: Vec<leto::geometry::Point3<f64>> =
                 bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
-            for i in 0..bv.len() {
-                let p = &bv_pos[i];
+            for (i, p) in bv_pos.iter().enumerate().take(bv.len()) {
                 let cx = (p.x * inv_tol).floor() as i64;
                 let cy = (p.y * inv_tol).floor() as i64;
                 let cz = (p.z * inv_tol).floor() as i64;
                 grid.entry((cx, cy, cz)).or_default().push(i);
             }
-            for i in 0..bv.len() {
-                let pi = &bv_pos[i];
+            for (i, pi) in bv_pos.iter().enumerate().take(bv.len()) {
                 let cx = (pi.x * inv_tol).floor() as i64;
                 let cy = (pi.y * inv_tol).floor() as i64;
                 let cz = (pi.z * inv_tol).floor() as i64;
@@ -193,9 +189,8 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
             }
         }
 
-        let (keep, remove, _dist) = match best {
-            Some(b) => b,
-            None => break,
+        let Some((keep, remove, _dist)) = best else {
+            break;
         };
 
         // --- Euler-preserving guard ---
@@ -346,8 +341,7 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     let positions: Vec<leto::geometry::Point3<f64>> = (0..n)
         .map(|i| *mesh.vertices.position(VertexId(i as u32)))
         .collect();
-    for i in 0..n {
-        let p = &positions[i];
+    for (i, p) in positions.iter().enumerate().take(n) {
         let cx = (p.x * inv_eps).floor() as i64;
         let cy = (p.y * inv_eps).floor() as i64;
         let cz = (p.z * inv_eps).floor() as i64;

@@ -749,9 +749,9 @@ impl DelaunayTriangulation {
         let n = self.triangles.len();
         let mut remap = vec![GHOST_TRIANGLE; n];
         let mut new_idx = 0u32;
-        for i in 0..n {
+        for (i, remapped) in remap.iter_mut().enumerate().take(n) {
             if self.triangles[i].alive {
-                remap[i] = TriangleId::new(new_idx);
+                *remapped = TriangleId::new(new_idx);
                 new_idx += 1;
             }
         }

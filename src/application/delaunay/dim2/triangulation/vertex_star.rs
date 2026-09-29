@@ -52,9 +52,8 @@ impl DelaunayTriangulation {
             }
             result.push(cur);
             let tri = &self.triangles[cur.idx()];
-            let li = match tri.vertex_index(v) {
-                Some(i) => i,
-                None => return self.triangles_around_vertex_linear(v),
+            let Some(li) = tri.vertex_index(v) else {
+                return self.triangles_around_vertex_linear(v);
             };
             let next = tri.adj[(li + 1) % 3];
             if next == start {
@@ -79,9 +78,8 @@ impl DelaunayTriangulation {
                     }
                     result.push(cur2);
                     let t2 = &self.triangles[cur2.idx()];
-                    let li2 = match t2.vertex_index(v) {
-                        Some(i) => i,
-                        None => break,
+                    let Some(li2) = t2.vertex_index(v) else {
+                        break;
                     };
                     cur2 = t2.adj[(li2 + 2) % 3];
                 }
@@ -189,9 +187,8 @@ impl DelaunayTriangulation {
                 if !nbr_tri.alive {
                     continue;
                 }
-                let nbr_edge = match nbr_tri.shared_edge(tid) {
-                    Some(e) => e,
-                    None => return false,
+                let Some(nbr_edge) = nbr_tri.shared_edge(tid) else {
+                    return false;
                 };
                 let v_opp = nbr_tri.vertices[nbr_edge];
                 let [a, b, c] = tri.vertices;

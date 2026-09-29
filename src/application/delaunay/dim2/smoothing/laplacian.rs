@@ -116,7 +116,7 @@ impl LaplacianSmoother {
             new_positions.fill(None);
 
             let dt = cdt.triangulation();
-            for raw in 0..num_real {
+            for (raw, new_position) in new_positions.iter_mut().take(num_real).enumerate() {
                 let vid = PslgVertexId::from_usize(raw);
                 if frozen[vid.idx()] {
                     continue;
@@ -129,7 +129,7 @@ impl LaplacianSmoother {
                 let v = dt.vertex(vid);
                 let nx = v.x + lambda * (cx - v.x);
                 let ny = v.y + lambda * (cy - v.y);
-                new_positions[raw] = Some((nx, ny));
+                *new_position = Some((nx, ny));
             }
 
             // Apply Jacobi updates.
@@ -328,9 +328,8 @@ mod tests {
         };
         smoother.smooth(&mut cdt);
         let dt = cdt.triangulation();
-        for i in 0..4 {
+        for (i, &(bx, by)) in corners_before.iter().enumerate() {
             let v = dt.vertex(PslgVertexId::from_usize(i));
-            let (bx, by) = corners_before[i];
             assert!(
                 (v.x - bx).abs() < 1e-12 && (v.y - by).abs() < 1e-12,
                 "boundary vertex {i} moved: before=({bx},{by}), after=({},{})",

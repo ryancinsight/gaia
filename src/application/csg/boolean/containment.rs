@@ -96,13 +96,11 @@ pub(crate) fn containment(
         }
     };
 
-    let aabb_a = match aabb_of(faces_a) {
-        Some(a) => a,
-        None => return Containment::Disjoint,
+    let Some(aabb_a) = aabb_of(faces_a) else {
+        return Containment::Disjoint;
     };
-    let aabb_b = match aabb_of(faces_b) {
-        Some(b) => b,
-        None => return Containment::Disjoint,
+    let Some(aabb_b) = aabb_of(faces_b) else {
+        return Containment::Disjoint;
     };
 
     if !aabb_a.intersects(&aabb_b) {

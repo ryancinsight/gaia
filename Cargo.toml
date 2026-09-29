@@ -140,17 +140,15 @@ dbg_macro = "deny"
 # permanent per-file suppressions on targets whose whole job is printing, which
 # is noise, not a ratchet. The library-code guarantee is the measured zero.
 
-# ── Ratchet: numeric-conversion debt (748) ──────────────────────────────────
+# ── Ratchet: numeric-conversion debt (729) ──────────────────────────────────
 # The real fix is a `Scalar`-parameterized conversion boundary, not blanket
 # `as` casts from index to coordinate space.
 cast_precision_loss = "allow"        # 437
 cast_possible_truncation = "allow"   # 160
 cast_sign_loss = "allow"             # 53
 unreadable_literal = "allow"         # 34
-float_cmp = "allow"                  # 44 — separately tracked as the CSG
-                                     #      epsilon-classification item; 7
-                                     #      sites accrued since the 37
-                                     #      baseline join that burn-down
+float_cmp = "allow"                  # 25 — separately tracked as the CSG
+                                     #      epsilon-classification item
 cast_possible_wrap = "allow"         # 17
 cast_lossless = "allow"              # 3
 
@@ -163,11 +161,10 @@ return_self_not_must_use = "allow"   # 2
 doc_overindented_list_items = "allow" # 1
 empty_line_after_doc_comments = "allow" # 1
 
-# ── Ratchet: naming and style debt (265) ──────────────────────────────────────
+# ── Ratchet: naming and style debt (241) ──────────────────────────────────────
 similar_names = "allow"              # 72
 many_single_char_names = "allow"     # 50
 items_after_statements = "allow"     # 22
-manual_let_else = "allow"            # 24
 uninlined_format_args = "allow"      # 43
 redundant_closure_for_method_calls = "allow" # 18
 inline_always = "allow"              # 8
@@ -185,11 +182,6 @@ too_many_lines = "allow"             # 58
 too_many_arguments = "allow"         # 7
 len_without_is_empty = "allow"       # 1
 new_ret_no_self = "allow"            # 1
-
-# ── Ratchet: default-warn (clippy::all) debt (19) ─────────────────────────────
-needless_range_loop = "allow"        # 16
-manual_clamp = "allow"               # 1
-format_push_string = "allow"         # 2
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 

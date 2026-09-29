@@ -466,9 +466,9 @@ fn cdt_dense_crosshatch_constraints() {
         }
     }
     // Vertical segments.
-    for j in 0..5 {
-        for i in 0..4 {
-            pslg.add_segment(grid[i][j], grid[i + 1][j]);
+    for (upper, lower) in grid.iter().zip(grid.iter().skip(1)) {
+        for (&top, &bottom) in upper.iter().zip(lower.iter()) {
+            pslg.add_segment(top, bottom);
         }
     }
     let cdt = Cdt::from_pslg(&pslg);

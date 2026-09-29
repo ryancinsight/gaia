@@ -185,14 +185,12 @@ pub(crate) fn cdt_fill_loop(
     // Project the loop onto its plane via the shared `PlaneBasis` (Newell
     // normal + Gram-Schmidt frame, centred on the loop centroid).
     let positions: Vec<Point3r> = poly.iter().map(|&v| *pool.position(v)).collect();
-    let basis = match PlaneBasis::from_points_centroid(&positions) {
-        Some(b) => b,
-        None => return 0,
+    let Some(basis) = PlaneBasis::from_points_centroid(&positions) else {
+        return 0;
     };
     let pts2d: Vec<[Real; 2]> = positions.iter().map(|p| basis.project(p)).collect();
-    let poly_ccw = match winding_ccw(&pts2d) {
-        Some(w) => w,
-        None => return 0,
+    let Some(poly_ccw) = winding_ccw(&pts2d) else {
+        return 0;
     };
 
     // Build PSLG from the projected boundary loop.
@@ -206,9 +204,8 @@ pub(crate) fn cdt_fill_loop(
         pslg.add_segment(pids[i], pids[j]);
     }
 
-    let cdt = match Cdt::try_from_pslg(&pslg) {
-        Ok(cdt) => cdt,
-        Err(_) => return 0,
+    let Ok(cdt) = Cdt::try_from_pslg(&pslg) else {
+        return 0;
     };
 
     // Collect candidate triangles from CDT interior cells whose centroid lies
@@ -302,17 +299,15 @@ pub(crate) fn ear_clip_fill(
 
     // Project the loop onto its plane via the shared `PlaneBasis`.
     let positions: Vec<Point3r> = poly.iter().map(|&v| *pool.position(v)).collect();
-    let basis = match PlaneBasis::from_points_centroid(&positions) {
-        Some(b) => b,
-        None => return 0, // Degenerate (collinear) polygon — cannot triangulate.
+    let Some(basis) = PlaneBasis::from_points_centroid(&positions) else {
+        return 0; // Degenerate (collinear) polygon — cannot triangulate.
     };
     let normal = basis.normal;
     let pts2d: Vec<[Real; 2]> = positions.iter().map(|p| basis.project(p)).collect();
 
     // Determine polygon orientation with exact predicates.
-    let ccw = match winding_ccw(&pts2d) {
-        Some(w) => w,
-        None => return 0,
+    let Some(ccw) = winding_ccw(&pts2d) else {
+        return 0;
     };
 
     // Ear-clipping.

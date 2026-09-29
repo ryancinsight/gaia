@@ -362,10 +362,10 @@ fn rational_curve_preserves_scaled_point_contributions() {
         [tiny, large],
     );
 
-    assert_eq!(curve.point(0.5)[0], tiny);
+    assert_eq!(curve.point(0.5)[0].to_bits(), tiny.to_bits());
     let (point, tangent) = curve.point_and_tangent(0.5);
-    assert_eq!(point[0], tiny);
-    assert_eq!(tangent[0], -2.0_f64.powi(-598));
+    assert_eq!(point[0].to_bits(), tiny.to_bits());
+    assert_eq!(tangent[0].to_bits(), (-2.0_f64.powi(-598)).to_bits());
 }
 
 fn assert_constant_rational_curve_coordinate<T: Scalar>(coordinate: T) {

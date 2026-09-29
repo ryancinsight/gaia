@@ -4,6 +4,7 @@
 //! It is a ZIP archive containing an XML model file at `3D/3dmodel.model`.
 
 use hashbrown::HashMap;
+use std::fmt::Write as _;
 use std::io::{Seek, Write};
 
 use crate::domain::core::error::{MeshError, MeshResult};
@@ -57,10 +58,12 @@ fn build_model_xml(mesh: &IndexedMesh) -> String {
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
         id_to_idx.insert(vid, idx);
         let p = &vdata.position;
-        xml.push_str(&format!(
-            "        <vertex x=\"{}\" y=\"{}\" z=\"{}\" />\n",
+        writeln!(
+            xml,
+            "        <vertex x=\"{}\" y=\"{}\" z=\"{}\" />",
             p.x, p.y, p.z
-        ));
+        )
+        .expect("writing XML into a String cannot fail");
     }
     xml.push_str("      </vertices>\n");
 
@@ -70,9 +73,11 @@ fn build_model_xml(mesh: &IndexedMesh) -> String {
         let v1 = id_to_idx[&face.vertices[0]];
         let v2 = id_to_idx[&face.vertices[1]];
         let v3 = id_to_idx[&face.vertices[2]];
-        xml.push_str(&format!(
-            "        <triangle v1=\"{v1}\" v2=\"{v2}\" v3=\"{v3}\" />\n"
-        ));
+        writeln!(
+            xml,
+            "        <triangle v1=\"{v1}\" v2=\"{v2}\" v3=\"{v3}\" />"
+        )
+        .expect("writing XML into a String cannot fail");
     }
     xml.push_str("      </triangles>\n");
 
