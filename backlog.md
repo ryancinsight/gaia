@@ -198,13 +198,11 @@ type-checking, so no bench body has ever been executed by a gate.
 - **Dependencies**: GAIA-003 retires the largest class (1268 cast lints).
 - **ADR**: 0003 — Align CSG repair module ownership with directory paths.
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: todo. In review — the delivery PRs are the hosting fact. **Owner**: root.
-- **Lease**: root — `Cargo.toml`, `rustfmt.toml`, `examples/csg/cube_cube.rs`, `examples/debug_stl.rs`, `src/application/csg/arrangement/adversarial_tests.rs`, `src/application/csg/arrangement/boolean_csg.rs`, `src/application/csg/boolean/indexed.rs`, `src/application/csg/boolean/indexed/csg.rs`, `src/application/csg/boolean/indexed/repair/`, `src/application/csg/boolean/indexed/repair/mod.rs`, `src/application/csg/boolean/indexed_tests.rs`, `docs/adr/README.md`, `docs/adr/0003-indexed-csg-repair-modules.md`, `src/application/csg/clip/polygon2d/cdt.rs`, `src/application/csg/corefine.rs`, `src/application/delaunay/dim2/pslg/graph.rs`, `src/application/delaunay/dim2/smoothing/laplacian.rs`, `src/application/delaunay/dim2/triangulation/bowyer_watson.rs`, `src/application/delaunay/dim3/tetrahedralize.rs`, `src/application/hierarchy/hex_to_tet.rs`, `src/application/quality/normals.rs`, `src/application/welding/welder.rs`, `src/bin/book_mesh_gallery/render.rs`, `src/domain/topology/orientation.rs`, `src/infrastructure/spatial/ssvdag/boolean.rs`, `src/infrastructure/spatial/ssvdag/core.rs`, `src/infrastructure/spatial/ssvdag/rasterize.rs`, `src/infrastructure/storage/attribute.rs`, `src/infrastructure/storage/edge_store.rs`, `src/infrastructure/storage/vertex_pool.rs` — `2026-09-23T08:28:43-04:00`.
+- **Status**: done — Phase 13 (2026-09-29). Four lint classes removed from ratchet (`needless_range_loop`, `manual_clamp`, `format_push_string`, `manual_let_else`); `float_cmp` test ceiling 44→25 (GAIA-016); `unwrap_used` production sites 2→0 (normals.rs invariants proved). 38 oversized files (was 40). 1137 tests pass. **Owner**: root.
 
 Evidence: `cargo clippy --all-targets --all-features -- --force-warn
-clippy::too_many_lines` emits 100 diagnostics at this revision; Cargo.toml at
-the branch base recorded 101. The source inventory had 41 files over 500
-lines at branch base and has 40 now.
+clippy::too_many_lines` emits 58 diagnostics at this revision; `unwrap_production`
+ratchet baseline auto-tightened 2→0 on push.
 
 ---
 
@@ -222,7 +220,7 @@ lines at branch base and has 40 now.
   ratchet entries; `manual_let_else` (51 allowed) drops as let-chains land.
 - **Dependencies**: none.
 - **Risk / change class**: [patch] — M.
-- **Status**: todo. In review — the delivery PRs are the hosting fact. **Owner**: root.
+- **Status**: done — delivered with GAIA-013 / Phase 13. **Owner**: root.
 
 Evidence: delivered with [GAIA-013](#GAIA-013): the manifest now uses edition
 2024 and resolver 3 with the pinned Rust 1.97.0 toolchain. Strict all-target

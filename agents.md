@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 12 complete (Delaunay Zero-Allocation Seeding, Hashing/Adjacency Consolidation, and Quality Metric Angle SSOT).
+> **Rewrite status**: Phase 13 complete (Lint Ratchet Burn-Down, GAIA-016 Float Comparison, and unwrap_used Safety Discharge).
 
 ---
 
@@ -709,6 +709,7 @@ proptest! {
 | **10** OpenFOAM I/O | ✅ DONE | `io/openfoam.rs`, `io/mod.rs`, `mesh.rs` | `write_openfoam_polymesh()` for `IndexedMesh` + `write_openfoam_polymesh_he()` for `HalfEdgeMesh`; writes `points`/`faces`/`owner`/`neighbour`/`boundary` polyMesh files; `PatchType → OF type` mapping (`wall`, `symmetry`, `cyclicAMI`, `patch` + `physicalType` for inlet/outlet); `PatchSpec` public struct; `face_patch()` + `patch_info()` accessors added to `HalfEdgeMesh`; 6 new unit tests (5-file creation, vertex count, face count, default patch, named patches, empty-mesh error); 113 tests pass, 0 new warnings |
 | **11** Quality & Welding | ✅ DONE | `quality/triangle.rs`, `welding/welder.rs` | Tightened quality angle formulas via vector norms; optimized welding vertex adjacency with low-valence arrays. |
 | **12** Delaunay & Hashing | ✅ DONE | `delaunay/dim3/tetrahedralize.rs`, `domain/mesh/indexed.rs`, `domain/grid.rs` | Eliminated BowyerWatson3D BFS seed allocations; completed BTreeMap/BTreeSet migration to HashMap/HashSet; hoisted CSG edge-use map cache. |
+| **13** Lint Ratchet & Safety | ✅ DONE | `Cargo.toml`, `quality/normals.rs`, plus 43 sites across 20 files | Removed 4 lint classes from ratchet: `needless_range_loop` (16→0), `manual_clamp` (1→0), `format_push_string` (2→0), `manual_let_else` (24→0). Fixed GAIA-016 float_cmp test assertions (44→25). Discharged both `unwrap_used` production sites in `normals.rs` by proving seed-BFS invariants, reaching zero production panics. Edition 2024 + resolver 3 already active. 1137 tests pass. |
 
 ---
 
