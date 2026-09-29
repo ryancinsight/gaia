@@ -7,6 +7,7 @@ use crate::application::channel::path::ChannelPath;
 use crate::application::channel::profile::ChannelProfile;
 use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::Real;
+use crate::domain::topology::PackedRows;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 use thiserror::Error as ThisError;
@@ -100,19 +101,21 @@ impl SweepMesher {
         let n_profile = profile_pts.len();
         let n_stations = frames.len();
 
-        let mut rings: Vec<Vec<VertexId>> = Vec::with_capacity(n_stations);
+        let mut ring_values: Vec<VertexId> = Vec::with_capacity(n_stations * n_profile);
+        let mut ring_offsets: Vec<usize> = Vec::with_capacity(n_stations + 1);
+        ring_offsets.push(0);
         for (i, frame) in frames.iter().enumerate() {
             let scale_x = scale_x_fn(i);
-            let mut ring = Vec::with_capacity(n_profile);
             for pt2d in &profile_pts {
                 let pos =
                     frame.position + frame.normal * (pt2d[0] * scale_x) + frame.binormal * pt2d[1];
                 let outward = (pos - frame.position).normalize();
                 let vid = vertex_pool.insert_or_weld(pos, outward);
-                ring.push(vid);
+                ring_values.push(vid);
             }
-            rings.push(ring);
+            ring_offsets.push(ring_values.len());
         }
+        let rings = PackedRows::from_parts(ring_offsets, ring_values);
 
         let mut faces = Vec::new();
 
@@ -163,6 +166,85 @@ impl Default for SweepMesher {
 mod tests {
     use super::*;
     use crate::domain::core::scalar::Point3r;
+
+    /// Pins the pre-refactor ring/face vertex-id layout for the same fixture
+    /// `matching_width_scales_reach_the_canonical_sweep_kernel` already
+    /// exercises (3 stations, 4-point rectangular profile, both caps): ring
+    /// `s` occupies vertex ids `[4*s, 4*s+4)` in construction order, followed
+    /// by the start-cap center (id 12) then the end-cap center (id 13). The
+    /// PackedRows storage swap must not reorder or drop rows, so the exact
+    /// vertex-id triples of the first interior quad and both cap fans must
+    /// hold unchanged before and after it.
+    #[test]
+    fn sweep_ring_topology_is_pinned() {
+        let path = ChannelPath::new(vec![
+            Point3r::origin(),
+            Point3r::new(1.0, 0.0, 0.0),
+            Point3r::new(2.0, 0.0, 0.0),
+        ])
+        .expect("valid path");
+        let profile = ChannelProfile::Rectangular {
+            width: 1.0,
+            height: 1.0,
+        };
+        let mut vertex_pool = VertexPool::default_millifluidic();
+        let faces = SweepMesher::new()
+            .sweep_variable(
+                &profile,
+                &path,
+                &[1.0, 0.9, 1.1],
+                &mut vertex_pool,
+                RegionId::from_usize(0),
+            )
+            .expect("matching scales must build");
+
+        assert_eq!(faces.len(), 24);
+        assert_eq!(vertex_pool.len(), 14);
+
+        // Interior loop, s = 0, i = 0, j = 1: ring_a = ring 0 (ids 0-3),
+        // ring_b = ring 1 (ids 4-7).
+        assert_eq!(
+            faces[0],
+            FaceData::new(
+                VertexId::from_usize(0),
+                VertexId::from_usize(5),
+                VertexId::from_usize(4),
+                RegionId::from_usize(0),
+            )
+        );
+        assert_eq!(
+            faces[1],
+            FaceData::new(
+                VertexId::from_usize(0),
+                VertexId::from_usize(1),
+                VertexId::from_usize(5),
+                RegionId::from_usize(0),
+            )
+        );
+
+        // Start cap: center is vertex id 12, appended right after the 12
+        // ring vertices (3 stations * 4 profile points).
+        assert_eq!(
+            faces[16],
+            FaceData::new(
+                VertexId::from_usize(12),
+                VertexId::from_usize(1),
+                VertexId::from_usize(0),
+                RegionId::from_usize(0),
+            )
+        );
+        // End cap: center is vertex id 13, referencing the last ring
+        // (ids 8-11).
+        assert_eq!(
+            faces[20],
+            FaceData::new(
+                VertexId::from_usize(13),
+                VertexId::from_usize(8),
+                VertexId::from_usize(9),
+                RegionId::from_usize(0),
+            )
+        );
+    }
 
     #[test]
     fn reports_width_scale_count_mismatch_without_mutating_the_pool() {
