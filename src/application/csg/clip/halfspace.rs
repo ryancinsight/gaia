@@ -165,6 +165,12 @@ pub fn clip_triangle_to_halfplane(
 /// (V0, `V_i`, V_{i+1}) for i = 1 … n−2 are non-overlapping and cover the
 /// polygon exactly.  All edges `V0–V_i` lie strictly inside (or on the boundary
 /// of) the polygon by convexity. ∎
+///
+/// # Panics
+///
+/// Panics if the deduplicated polygon loses its final vertex after the
+/// `deduplicated.len() > 1` guard has already established that a last vertex
+/// must exist.
 #[inline]
 #[must_use]
 pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {

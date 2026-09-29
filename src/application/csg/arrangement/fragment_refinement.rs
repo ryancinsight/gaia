@@ -130,7 +130,7 @@ fn build_cross_mesh_merge_map(
     let nb = pure_b.len();
     let mut parent: Vec<usize> = (0..(na + nb)).collect();
 
-    fn find_root(parent: &mut [usize], mut x: usize) -> usize {
+    let find_root = |parent: &mut [usize], mut x: usize| -> usize {
         while parent[x] != x {
             let p = parent[x];
             let gp = parent[p];
@@ -138,7 +138,7 @@ fn build_cross_mesh_merge_map(
             x = gp;
         }
         x
-    }
+    };
 
     if grid_on_a {
         // Grid on A, probe B.

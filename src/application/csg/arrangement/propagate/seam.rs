@@ -67,12 +67,11 @@ pub fn propagate_seam_vertices(
     pool: &VertexPool,
 ) {
     use crate::domain::core::index::VertexId;
+    type EdgeKey = (VertexId, VertexId);
 
     if segs.is_empty() {
         return;
     }
-
-    type EdgeKey = (VertexId, VertexId);
     let mut edge_to_faces: HashMap<EdgeKey, AdjacentFaces> =
         HashMap::with_capacity(faces.len() * 3 / 2);
     for (fi, face) in faces.iter().enumerate() {
@@ -323,13 +322,13 @@ pub(crate) fn propagate_seam_vertices_until_stable(
 ) {
     const MAX_PROPAGATION_PASSES: usize = 8;
     use crate::domain::core::index::VertexId;
+    type EdgeKey = (VertexId, VertexId);
 
     if segs.is_empty() {
         return;
     }
 
     // Build undirected edge → face-index adjacency ONCE.
-    type EdgeKey = (VertexId, VertexId);
     let mut edge_to_faces: HashMap<EdgeKey, AdjacentFaces> =
         HashMap::with_capacity(faces.len() * 3 / 2);
     for (fi, face) in faces.iter().enumerate() {

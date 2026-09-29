@@ -176,6 +176,10 @@ impl<const D: usize, T: Scalar> BSplineCurve<D, T> {
     /// Sample `count` uniformly spaced points on the curve.
     ///
     /// Includes both endpoints.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `count < 2`.
     #[must_use]
     pub fn sample_uniform(&self, count: usize) -> Vec<SVector<T, D>> {
         assert!(count >= 2, "need at least 2 samples");

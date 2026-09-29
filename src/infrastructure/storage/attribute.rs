@@ -54,6 +54,7 @@ impl<I: std::hash::Hash + Eq + Copy> AttributeStore<I> {
     }
 
     /// Iterate over all `(element_id, value)` pairs in a channel.
+    #[must_use]
     pub fn iter_channel(
         &self,
         channel: &str,

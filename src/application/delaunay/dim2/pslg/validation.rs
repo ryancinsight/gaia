@@ -14,6 +14,12 @@ impl<T: Scalar> Pslg<T> {
     /// - No degenerate segments.
     /// - No duplicate segments.
     /// - No segment-segment interior intersections (shared endpoints allowed).
+    ///
+    /// # Panics
+    ///
+    /// Panics if a segment endpoint index becomes invalid after the explicit
+    /// range-check phase, violating the internal assumption behind the
+    /// `expect(...)` lookups used during pairwise segment validation.
     pub fn validate(&self) -> Result<(), PslgValidationError> {
         use hashbrown::HashMap;
 

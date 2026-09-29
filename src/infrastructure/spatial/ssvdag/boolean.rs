@@ -22,6 +22,10 @@ impl<const B: usize, S: Subdivision<B>> SparseVoxelDag<B, S> {
     /// Compute the exact boolean operation between `self` (A) and `other` (B).
     ///
     /// Both DAGs must cover the exact same domain AABB.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `self.root_aabb != other.root_aabb`.
     #[must_use]
     pub fn boolean(&self, other: &Self, op: BooleanOp) -> Self {
         assert_eq!(

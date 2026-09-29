@@ -636,13 +636,17 @@ impl Cdt {
             }
         };
 
-        use crate::application::delaunay::dim2::triangulation::locate::Location;
-
         let loc = self.dt.locate_point(start, hx, hy);
         let Some(
-            Location::Inside(seed_tid)
-            | Location::OnEdge(seed_tid, _)
-            | Location::OnVertex(seed_tid, _),
+            crate::application::delaunay::dim2::triangulation::locate::Location::Inside(seed_tid)
+            | crate::application::delaunay::dim2::triangulation::locate::Location::OnEdge(
+                seed_tid,
+                _,
+            )
+            | crate::application::delaunay::dim2::triangulation::locate::Location::OnVertex(
+                seed_tid,
+                _,
+            ),
         ) = loc
         else {
             return;

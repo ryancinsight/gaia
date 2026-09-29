@@ -239,8 +239,8 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
     //   (c) Rebuild boundary, trace loops.
     //   (d) Collapse collinear degenerate loops (Step 6).
     //   (e) Fill remaining non-degenerate loops (Step 7).
-    const MAX_ITERS: usize = 16;
-    for _iter in 0..MAX_ITERS {
+    let max_iters = 16;
+    for _iter in 0..max_iters {
         let boundary_edges = build_boundary(faces);
         if boundary_edges.is_empty() {
             break;

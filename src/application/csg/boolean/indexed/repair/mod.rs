@@ -19,7 +19,7 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 /// # Invariant
 /// `parent[root] == root`. Path halving rewrites each traversed node to its
 /// grandparent, shortening future finds without allocating an auxiliary stack.
-#[inline(always)]
+#[inline]
 fn uf_find(parent: &mut [u32], mut x: u32) -> u32 {
     while parent[x as usize] != x {
         parent[x as usize] = parent[parent[x as usize] as usize];

@@ -38,6 +38,7 @@ pub struct Face {
 impl Face {
     /// Construct a normalized face. The vertices are rigorously sorted
     /// to guarantee equivalent faces hash identically, regardless of winding.
+    #[must_use]
     pub fn new(mut v0: usize, mut v1: usize, mut v2: usize) -> Self {
         if v0 > v1 {
             std::mem::swap(&mut v0, &mut v1);
@@ -105,6 +106,7 @@ impl<T: Scalar> Tetrahedron<T> {
     }
 
     /// Retrieve the 4 encompassing faces of the tetrahedron.
+    #[must_use]
     pub fn faces(&self) -> [Face; 4] {
         [
             Face::new(self.v[0], self.v[1], self.v[2]),
@@ -115,6 +117,7 @@ impl<T: Scalar> Tetrahedron<T> {
     }
 
     /// Check if this tetrahedron shares any vertices with the bounding super-tetrahedron.
+    #[must_use]
     pub fn shares_vertex_with_super(&self, super_start_idx: usize) -> bool {
         self.v
             .iter()
@@ -321,6 +324,12 @@ impl<T: Scalar> BowyerWatson3D<T> {
     /// Insert a completely generic point into the mathematical grid.
     /// Updates the global state to rigorously maintain the Delaunay invariant.
     /// Exectues with guaranteed 0 heap allocations by swapping internal pre-allocated buffers.
+    ///
+    /// # Panics
+    ///
+    /// Panics if cavity expansion records an invalid or vacant tetrahedron slot
+    /// in `bad_tets`, violating the occupied-index invariant used by the
+    /// circumsphere flood fill.
     pub fn insert_point(&mut self, point: Point3<T>) {
         let p_idx = self.vertices.len();
         self.vertices.push(point);
@@ -447,6 +456,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
     /// Strips the 4 super-tetrahedron anchor vertices and remaps all retained
     /// tetrahedron indices into a contiguous vertex array. This prevents
     /// phantom super-vertices from contaminating downstream boundary extraction.
+    #[must_use]
     pub fn finalize(self) -> (Vec<Point3<T>>, Vec<[usize; 4]>) {
         // Collect tets that do not reference any super-vertex.
         let mut raw_tets: Vec<[usize; 4]> = self

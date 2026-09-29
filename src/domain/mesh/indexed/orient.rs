@@ -49,6 +49,11 @@ impl<T: Scalar> IndexedMesh<T> {
     /// producing the correct signed-volume divergence-theorem integral:
     /// `V_total = V_outer − Σ V_cavities`.  This ensures that `orient_outward`
     /// is safe to call on CSG difference results that contain cavities.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the extremal seed face selected for orientation repair does
+    /// not have a cached normal after the face-normal prepass.
     pub fn orient_outward(&mut self) {
         use crate::application::csg::arrangement::classify::classify_fragment_prepared;
         use crate::application::csg::arrangement::gwn::PreparedFace;

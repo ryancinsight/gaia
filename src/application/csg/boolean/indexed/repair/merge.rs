@@ -19,6 +19,13 @@ use crate::infrastructure::storage::face_store::FaceData;
 /// incident to the merged vertex pair become interior).  The process terminates
 /// when no further merges are possible (fixed-point).  ∎
 pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: f64) {
+    #[inline]
+    fn quick_euler_referenced(mesh: &IndexedMesh) -> i64 {
+        let edge_store =
+            crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
+        crate::application::watertight::check::euler_chi_from_stores(&mesh.faces, &edge_store)
+    }
+
     // Adaptive tolerance: `merge_mult` fraction of the mean edge length,
     // clamped to [0.01, 0.2] mm.  The escalating repair pipeline calls this
     // with progressively wider multipliers (0.05 → 0.40).
@@ -200,15 +207,6 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
         // loops should not be connected).
         let faces_snapshot: Vec<crate::infrastructure::storage::face_store::FaceData> =
             mesh.faces.iter().copied().collect();
-
-        // Compute χ using referenced vertices only — delegate to the canonical
-        // SSOT implementation in `watertight::check`.
-        #[inline]
-        fn quick_euler_referenced(mesh: &IndexedMesh) -> i64 {
-            let edge_store =
-                crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
-            crate::application::watertight::check::euler_chi_from_stores(&mesh.faces, &edge_store)
-        }
 
         let chi_before = quick_euler_referenced(mesh);
 

@@ -44,7 +44,7 @@ fn build_cross_mesh_merge_map_reference(
 
     let mut parent: Vec<usize> = (0..all_merge_vids.len()).collect();
 
-    fn find_root(parent: &mut [usize], mut x: usize) -> usize {
+    let find_root = |parent: &mut [usize], mut x: usize| -> usize {
         while parent[x] != x {
             let p = parent[x];
             let gp = parent[p];
@@ -52,7 +52,7 @@ fn build_cross_mesh_merge_map_reference(
             x = gp;
         }
         x
-    }
+    };
 
     for &probe in probe_source {
         let probe_p = pool.position(probe);

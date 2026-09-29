@@ -160,6 +160,7 @@ impl<const B: usize, S: Subdivision<B>> SparseVoxelDag<B, S> {
 
     /// O(1) retrieval of pre-allocated Leaf node indices.
     #[inline]
+    #[must_use]
     pub fn leaf_index(val: bool) -> DagIndex {
         if val {
             DagIndex(1)

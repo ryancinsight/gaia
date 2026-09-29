@@ -83,6 +83,7 @@ impl<T: Scalar> VertexData<T> {
     /// Linear interpolation between two vertices.
     ///
     /// Position is linearly interpolated; normal is renormalised.
+    #[must_use = "interpolation returns a new vertex value"]
     pub fn lerp(&self, other: &Self, t: T) -> Self {
         let one_minus_t = <T as eunomia::NumericElement>::ONE - t;
         let position = Point3::from(self.position.coords * one_minus_t + other.position.coords * t);

@@ -151,7 +151,7 @@ struct Station {
 /// Constant-B=+Y frame normal from tangent.
 ///
 /// For T = (tx, 0, tz): N = (tz, 0, −tx)  →  T × N = (0,1,0) = +Y ✓
-#[inline(always)]
+#[inline]
 fn frame_normal(t: Vector3r) -> Vector3r {
     Vector3r::new(t.z, 0.0, -t.x)
 }

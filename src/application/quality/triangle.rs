@@ -48,12 +48,11 @@ pub(crate) fn triangle_angles<T: Scalar>(
         return [<T as NumericElement>::NAN; 3];
     }
 
-    #[inline]
-    fn angle<T: Scalar>(dot: T, lhs_len: T, rhs_len: T) -> T {
+    let angle = |dot: T, lhs_len: T, rhs_len: T| -> T {
         (dot / (lhs_len * rhs_len))
             .clamp(-<T as NumericElement>::ONE, <T as NumericElement>::ONE)
             .acos()
-    }
+    };
 
     [
         angle(ab.dot(ac), lab, lac),     // angle at A

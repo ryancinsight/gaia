@@ -96,30 +96,30 @@ pub trait Scalar:
 }
 
 impl Scalar for f64 {
-    #[inline(always)]
+    #[inline]
     fn tolerance() -> Self {
         1e-9
     }
-    #[inline(always)]
+    #[inline]
     fn from_f64(v: f64) -> Self {
         v
     }
-    #[inline(always)]
+    #[inline]
     fn total_cmp(&self, other: &Self) -> core::cmp::Ordering {
         f64::total_cmp(self, other)
     }
 }
 
 impl Scalar for f32 {
-    #[inline(always)]
+    #[inline]
     fn tolerance() -> Self {
         1e-5_f32
     }
-    #[inline(always)]
+    #[inline]
     fn from_f64(v: f64) -> Self {
         v as f32
     }
-    #[inline(always)]
+    #[inline]
     fn total_cmp(&self, other: &Self) -> core::cmp::Ordering {
         f32::total_cmp(self, other)
     }
@@ -138,8 +138,6 @@ pub type Point3r = Point3<Real>;
 
 /// 3-D vector at default (`f64`) precision.
 pub type Vector3r = Vector3<Real>;
-
-/// 4×4 homogeneous transform at default (`f64`) precision.
 
 /// Absolute geometry tolerance at default precision (1 nm).
 pub const TOLERANCE: Real = 1e-9;

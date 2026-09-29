@@ -30,7 +30,13 @@ impl<T: Scalar> IndexedMesh<T> {
     /// | `boundary_labels` | Remapped; labels on discarded faces dropped  |
     ///
     /// # Returns
+    ///
     /// Number of components discarded (`0` when the mesh was already clean).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `rebuild_edges()` fails to repopulate `self.edges` before the
+    /// connectivity graph is built.
     pub fn retain_largest_component(&mut self) -> usize {
         use crate::domain::topology::connectivity::connected_components;
         use crate::domain::topology::AdjacencyGraph;
@@ -69,9 +75,9 @@ impl<T: Scalar> IndexedMesh<T> {
         // Valid mesh IDs are always below `u32::MAX`, so the maximum raw ID
         // is a compact sentinel replacement for `Option<VertexId>` and
         // `Option<FaceId>`.
-        const UNMAPPED: u32 = u32::MAX;
-        let mut vertex_remap = vec![UNMAPPED; self.vertices.len()];
-        let mut face_remap = vec![UNMAPPED; self.faces.len()];
+        let unmapped = u32::MAX;
+        let mut vertex_remap = vec![unmapped; self.vertices.len()];
+        let mut face_remap = vec![unmapped; self.faces.len()];
 
         for component in &components {
             if component.len() < min_keep {
@@ -88,7 +94,7 @@ impl<T: Scalar> IndexedMesh<T> {
                 let mut nv = [VertexId::default(); 3];
                 for (k, &vid) in fd.vertices.iter().enumerate() {
                     let idx = vid.as_usize();
-                    nv[k] = if vertex_remap[idx] == UNMAPPED {
+                    nv[k] = if vertex_remap[idx] == unmapped {
                         let new_vid = new_mesh
                             .add_vertex(*self.vertices.position(vid), *self.vertices.normal(vid));
                         vertex_remap[idx] = new_vid.raw();
@@ -114,7 +120,7 @@ impl<T: Scalar> IndexedMesh<T> {
         let old_attrs = std::mem::take(&mut self.attributes);
         for channel in old_attrs.channel_names() {
             for (old_fid_idx, &opt_new_fid) in face_remap.iter().enumerate() {
-                if opt_new_fid != UNMAPPED {
+                if opt_new_fid != unmapped {
                     let old_fid = FaceId::from_usize(old_fid_idx);
                     if let Some(val) = old_attrs.get(channel, old_fid) {
                         new_mesh.attributes.set(channel, FaceId(opt_new_fid), val);
@@ -129,7 +135,7 @@ impl<T: Scalar> IndexedMesh<T> {
             .into_iter()
             .filter_map(|(old_fid, label)| {
                 let new_fid = face_remap[old_fid.as_usize()];
-                (new_fid != UNMAPPED).then_some((FaceId(new_fid), label))
+                (new_fid != unmapped).then_some((FaceId(new_fid), label))
             })
             .collect();
 

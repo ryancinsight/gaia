@@ -184,9 +184,11 @@ fn build_branching_union(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildE
     }
 
     // 3. Boolean Union across all branch bounds.
-    use crate::application::csg::boolean::{csg_boolean_nary, BooleanOp};
-    csg_boolean_nary(BooleanOp::Union, &meshes)
-        .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))
+    crate::application::csg::boolean::csg_boolean_nary(
+        crate::application::csg::boolean::BooleanOp::Union,
+        &meshes,
+    )
+    .map_err(|e| BuildError(format!("CSG Boolean failed on branch connection: {e:?}")))
 }
 
 fn validate_parameters(b: &BranchingMeshBuilder) -> Result<(), BuildError> {

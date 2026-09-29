@@ -80,26 +80,21 @@ pub fn inject_cap_seam_into_barrels(
     segs_out: &mut [Vec<SnapSegment>],
     pool: &VertexPool,
 ) {
+    let on_tol = 1e-7; // signed-distance tolerance (relative to normal length)
+
     let plane_n_len_sq = plane_n.dot(*plane_n);
     if plane_n_len_sq < DEGENERATE_LEN_SQ || seam_positions.is_empty() {
         return;
     }
     let plane_n_len = plane_n_len_sq.sqrt();
 
-    const ON_TOL: Real = 1e-7; // signed-distance tolerance (relative to normal length)
-    let tol = ON_TOL * plane_n_len;
+    let tol = on_tol * plane_n_len;
 
     // ── Phase 1: Pre-filter barrel faces to rim faces ─────────────────────────
     // Rim face: exactly 2 on-plane vertices (the rim edge [pa, pb] lies on the
     // cap plane).  We pre-compute all rim edges once instead of re-detecting
     // them inside the seam-position loop.
-    struct RimFace {
-        face_idx: usize,
-        pa: Point3r,
-        pb: Point3r,
-    }
-
-    let mut rim_faces: Vec<RimFace> = Vec::with_capacity(barrel_faces.len() / 4);
+    let mut rim_faces: Vec<(usize, Point3r, Point3r)> = Vec::with_capacity(barrel_faces.len() / 4);
     for (face_idx, face) in barrel_faces.iter().enumerate() {
         if coplanar_used.contains(&face_idx) {
             continue;
@@ -127,7 +122,7 @@ pub fn inject_cap_seam_into_barrels(
         if edge_len_sq < DEGENERATE_LEN_SQ {
             continue;
         }
-        rim_faces.push(RimFace { face_idx, pa, pb });
+        rim_faces.push((face_idx, pa, pb));
     }
 
     if rim_faces.is_empty() {
@@ -141,7 +136,7 @@ pub fn inject_cap_seam_into_barrels(
     // face processed in this pass.
     let max_rim_edge_len = rim_faces
         .iter()
-        .map(|rim| (rim.pb - rim.pa).norm())
+        .map(|&(_, pa, pb)| (pb - pa).norm())
         .fold(0.0_f64, f64::max);
     let hash_cell = (max_rim_edge_len / 8.0).max(MIN_HASH_CELL);
     let inv_cell = 1.0 / hash_cell;
@@ -160,8 +155,7 @@ pub fn inject_cap_seam_into_barrels(
     let mut cut_params: Vec<Real> = Vec::new();
     let mut params: Vec<Real> = Vec::new();
 
-    for rim in &rim_faces {
-        let RimFace { face_idx, pa, pb } = *rim;
+    for &(face_idx, pa, pb) in &rim_faces {
         let edge = pb - pa;
         let edge_len_sq = edge.norm_squared();
 

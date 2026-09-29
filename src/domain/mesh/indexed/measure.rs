@@ -40,6 +40,11 @@ impl<T: Scalar> IndexedMesh<T> {
     // ── Validation ────────────────────────────────────────────────────────
 
     /// Check watertightness (rebuilds edges if needed).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `rebuild_edges()` fails to repopulate `self.edges` before the
+    /// watertightness check runs.
     pub fn is_watertight(&mut self) -> bool {
         self.rebuild_edges();
         let edges = self

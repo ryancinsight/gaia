@@ -20,6 +20,7 @@ use super::types::IntersectionType;
 /// - [`IntersectionType::None`] when the triangles are disjoint.
 /// - [`IntersectionType::Coplanar`] when they lie in the same plane.
 /// - [`IntersectionType::Segment`] when they intersect along a segment.
+#[must_use]
 pub fn intersect_triangles(
     fa: &FaceData,
     pool_a: &VertexPool,

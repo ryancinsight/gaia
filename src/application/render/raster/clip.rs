@@ -118,9 +118,9 @@ mod tests {
         // the unclipped footprint keeps the assertion meaningful without pinning
         // a rounding decision, and a projection through the eye would instead
         // place pixels far outside it.
-        const WIDTH: usize = 120;
-        const HEIGHT: usize = 90;
-        assert_eq!(clipped_color.len(), WIDTH * HEIGHT);
+        let width = 120;
+        let height = 90;
+        assert_eq!(clipped_color.len(), width * height);
         let mut clipped_pixels = 0_usize;
         let mut stranded = Vec::new();
         for index in 0..clipped_color.len() {
@@ -131,10 +131,10 @@ mod tests {
             if whole_color[index] != background {
                 continue;
             }
-            let (x, y) = (index % WIDTH, index / WIDTH);
-            let touches = (y.saturating_sub(1)..=(y + 1).min(HEIGHT - 1)).any(|row| {
-                (x.saturating_sub(1)..=(x + 1).min(WIDTH - 1))
-                    .any(|column| whole_color[row * WIDTH + column] != background)
+            let (x, y) = (index % width, index / width);
+            let touches = (y.saturating_sub(1)..=(y + 1).min(height - 1)).any(|row| {
+                (x.saturating_sub(1)..=(x + 1).min(width - 1))
+                    .any(|column| whole_color[row * width + column] != background)
             });
             if !touches {
                 stranded.push(index);

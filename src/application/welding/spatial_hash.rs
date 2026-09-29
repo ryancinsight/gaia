@@ -28,6 +28,10 @@ impl SpatialHashGrid {
     /// Create a new spatial hash grid.
     ///
     /// `cell_size` should be roughly the search radius for typical queries.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `cell_size` is less than or equal to zero.
     #[must_use]
     pub fn new(cell_size: Real) -> Self {
         assert!(cell_size > 0.0, "cell_size must be positive");

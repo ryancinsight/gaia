@@ -55,8 +55,8 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 /// # Arguments
 ///
 /// * `faces` — Face fragments to include in the output.
-/// * `pool`  — Vertex pool backing the faces.  Must contain every vertex
-///             referenced by `faces`.
+/// * `pool`  — Vertex pool backing the faces. Must contain every vertex
+///   referenced by `faces`.
 ///
 /// # Returns
 ///

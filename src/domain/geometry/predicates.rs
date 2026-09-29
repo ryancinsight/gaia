@@ -580,6 +580,7 @@ mod tests {
 
     /// Naive in-circle evaluation (cofactor form) for a CCW triangle — the
     /// non-robust oracle the exact wrapper must beat.
+    #[allow(clippy::too_many_arguments)]
     fn naive_incircle(
         ax: f64,
         ay: f64,

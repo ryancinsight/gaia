@@ -886,9 +886,8 @@ fn elbow_cylinder_union_is_watertight() {
     let elbow_inlet_y = -(h - axial_reach);
     let rot_base =
         UnitQuaternion::<Real>::from_axis_angle(Vector3::x_axis(), -std::f64::consts::FRAC_PI_2);
-    use crate::application::csg::CsgNode;
-    let elbow = CsgNode::Transform {
-        node: Box::new(CsgNode::Leaf(Box::new(elbow))),
+    let elbow = crate::application::csg::CsgNode::Transform {
+        node: Box::new(crate::application::csg::CsgNode::Leaf(Box::new(elbow))),
         iso: Isometry3::from_parts(Translation3::new(0.0, elbow_inlet_y, 0.0), rot_base),
     }
     .evaluate()
@@ -910,8 +909,8 @@ fn elbow_cylinder_union_is_watertight() {
     let tx = radial_reach - eps * s_th;
     let ty = -eps * c_th;
     let iso = Isometry3::from_parts(Translation3::new(tx, ty, 0.0), rot);
-    let arm = CsgNode::Transform {
-        node: Box::new(CsgNode::Leaf(Box::new(arm_raw))),
+    let arm = crate::application::csg::CsgNode::Transform {
+        node: Box::new(crate::application::csg::CsgNode::Leaf(Box::new(arm_raw))),
         iso,
     }
     .evaluate()

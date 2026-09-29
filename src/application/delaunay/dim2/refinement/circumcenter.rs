@@ -60,6 +60,11 @@ pub fn circumcenter(a: &PslgVertex, b: &PslgVertex, c: &PslgVertex) -> Option<(R
 ///
 /// Üngör (2004), "Off-centers: A new type of Steiner points for computing
 /// size-optimal quality-guaranteed Delaunay triangulations."
+///
+/// # Panics
+///
+/// Panics if the fixed three-edge candidate array is unexpectedly empty before
+/// selecting the shortest edge.
 #[must_use]
 pub fn off_center(
     a: &PslgVertex,

@@ -122,6 +122,11 @@ impl<T: Scalar> KnotVector<T> {
     }
 
     /// The parameter domain: `[knots[0], knots[last]]`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the knot vector is empty, which violates the non-empty
+    /// construction invariant enforced by `KnotVector`.
     #[must_use]
     pub fn domain(&self) -> (T, T) {
         (

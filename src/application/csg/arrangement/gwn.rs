@@ -150,7 +150,7 @@ pub fn gwn<T: Scalar>(
     (solid_angle_sum / four_pi).clamp(<T as Scalar>::from_f64(-1.0), <T as Scalar>::from_f64(1.0))
 }
 
-#[inline(always)]
+#[inline]
 fn solid_angle_f64(
     va: leto::geometry::Vector3<f64>,
     vb: leto::geometry::Vector3<f64>,
@@ -172,7 +172,7 @@ fn solid_angle_f64(
 ///
 /// Returns `None` if the query lies within sub-ULP distance of any vertex
 /// (near-vertex guard — prevents `atan2(0, 0) → NaN`).
-#[inline(always)]
+#[inline]
 pub(super) fn vertex_offsets(
     query: &Point3r,
     face: &PreparedFace,

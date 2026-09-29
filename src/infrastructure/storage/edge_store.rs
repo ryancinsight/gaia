@@ -72,6 +72,7 @@ impl AdjacentFaces {
 
     /// Iterate over adjacent face IDs.
     #[inline]
+    #[must_use]
     pub fn iter(&self) -> AdjacentFacesIter<'_> {
         AdjacentFacesIter {
             faces: self,

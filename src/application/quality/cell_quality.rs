@@ -23,6 +23,7 @@ use crate::domain::mesh::IndexedMesh;
 /// owner→neighbour centroid vector **d**.
 ///
 /// Returns `None` when either cell identifier is not present.
+#[must_use]
 pub fn face_non_orthogonality(
     face: FaceId,
     owner: usize,
@@ -57,6 +58,7 @@ pub fn face_non_orthogonality(
 /// intersection point) to (distance from face centre to owner centroid).
 ///
 /// Returns `None` when either cell identifier is not present.
+#[must_use]
 pub fn face_skewness(
     face: FaceId,
     owner: usize,
@@ -119,6 +121,7 @@ pub struct CellQualityReport {
 /// Compute cell quality metrics for all internal faces.
 ///
 /// Returns `None` when the mesh has no volumetric cells or no internal faces.
+#[must_use]
 pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
     if mesh.cell_count() == 0 {
         return None;
@@ -176,6 +179,7 @@ pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
 // ── Helper ────────────────────────────────────────────────────────────────────
 
 /// Centroid of a cell: arithmetic mean of its vertices.
+#[must_use]
 pub fn cell_centroid(cell_id: usize, mesh: &IndexedMesh) -> Option<Point3<Real>> {
     let cell = mesh.cells().get(cell_id)?;
 

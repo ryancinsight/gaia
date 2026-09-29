@@ -315,6 +315,7 @@ impl<T: Scalar> IndexedMesh<T> {
     /// This removes all interior volumetric cells and perfectly isolates the structural hull.
     /// Returns an independent, unlinked mesh containing only the outer topologically closed shell,
     /// suitable for outward normal alignment (`orient_outward`) and `.stl` visualization export.
+    #[must_use = "returns a detached boundary-only mesh"]
     pub fn extract_boundary_mesh(&self) -> Self {
         let mut b_mesh = Self::new();
         let b_faces = self.boundary_faces();
@@ -342,6 +343,11 @@ impl<T: Scalar> IndexedMesh<T> {
     // ── Edge / adjacency access ───────────────────────────────────────────
 
     /// Get (or lazily build) the edge store.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `EdgeStore::from_face_store` fails to populate `self.edges`
+    /// during the lazy rebuild path.
     pub fn edges(&mut self) -> &EdgeStore {
         if self.edges.is_none() {
             self.edges = Some(EdgeStore::from_face_store(&self.faces));

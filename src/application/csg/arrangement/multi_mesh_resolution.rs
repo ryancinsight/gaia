@@ -306,35 +306,6 @@ const CONSOLIDATE_TOL: Real = MULTI_MESH_CONSOLIDATE_LEN;
 /// coincident pairs and rewrites fragment vertex references to canonical
 /// (lowest-ID) representatives.
 fn consolidate_cross_mesh_vertices(frags: &mut Vec<BooleanFragmentRecord>, pool: &VertexPool) {
-    let tol = CONSOLIDATE_TOL;
-    let tol_sq = tol * tol;
-    let inv_cell = 1.0 / tol;
-
-    let mut all_vids = Vec::with_capacity(frags.len() * 3);
-    for fragment in &*frags {
-        for &vertex in &fragment.face.vertices {
-            all_vids.push(vertex);
-        }
-    }
-    all_vids.sort_unstable();
-    all_vids.dedup();
-    if all_vids.is_empty() {
-        return;
-    }
-
-    let mut grid: HashMap<(i64, i64, i64), Vec<usize>> = HashMap::with_capacity(all_vids.len());
-    let positions: Vec<Point3r> = all_vids.iter().map(|&vid| *pool.position(vid)).collect();
-
-    for (index, position) in positions.iter().enumerate() {
-        let ix = (position.x * inv_cell).floor() as i64;
-        let iy = (position.y * inv_cell).floor() as i64;
-        let iz = (position.z * inv_cell).floor() as i64;
-        grid.entry((ix, iy, iz)).or_default().push(index);
-    }
-
-    let mut parent: Vec<usize> = (0..all_vids.len()).collect();
-    let mut rank: Vec<u8> = vec![0; all_vids.len()];
-
     /// Union-find with full path compression and union-by-rank.
     ///
     /// # Theorem — Amortised Complexity
@@ -384,6 +355,35 @@ fn consolidate_cross_mesh_vertices(frags: &mut Vec<BooleanFragmentRecord>, pool:
             }
         }
     }
+
+    let tol = CONSOLIDATE_TOL;
+    let tol_sq = tol * tol;
+    let inv_cell = 1.0 / tol;
+
+    let mut all_vids = Vec::with_capacity(frags.len() * 3);
+    for fragment in &*frags {
+        for &vertex in &fragment.face.vertices {
+            all_vids.push(vertex);
+        }
+    }
+    all_vids.sort_unstable();
+    all_vids.dedup();
+    if all_vids.is_empty() {
+        return;
+    }
+
+    let mut grid: HashMap<(i64, i64, i64), Vec<usize>> = HashMap::with_capacity(all_vids.len());
+    let positions: Vec<Point3r> = all_vids.iter().map(|&vid| *pool.position(vid)).collect();
+
+    for (index, position) in positions.iter().enumerate() {
+        let ix = (position.x * inv_cell).floor() as i64;
+        let iy = (position.y * inv_cell).floor() as i64;
+        let iz = (position.z * inv_cell).floor() as i64;
+        grid.entry((ix, iy, iz)).or_default().push(index);
+    }
+
+    let mut parent: Vec<usize> = (0..all_vids.len()).collect();
+    let mut rank: Vec<u8> = vec![0; all_vids.len()];
 
     for (index, position) in positions.iter().enumerate() {
         let ix = (position.x * inv_cell).floor() as i64;

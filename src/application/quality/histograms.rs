@@ -57,6 +57,11 @@ impl Histogram {
     ///
     /// All finite values are bucketed.  Non-finite values (NaN, ±∞) are silently
     /// skipped so that degenerate triangle metrics do not corrupt the histogram.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `0..=n_bins` edge-construction loop fails to populate the
+    /// `edges` vector before the final upper-bound adjustment.
     #[must_use]
     pub fn compute(values: &[Real], n_bins: usize) -> Option<Self> {
         if values.is_empty() || n_bins == 0 {

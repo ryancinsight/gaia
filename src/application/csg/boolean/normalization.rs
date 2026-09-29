@@ -88,9 +88,9 @@ where
         return CoordinateTransform::identity();
     }
 
-    const STABLE_DIAGONAL_MIN: f64 = 0.5;
-    const STABLE_DIAGONAL_MAX: f64 = 10.0;
-    if (STABLE_DIAGONAL_MIN..=STABLE_DIAGONAL_MAX).contains(&diagonal) {
+    let stable_diagonal_min = 0.5;
+    let stable_diagonal_max = 10.0;
+    if (stable_diagonal_min..=stable_diagonal_max).contains(&diagonal) {
         return CoordinateTransform::identity();
     }
 

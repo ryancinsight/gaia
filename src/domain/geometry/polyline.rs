@@ -101,6 +101,11 @@ impl<T: Scalar> Polyline<T> {
     }
 
     /// First vertex.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the polyline is empty despite the construction invariant that
+    /// it stores at least two points.
     #[must_use]
     pub fn first(&self) -> Point3<T> {
         self.points
@@ -110,6 +115,11 @@ impl<T: Scalar> Polyline<T> {
     }
 
     /// Last vertex.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the polyline is empty despite the construction invariant that
+    /// it stores at least two points.
     #[must_use]
     pub fn last(&self) -> Point3<T> {
         self.points
