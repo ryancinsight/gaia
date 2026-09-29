@@ -102,7 +102,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &cube_b,
         ) {
             Ok(m) => m,
-            Err(e) => panic!("Error: {:?}", e),
+            Err(e) => panic!("Error: {e:?}"),
         };
         let ms = t0.elapsed().as_millis();
         report(
@@ -126,7 +126,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &cube_b,
         ) {
             Ok(m) => m,
-            Err(e) => panic!("Error: {:?}", e),
+            Err(e) => panic!("Error: {e:?}"),
         };
         let ms = t0.elapsed().as_millis();
         report("Intersection (A ∩ B)", &mut result, v_overlap, 0.01, ms);
@@ -144,7 +144,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &cube_b,
         ) {
             Ok(m) => m,
-            Err(e) => panic!("Error: {:?}", e),
+            Err(e) => panic!("Error: {e:?}"),
         };
         let ms = t0.elapsed().as_millis();
         report(

@@ -105,7 +105,7 @@ pub(super) fn segment_cross_point<T: Scalar>(
     let zero = <T as Scalar>::from_f64(0.0);
     let scale = [dx_a, dy_a, dx_b, dy_b, dx_q, dy_q]
         .into_iter()
-        .map(|value| value.abs())
+        .map(T::abs)
         .fold(zero, |largest, value| {
             if value.total_cmp(&largest).is_gt() {
                 value

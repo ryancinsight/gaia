@@ -48,7 +48,7 @@ pub fn intersect_triangles(
     if signs_t1.iter().all(|s| *s == Orientation::Degenerate) {
         return IntersectionType::Coplanar;
     }
-    if not_straddling(&signs_t1) {
+    if not_straddling(signs_t1) {
         return IntersectionType::None;
     }
 
@@ -65,7 +65,7 @@ pub fn intersect_triangles(
     if signs_t2.iter().all(|s| *s == Orientation::Degenerate) {
         return IntersectionType::Coplanar;
     }
-    if not_straddling(&signs_t2) {
+    if not_straddling(signs_t2) {
         return IntersectionType::None;
     }
 
@@ -78,7 +78,7 @@ pub fn intersect_triangles(
 /// A triangle straddles a plane iff at least one vertex is `Positive` AND at
 /// least one is `Negative`.  A `Degenerate` (on-plane) vertex counts as
 /// neither side.
-fn not_straddling(signs: &[Orientation; 3]) -> bool {
+fn not_straddling(signs: [Orientation; 3]) -> bool {
     let any_pos = signs.contains(&Orientation::Positive);
     let any_neg = signs.contains(&Orientation::Negative);
     !(any_pos && any_neg)

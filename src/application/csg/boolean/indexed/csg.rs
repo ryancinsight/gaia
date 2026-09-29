@@ -60,7 +60,7 @@ pub fn csg_boolean(
         &[faces_a, faces_b],
         &mut combined,
     )?;
-    postprocess_boolean_mesh(result_faces, &combined, is_coplanar)
+    postprocess_boolean_mesh(&result_faces, &combined, is_coplanar)
         .map(|mesh| denormalize_result(mesh, transform))
 }
 
@@ -181,7 +181,7 @@ pub fn csg_boolean_nary(op: BooleanOp, meshes: &[IndexedMesh]) -> MeshResult<Ind
         &face_soups,
         &mut combined,
     )?;
-    postprocess_boolean_mesh(result_faces, &combined, is_coplanar)
+    postprocess_boolean_mesh(&result_faces, &combined, is_coplanar)
         .map(|mesh| denormalize_result(mesh, transform))
 }
 

@@ -15,7 +15,7 @@ fn primitive<P: PrimitiveMesh>(
     title: &'static str,
     source: &'static str,
     parameters: &'static str,
-    builder: P,
+    builder: &P,
 ) -> GalleryResult<MeshCase> {
     Ok(MeshCase {
         slug,
@@ -36,7 +36,7 @@ pub(crate) fn cases() -> GalleryResult<Vec<MeshCase>> {
                 $title,
                 $source,
                 "Default builder parameters",
-                <$builder>::default(),
+                &<$builder>::default(),
             )?);
         };
     }
@@ -58,7 +58,7 @@ pub(crate) fn cases() -> GalleryResult<Vec<MeshCase>> {
         "UV sphere",
         "src/domain/geometry/primitives/sphere.rs",
         "radius=1, segments=24, stacks=12",
-        UvSphere {
+        &UvSphere {
             radius: 1.0,
             center: Point3r::origin(),
             segments: 24,
@@ -88,7 +88,7 @@ pub(crate) fn cases() -> GalleryResult<Vec<MeshCase>> {
         "Linear sweep",
         "src/domain/geometry/primitives/linear_sweep.rs",
         "regular hexagon profile, height=2",
-        LinearSweep {
+        &LinearSweep {
             profile: LinearSweep::regular_polygon(6, 1.0),
             height: 2.0,
         },
@@ -98,7 +98,7 @@ pub(crate) fn cases() -> GalleryResult<Vec<MeshCase>> {
         "Revolution sweep",
         "src/domain/geometry/primitives/revolution_sweep.rs",
         "rectangular profile, segments=24, angle=TAU",
-        RevolutionSweep {
+        &RevolutionSweep {
             profile: vec![(1.0, 0.0), (2.0, 0.0), (2.0, 0.5), (1.0, 0.5), (1.0, 0.0)],
             segments: 24,
             angle: std::f64::consts::TAU,
@@ -232,7 +232,7 @@ pub(crate) fn cases() -> GalleryResult<Vec<MeshCase>> {
                 $title,
                 $source,
                 "radius=2, period=2, resolution=18, iso_value=0",
-                $builder {
+                &$builder {
                     radius: 2.0,
                     period: 2.0,
                     resolution: 18,

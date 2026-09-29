@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("  B-Rep Vertices  : {}", boundary.vertex_count());
     println!("  B-Rep Faces     : {}", boundary.face_count());
-    println!("{:#?}", report);
+    println!("{report:#?}");
 
     // Write to gaia/outputs (canonical crate-local path).
     let out_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("outputs");

@@ -288,7 +288,7 @@ pub(crate) fn corefine_face(
     // before the CDT receives a pathological input. ∎
     {
         let total_steiner: usize =
-            edge_steiners.iter().map(|e| e.len()).sum::<usize>() + interior_vids.len();
+            edge_steiners.iter().map(Vec::len).sum::<usize>() + interior_vids.len();
         if total_steiner > MAX_STEINER_PER_FACE {
             tracing::warn!(
                 total_steiner,
@@ -301,7 +301,7 @@ pub(crate) fn corefine_face(
 
     // ── Step 4: Build ordered boundary polygon ────────────────────────────────
     // Compute exact capacity: 3 corners + sum of Steiners per edge.
-    let steiner_count: usize = edge_steiners.iter().map(|e| e.len()).sum();
+    let steiner_count: usize = edge_steiners.iter().map(Vec::len).sum();
     let boundary_vids = &mut scratch.boundary_vids;
     boundary_vids.reserve(3 + steiner_count);
     for (ei, edge_steiner) in edge_steiners.iter().enumerate().take(3_usize) {

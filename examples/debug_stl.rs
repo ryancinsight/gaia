@@ -23,8 +23,8 @@ fn main() {
     let s_aabb = solid.bounding_box();
     let c_aabb = chans.bounding_box();
 
-    println!("Solid AABB: {:?}", s_aabb);
-    println!("Chans AABB: {:?}", c_aabb);
+    println!("Solid AABB: {s_aabb:?}");
+    println!("Chans AABB: {c_aabb:?}");
 
     // Look for vertices near X=0
     let mut zero_verts = 0;
@@ -33,7 +33,7 @@ fn main() {
             zero_verts += 1;
         }
     }
-    println!("Solid vertices exactly at X=0: {}", zero_verts);
+    println!("Solid vertices exactly at X=0: {zero_verts}");
 
     // Faces touching X=0
     let mut faces_at_0 = 0;
@@ -45,5 +45,5 @@ fn main() {
             faces_at_0 += 1;
         }
     }
-    println!("Solid faces touching X=0: {}", faces_at_0);
+    println!("Solid faces touching X=0: {faces_at_0}");
 }

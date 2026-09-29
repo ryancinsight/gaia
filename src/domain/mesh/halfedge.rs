@@ -213,7 +213,7 @@ pub fn with_mesh<F, R>(f: F) -> R
 where
     F: for<'id> FnOnce(HalfEdgeMesh<'id>, GhostToken<'id>) -> R,
 {
-    GhostToken::new(|token| f(HalfEdgeMesh::new(), token))
+    GhostToken::scope(|token| f(HalfEdgeMesh::new(), token))
 }
 
 #[cfg(test)]

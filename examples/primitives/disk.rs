@@ -79,15 +79,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         n
     );
     println!();
+    println!("  Area (theoretical) : {a_theoretical:.6} mm²  (N-gon formula, err {a_err:.4}%)");
     println!(
-        "  Area (theoretical) : {:.6} mm²  (N-gon formula, err {:.4}%)",
-        a_theoretical, a_err
+        "  Area (mesh)        : {a_mesh:.6} mm²  (from face cross products, err {a_mesh_err:.4}%)"
     );
-    println!(
-        "  Area (mesh)        : {:.6} mm²  (from face cross products, err {:.4}%)",
-        a_mesh, a_mesh_err
-    );
-    println!("  Expected π·r²      : {:.6} mm²", a_expected);
+    println!("  Expected π·r²      : {a_expected:.6} mm²");
     println!();
     println!("  Open-surface properties:");
     println!(
@@ -111,8 +107,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(
         mesh.face_count(),
         n,
-        "Disk should have exactly {} triangles",
-        n
+        "Disk should have exactly {n} triangles"
     );
     assert_eq!(
         mesh.vertices.len(),
@@ -129,9 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // discretisation error.  We assert < 0.2% to allow a comfortable margin at this resolution.
     assert!(
         a_mesh_err < 0.2,
-        "Area error {:.4}% exceeds 0.2% at N={}",
-        a_mesh_err,
-        n
+        "Area error {a_mesh_err:.4}% exceeds 0.2% at N={n}"
     );
     println!();
     println!("  All assertions passed.");

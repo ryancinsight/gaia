@@ -123,7 +123,7 @@ fn diag_cube_cube_union() {
             };
             *plane_counts.entry(key).or_default() += 1;
         }
-        eprintln!("Planes    : {:?}", plane_counts);
+        eprintln!("Planes    : {plane_counts:?}");
 
         if label != "Union" {
             for plane in ["x=1.000", "x=2.000", "y=2.000", "z=2.000"] {

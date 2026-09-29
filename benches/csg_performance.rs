@@ -116,7 +116,7 @@ fn bench_gwn_linear_small(c: &mut Criterion) {
     let (pool, faces) = unit_cube_faces();
     let q = Point3r::new(0.0, 0.0, 0.0);
     c.bench_function("gwn_linear_12f", |b| {
-        b.iter(|| gwn::<f64>(black_box(&q), black_box(&faces), black_box(&pool)))
+        b.iter(|| gwn::<f64>(black_box(&q), black_box(&faces), black_box(&pool)));
     });
 }
 
@@ -124,7 +124,7 @@ fn bench_gwn_linear_large(c: &mut Criterion) {
     let (pool, faces) = build_sphere_faces(40, 60);
     let q = Point3r::new(0.0, 0.0, 0.0);
     c.bench_function("gwn_linear_2400f", |b| {
-        b.iter(|| gwn::<f64>(black_box(&q), black_box(&faces), black_box(&pool)))
+        b.iter(|| gwn::<f64>(black_box(&q), black_box(&faces), black_box(&pool)));
     });
 }
 
@@ -135,7 +135,7 @@ fn bench_gwn_bvh_large(c: &mut Criterion) {
     let bvh = prepare_bvh_mesh(&prep_faces).expect("non-empty sphere should build BVH");
     let q = Point3r::new(0.0, 0.0, 0.0);
     c.bench_function("gwn_bvh_2400f", |b| {
-        b.iter(|| gwn_bvh(black_box(&q), black_box(&bvh), black_box(0.01)))
+        b.iter(|| gwn_bvh(black_box(&q), black_box(&bvh), black_box(0.01)));
     });
 }
 
@@ -145,7 +145,7 @@ fn bench_classify_prepared(c: &mut Criterion) {
     let q = Point3r::new(0.0, 0.0, 0.0);
     let n = leto::geometry::Vector3::new(0.0_f64, 0.0, 1.0);
     c.bench_function("classify_prepared_2400f", |b| {
-        b.iter(|| classify_fragment_prepared(black_box(&q), black_box(&n), black_box(&prepared)))
+        b.iter(|| classify_fragment_prepared(black_box(&q), black_box(&n), black_box(&prepared)));
     });
 }
 
@@ -167,7 +167,7 @@ fn bench_csg_union_cube_cube(c: &mut Criterion) {
     .build()
     .unwrap();
     c.bench_function("csg_union_cube_cube", |b| {
-        b.iter(|| csg_boolean(BooleanOp::Union, black_box(&cube_a), black_box(&cube_b)).ok())
+        b.iter(|| csg_boolean(BooleanOp::Union, black_box(&cube_a), black_box(&cube_b)).ok());
     });
 }
 
@@ -206,7 +206,7 @@ fn bench_csg_nary_union_scaled(c: &mut Criterion) {
             )
             .expect("scaled n-ary union");
             black_box((result.vertex_count(), result.face_count()))
-        })
+        });
     });
 }
 
@@ -235,7 +235,7 @@ fn bench_csg_intersection_cylinders(c: &mut Criterion) {
                 black_box(&cyl_b),
             )
             .ok()
-        })
+        });
     });
 }
 
@@ -265,7 +265,7 @@ fn bench_detect_self_intersect_flat(c: &mut Criterion) {
         }
     }
     c.bench_function("detect_self_intersect_200tri", |b| {
-        b.iter(|| detect_self_intersections(black_box(&faces), black_box(&pool)))
+        b.iter(|| detect_self_intersections(black_box(&faces), black_box(&pool)));
     });
 }
 
@@ -281,7 +281,7 @@ fn bench_adjacency_build(c: &mut Criterion) {
                 graph.num_faces(),
                 graph.vertex_valence(VertexId::new(0)),
             ))
-        })
+        });
     });
 }
 
@@ -290,7 +290,7 @@ fn bench_svo_rasterize_cube(c: &mut Criterion) {
     c.bench_function("svo_rasterize_depth_6", |b| {
         b.iter(|| {
             let _svo = SparseVoxelDag::<8, OctreeSubdivision>::from_mesh(black_box(&cube), 6);
-        })
+        });
     });
 }
 
@@ -314,7 +314,7 @@ fn bench_svo_boolean_union(c: &mut Criterion) {
                 black_box(&svo_b),
                 gaia::infrastructure::spatial::ssvdag::boolean::BooleanOp::Union,
             );
-        })
+        });
     });
 }
 

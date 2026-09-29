@@ -72,10 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Overlap    : entire cylinder (coplanar caps)         V = {v_overlap:.4} mm³");
     println!();
     println!("  Expected volumes:");
-    println!(
-        "    Union        : {:.4} mm³  (cyl fully inside → cube volume)",
-        v_cube
-    );
+    println!("    Union        : {v_cube:.4} mm³  (cyl fully inside → cube volume)");
     println!("    Intersection : {v_overlap:.4} mm³");
     println!("    Difference   : {:.4} mm³", v_cube - v_overlap);
     println!();

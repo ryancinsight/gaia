@@ -35,15 +35,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let v_overlap = 1.5_f64 * 1.5 * 3.0; // 6.75 mm³  (slot clipped to block)
     let expected = v_block - v_overlap; // 20.25 mm³
 
-    println!(
-        "  Block A : 3×3×3 mm, origin (0,0,0)     V = {:.4} mm³",
-        v_block
-    );
-    println!(
-        "  Slot  B : 1.5×1.5×5 mm, centred on XY  V_overlap = {:.4} mm³",
-        v_overlap
-    );
-    println!("  Expected: V_block − V_overlap = {:.4} mm³", expected);
+    println!("  Block A : 3×3×3 mm, origin (0,0,0)     V = {v_block:.4} mm³");
+    println!("  Slot  B : 1.5×1.5×5 mm, centred on XY  V_overlap = {v_overlap:.4} mm³");
+    println!("  Expected: V_block − V_overlap = {expected:.4} mm³");
     println!();
 
     let crate_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -87,14 +81,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let vol_err = (volume - expected).abs() / expected.abs().max(1e-12);
 
-    println!("  Result : {} faces", total);
+    println!("  Result : {total} faces");
     println!();
-    println!(
-        "  Volume        : {:.4} mm³  (expected {:.4})",
-        volume, expected
-    );
+    println!("  Volume        : {volume:.4} mm³  (expected {expected:.4})");
     println!("  Volume error  : {:.2}%", vol_err * 100.0);
-    println!("  Watertight    : {}", is_wt);
+    println!("  Watertight    : {is_wt}");
     println!("  Normal analysis:");
     println!(
         "    outward={}, inward={} ({:.1}%), degenerate={}",

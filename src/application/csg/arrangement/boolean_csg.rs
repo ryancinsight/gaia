@@ -85,7 +85,7 @@ fn execute_generalized_boolean(
         return short_circuit;
     }
 
-    execute_arrangement_pass(op, meshes, pool, finalize_faces)
+    Ok(execute_arrangement_pass(op, meshes, pool, finalize_faces))
 }
 
 fn resolve_short_circuit_boolean(
@@ -243,7 +243,7 @@ fn execute_arrangement_pass(
     meshes: &[Vec<FaceData>],
     pool: &mut VertexPool,
     finalize_faces: bool,
-) -> MeshResult<Vec<FaceData>> {
+) -> Vec<FaceData> {
     let n_meshes = meshes.len();
 
     // ── Pre-compute global Mesh AABBs in a single pass ───────────────────────────
@@ -405,7 +405,7 @@ fn execute_arrangement_pass(
         finalize_boolean_faces(&mut result_faces, pool);
     }
 
-    Ok(result_faces)
+    result_faces
 }
 
 fn estimate_candidate_pair_capacity(meshes: &[Vec<FaceData>]) -> usize {

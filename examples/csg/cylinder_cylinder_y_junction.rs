@@ -496,8 +496,7 @@ fn connectivity_report(label: &str, mesh: &mut IndexedMesh, expected_components:
 
     println!("  ── Connectivity [{label}] ──");
     println!(
-        "    Euler χ    : {} (expected {} for {} genus-0 body/bodies)",
-        euler, expected_euler, expected_components,
+        "    Euler χ    : {euler} (expected {expected_euler} for {expected_components} genus-0 body/bodies)",
     );
     println!("    Components : {}", components.len());
     for (i, comp) in components.iter().enumerate() {

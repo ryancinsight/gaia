@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("  Vertices   : {}", mesh.vertices.len());
     println!("  Faces      : {}", mesh.faces.len());
-    println!("  Elapsed    : {:?}", elapsed);
+    println!("  Elapsed    : {elapsed:?}");
 
     let crate_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let out_dir = crate_dir.join("outputs").join("primitives");

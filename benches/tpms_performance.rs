@@ -19,7 +19,7 @@ fn bench_gyroid_sphere(c: &mut Criterion) {
     };
 
     c.bench_function("tpms_gyroid_sphere_res24", |b| {
-        b.iter(|| black_box(build_tpms_sphere(black_box(&surface), black_box(&params))))
+        b.iter(|| black_box(build_tpms_sphere(black_box(&surface), black_box(&params))));
     });
 }
 

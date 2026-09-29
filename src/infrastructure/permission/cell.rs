@@ -121,7 +121,7 @@ mod tests {
     /// lives.
     #[test]
     fn ghost_cell_send_owned_across_thread() {
-        GhostToken::new(|mut token| {
+        GhostToken::scope(|mut token| {
             let cell = GhostCell::new(String::from("hello"));
             *cell.borrow_mut(&mut token) = String::from("world");
 
@@ -158,7 +158,7 @@ mod tests {
     ///   cannot coexist, preventing data races.
     #[test]
     fn ghost_cell_sync_shared_ref_across_threads() {
-        GhostToken::new(|token| {
+        GhostToken::scope(|token| {
             let cell = GhostCell::new(42_u64);
 
             // The worker holds &cell (a shared reference) across the scope.

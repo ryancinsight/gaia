@@ -336,7 +336,7 @@ impl<T: Scalar> BowyerWatson3D<T> {
         let mut seed = usize::MAX;
         let mut curr = self.last_inserted_tet;
         if self.tetrahedra.get(curr).and_then(|t| t.as_ref()).is_none()
-            && let Some(valid_idx) = self.tetrahedra.iter().position(|t| t.is_some())
+            && let Some(valid_idx) = self.tetrahedra.iter().position(Option::is_some)
         {
             curr = valid_idx;
         }

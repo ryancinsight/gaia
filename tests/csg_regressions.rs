@@ -71,7 +71,7 @@ fn invalid_operands_reproduce_failure_markers() {
 
     let mut inward_cube =
         generate_cube_outward(1.0, Point3r::origin(), &mut pool, RegionId::new(10));
-    for face in inward_cube.iter_mut() {
+    for face in &mut inward_cube {
         face.flip();
     }
 

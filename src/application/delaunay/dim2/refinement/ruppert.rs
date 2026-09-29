@@ -232,7 +232,7 @@ impl RuppertRefiner {
         let mx = (va.x + vb.x) * 0.5;
         let my = (va.y + vb.y) * 0.5;
 
-        let mid = self.concentric_midpoint(va.x, va.y, vb.x, vb.y, mx, my);
+        let mid = Self::concentric_midpoint(va.x, va.y, vb.x, vb.y, mx, my);
 
         let mid_vid = self.cdt.triangulation_mut().insert_steiner(mid.0, mid.1);
 
@@ -434,7 +434,6 @@ impl RuppertRefiner {
     /// Rounds the midpoint to a power-of-two distance from `a`, preventing
     /// infinite cascading splits when nearby constraints interact.
     fn concentric_midpoint(
-        &self,
         ax: Real,
         ay: Real,
         bx: Real,

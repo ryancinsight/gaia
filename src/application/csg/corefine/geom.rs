@@ -150,7 +150,7 @@ pub(super) fn midpoint_subdivide(
     //   corner[0] → steiners[0] → corner[1] → steiners[1] → corner[2] → steiners[2]
     let corners = face.vertices;
     let mut poly: Vec<VertexId> =
-        Vec::with_capacity(3 + edge_steiners.iter().map(|e| e.len()).sum::<usize>());
+        Vec::with_capacity(3 + edge_steiners.iter().map(Vec::len).sum::<usize>());
     for ei in 0..3_usize {
         poly.push(corners[ei]);
         for &(_, sv) in &edge_steiners[ei] {

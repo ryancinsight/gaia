@@ -102,11 +102,11 @@ impl VenturiMeshBuilder {
 
     /// Build a watertight surface mesh.
     pub fn build_surface(&self) -> Result<IndexedMesh, BuildError> {
-        build_venturi_surface(self)
+        Ok(build_venturi_surface(self))
     }
 }
 
-fn build_venturi_surface(b: &VenturiMeshBuilder) -> Result<IndexedMesh, BuildError> {
+fn build_venturi_surface(b: &VenturiMeshBuilder) -> IndexedMesh {
     let (d_in, d_th) = (b.d_inlet, b.d_throat);
     let (l_in, l_cv, l_th, l_dv, l_out) = (
         b.l_inlet,
@@ -193,7 +193,7 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> Result<IndexedMesh, BuildErr
         mesh.add_face_with_region(oc, rings[last][ia], rings[last][ia1], outlet_region);
     }
 
-    Ok(mesh)
+    mesh
 }
 
 #[cfg(test)]

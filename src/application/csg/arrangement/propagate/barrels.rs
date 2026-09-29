@@ -225,7 +225,7 @@ pub fn inject_cap_seam_into_barrels(
         }
 
         // Sort and deduplicate cut parameters, then emit sub-interval SnapSegments.
-        cut_params.sort_by(|a, b| a.total_cmp(b));
+        cut_params.sort_by(f64::total_cmp);
         cut_params.dedup_by(|a, b| (*a - *b).abs() < PARAM_DEDUP_TOL);
 
         params.clear();

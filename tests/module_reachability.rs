@@ -63,9 +63,10 @@ fn every_example_file_is_a_declared_target() {
     let on_disk: BTreeSet<String> = example_files
         .iter()
         .map(|path| {
-            path.strip_prefix(manifest_dir)
-                .map(|relative| relative.display().to_string())
-                .unwrap_or_else(|_| path.display().to_string())
+            path.strip_prefix(manifest_dir).map_or_else(
+                |_| path.display().to_string(),
+                |relative| relative.display().to_string(),
+            )
         })
         .map(|path| path.replace('\\', "/"))
         .collect();

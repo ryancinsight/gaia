@@ -161,16 +161,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Count skinny triangles after refinement
     let skinny_after = count_skinny_triangles(&refined, 1.5);
 
-    println!("   Steiner points added: {}", steiner_count);
+    println!("   Steiner points added: {steiner_count}");
     println!(
         "   Final triangles     : {}",
         refined.triangulation().triangle_count()
     );
-    println!(
-        "   Skinny triangles before (ratio > 1.5): {}",
-        skinny_before
-    );
-    println!("   Skinny triangles after  (ratio > 1.5): {}", skinny_after);
+    println!("   Skinny triangles before (ratio > 1.5): {skinny_before}");
+    println!("   Skinny triangles after  (ratio > 1.5): {skinny_after}");
     println!(
         "   Delaunay property   : {}",
         refined.triangulation().is_delaunay()

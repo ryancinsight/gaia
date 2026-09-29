@@ -100,6 +100,13 @@ impl<T: Scalar> KnotVector<T> {
         self.knots.len()
     }
 
+    /// Returns `true` when the knot vector has no entries.
+    #[inline]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.knots.is_empty()
+    }
+
     /// Raw slice of knot values.
     #[inline]
     #[must_use]

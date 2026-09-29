@@ -30,11 +30,11 @@ impl<'brand> GhostToken<'brand> {
     /// # Example
     ///
     /// ```rust,ignore
-    /// GhostToken::new(|token| {
+    /// GhostToken::scope(|token| {
     ///     // `token` is only valid inside this closure
     /// });
     /// ```
-    pub fn new<R>(f: impl for<'new_brand> FnOnce(GhostToken<'new_brand>) -> R) -> R {
+    pub fn scope<R>(f: impl for<'new_brand> FnOnce(GhostToken<'new_brand>) -> R) -> R {
         melinoe::brand_scope(|token| f(GhostToken { inner: token }))
     }
 

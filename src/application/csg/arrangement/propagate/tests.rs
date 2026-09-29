@@ -173,7 +173,7 @@ fn inject_cap_seam_ignores_off_plane_position() {
     );
 
     assert!(
-        segs_out.iter().all(|s| s.is_empty()),
+        segs_out.iter().all(Vec::is_empty),
         "off-plane seam position must not inject into any face"
     );
 }

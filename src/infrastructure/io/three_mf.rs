@@ -21,27 +21,25 @@ pub fn write_3mf<W: Write + Seek>(writer: W, mesh: &IndexedMesh) -> MeshResult<(
 
     // [Content_Types].xml
     zip.start_file("[Content_Types].xml", options)
-        .map_err(io_err)?;
+        .map_err(|e| MeshError::Other(format!("ZIP error: {e}")))?;
     zip.write_all(CONTENT_TYPES_XML.as_bytes())
         .map_err(MeshError::Io)?;
 
     // _rels/.rels
-    zip.start_file("_rels/.rels", options).map_err(io_err)?;
+    zip.start_file("_rels/.rels", options)
+        .map_err(|e| MeshError::Other(format!("ZIP error: {e}")))?;
     zip.write_all(RELS_XML.as_bytes()).map_err(MeshError::Io)?;
 
     // 3D/3dmodel.model
     zip.start_file("3D/3dmodel.model", options)
-        .map_err(io_err)?;
+        .map_err(|e| MeshError::Other(format!("ZIP error: {e}")))?;
 
     let model_xml = build_model_xml(mesh);
     zip.write_all(model_xml.as_bytes()).map_err(MeshError::Io)?;
 
-    zip.finish().map_err(io_err)?;
+    zip.finish()
+        .map_err(|e| MeshError::Other(format!("ZIP error: {e}")))?;
     Ok(())
-}
-
-fn io_err(e: zip::result::ZipError) -> MeshError {
-    MeshError::Other(format!("ZIP error: {e}"))
 }
 
 fn build_model_xml(mesh: &IndexedMesh) -> String {

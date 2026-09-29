@@ -163,27 +163,16 @@ return_self_not_must_use = "allow"   # 2
 doc_overindented_list_items = "allow" # 1
 empty_line_after_doc_comments = "allow" # 1
 
-# ── Ratchet: naming and style debt (241) ──────────────────────────────────────
+# ── Ratchet: naming and style debt (152) ──────────────────────────────────────
 similar_names = "allow"              # 72
 many_single_char_names = "allow"     # 50
 items_after_statements = "allow"     # 22
-uninlined_format_args = "allow"      # 43
-redundant_closure_for_method_calls = "allow" # 18
 inline_always = "allow"              # 8
-semicolon_if_nothing_returned = "allow" # 13
-needless_pass_by_value = "allow"     # 5
-unnecessary_wraps = "allow"          # 3
-trivially_copy_pass_by_ref = "allow" # 2
-unused_self = "allow"                # 2
-map_unwrap_or = "allow"              # 2
-explicit_iter_loop = "allow"         # 1
 
-# ── Ratchet: size and shape debt (67) ────────────────────────────────────────
+# ── Ratchet: size and shape debt (65) ────────────────────────────────────────
 # Source files over the 500-line target are the split backlog.
 too_many_lines = "allow"             # 58
 too_many_arguments = "allow"         # 7
-len_without_is_empty = "allow"       # 1
-new_ret_no_self = "allow"            # 1
 
 # ── Benchmarks ─────────────────────────────────────────────────────────────────
 

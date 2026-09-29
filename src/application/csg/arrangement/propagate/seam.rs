@@ -236,7 +236,7 @@ fn propagate_seam_vertices_impl(
                 continue;
             }
 
-            t_params.sort_by(|a, b| a.total_cmp(b));
+            t_params.sort_by(f64::total_cmp);
             t_params.dedup_by(|a, b| (*a - *b).abs() < PARAM_DEDUP_TOL);
 
             pts.clear();

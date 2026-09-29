@@ -1,5 +1,6 @@
 use super::sdf::SphereSdf;
 use super::SdfMesher;
+use crate::domain::core::index::VertexId;
 use crate::domain::mesh::indexed::IndexedMesh;
 use crate::infrastructure::storage::face_store::FaceData;
 use leto::geometry::Point3;
@@ -18,7 +19,7 @@ fn signature(mesh: &IndexedMesh<f64>) -> MeshSignature {
             .collect(),
         mesh.faces
             .iter()
-            .map(|face: &FaceData| (face.vertices.map(|vertex| vertex.raw()), face.region.0))
+            .map(|face: &FaceData| (face.vertices.map(VertexId::raw), face.region.0))
             .collect(),
         mesh.cells
             .iter()

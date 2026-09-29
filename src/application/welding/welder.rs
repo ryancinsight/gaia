@@ -132,7 +132,7 @@ impl MeshWelder {
                 }
 
                 // Attempt to merge c into i.
-                if self.is_safe_to_merge(
+                if Self::is_safe_to_merge(
                     i,
                     c,
                     &v_faces[i as usize],
@@ -204,7 +204,6 @@ impl MeshWelder {
     /// Accepts pre-allocated scratch maps (`dst_scratch`, `src_scratch`) to
     /// avoid per-call `HashMap` allocation. Both are cleared on entry.
     fn is_safe_to_merge(
-        &self,
         dst: u32,
         src: u32,
         dst_faces: &[u32],

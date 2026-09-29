@@ -3,7 +3,7 @@
 //! Separates **data** from **access rights** at compile time. Mesh data lives
 //! inside `GhostCell<'brand, T>` wrappers. Reading or writing requires a
 //! `GhostToken<'brand>` whose lifetime brand must match. Since the brand is
-//! created via a closure (`GhostToken::new(|token| { ... })`), it is
+//! created via a closure (`GhostToken::scope(|token| { ... })`), it is
 //! impossible to forge a token from an unrelated scope.
 //!
 //! This gives us:
@@ -16,7 +16,7 @@
 //! ```rust,ignore
 //! use gaia::infrastructure::permission::{GhostToken, GhostCell};
 //!
-//! GhostToken::new(|mut token| {
+//! GhostToken::scope(|mut token| {
 //!     let cell = GhostCell::new(42u32);
 //!     assert_eq!(*cell.borrow(&token), 42);
 //!     *cell.borrow_mut(&mut token) = 99;

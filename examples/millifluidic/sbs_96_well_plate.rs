@@ -134,7 +134,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut part_1 = match csg_boolean(BooleanOp::Difference, &block, &cutter_mesh) {
         Ok(m) => m,
         Err(e) => {
-            eprintln!("  ⚠ part 1 boolean difference failed: {}", e);
+            eprintln!("  ⚠ part 1 boolean difference failed: {e}");
             block.clone() // fallback or handle error
         }
     };
@@ -153,6 +153,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let duration = start_time.elapsed();
-    println!("✨ Completed in {:.2?}", duration);
+    println!("✨ Completed in {duration:.2?}");
     Ok(())
 }

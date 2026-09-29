@@ -145,7 +145,7 @@ impl<T: Scalar> Pslg<T> {
                             [a1.y, a2.y, b1.y, b2.y]
                         };
                         let mut sorted = coords;
-                        sorted.sort_by(|x, y| x.total_cmp(y));
+                        sorted.sort_by(T::total_cmp);
                         let lo_val = sorted[1];
                         let hi_val = sorted[2];
                         let char_scale = (sorted[3] - sorted[0]).abs();

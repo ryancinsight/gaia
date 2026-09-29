@@ -1,10 +1,15 @@
 use crate::domain::core::scalar::Scalar;
 use eunomia::{FloatElement, NumericElement};
 
-pub(super) fn rational_value<T: Scalar, const D: usize>(
-    terms: impl Iterator<Item = ([T; 3], [T; D])> + Clone,
+pub(super) fn rational_value<T: Scalar, const D: usize, I>(
+    terms: I,
     fallback: [T; D],
-) -> ([T; D], T, i32) {
+) -> ([T; D], T, i32)
+where
+    I: IntoIterator<Item = ([T; 3], [T; D])>,
+    I::IntoIter: Clone,
+{
+    let terms = terms.into_iter();
     let zero = <T as NumericElement>::ZERO;
     let exponent = terms
         .clone()

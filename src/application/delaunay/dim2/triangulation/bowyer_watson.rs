@@ -77,7 +77,7 @@ impl DelaunayTriangulation {
     pub fn from_points(points: &[(Real, Real)]) -> Self {
         let vertices: Vec<PslgVertex> =
             points.iter().map(|&(x, y)| PslgVertex::new(x, y)).collect();
-        Self::from_vertices(vertices)
+        Self::from_vertices(&vertices)
     }
 
     /// Build from an existing vertex array.
@@ -87,16 +87,16 @@ impl DelaunayTriangulation {
     /// curve, consecutive insertions are spatially adjacent, reducing the
     /// Lawson walk distance from O(√n) to near-O(1) per insertion.
     #[must_use]
-    pub fn from_vertices(real_vertices: Vec<PslgVertex>) -> Self {
+    pub fn from_vertices(real_vertices: &[PslgVertex]) -> Self {
         let n = real_vertices.len();
-        let mut dt = Self::init_with_super_triangle(&real_vertices);
+        let mut dt = Self::init_with_super_triangle(real_vertices);
 
         if n == 0 {
             return dt;
         }
 
         // Compute Hilbert-curve insertion order.
-        let order = hilbert_order(&real_vertices);
+        let order = hilbert_order(real_vertices);
 
         for &orig_idx in &order {
             let vid = PslgVertexId::from_usize(orig_idx);

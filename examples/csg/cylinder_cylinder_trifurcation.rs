@@ -148,10 +148,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ms,
         );
 
-        let stl_name = format!(
-            "cylinder_cylinder_trifurcation_union_{:.0}deg.stl",
-            theta_deg
-        );
+        let stl_name = format!("cylinder_cylinder_trifurcation_union_{theta_deg:.0}deg.stl");
         write_stl(&result, &out_dir.join(&stl_name))?;
         println!("  STL: outputs/csg/{stl_name}");
         println!();
@@ -465,8 +462,7 @@ fn connectivity_report(label: &str, mesh: &mut IndexedMesh, expected_components:
 
     println!("  ── Connectivity [{label}] ──");
     println!(
-        "    Euler χ    : {} (expected {} for {} genus-0 body/bodies)",
-        euler, expected_euler, expected_components,
+        "    Euler χ    : {euler} (expected {expected_euler} for {expected_components} genus-0 body/bodies)",
     );
     // V-E-F breakdown for diagnosis.
     {

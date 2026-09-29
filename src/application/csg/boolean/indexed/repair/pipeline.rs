@@ -264,11 +264,11 @@ pub(super) fn repair_boolean_mesh(mesh: &mut IndexedMesh, is_coplanar: bool) -> 
 }
 
 pub(in crate::application::csg::boolean::indexed) fn postprocess_boolean_mesh(
-    result_faces: Vec<FaceData>,
+    result_faces: &[FaceData],
     combined: &VertexPool,
     is_coplanar: bool,
 ) -> MeshResult<IndexedMesh> {
-    let mut mesh = reconstruct::reconstruct_mesh(&result_faces, combined);
+    let mut mesh = reconstruct::reconstruct_mesh(result_faces, combined);
 
     mesh.recompute_normals();
     repair_boolean_mesh(&mut mesh, is_coplanar)?;

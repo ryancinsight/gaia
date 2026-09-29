@@ -277,7 +277,7 @@ mod tests {
 
         new_key_type! { struct Gk; }
 
-        GhostToken::new(|mut token| {
+        GhostToken::scope(|mut token| {
             let mut pool: GhostSlotPool<Gk, u32> = GhostSlotPool::new();
             let k = pool.insert(GhostCell::new(7u32));
 

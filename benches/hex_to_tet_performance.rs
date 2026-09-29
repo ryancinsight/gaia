@@ -15,7 +15,7 @@ fn bench_hex_to_tet_structured(c: &mut Criterion) {
         b.iter(|| {
             let converted = HexToTetConverter::convert(black_box(&mesh));
             black_box((converted.cell_count(), converted.face_count()))
-        })
+        });
     });
 }
 

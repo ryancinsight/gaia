@@ -284,10 +284,7 @@ pub fn boundary_facet_quality<T: Scalar>(
     {
         return None;
     }
-    let max_edge_length = edge_lengths
-        .iter()
-        .copied()
-        .fold(zero, |current, length| current.max_scalar(length));
+    let max_edge_length = edge_lengths.iter().copied().fold(zero, T::max_scalar);
     let min_angle = min_angle_native(&a, &b, &c);
     let edge_length_ratio = edge_length_ratio_native(&a, &b, &c);
     if !<T as NumericElement>::is_finite(min_angle)

@@ -19,12 +19,14 @@ use model::GalleryResult;
 fn output_dir() -> GalleryResult<PathBuf> {
     let mut args = std::env::args_os();
     let _program = args.next();
-    let path = args.next().map(PathBuf::from).unwrap_or_else(|| {
-        std::env::var_os("CARGO_MANIFEST_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("docs/book")
-    });
+    let path = args.next().map_or_else(
+        || {
+            std::env::var_os("CARGO_MANIFEST_DIR")
+                .map_or_else(|| PathBuf::from("."), PathBuf::from)
+                .join("docs/book")
+        },
+        PathBuf::from,
+    );
     if args.next().is_some() {
         return Err("expected at most one output directory argument".into());
     }

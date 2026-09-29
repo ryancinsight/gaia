@@ -6,7 +6,7 @@
 //! This module is a **volume/FEM tool** — it intentionally uses `Mesh<T>` for
 //! hexahedral cell topology and is exempt from the surface-mesh deprecation.
 
-use crate::domain::core::index::VertexId;
+use crate::domain::core::index::{FaceId, VertexId};
 use crate::domain::mesh::{IndexedMesh, TetrahedralMeshBuilder};
 use crate::domain::topology::{Cell, ElementType};
 use leto::geometry::Point3;
@@ -120,7 +120,7 @@ fn build_structured_hex_grid(nx: usize, ny: usize, nz: usize) -> IndexedMesh<f64
                 ];
                 let faces = triangles.map(|[v0, v1, v2]| mesh.add_face(v0, v1, v2));
                 mesh.add_cell(Cell {
-                    faces: faces.map(|face| face.as_usize()).to_vec(),
+                    faces: faces.map(FaceId::as_usize).to_vec(),
                     element_type: ElementType::Hexahedron,
                     vertex_ids: Vec::new(),
                 });

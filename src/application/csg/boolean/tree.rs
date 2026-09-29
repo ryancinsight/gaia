@@ -104,7 +104,7 @@ impl CsgNode {
             CsgNode::Difference { left, right } => {
                 csg_boolean(BooleanOp::Difference, &left.evaluate()?, &right.evaluate()?)
             }
-            CsgNode::Transform { node, iso } => Ok(transform_mesh(node.evaluate()?, &iso)),
+            CsgNode::Transform { node, iso } => Ok(transform_mesh(&node.evaluate()?, &iso)),
         }
     }
 
@@ -134,7 +134,7 @@ impl CsgNode {
 }
 
 /// Apply a rigid-body `Isometry3` transform to all vertices of a mesh.
-fn transform_mesh(mesh: IndexedMesh, iso: &Isometry3<Real>) -> IndexedMesh {
+fn transform_mesh(mesh: &IndexedMesh, iso: &Isometry3<Real>) -> IndexedMesh {
     use crate::domain::core::index::VertexId;
     let mut new_mesh = IndexedMesh::new();
     let mut remap = vec![None; mesh.vertices.len()];

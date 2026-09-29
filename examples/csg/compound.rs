@@ -172,7 +172,7 @@ fn report_mesh(
         expected_volume,
         vol_err * 100.0
     );
-    println!("    Watertight: {}", is_wt);
+    println!("    Watertight: {is_wt}");
     println!(
         "    Normals  : outward={}, inward={} ({:.1}%), degen={}",
         normals.outward_faces,
@@ -199,7 +199,7 @@ fn report_mesh(
         normals.face_vertex_alignment_mean
     );
 
-    let stl_path = out_dir.join(format!("compound_{}.stl", name));
+    let stl_path = out_dir.join(format!("compound_{name}.stl"));
     {
         let file = fs::File::create(&stl_path)?;
         let mut writer = BufWriter::new(file);

@@ -160,7 +160,7 @@ pub fn with_bvh<'a, F, R>(aabbs: &'a [Aabb], f: F) -> R
 where
     F: for<'brand> FnOnce(BvhTree<'brand, 'a>, GhostToken<'brand>) -> R,
 {
-    GhostToken::new(|token| {
+    GhostToken::scope(|token| {
         let tree: BvhTree<'_, 'a> = build_tree(aabbs);
         f(tree, token)
     })

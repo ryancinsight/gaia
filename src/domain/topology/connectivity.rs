@@ -283,7 +283,7 @@ mod tests {
         let adj = AdjacencyGraph::build(&store, &edges);
         let comps = connected_components(&store, &adj);
 
-        let total: usize = comps.iter().map(|c| c.len()).sum();
+        let total: usize = comps.iter().map(<[FaceId]>::len).sum();
         assert_eq!(total, store.len());
 
         // No face appears in more than one component.

@@ -85,7 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             "FAIL"
         };
-        println!("    Status    : {}", status);
+        println!("    Status    : {status}");
 
         let stl_path = out_dir.join("revolution_sweep_washer.stl");
         let file = fs::File::create(&stl_path)?;
@@ -142,7 +142,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             "FAIL"
         };
-        println!("    Status    : {}", status);
+        println!("    Status    : {status}");
 
         let stl_path = out_dir.join("revolution_sweep_quarter_wedge.stl");
         let file = fs::File::create(&stl_path)?;
@@ -199,7 +199,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             "FAIL"
         };
-        println!("    Status    : {}", status);
+        println!("    Status    : {status}");
 
         let stl_path = out_dir.join("revolution_sweep_elbow.stl");
         let file = fs::File::create(&stl_path)?;

@@ -35,10 +35,10 @@ fn main() {
         for &vid in &face.vertices {
             let p = mesh.vertices.position(vid);
             if p.x.fract() != 0.0 || p.y.fract() != 0.0 || p.z.fract() != 0.0 {
-                println!("Fractional Coordinate found: {:?}", p);
+                println!("Fractional Coordinate found: {p:?}");
                 fractional += 1;
             }
         }
     }
-    println!("Total fractional vertices: {}", fractional);
+    println!("Total fractional vertices: {fractional}");
 }

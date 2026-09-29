@@ -67,11 +67,11 @@ impl SerpentineMeshBuilder {
     /// # Errors
     /// Returns `BuildError` if the parameters are degenerate.
     pub fn build_surface(&self) -> Result<IndexedMesh, BuildError> {
-        build_serpentine_surface(self)
+        Ok(build_serpentine_surface(self))
     }
 }
 
-fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> Result<IndexedMesh, BuildError> {
+fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> IndexedMesh {
     let r = b.diameter / 2.0;
     let n_ax = b.resolution_x.max(4) * b.num_periods;
     let n_ang = if b.circular {
@@ -136,7 +136,7 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> Result<IndexedMesh, Bu
         mesh.add_face_with_region(oc, rings[last][ia], rings[last][ia1], outlet_region);
     }
 
-    Ok(mesh)
+    mesh
 }
 
 #[cfg(test)]

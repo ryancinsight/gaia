@@ -32,10 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("  Cube A : 2×2×2 mm, origin (0,0,0)");
     println!("  Cube B : 2×2×2 mm, origin (1,1,1)");
-    println!(
-        "  Expected intersection: {:.4} mm³  (1×1×1 shared corner)",
-        expected
-    );
+    println!("  Expected intersection: {expected:.4} mm³  (1×1×1 shared corner)");
     println!();
 
     let crate_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -75,14 +72,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let vol_err = (volume - expected).abs() / expected.abs().max(1e-12);
 
-    println!("  Result : {} faces", total);
+    println!("  Result : {total} faces");
     println!();
-    println!(
-        "  Volume        : {:.4} mm³  (expected {:.4})",
-        volume, expected
-    );
+    println!("  Volume        : {volume:.4} mm³  (expected {expected:.4})");
     println!("  Volume error  : {:.2}%", vol_err * 100.0);
-    println!("  Watertight    : {}", is_wt);
+    println!("  Watertight    : {is_wt}");
     println!("  Normal analysis:");
     println!(
         "    outward={}, inward={} ({:.1}%), degenerate={}",

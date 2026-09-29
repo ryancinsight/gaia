@@ -310,7 +310,7 @@ pub fn refine_faces_with_plane(
                 outside.push(*face);
             }
             (true, true) => {
-                let (pos, neg) = split_straddling_face(face, pool, plane, &signs);
+                let (pos, neg) = split_straddling_face(face, pool, plane, signs);
                 inside.extend(pos);
                 outside.extend(neg);
             }
@@ -328,7 +328,7 @@ fn split_straddling_face(
     face: &FaceData,
     pool: &mut VertexPool,
     plane: &PlaneEquation,
-    signs: &[Orientation; 3],
+    signs: [Orientation; 3],
 ) -> (Vec<FaceData>, Vec<FaceData>) {
     let vids = face.vertices;
     let positions = [

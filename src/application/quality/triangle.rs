@@ -82,7 +82,7 @@ pub(crate) fn aspect_ratio_native<T: Scalar>(
     let longest = edges
         .iter()
         .copied()
-        .fold(<T as NumericElement>::ZERO, |lhs, rhs| lhs.max_scalar(rhs));
+        .fold(<T as NumericElement>::ZERO, T::max_scalar);
     // ab already computed — reuse for cross product to avoid a second subtraction.
     let area_twice = ab.cross(-ca).norm();
 
@@ -140,9 +140,7 @@ pub(crate) fn equiangle_skewness_native<T: Scalar>(
     let max_a = angles
         .iter()
         .copied()
-        .fold(-<T as NumericElement>::INFINITY, |lhs, rhs| {
-            lhs.max_scalar(rhs)
-        });
+        .fold(-<T as NumericElement>::INFINITY, T::max_scalar);
     let min_a = angles
         .iter()
         .copied()
@@ -177,10 +175,10 @@ pub(crate) fn edge_length_ratio_native<T: Scalar>(
         .fold(<T as NumericElement>::INFINITY, |lhs, rhs| {
             lhs.min_scalar(rhs)
         });
-    let longest = edges
-        .iter()
-        .copied()
-        .fold(<T as NumericElement>::ZERO, |lhs, rhs| lhs.max_scalar(rhs));
+    let longest = edges.iter().copied().fold(
+        <T as NumericElement>::ZERO,
+        eunomia::NumericElement::max_scalar,
+    );
 
     if longest <= <T as NumericElement>::ZERO {
         return <T as NumericElement>::ZERO;

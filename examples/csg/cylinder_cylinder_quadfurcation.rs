@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let ms = t0.elapsed().as_millis();
 
         report(
-            &format!("N-Way Quadfurcation {}", op_name),
+            &format!("N-Way Quadfurcation {op_name}"),
             &mut accumulated,
             v_naive,
             ms,
@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             write_stl(&accumulated, &out_dir.join(&stl_name))?;
             println!("  STL: outputs/csg/{stl_name}");
         } else {
-            println!("  STL skipped: 0 faces generated for {}", op_name);
+            println!("  STL skipped: 0 faces generated for {op_name}");
         }
         println!("-----------------------------------------------------------------");
     }

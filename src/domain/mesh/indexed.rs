@@ -284,7 +284,9 @@ impl<T: Scalar> IndexedMesh<T> {
 
     /// Return the boundary label of a face, if any.
     pub fn boundary_label(&self, face_id: FaceId) -> Option<&str> {
-        self.boundary_labels.get(&face_id).map(|c| c.as_ref())
+        self.boundary_labels
+            .get(&face_id)
+            .map(std::convert::AsRef::as_ref)
     }
 
     /// Return face IDs on the geometric boundary (faces belonging to exactly one cell).
