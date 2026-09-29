@@ -24,6 +24,10 @@ impl CoordinateTransform {
         }
     }
 
+    #[expect(
+        clippy::float_cmp,
+        reason = "exact identity check: scale is set to exactly 1.0 by Self::identity(); any deviation from that construction value indicates a non-identity transform"
+    )]
     fn is_identity(self) -> bool {
         self.origin == Point3r::origin() && self.scale == 1.0
     }

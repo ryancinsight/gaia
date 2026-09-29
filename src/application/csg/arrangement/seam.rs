@@ -38,6 +38,10 @@ fn cell_key(p: &leto::geometry::Point3<Real>, inv_cell: Real) -> (i64, i64, i64)
 /// bidirectional nearest-neighbor; therefore one vertex cannot be paired with
 /// two distinct vertices in the same pass. This prevents fan-collapse artifacts
 /// common in one-sided greedy nearest merges at V-branch seams. ∎
+#[expect(
+    clippy::float_cmp,
+    reason = "intentional exact tie-breaking: two squared distances computed the same way can be bitwise identical; the comparison selects deterministically by lower vertex ID"
+)]
 fn build_mutual_nearest_merge_map(
     bnd_verts: &[VertexId],
     max_dist_sq: Real,
@@ -119,6 +123,10 @@ fn build_mutual_nearest_merge_map(
 /// 27 neighboring cells when cell size equals that threshold. Therefore the
 /// local-cell query returns exactly the same candidate set as a global scan
 /// under the same distance bound. ∎
+#[expect(
+    clippy::float_cmp,
+    reason = "intentional exact tie-breaking: two norm_squared() values computed from the same arithmetic are bitwise identical; ties resolved by vertex ID for determinism"
+)]
 fn build_greedy_nearest_merge_map(
     bnd_verts: &[VertexId],
     max_dist_sq: Real,

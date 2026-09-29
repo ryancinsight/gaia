@@ -186,36 +186,45 @@ pub fn read_binary_stl<R: Read>(
     face_store: &mut FaceStore,
     region: RegionId,
 ) -> MeshResult<usize> {
-    let mut r = BufReader::new(reader);
+    let mut buffered_reader = BufReader::new(reader);
     let mut header = [0u8; 80];
-    r.read_exact(&mut header).map_err(MeshError::Io)?;
+    buffered_reader.read_exact(&mut header).map_err(MeshError::Io)?;
     let mut count_bytes = [0u8; 4];
-    r.read_exact(&mut count_bytes).map_err(MeshError::Io)?;
-    let n = u32::from_le_bytes(count_bytes) as usize;
+    buffered_reader
+        .read_exact(&mut count_bytes)
+        .map_err(MeshError::Io)?;
+    let triangle_count = u32::from_le_bytes(count_bytes) as usize;
 
-    for triangle in 0..n {
+    for triangle in 0..triangle_count {
         // Skip the stored normal (12 bytes) — we recompute it.
         let mut skip = [0u8; 12];
-        r.read_exact(&mut skip).map_err(MeshError::Io)?;
+        buffered_reader
+            .read_exact(&mut skip)
+            .map_err(MeshError::Io)?;
 
         let mut verts = [Point3r::new(0.0, 0.0, 0.0); 3];
         for (index, vert) in verts.iter_mut().enumerate() {
             let mut vbuf = [0u8; 12];
-            r.read_exact(&mut vbuf).map_err(MeshError::Io)?;
-            let x = Real::from(f32::from_le_bytes([vbuf[0], vbuf[1], vbuf[2], vbuf[3]]));
-            let y = Real::from(f32::from_le_bytes([vbuf[4], vbuf[5], vbuf[6], vbuf[7]]));
-            let z = Real::from(f32::from_le_bytes([vbuf[8], vbuf[9], vbuf[10], vbuf[11]]));
+            buffered_reader
+                .read_exact(&mut vbuf)
+                .map_err(MeshError::Io)?;
+            let x_coord = Real::from(f32::from_le_bytes([vbuf[0], vbuf[1], vbuf[2], vbuf[3]]));
+            let y_coord = Real::from(f32::from_le_bytes([vbuf[4], vbuf[5], vbuf[6], vbuf[7]]));
+            let z_coord =
+                Real::from(f32::from_le_bytes([vbuf[8], vbuf[9], vbuf[10], vbuf[11]]));
             // `f32::from_le_bytes` accepts every bit pattern, so the NaN and
             // infinity encodings are reachable from a well-formed 50-byte
             // record; the ordinal is this vertex's position in the file.
             *vert = parse::finite_point(
-                Point3r::new(x, y, z),
+                Point3r::new(x_coord, y_coord, z_coord),
                 triangle.saturating_mul(3).saturating_add(index),
             )?;
         }
         // Skip attribute byte count (2 bytes).
         let mut attr = [0u8; 2];
-        r.read_exact(&mut attr).map_err(MeshError::Io)?;
+        buffered_reader
+            .read_exact(&mut attr)
+            .map_err(MeshError::Io)?;
 
         let normal =
             crate::domain::geometry::normal::triangle_normal(&verts[0], &verts[1], &verts[2])
@@ -228,7 +237,7 @@ pub fn read_binary_stl<R: Read>(
             region,
         });
     }
-    Ok(n)
+    Ok(triangle_count)
 }
 
 // =============================================================================

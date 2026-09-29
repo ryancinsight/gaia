@@ -50,6 +50,10 @@ impl EdgeAabb2d {
         }
     }
 
+    #[expect(
+        clippy::float_cmp,
+        reason = "degenerate-edge guard: consecutive polygon vertices that are bitwise-identical produce zero-length edges; comparing the 2-element f64 arrays by equality is correct here since they must be the same values from the same polygon array"
+    )]
     fn from_polygon(poly: &[[Real; 2]]) -> Vec<Self> {
         let n = poly.len();
         let mut edges = Vec::with_capacity(n);

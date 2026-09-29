@@ -93,6 +93,10 @@ pub(crate) fn point_in_triangle(
 /// walk returns the first non-degenerate turn.  The shoelace [`signed_area`] is
 /// kept **only** as a documented fallback for the fully-degenerate case where
 /// every visited turn is exactly collinear.
+#[expect(
+    clippy::float_cmp,
+    reason = "lexicographic lower-left pivot: exact equality of x-coordinates is the correct tie-breaker for finding the bottommost-leftmost point in a convex hull algorithm"
+)]
 pub(crate) fn winding_ccw(pts: &[[Real; 2]]) -> Option<bool> {
     let n = pts.len();
     if n < 3 {

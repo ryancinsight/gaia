@@ -91,6 +91,17 @@
         reason = "test code: an unwrap is the assertion, not an input-dependent failure path"
     )
 )]
+// Test code is exempt from the float-comparison lint: exact float equality in
+// test assertions verifies IEEE-754 behaviour of specific computations (e.g.
+// that a GWN on an empty mesh is exactly 0.0, or that two constants derived
+// from the same formula agree bit-for-bit).
+#![cfg_attr(
+    test,
+    expect(
+        clippy::float_cmp,
+        reason = "test code: direct float equality assertions verify exact computed values and IEEE-754 properties"
+    )
+)]
 
 pub mod application;
 pub mod domain;
