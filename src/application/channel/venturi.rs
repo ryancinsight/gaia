@@ -13,6 +13,7 @@
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 use crate::domain::mesh::IndexedMesh;
+use crate::domain::topology::PackedRows;
 
 /// Error type for Venturi mesh building.
 #[derive(Debug)]
@@ -148,21 +149,23 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> Result<IndexedMesh, BuildErr
     };
 
     let mut mesh = IndexedMesh::new();
-    let mut rings: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(nx);
+    let mut ring_values: Vec<crate::domain::core::index::VertexId> = Vec::with_capacity(nx * n_ang);
+    let mut ring_offsets: Vec<usize> = Vec::with_capacity(nx + 1);
+    ring_offsets.push(0);
     for i in 0..nx {
         let z = total_l * i as Real / (nx - 1) as Real;
         let r = radius_at(z);
-        let mut ring = Vec::with_capacity(n_ang);
         for ia in 0..n_ang {
             let theta = std::f64::consts::TAU * ia as Real / n_ang as Real;
             let (sin_t, cos_t) = theta.sin_cos();
-            ring.push(mesh.add_vertex(
+            ring_values.push(mesh.add_vertex(
                 Point3r::new(r * cos_t, r * sin_t, z),
                 Vector3r::new(cos_t, sin_t, 0.0),
             ));
         }
-        rings.push(ring);
+        ring_offsets.push(ring_values.len());
     }
+    let rings = PackedRows::from_parts(ring_offsets, ring_values);
 
     for iz in 0..(nx - 1) {
         for ia in 0..n_ang {
@@ -196,6 +199,69 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> Result<IndexedMesh, BuildErr
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::core::index::{FaceId, VertexId};
+
+    /// Pins the pre-refactor ring layout the same way as the serpentine
+    /// builder's characterization test: ring 0 sits at `z = 0`, inside the
+    /// inlet section (`0 <= l_inlet`), so its radius is the closed-form
+    /// `d_inlet / 2` with no piecewise taper applied. The PackedRows storage
+    /// swap must not reorder or drop rows, so this must hold unchanged
+    /// before and after it.
+    #[test]
+    fn venturi_ring_topology_is_pinned() {
+        let mesh = VenturiMeshBuilder::new(0.010, 0.004, 0.020, 0.040, 0.010, 0.060, 0.020)
+            .with_resolution(4, 2)
+            .build_surface()
+            .expect("should succeed");
+
+        // nx = resolution_x.max(2) = 4.
+        // n_ang = if circular { resolution_y.max(2) * 4 } = 8.
+        let nx = 4usize;
+        let n_ang = 8usize;
+        assert_eq!(mesh.vertices.len(), nx * n_ang + 2);
+        assert_eq!(
+            mesh.faces.as_slice().len(),
+            2 * n_ang * (nx - 1) + 2 * n_ang
+        );
+
+        let r = 0.010 / 2.0;
+        let eps = 1e-12; // several ULPs above f64 sin_cos error at this magnitude
+        for ia in 0..n_ang {
+            let theta = std::f64::consts::TAU * ia as f64 / n_ang as f64;
+            let (sin_t, cos_t) = theta.sin_cos();
+            let actual = mesh.vertices.position(VertexId::from_usize(ia));
+            assert!(
+                (actual.x - r * cos_t).abs() < eps
+                    && (actual.y - r * sin_t).abs() < eps
+                    && actual.z.abs() < eps,
+                "ring-0 vertex {ia}: expected ({}, {}, 0.0), got ({}, {}, {})",
+                r * cos_t,
+                r * sin_t,
+                actual.x,
+                actual.y,
+                actual.z
+            );
+        }
+
+        let f0 = mesh.faces.get(FaceId::from_usize(0));
+        assert_eq!(
+            f0.vertices,
+            [
+                VertexId::from_usize(0),
+                VertexId::from_usize(1),
+                VertexId::from_usize(n_ang + 1),
+            ]
+        );
+        let f1 = mesh.faces.get(FaceId::from_usize(1));
+        assert_eq!(
+            f1.vertices,
+            [
+                VertexId::from_usize(0),
+                VertexId::from_usize(n_ang + 1),
+                VertexId::from_usize(n_ang),
+            ]
+        );
+    }
 
     #[test]
     fn venturi_produces_non_empty_mesh() {

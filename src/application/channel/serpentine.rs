@@ -7,6 +7,7 @@ use crate::application::channel::venturi::BuildError;
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
+use crate::domain::topology::PackedRows;
 
 /// Builds a serpentine channel mesh (all lengths in metres, f64).
 #[derive(Clone, Debug)]
@@ -93,19 +94,22 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> Result<IndexedMesh, Bu
         })
         .collect();
 
-    let mut rings: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(n_ax);
+    let mut ring_values: Vec<crate::domain::core::index::VertexId> =
+        Vec::with_capacity(n_ax * n_ang);
+    let mut ring_offsets: Vec<usize> = Vec::with_capacity(n_ax + 1);
+    ring_offsets.push(0);
     for &(cx, cy, cz) in &spine {
-        let mut ring = Vec::with_capacity(n_ang);
         for ia in 0..n_ang {
             let theta = std::f64::consts::TAU * ia as f64 / n_ang as f64;
             let (sin_t, cos_t) = theta.sin_cos();
-            ring.push(mesh.add_vertex(
+            ring_values.push(mesh.add_vertex(
                 Point3r::new(cx + r * cos_t, cy + r * sin_t, cz),
                 Vector3r::new(cos_t, sin_t, 0.0),
             ));
         }
-        rings.push(ring);
+        ring_offsets.push(ring_values.len());
     }
+    let rings = PackedRows::from_parts(ring_offsets, ring_values);
 
     for iz in 0..(n_ax - 1) {
         for ia in 0..n_ang {
@@ -138,6 +142,70 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> Result<IndexedMesh, Bu
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::core::index::{FaceId, VertexId};
+
+    /// Pins the pre-refactor ring layout: vertex/face counts follow the
+    /// documented `n_ax`/`n_ang` formulas, ring-0 vertices sit on the
+    /// closed-form circle (spine z = y = 0 there, so no path-amplitude term
+    /// enters), and the first wall quad references the expected vertex ids
+    /// in construction order. The PackedRows storage swap must not reorder
+    /// or drop rows, so this must hold unchanged before and after it.
+    #[test]
+    fn serpentine_ring_topology_is_pinned() {
+        let mesh = SerpentineMeshBuilder::new(0.002, 0.005, 0.020)
+            .with_periods(1)
+            .with_resolution(4, 2)
+            .build_surface()
+            .expect("should succeed");
+
+        // n_ax = resolution_x.max(4) * periods = 4.
+        // n_ang = (resolution_y.max(2) * 4).max(4) = 8.
+        let n_ax = 4usize;
+        let n_ang = 8usize;
+        assert_eq!(mesh.vertices.len(), n_ax * n_ang + 2);
+        assert_eq!(
+            mesh.faces.as_slice().len(),
+            2 * n_ang * (n_ax - 1) + 2 * n_ang
+        );
+
+        let r = 0.002 / 2.0;
+        let eps = 1e-12; // several ULPs above f64 sin_cos error at this magnitude
+        for ia in 0..n_ang {
+            let theta = std::f64::consts::TAU * ia as f64 / n_ang as f64;
+            let (sin_t, cos_t) = theta.sin_cos();
+            let actual = mesh.vertices.position(VertexId::from_usize(ia));
+            assert!(
+                (actual.x - r * cos_t).abs() < eps
+                    && (actual.y - r * sin_t).abs() < eps
+                    && actual.z.abs() < eps,
+                "ring-0 vertex {ia}: expected ({}, {}, 0.0), got ({}, {}, {})",
+                r * cos_t,
+                r * sin_t,
+                actual.x,
+                actual.y,
+                actual.z
+            );
+        }
+
+        let f0 = mesh.faces.get(FaceId::from_usize(0));
+        assert_eq!(
+            f0.vertices,
+            [
+                VertexId::from_usize(0),
+                VertexId::from_usize(n_ang),
+                VertexId::from_usize(1),
+            ]
+        );
+        let f1 = mesh.faces.get(FaceId::from_usize(1));
+        assert_eq!(
+            f1.vertices,
+            [
+                VertexId::from_usize(1),
+                VertexId::from_usize(n_ang),
+                VertexId::from_usize(n_ang + 1),
+            ]
+        );
+    }
 
     #[test]
     fn serpentine_produces_non_empty_mesh() {
