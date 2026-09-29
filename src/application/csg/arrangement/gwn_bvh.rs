@@ -71,7 +71,7 @@ struct GwnBvhNode {
     ///
     /// Used in the skip criterion: skip when `total_area / d² < 4π · ε`.
     total_area: f64,
-    /// Leaf: [face_start, face_end); Interior: [left_child, right_child].
+    /// Leaf: [`face_start`, `face_end`); Interior: [`left_child`, `right_child`].
     start: u32,
     /// See `start`.
     end: u32,
@@ -336,21 +336,26 @@ pub fn gwn_bvh(query: &Point3r, mesh: &PreparedBvhMesh, error_budget: f64) -> f6
 /// Van Oosterom-Strackee raw solid angle contribution of a single triangle
 /// to query point `q`.  Does NOT divide by 4π.
 #[inline]
+#[expect(
+    clippy::similar_names,
+    reason = "standard per-vertex length naming in the triangle solid-angle formula"
+)]
 fn gwn_triangle_raw(q: &[f64; 3], face: &PreparedFace) -> f64 {
     let va = [face.a.x - q[0], face.a.y - q[1], face.a.z - q[2]];
     let vb = [face.b.x - q[0], face.b.y - q[1], face.b.z - q[2]];
     let vc = [face.c.x - q[0], face.c.y - q[1], face.c.z - q[2]];
 
-    let la_sq = va[0] * va[0] + va[1] * va[1] + va[2] * va[2];
-    let lb_sq = vb[0] * vb[0] + vb[1] * vb[1] + vb[2] * vb[2];
-    let lc_sq = vc[0] * vc[0] + vc[1] * vc[1] + vc[2] * vc[2];
+    let len_a_sq = va[0] * va[0] + va[1] * va[1] + va[2] * va[2];
+    let len_b_sq = vb[0] * vb[0] + vb[1] * vb[1] + vb[2] * vb[2];
+    let len_c_sq = vc[0] * vc[0] + vc[1] * vc[1] + vc[2] * vc[2];
 
-    if la_sq < f64::MIN_POSITIVE || lb_sq < f64::MIN_POSITIVE || lc_sq < f64::MIN_POSITIVE {
+    if len_a_sq < f64::MIN_POSITIVE || len_b_sq < f64::MIN_POSITIVE || len_c_sq < f64::MIN_POSITIVE
+    {
         return 0.0;
     }
-    let la = la_sq.sqrt();
-    let lb = lb_sq.sqrt();
-    let lc = lc_sq.sqrt();
+    let la = len_a_sq.sqrt();
+    let lb = len_b_sq.sqrt();
+    let lc = len_c_sq.sqrt();
 
     // Numerator: scalar triple product va · (vb × vc)
     let num = va[0] * (vb[1] * vc[2] - vb[2] * vc[1]) - va[1] * (vb[0] * vc[2] - vb[2] * vc[0])

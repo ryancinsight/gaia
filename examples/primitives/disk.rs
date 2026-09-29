@@ -22,6 +22,11 @@
 //! cargo run -p gaia --example primitives_disk
 //! ```
 
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard radius/segment shorthand in a primitive example"
+)]
+
 use std::f64::consts::PI;
 use std::fs;
 use std::io::BufWriter;

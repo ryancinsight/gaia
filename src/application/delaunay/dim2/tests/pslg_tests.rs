@@ -1,5 +1,10 @@
 //! Tests for PSLG data structures.
 
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard vertex-label naming in PSLG tests"
+)]
+
 use crate::application::delaunay::dim2::pslg::graph::Pslg;
 use crate::application::delaunay::dim2::pslg::graph::PslgValidationError;
 use crate::application::delaunay::dim2::pslg::segment::PslgSegment;

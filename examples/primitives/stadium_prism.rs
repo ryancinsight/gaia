@@ -1,4 +1,4 @@
-//! Export: StadiumPrism → outputs/primitives/stadium_prism.stl
+//! Export: `StadiumPrism` → `outputs/primitives/stadium_prism.stl`
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;

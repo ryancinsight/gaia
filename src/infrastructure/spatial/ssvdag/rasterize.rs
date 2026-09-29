@@ -154,7 +154,7 @@ mod tests {
     use crate::domain::geometry::primitives::cube::Cube;
     use crate::domain::geometry::primitives::PrimitiveMesh;
 
-    /// At max_depth=3 the expanded root is (±0.51)³.
+    /// At `max_depth=3` the expanded root is (±0.51)³.
     /// Each leaf side = 1.02/8 = 0.1275 mm.
     /// Corner leaf centre = 0.51 − 0.1275/2 = 0.446 < 0.5  → inside cube.
     /// Therefore ALL 512 potential leaves are classified solid, and isomorphic
@@ -180,7 +180,7 @@ mod tests {
         }
     }
 
-    /// At max_depth=6 the expanded root is (±0.51)³.
+    /// At `max_depth=6` the expanded root is (±0.51)³.
     /// Each leaf side = 1.02/64 = 0.015938 mm.
     /// Corner leaf centre = 0.51 − 0.015938/2 ≈ 0.502 > 0.5  → OUTSIDE cube.
     /// Therefore at least one corner leaf is empty, and the root must be Internal.

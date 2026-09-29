@@ -5,7 +5,7 @@
 //! 1. **Delaunay triangulation** — Bowyer-Watson incremental insertion
 //! 2. **Constrained Delaunay (CDT)** — PSLG constraint enforcement
 //! 3. **Ruppert refinement** — Quality mesh generation with guarantees
-//! 4. **Export to IndexedMesh** — Integration with the gaia ecosystem
+//! 4. **Export to `IndexedMesh`** — Integration with the gaia ecosystem
 //!
 //! Run with:
 //! ```sh
@@ -38,10 +38,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Deterministic pseudo-random via LCG
             let rng = 42_u64.wrapping_mul((i + 1) as u64);
             let x = ((rng >> 33) as f64 / (1u64 << 31) as f64) * 10.0;
-            let y =
-                ((rng.wrapping_mul(6_364_136_223_846_793_005) >> 33) as f64
-                    / (1u64 << 31) as f64)
-                    * 10.0;
+            let y = ((rng.wrapping_mul(6_364_136_223_846_793_005) >> 33) as f64
+                / (1u64 << 31) as f64)
+                * 10.0;
             (x, y)
         })
         .collect();
@@ -158,10 +157,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     refiner.set_max_steiner(1000);
     let steiner_count = refiner.refine();
 
-    let refined = refiner.into_cdt();
+    let refined_cdt = refiner.into_cdt();
 
     // Count skinny triangles after refinement
-    let skinny_after = count_skinny_triangles(&refined, 1.5);
+    let skinny_after = count_skinny_triangles(&refined_cdt, 1.5);
 
     println!("   Steiner points added: {steiner_count}");
     println!(

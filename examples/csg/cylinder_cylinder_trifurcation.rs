@@ -219,7 +219,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///
 /// | Part       | Rotation about Z    | Translation           | World axis         |
 /// |------------|---------------------|-----------------------|--------------------|
-/// | Trunk A    | −π/2 (+Y → +X)     | (−H_TRUNK, 0, 0)      | +X                 |
+/// | Trunk A    | −π/2 (+Y → +X)     | (−`H_TRUNK`, 0, 0)      | +X                 |
 /// | Branch B   | θ − π/2            | (0, 0, 0)             | (cosθ, sinθ, 0)    |
 /// | Branch C   | 0  (+Y stays +Y)   | (0, 0, 0)             | +Y                 |
 /// | Branch D   | −θ − π/2           | (0, 0, 0)             | (cosθ, −sinθ, 0)   |

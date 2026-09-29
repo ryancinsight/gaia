@@ -222,13 +222,13 @@ mod tests {
     use crate::infrastructure::storage::face_store::FaceData;
     use crate::infrastructure::storage::vertex_pool::VertexPool;
 
-    /// Majority vote: more interior → CoplanarOpposite.
+    /// Majority vote: more interior → `CoplanarOpposite`.
     #[test]
     fn majority_vote_interior_wins() {
         assert_eq!(majority_vote(2, 1), Some(FragmentClass::CoplanarOpposite));
     }
 
-    /// Majority vote: more exterior → CoplanarSame.
+    /// Majority vote: more exterior → `CoplanarSame`.
     #[test]
     fn majority_vote_exterior_wins() {
         assert_eq!(majority_vote(1, 3), Some(FragmentClass::CoplanarSame));
@@ -240,20 +240,20 @@ mod tests {
         assert_eq!(majority_vote(2, 2), None);
     }
 
-    /// classify_by_sign: large negative → Inside.
+    /// `classify_by_sign`: large negative → Inside.
     #[test]
     fn classify_by_sign_negative_is_inside() {
         // normal_norm_sq = 1.0 (unit triangle): threshold ≈ 1e-7 × 1 × √0.5 ≈ 7.07e-8
         assert_eq!(classify_by_sign(-0.01, 1.0), FragmentClass::Inside);
     }
 
-    /// classify_by_sign: large positive → Outside.
+    /// `classify_by_sign`: large positive → Outside.
     #[test]
     fn classify_by_sign_positive_is_outside() {
         assert_eq!(classify_by_sign(0.01, 1.0), FragmentClass::Outside);
     }
 
-    /// classify_by_sign: near-zero → CoplanarSame (conservative fallback).
+    /// `classify_by_sign`: near-zero → `CoplanarSame` (conservative fallback).
     #[test]
     fn classify_by_sign_near_zero_is_coplanar_same() {
         // 1e-12 is well below threshold ≈ 7.07e-8 for unit triangle

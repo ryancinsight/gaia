@@ -171,6 +171,11 @@ pub(super) fn split_figure8_pinch_vertices(mesh: &mut IndexedMesh) -> usize {
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::many_single_char_names,
+        reason = "standard point and shared-vertex naming in vertex repair tests"
+    )]
+
     use super::*;
     use crate::domain::core::index::RegionId;
     use crate::domain::core::scalar::{Point3r, Vector3r};

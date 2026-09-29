@@ -79,8 +79,8 @@ fn refine_square_domain() {
 
 // ── Minimum angle guarantee ───────────────────────────────────────────────
 
-/// Theorem: Ruppert guarantees α_min ≥ arcsin(1/(2B)) for B = √2.
-/// This gives α_min ≥ 20.7°.
+/// Theorem: Ruppert guarantees `α_min` ≥ arcsin(1/(2B)) for B = √2.
+/// This gives `α_min` ≥ 20.7°.
 #[test]
 fn minimum_angle_around_20_degrees() {
     let mut pslg = Pslg::new();

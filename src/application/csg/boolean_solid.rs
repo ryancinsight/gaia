@@ -101,7 +101,7 @@ mod tests {
         .expect("cube_a build")
     }
 
-    /// Offset cube — overlaps cube_a by half its width along X.
+    /// Offset cube — overlaps `cube_a` by half its width along X.
     fn cube_b() -> IndexedMesh {
         Cube {
             origin: Point3r::new(-0.5, -0.5, -0.5),

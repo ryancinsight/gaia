@@ -161,7 +161,7 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
         }
     }
 
-    let v_idx = |ix: usize, iy: usize, iz: usize| v_ids[iz * vny * vnx + iy * vnx + ix];
+    let vertex_id_at = |ix: usize, iy: usize, iz: usize| v_ids[iz * vny * vnx + iy * vnx + ix];
 
     // Create cells: each hex cell is split into 5 tetrahedra.
     for iz in 0..nz {
@@ -169,14 +169,14 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
             for ix in 0..nx {
                 // 8 corner indices of the hex cell.
                 let v: [VertexId; 8] = [
-                    v_idx(ix, iy, iz),
-                    v_idx(ix + 1, iy, iz),
-                    v_idx(ix + 1, iy + 1, iz),
-                    v_idx(ix, iy + 1, iz),
-                    v_idx(ix, iy, iz + 1),
-                    v_idx(ix + 1, iy, iz + 1),
-                    v_idx(ix + 1, iy + 1, iz + 1),
-                    v_idx(ix, iy + 1, iz + 1),
+                    vertex_id_at(ix, iy, iz),
+                    vertex_id_at(ix + 1, iy, iz),
+                    vertex_id_at(ix + 1, iy + 1, iz),
+                    vertex_id_at(ix, iy + 1, iz),
+                    vertex_id_at(ix, iy, iz + 1),
+                    vertex_id_at(ix + 1, iy, iz + 1),
+                    vertex_id_at(ix + 1, iy + 1, iz + 1),
+                    vertex_id_at(ix, iy + 1, iz + 1),
                 ];
 
                 // Alternating 5-tet decomposition to ensure conforming faces.

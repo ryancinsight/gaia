@@ -93,7 +93,7 @@ impl<'brand> BvhTree<'brand, '_> {
         self.query_with(query, token, out);
     }
 
-    /// Query all primitive indices whose AABB overlaps `query` using a SharedGhostToken.
+    /// Query all primitive indices whose AABB overlaps `query` using a `SharedGhostToken`.
     pub fn query_overlapping_shared(
         &self,
         query: &Aabb,

@@ -1,7 +1,7 @@
-//! CSG Intersection: CubeA ∩ CubeB → `outputs/csg/intersection_cube_cube.stl`
+//! CSG Intersection: `CubeA` ∩ `CubeB` → `outputs/csg/intersection_cube_cube.stl`
 //!
 //! Demonstrates the Boolean intersection of two overlapping cubes.
-//! CubeA is 2×2×2 mm at the origin.  CubeB is 2×2×2 mm offset by (1,1,1).
+//! `CubeA` is 2×2×2 mm at the origin.  `CubeB` is 2×2×2 mm offset by (1,1,1).
 //! The two cubes share a 1×1×1 mm corner overlap region.
 //! The intersection is exactly that 1×1×1 mm cube.
 //!

@@ -1,7 +1,7 @@
 //! Serpentine channel mesh builder.
 //!
 //! Builds a structured mesh for a sinuous (serpentine) microchannel.
-//! All arithmetic is `f64` (`Real`) â€” fake-generic eliminated per core_invariants Â§2.
+//! All arithmetic is `f64` (`Real`) â€” fake-generic eliminated per `core_invariants` Â§2.
 
 use crate::application::channel::venturi::BuildError;
 use crate::domain::core::index::RegionId;
@@ -148,7 +148,7 @@ mod tests {
     /// documented `n_ax`/`n_ang` formulas, ring-0 vertices sit on the
     /// closed-form circle (spine z = y = 0 there, so no path-amplitude term
     /// enters), and the first wall quad references the expected vertex ids
-    /// in construction order. The PackedRows storage swap must not reorder
+    /// in construction order. The `PackedRows` storage swap must not reorder
     /// or drop rows, so this must hold unchanged before and after it.
     #[test]
     fn serpentine_ring_topology_is_pinned() {

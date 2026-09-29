@@ -1,4 +1,4 @@
-//! Export: SerpentineTube → outputs/primitives/serpentine_tube.stl
+//! Export: `SerpentineTube` → `outputs/primitives/serpentine_tube.stl`
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;

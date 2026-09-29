@@ -188,7 +188,9 @@ pub fn read_binary_stl<R: Read>(
 ) -> MeshResult<usize> {
     let mut buffered_reader = BufReader::new(reader);
     let mut header = [0u8; 80];
-    buffered_reader.read_exact(&mut header).map_err(MeshError::Io)?;
+    buffered_reader
+        .read_exact(&mut header)
+        .map_err(MeshError::Io)?;
     let mut count_bytes = [0u8; 4];
     buffered_reader
         .read_exact(&mut count_bytes)
@@ -210,8 +212,7 @@ pub fn read_binary_stl<R: Read>(
                 .map_err(MeshError::Io)?;
             let x_coord = Real::from(f32::from_le_bytes([vbuf[0], vbuf[1], vbuf[2], vbuf[3]]));
             let y_coord = Real::from(f32::from_le_bytes([vbuf[4], vbuf[5], vbuf[6], vbuf[7]]));
-            let z_coord =
-                Real::from(f32::from_le_bytes([vbuf[8], vbuf[9], vbuf[10], vbuf[11]]));
+            let z_coord = Real::from(f32::from_le_bytes([vbuf[8], vbuf[9], vbuf[10], vbuf[11]]));
             // `f32::from_le_bytes` accepts every bit pattern, so the NaN and
             // infinity encodings are reachable from a well-formed 50-byte
             // record; the ordinal is this vertex's position in the file.

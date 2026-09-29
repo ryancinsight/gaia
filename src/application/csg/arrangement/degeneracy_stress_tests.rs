@@ -1,7 +1,7 @@
 //! Degeneracy and stress tests targeting known-hard cases for mesh Boolean libraries.
 //!
 //! These tests exercise configurations where CSG Boolean engines are known to
-//! fail across the industry (CGAL, OpenSCAD, libigl, Cork, etc.):
+//! fail across the industry (CGAL, `OpenSCAD`, libigl, Cork, etc.):
 //!
 //! | Category | What it stresses |
 //! |----------|------------------|
@@ -12,6 +12,11 @@
 //! | Mixed curvature | Planar-vs-curved (cube-sphere) intersection seams |
 //! | Complex curves | Saddle-point intersection curves (torus-cylinder) |
 //! | Dense overlap | High-tessellation shapes with thousands of face pairs |
+
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard geometric parameter naming in stress tests"
+)]
 
 #[cfg(test)]
 mod tests {

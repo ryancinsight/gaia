@@ -74,7 +74,7 @@ mod tests {
     // meshes at different scales produces consistent results.  Scale-dependent
     // absolute epsilons would cause failures at extreme scales.
 
-    /// Cube ∩ offset_cube must yield consistent relative volume across scales.
+    /// Cube ∩ `offset_cube` must yield consistent relative volume across scales.
     ///
     /// Tests 4 scales spanning 8 orders of magnitude: 10 µm, 1 mm, 1 m, 1 km.
     /// The intersection of two half-overlapping cubes has volume = 50% of one
@@ -294,7 +294,7 @@ mod tests {
     ///
     /// # Theorem — Broad-Phase Scale Safety
     ///
-    /// With AABB_RELATIVE_EXPANSION = 1e-6, a 10 µm cube's AABB is expanded by
+    /// With `AABB_RELATIVE_EXPANSION` = 1e-6, a 10 µm cube's AABB is expanded by
     /// ≈ 17 fm (1e-6 × 17 µm diagonal), which is sub-atomic and does not merge
     /// distinct features.  The previous absolute 1e-6 m expansion was 60× the
     /// cube's width. ∎

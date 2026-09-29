@@ -363,9 +363,9 @@ impl Cdt {
     /// constrained edge blocks the walk.
     ///
     /// **Proof sketch**: In a triangulation, the segment `(a,b)` passes
-    /// through a sequence of triangles $T_1, T_2, \ldots, T_k$ forming
+    /// through a sequence of triangles $`T_1`, `T_2`, \ldots, `T_k`$ forming
     /// a "channel".  Adjacent triangles in this channel share crossing
-    /// edges.  Starting from $T_1$ (in `a`'s star) and following
+    /// edges.  Starting from $`T_1`$ (in `a`'s star) and following
     /// adjacency across crossing edges visits every triangle in the
     /// channel, hence every crossing edge.  ∎
     ///
@@ -537,9 +537,9 @@ impl Cdt {
     ///
     /// # Algorithm — Lawson Edge Flip
     ///
-    /// Given triangles $T_1 = (v_a, v_b, p)$ and $T_2 = (v_b, v_a, q)$
-    /// sharing edge $(v_a, v_b)$, the flip replaces them with
-    /// $T_1' = (p, q, v_b)$ and $T_2' = (q, p, v_a)$, rotating the
+    /// Given triangles $`T_1` = (`v_a`, `v_b`, p)$ and $`T_2` = (`v_b`, `v_a`, q)$
+    /// sharing edge $(`v_a`, `v_b`)$, the flip replaces them with
+    /// $`T_1`' = (p, q, `v_b`)$ and $`T_2`' = (q, p, `v_a`)$, rotating the
     /// shared edge by 90° to become $(p, q)$.
     ///
     /// # Invariants Maintained

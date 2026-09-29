@@ -33,6 +33,10 @@ impl<T: Scalar> Pslg<T> {
     /// Duplicate-segment errors (produced when two previously distinct
     /// segments resolve to the same subsegment) are removed by deduplication
     /// after each restart.
+    #[expect(
+        clippy::similar_names,
+        reason = "standard segment-endpoint and orientation naming in crossing resolution"
+    )]
     pub fn resolve_crossings(&mut self) {
         // Worklist-based crossing resolution: instead of restarting the full
         // O(n²) scan after each split, maintain a set of "dirty" segment

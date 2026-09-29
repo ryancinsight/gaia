@@ -4,6 +4,10 @@
     clippy::unwrap_used,
     reason = "demonstration and diagnostic target: an unwrap here is the assertion, not an input-dependent failure path"
 )]
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard geometric shorthand in a diagnostic example"
+)]
 
 use gaia::application::csg::boolean::{csg_boolean, BooleanOp};
 use gaia::domain::core::scalar::Point3r;

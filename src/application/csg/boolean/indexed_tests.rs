@@ -1,4 +1,8 @@
 #![cfg(test)]
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard geometric shorthand in indexed Boolean regression tests"
+)]
 
 use super::super::rectangular_prism::rectangular_prism_union;
 use super::repair::split_non_manifold_edges;

@@ -61,6 +61,10 @@ impl PrimitiveMesh for GeodesicSphere {
     }
 }
 
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard barycentric and Cartesian coordinate naming for geodesic subdivision"
+)]
 fn build(g: &GeodesicSphere) -> Result<IndexedMesh, PrimitiveError> {
     if g.radius <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(

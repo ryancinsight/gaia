@@ -27,7 +27,7 @@
 //! as `h → 0`, for interior vertices on well-shaped triangles.
 //!
 //! *Source*: Meyer et al., "Discrete Differential-Geometry Operators for
-//! Triangulated 2-Manifolds", VisMath 2003.
+//! Triangulated 2-Manifolds", `VisMath` 2003.
 //!
 //! ## Boundary Handling
 //!

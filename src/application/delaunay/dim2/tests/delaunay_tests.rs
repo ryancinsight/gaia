@@ -1,5 +1,10 @@
 //! Tests for the core Bowyer-Watson Delaunay triangulation.
 
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard geometric shorthand in Delaunay regression tests"
+)]
+
 use crate::application::delaunay::dim2::triangulation::bowyer_watson::DelaunayTriangulation;
 use crate::application::delaunay::dim2::triangulation::triangle::GHOST_TRIANGLE;
 use std::f64::consts::PI;
@@ -270,8 +275,8 @@ fn compact_removes_dead_triangles() {
 
 /// Theorem: Vertex→triangle invariant.
 ///
-/// After construction, for every inserted real vertex $v_i$,
-/// `vert_to_tri_slice()[i]` refers to an alive triangle containing $v_i$.
+/// After construction, for every inserted real vertex $`v_i`$,
+/// `vert_to_tri_slice()[i]` refers to an alive triangle containing $`v_i`$.
 #[test]
 fn vert_to_tri_invariant_holds() {
     let pts: Vec<(f64, f64)> = (0..15)

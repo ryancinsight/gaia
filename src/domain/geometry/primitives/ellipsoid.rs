@@ -76,6 +76,10 @@ impl PrimitiveMesh for Ellipsoid {
     }
 }
 
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard ellipsoid semi-axis naming and spherical-parameter notation"
+)]
 fn build(e: &Ellipsoid) -> Result<IndexedMesh, PrimitiveError> {
     if e.semi_x <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(

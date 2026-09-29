@@ -23,9 +23,9 @@
 //!
 //! ## Theorem (Metric-Ruppert Termination)
 //!
-//! **Statement**: Under a globally constant metric tensor M with λ_min > 0
+//! **Statement**: Under a globally constant metric tensor M with `λ_min` > 0
 //! (positive definite), metric-weighted Ruppert's algorithm terminates with
-//! O(area / h_min²) triangles, where h_min = smallest metric-weighted local
+//! O(area / `h_min²`) triangles, where `h_min` = smallest metric-weighted local
 //! feature size.
 //!
 //! **Proof**: The Cholesky transform p' = L p is a linear bijection on ℝ². It
@@ -38,7 +38,7 @@
 //! - Boissonnat & Oudot (2005), "Provably Good Sampling and Meshing of Surfaces",
 //!   Graphical Models 67, 405-451.
 //! - Labelle & Shewchuk (2003), "Anisotropic Voronoi Diagrams and Guaranteed-Quality
-//!   Anisotropic Mesh Generation", SoCG.
+//!   Anisotropic Mesh Generation", `SoCG`.
 
 use crate::domain::core::scalar::Real;
 

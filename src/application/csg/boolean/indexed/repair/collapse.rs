@@ -115,12 +115,12 @@ fn face_geometry(mesh: &IndexedMesh, face: &FaceData) -> FaceGeometry {
     // leaves `sin²θ` — scale-free, unlike the `cross² / max_edge²` ratio this
     // replaced, which carried a `length²` and so classified the same face
     // differently at different mesh scales.
-    let ab_sq = edge_lengths_squared[0];
-    let ac_sq = edge_lengths_squared[2];
+    let edge01_sq = edge_lengths_squared[0];
+    let edge02_sq = edge_lengths_squared[2];
     let nondegenerate = max_edge_squared > 0.0
-        && ab_sq > 0.0
-        && ac_sq > 0.0
-        && cross_squared >= DEGENERACY_SIN2_TOL * ab_sq * ac_sq;
+        && edge01_sq > 0.0
+        && edge02_sq > 0.0
+        && cross_squared >= DEGENERACY_SIN2_TOL * edge01_sq * edge02_sq;
 
     if nondegenerate {
         FaceGeometry::Nondegenerate
@@ -295,16 +295,17 @@ fn find_collapse_candidate(
         }
 
         let [d01, d12, d20] = edge_lengths_squared;
-        let (middle_index, endpoint_a_index, endpoint_b_index) = if d01 >= d12 && d01 >= d20 {
-            (2, 0, 1)
-        } else if d12 >= d20 {
-            (0, 1, 2)
-        } else {
-            (1, 2, 0)
-        };
+        let (middle_index, first_endpoint_index, second_endpoint_index) =
+            if d01 >= d12 && d01 >= d20 {
+                (2, 0, 1)
+            } else if d12 >= d20 {
+                (0, 1, 2)
+            } else {
+                (1, 2, 0)
+            };
         let middle = face.vertices[middle_index];
-        let endpoint_a = face.vertices[endpoint_a_index];
-        let endpoint_b = face.vertices[endpoint_b_index];
+        let endpoint_a = face.vertices[first_endpoint_index];
+        let endpoint_b = face.vertices[second_endpoint_index];
         let middle_position = mesh.vertices.position(middle);
         let position_a = mesh.vertices.position(endpoint_a);
         let position_b = mesh.vertices.position(endpoint_b);
@@ -434,6 +435,11 @@ fn canonical_face_key(mut vertices: [VertexId; 3]) -> [VertexId; 3] {
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::many_single_char_names,
+        reason = "standard triangle-geometry shorthand in collapse tests"
+    )]
+
     use super::*;
     use crate::domain::core::scalar::{Point3r, Vector3r};
 

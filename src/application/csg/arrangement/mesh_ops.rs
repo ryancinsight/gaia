@@ -55,7 +55,7 @@ pub(crate) fn merge_root(merge: &HashMap<VertexId, VertexId>, mut v: VertexId) -
 ///
 /// ## Theorem — Collinear Detection via Cross-Product Magnitude
 ///
-/// For triangle $(p_0, p_1, p_2)$, the area is $\tfrac12 \lVert (p_1-p_0)
+/// For triangle $(`p_0`, `p_1`, `p_2`)$, the area is $\tfrac12 \lVert (p_1-p_0)
 /// \times (p_2-p_0) \rVert$.  The face is degenerate when $\lVert (p_1-p_0)
 /// \times (p_2-p_0) \rVert^2 \le \varepsilon$ for machine-zero tolerance
 /// $\varepsilon = 10^{-30}$.  This catches all three failure modes: identical

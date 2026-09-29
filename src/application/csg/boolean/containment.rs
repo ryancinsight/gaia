@@ -26,7 +26,7 @@
 //! exactly on a face plane of the outer mesh, making the GWN result sharp
 //! (≈ 0.0 or ≈ 1.0) without needing arbitrary ray-cast nudges. ∎
 //!
-//! ## BInsideA Dispatch Note
+//! ## `BInsideA` Dispatch Note
 //!
 //! When containment returns `BInsideA`, `boolean_difference` dispatches to
 //! `boolean_intersecting_arrangement` — NOT a naive fast-path.  The arrangement

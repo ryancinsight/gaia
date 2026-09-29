@@ -13,11 +13,15 @@
 //! - **Closely-spaced parallel constraints**: narrow channels between
 //!   constraint edges produce extreme aspect-ratio triangles during CDT
 //!   recovery.
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard vertex-label naming in adversarial CDT/PSLG tests"
+)]
 //! - **Concentric polygon constraints**: nested constraint polygons with
 //!   holes test hole-removal correctness.
 //! - **Points on constraint edges**: Steiner points placed exactly on
-//!   constraint segments test OnEdge location handling.
-//! - **Ruppert area-only refinement**: validates the max_area constraint
+//!   constraint segments test `OnEdge` location handling.
+//! - **Ruppert area-only refinement**: validates the `max_area` constraint
 //!   independent of angle quality.
 //! - **CDT with many crossing DT edges**: a single long constraint that
 //!   crosses many Delaunay edges exercises the flip-recovery algorithm.
@@ -332,7 +336,7 @@ fn multiple_adjacent_small_holes() {
 
 // ── Ruppert area-only refinement ──────────────────────────────────────────
 
-/// **Failure mode**: Testing max_area constraint alone (no angle constraint)
+/// **Failure mode**: Testing `max_area` constraint alone (no angle constraint)
 /// exercises the area-based priority queue ordering independently of
 /// radius-edge ratio.
 #[test]
@@ -505,7 +509,7 @@ fn ruppert_disconnected_regions() {
 /// **Failure mode**: Inserting a point that lies exactly on an existing DT
 /// edge exercises the `OnEdge` branch of point location and the 2-to-4
 /// triangle split (or 1-to-2 on the hull).  Float rounding can misclassify
-/// OnEdge as Inside, producing degenerate zero-area triangles.
+/// `OnEdge` as Inside, producing degenerate zero-area triangles.
 #[test]
 fn insert_on_exact_edge() {
     // Build a square DT, then insert a point exactly on one of the DT edges.

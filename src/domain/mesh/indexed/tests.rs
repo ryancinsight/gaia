@@ -367,7 +367,7 @@ fn orient_outward_two_disjoint_tets() {
     );
 }
 
-/// Empty mesh must not panic in orient_outward.
+/// Empty mesh must not panic in `orient_outward`.
 #[test]
 fn orient_outward_empty_mesh_no_panic() {
     let mut mesh: IndexedMesh<f64> = IndexedMesh::new();

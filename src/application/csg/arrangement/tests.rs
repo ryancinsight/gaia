@@ -184,12 +184,12 @@ fn sphere_sphere_difference_volume() {
 /// exactly y = Ã¢Ë†â€™1.5 and both top caps at y = +1.5.
 ///
 /// Before the fix: the coplanar cap faces were routed through the
-/// Sutherland-Hodgman clip, which duplicated them (orient_3d Degenerate =
-/// "inside"), causing the union volume to exceed V_A + V_B.
+/// Sutherland-Hodgman clip, which duplicated them (`orient_3d` Degenerate =
+/// "inside"), causing the union volume to exceed `V_A` + `V_B`.
 ///
 /// After the fix: coplanar pairs bypass clipping and are classified by
 /// normal alignment.  Co-oriented cap pairs keep exactly one copy, so:
-///   vol(A Ã¢Ë†Âª B) < V_A + V_B   (overlap correctly subtracted)
+///   vol(A Ã¢Ë†Âª B) < `V_A` + `V_B`   (overlap correctly subtracted)
 ///   vol(A Ã¢Ë†Â© B) > 0            (lens region positive)
 #[test]
 fn coplanar_caps_no_double_counting() {
@@ -523,7 +523,7 @@ fn parallel_cylinder_union_is_watertight() {
 /// Regression: 64-segment parallel cylinder union volume (r=0.6, h=3.0, d=r).
 ///
 /// Exercises the exact geometry from the `csg_cylinder_cylinder` example.
-/// Verifies cop_faces direct emission produces correct volume for coplanar-cap case.
+/// Verifies `cop_faces` direct emission produces correct volume for coplanar-cap case.
 #[test]
 fn cylinder_cylinder_union_64seg_volume() {
     use crate::domain::geometry::primitives::{Cylinder, PrimitiveMesh};
@@ -722,7 +722,7 @@ fn l_shape_compound_union_is_watertight() {
     }
 }
 
-/// Regression test: V-shape right_branch (right_elbow Ã¢Ë†Âª right_arm) is watertight.
+/// Regression test: V-shape `right_branch` (`right_elbow` Ã¢Ë†Âª `right_arm`) is watertight.
 ///
 /// Uses the exact same geometry parameters as `cylinder_cylinder_v_shape.rs`
 /// but at reduced resolution (32Ãƒâ€”16) for fast test execution.
@@ -960,7 +960,7 @@ fn elbow_cylinder_union_is_watertight() {
 /// Regression test: V-shape `right_elbow ∪ right_arm` at 64×32 (exact example params).
 ///
 /// Uses the exact geometry from `cylinder_cylinder_v_shape.rs` `run_rounded()`.
-/// R=0.5, H=3.0, THETA=π/6, R_BEND=1.0, tube_segments=64, arc_segments=32.
+/// R=0.5, H=3.0, THETA=π/6, `R_BEND=1.0`, `tube_segments=64`, `arc_segments=32`.
 #[test]
 #[ignore = "Slow exact predicates in debug mode with elevated MAX_STEINER_PER_FACE"]
 fn v_shape_right_branch_64x32_is_watertight() {

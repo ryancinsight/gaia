@@ -42,9 +42,13 @@ pub(crate) fn segments_cross_proper(
 /// Compute the f64 parametric crossing point of two non-parallel line segments.
 ///
 /// Uses a scale-relative parallelism guard so the threshold adapts to the
-/// coordinate magnitude: $|\text{denom}| < |e_a| \cdot |e_b| \cdot 10^{-14}$.
+/// coordinate magnitude: $|\text{denom}| < |`e_a`| \cdot |`e_b`| \cdot 10^{-14}$.
 #[inline]
 #[must_use]
+#[expect(
+    clippy::similar_names,
+    reason = "standard segment-endpoint and displacement naming for intersection math"
+)]
 pub(crate) fn segment_cross_point(
     a1: &Point2<Real>,
     a2: &Point2<Real>,

@@ -23,9 +23,9 @@
 //!
 //! | Operation | Expected (mm³)             | Pipeline    |
 //! |-----------|---------------------------|-------------|
-//! | A ∪ B     | V_A  = 8.0000 (cyl inside)| Arrangement |
-//! | A ∩ B     | V_B ≈ 2.2619              | Arrangement |
-//! | A \ B     | V_A − V_B ≈ 5.7381        | Arrangement |
+//! | A ∪ B     | `V_A`  = 8.0000 (cyl inside)| Arrangement |
+//! | A ∩ B     | `V_B` ≈ 2.2619              | Arrangement |
+//! | A \ B     | `V_A` − `V_B` ≈ 5.7381        | Arrangement |
 //!
 //! ## Run
 //!

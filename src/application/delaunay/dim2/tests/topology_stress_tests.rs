@@ -5,7 +5,7 @@
 //! - Vertex-star fan-walk for hull/interior vertices
 //! - Cavity re-triangulation (ear-clipping) with non-trivial polygons
 //! - Euler formula consistency under stress
-//! - vert_to_tri cache coherence after CDT constraint enforcement
+//! - `vert_to_tri` cache coherence after CDT constraint enforcement
 //!
 //! Each test documents the **failure mode** it guards against and the
 //! relevant **literature** where applicable.
@@ -162,7 +162,7 @@ fn vertex_star_degree_regular_polygon() {
 /// Verify vertex-star completeness: every alive triangle containing
 /// vertex v is returned by `triangles_around_vertex(v)`.
 ///
-/// **Failure mode**: vert_to_tri cache staleness causes the fan walk
+/// **Failure mode**: `vert_to_tri` cache staleness causes the fan walk
 /// to start from a wrong triangle and miss some star members.
 #[test]
 fn vertex_star_completeness_random_50() {
@@ -433,7 +433,7 @@ fn three_connected_random_cloud() {
 /// mesh should have consistent adjacency and valid Delaunay property
 /// on non-constrained edges.
 ///
-/// **Failure mode**: Adjacency patching in remove_hole_triangles
+/// **Failure mode**: Adjacency patching in `remove_hole_triangles`
 /// leaves dangling references (the CW19 bug class).
 #[test]
 fn cdt_annulus_adjacency_consistency() {

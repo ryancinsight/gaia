@@ -30,12 +30,12 @@
 //! `id_map` is a `HashMap<VertexId, VertexId>` pre-sized to
 //! `faces.len() * 3 / 2`.  For a 500-face CSG result this allocates ~750 entries
 //! rather than the old `Vec<Option<_>>` which allocated at `pool.len()` (2 000+).
-//! The HashMap is also freed immediately on return, keeping peak RSS low.
+//! The `HashMap` is also freed immediately on return, keeping peak RSS low.
 //!
 //! ## Complexity
 //!
 //! `O(f)` where `f = faces.len()`.  Each vertex is inserted into `id_map` at
-//! most once (amortised O(1) per HashMap insert).  Total work is proportional
+//! most once (amortised O(1) per `HashMap` insert).  Total work is proportional
 //! to the output face count, independent of pool size.
 
 use hashbrown::HashMap;

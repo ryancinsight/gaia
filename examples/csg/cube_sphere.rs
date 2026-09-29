@@ -29,9 +29,9 @@
 //!
 //! | Operation | Expected (mm³)          | Pipeline    |
 //! |-----------|------------------------|-------------|
-//! | A ∪ B     | V_A + V_B − V_∩        | Arrangement |
+//! | A ∪ B     | `V_A` + `V_B` − V_∩        | Arrangement |
 //! | A ∩ B     | V_∩ ≈ 3.5343           | Arrangement |
-//! | A \ B     | V_A − V_∩ ≈ 4.4657     | Arrangement |
+//! | A \ B     | `V_A` − V_∩ ≈ 4.4657     | Arrangement |
 //!
 //! ## Run
 //!

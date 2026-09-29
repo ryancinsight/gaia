@@ -75,12 +75,16 @@ pub(super) fn build_closed_tube(
         for ia in 0..ANGULAR_SEGMENTS {
             let theta = std::f64::consts::TAU * ia as Real / ANGULAR_SEGMENTS as Real;
             let (sin_t, cos_t) = theta.sin_cos();
-            let nx_v = cos_t * ex + sin_t * fx;
-            let ny_v = cos_t * ey + sin_t * fy;
-            let nz_v = cos_t * ez + sin_t * fz;
+            let normal_x = cos_t * ex + sin_t * fx;
+            let normal_y = cos_t * ey + sin_t * fy;
+            let normal_z = cos_t * ez + sin_t * fz;
             let vid = mesh.add_vertex(
-                Point3r::new(cx + radius * nx_v, cy + radius * ny_v, cz + radius * nz_v),
-                Vector3r::new(nx_v, ny_v, nz_v),
+                Point3r::new(
+                    cx + radius * normal_x,
+                    cy + radius * normal_y,
+                    cz + radius * normal_z,
+                ),
+                Vector3r::new(normal_x, normal_y, normal_z),
             );
             ring.push(vid);
         }

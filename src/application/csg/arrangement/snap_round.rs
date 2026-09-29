@@ -36,8 +36,8 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 
 /// Squared perpendicular distance tolerance for snap-round.
 /// A boundary vertex V is considered to lie on face edge [A,B] if:
-///   distance(V, line(A,B)) < sqrt(SNAP_TOL_SQ) * |AB|
-/// i.e., sin(angle(AV, AB)) < sqrt(SNAP_TOL_SQ) ≈ 0.001
+///   distance(V, line(A,B)) < `sqrt(SNAP_TOL_SQ)` * |AB|
+/// i.e., sin(angle(AV, AB)) < `sqrt(SNAP_TOL_SQ)` ≈ 0.001
 ///
 /// Delegates to [`POINT_ON_EDGE_SIN2_TOL`] (SSOT): the seam passes test the same
 /// angular condition, so "on the edge" means one thing across the crate.
@@ -381,6 +381,11 @@ pub(crate) fn snap_round_tjunctions(faces: &mut Vec<FaceData>, pool: &VertexPool
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::many_single_char_names,
+        reason = "standard geometric point and normal naming in snap-round tests"
+    )]
+
     use super::*;
     use crate::domain::core::scalar::{Point3r, Vector3r};
 

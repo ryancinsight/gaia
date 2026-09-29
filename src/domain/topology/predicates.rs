@@ -107,6 +107,10 @@ pub fn incircle2d(a: &Point3r, b: &Point3r, c: &Point3r, d: &Point3r) -> Sign {
 
 /// Exact insphere predicate in 3D.
 #[inline]
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard tetrahedron-vertex naming for the insphere predicate"
+)]
 #[must_use]
 pub fn insphere3d(a: &Point3r, b: &Point3r, c: &Point3r, d: &Point3r, e: &Point3r) -> Sign {
     let pa = [a.x, a.y, a.z];
@@ -121,6 +125,11 @@ pub fn insphere3d(a: &Point3r, b: &Point3r, c: &Point3r, d: &Point3r, e: &Point3
 
 #[cfg(test)]
 mod gaia_004_regression {
+    #![expect(
+        clippy::many_single_char_names,
+        reason = "standard predicate-vertex naming in topology tests"
+    )]
+
     use super::*;
     use crate::domain::geometry::predicates::{
         orient_2d as geo_orient_2d, orient_3d as geo_orient_3d, Orientation,

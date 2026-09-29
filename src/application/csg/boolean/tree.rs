@@ -66,8 +66,8 @@ impl CsgNode {
     ///
     /// **Theorem** (associativity of Union/Intersection):
     ///
-    /// For closed, orientable surfaces $S_1, S_2, \ldots, S_n$ in $\mathbb{R}^3$,
-    /// $$\bigcup_{i=1}^{n} S_i = (\cdots((S_1 \cup S_2) \cup S_3) \cdots \cup S_n)$$
+    /// For closed, orientable surfaces `$S_1$`, `$S_2$`, ..., `$S_n$` in $\mathbb{R}^3$,
+    /// $$\bigcup_{i=1}^{n} `S_i` = (\cdots((`S_1` \cup `S_2`) \cup `S_3`) \cdots \cup `S_n`)$$
     /// and likewise for $\bigcap$.  Difference is *not* associative
     /// ($(A \setminus B) \setminus C \neq A \setminus (B \setminus C)$),
     /// so it is never flattened.

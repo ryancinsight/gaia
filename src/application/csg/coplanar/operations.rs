@@ -448,6 +448,10 @@ pub(crate) fn boolean_coplanar(
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::many_single_char_names,
+        reason = "standard radius and offset naming in coplanar-operation tests"
+    )]
     use super::super::geometry2d::polygon_area_2d;
     use super::{aabb_overlaps, CoplanarBuffers, SweepAabbIndex2d, TriData};
     use crate::application::csg::boolean::{csg_boolean, BooleanOp};

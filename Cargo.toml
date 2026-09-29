@@ -153,13 +153,6 @@ cast_possible_wrap = "allow"         # 17
 # (tie-breaking, identity check, degenerate-edge guard, lexicographic pivot);
 # test-code sites are covered by the crate-root #![cfg_attr(test, expect(...))].
 
-# ── Ratchet: documentation debt (291) ─────────────────────────────────────────
-doc_markdown = "allow"               # 258
-
-# ── Ratchet: naming and style debt (152) ──────────────────────────────────────
-similar_names = "allow"              # 72
-many_single_char_names = "allow"     # 50
-
 # ── Ratchet: size and shape debt (58) ────────────────────────────────────────
 # Source files over the 500-line target are the split backlog.
 too_many_lines = "allow"             # 58

@@ -236,6 +236,11 @@ fn invalid_cell(cell: usize, reason: impl Into<String>) -> MeshError {
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::many_single_char_names,
+        reason = "standard tetrahedron vertex naming in builder tests"
+    )]
+
     use super::*;
     use crate::domain::core::scalar::Scalar;
 

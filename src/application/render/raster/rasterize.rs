@@ -60,6 +60,10 @@ fn edge(a: &ScreenVertex, b: &ScreenVertex, px: Real, py: Real) -> Real {
 /// centre lies exactly on a shared edge can still be counted twice, which is
 /// what [`RenderStats::fragments_passed`](super::stats::RenderStats::fragments_passed)
 /// documents.
+#[expect(
+    clippy::similar_names,
+    reason = "standard min/max screen-coordinate naming in raster bounds"
+)]
 pub(super) fn rasterize(
     mut v: [ScreenVertex; 3],
     color: u32,

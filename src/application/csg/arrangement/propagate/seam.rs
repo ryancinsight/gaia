@@ -98,6 +98,10 @@ pub fn propagate_seam_vertices(
     );
 }
 
+#[expect(
+    clippy::similar_names,
+    reason = "standard edge-endpoint and face-vertex naming for seam propagation"
+)]
 fn propagate_seam_vertices_impl(
     faces: &[FaceData],
     segs: &mut [Vec<SnapSegment>],

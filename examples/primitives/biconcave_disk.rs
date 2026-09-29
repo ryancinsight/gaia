@@ -1,4 +1,4 @@
-//! Export: BiconcaveDisk → outputs/primitives/biconcave_disk.stl
+//! Export: `BiconcaveDisk` → `outputs/primitives/biconcave_disk.stl`
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;

@@ -410,12 +410,12 @@ mod tests {
         );
     }
 
-    /// Regression: SLIVER_AREA_RATIO_SQ = 1e-14 must not skip valid millifluidic faces.
+    /// Regression: `SLIVER_AREA_RATIO_SQ` = 1e-14 must not skip valid millifluidic faces.
     ///
     /// A face with a 4mm longest edge and a 50µm altitude has:
-    ///   area_sq = (2 × 0.5 × 4e-3 × 50e-6)² = 4e-14
-    ///   max_edge_sq ≈ (4e-3)² = 1.6e-5
-    ///   ratio = 4e-14 / 1.6e-5 = 2.5e-9 >> SLIVER_AREA_RATIO_SQ (1e-14)
+    ///   `area_sq` = (2 × 0.5 × 4e-3 × 50e-6)² = 4e-14
+    ///   `max_edge_sq` ≈ (4e-3)² = 1.6e-5
+    ///   ratio = 4e-14 / 1.6e-5 = 2.5e-9 >> `SLIVER_AREA_RATIO_SQ` (1e-14)
     ///
     /// The old threshold of 1e-10 would skip faces with altitude ratio < sqrt(1e-10) ≈ 3e-5,
     /// incorrectly eliminating thin-channel seam fragments from near-parallel intersections

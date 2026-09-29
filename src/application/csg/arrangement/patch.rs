@@ -420,7 +420,7 @@ mod tests {
     use super::*;
     use crate::domain::core::scalar::{Point3r, Vector3r};
 
-    /// Helper: build a VertexPool and insert vertices at given positions.
+    /// Helper: build a `VertexPool` and insert vertices at given positions.
     fn pool_with_positions(pts: &[Point3r]) -> (VertexPool, Vec<VertexId>) {
         let mut pool = VertexPool::new(1e-6_f64);
         let n = Vector3r::new(0.0, 0.0, 1.0);
@@ -637,7 +637,7 @@ mod tests {
 
     // ── Sliver face tolerance ────────────────────────────────────────────
 
-    /// Face with area ratio < 1e-8 * max_edge should be removed by Step 1.
+    /// Face with area ratio < 1e-8 * `max_edge` should be removed by Step 1.
     #[test]
     fn patch_removes_extreme_sliver() {
         let (pool, v) = pool_with_positions(&[

@@ -48,9 +48,9 @@ use super::tolerances::{
 /// the nearest sample point is within 1 mm of P.  Proof: samples divide [pa, pb]
 /// into 4 equal sub-intervals of length |pb − pa|/4 ≤ 2 mm.  P's distance to the
 /// nearest sample is at most |pb − pa|/8 ≤ 1 mm = cell size.  Therefore P lands
-/// in the 27-cell neighbourhood (radius 1 = 1 mm) of that sample's GridCell.  For
+/// in the 27-cell neighbourhood (radius 1 = 1 mm) of that sample's `GridCell`.  For
 /// edges > 8 mm, the fallback collinearity test (part of the inner loop) still
-/// runs correctly — coverage is only reduced to O(1/cell_size) density.  QED.
+/// runs correctly — coverage is only reduced to `O(1/cell_size)` density.  QED.
 ///
 /// ## Complexity
 ///

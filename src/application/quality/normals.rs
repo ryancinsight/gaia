@@ -445,7 +445,7 @@ mod tests {
     /// be swapped so that `inward_faces` reflects the true orientation
     /// inconsistency count.
     ///
-    /// **Proof**: The BFS seed heuristic (max-X face with $n_x \geq 0$)
+    /// **Proof**: The BFS seed heuristic (max-X face with $`n_x` \geq 0$)
     /// assumes the extreme face points outward.  For a fully inward-wound
     /// mesh, the seed labels all faces "outward" (consistent BFS), but
     /// the signed volume is negative.  Swapping the counts corrects the

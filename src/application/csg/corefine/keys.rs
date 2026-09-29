@@ -70,6 +70,10 @@ pub type SeamVertexMap = HashMap<(VertexId, VertexId), Vec<(Real, VertexId)>>;
 /// under the canonical edge key.  Subsequent faces sharing that edge receive
 /// the same `VertexId` by lookup rather than re-inserting (which could produce
 /// a different ID due to differing face normals passed to `insert_or_weld`).
+#[expect(
+    clippy::similar_names,
+    reason = "standard face-edge endpoint naming for seam-vertex registration"
+)]
 pub fn build_seam_vertex_map(
     faces: &[FaceData],
     snap_segments: &[Vec<SnapSegment>],

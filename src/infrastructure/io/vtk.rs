@@ -1,6 +1,6 @@
 //! VTK unstructured grid export.
 //!
-//! Writes a VTK legacy ASCII file suitable for ParaView visualization.
+//! Writes a VTK legacy ASCII file suitable for `ParaView` visualization.
 
 use hashbrown::HashMap;
 use std::io::Write;
@@ -74,7 +74,7 @@ pub fn write_vtk_indexed<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshRe
 ///
 /// Vertex keys are mapped to sequential indices 0..n in iteration order.
 /// Only triangular faces (those with exactly 3 vertices) are emitted.
-/// The VTK cell type is always `5` (VTK_TRIANGLE).
+/// The VTK cell type is always `5` (`VTK_TRIANGLE`).
 ///
 /// # Errors
 ///

@@ -1,4 +1,4 @@
-//! Export: GeodesicSphere → outputs/primitives/geodesic_sphere.stl
+//! Export: `GeodesicSphere` → `outputs/primitives/geodesic_sphere.stl`
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;

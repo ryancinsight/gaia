@@ -208,6 +208,10 @@ fn collect_overlapping_edge_pairs_sweep(
 /// 4. Compute CDT.
 /// 5. Classify each output triangle by testing its centroid against both
 ///    input polygons (winding number test).
+#[expect(
+    clippy::similar_names,
+    reason = "subject/clip polygon shorthand is standard for clipping algorithms"
+)]
 pub fn cdt_clip(subject: &[[Real; 2]], clip: &[[Real; 2]], op: ClipOp) -> Vec<Vec<[Real; 2]>> {
     use crate::application::delaunay::Cdt;
 

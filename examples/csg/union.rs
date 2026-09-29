@@ -1,7 +1,7 @@
-//! CSG Union: CubeA ∪ CubeB → `outputs/csg/union_cube_cube.stl`
+//! CSG Union: `CubeA` ∪ `CubeB` → `outputs/csg/union_cube_cube.stl`
 //!
 //! Demonstrates the Boolean union of two overlapping cubes.
-//! CubeA is 2×2×2 mm at the origin.  CubeB is 2×2×2 mm offset by (1,0,0) so
+//! `CubeA` is 2×2×2 mm at the origin.  `CubeB` is 2×2×2 mm offset by (1,0,0) so
 //! the two cubes share a 1×2×2 = 4 mm² overlap slab.  The result is an
 //! L-shaped rectangular solid with volume 8 + 8 − 4 = 12 mm³.
 //!

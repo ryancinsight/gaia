@@ -71,6 +71,10 @@ impl PrimitiveMesh for RoundedCube {
     }
 }
 
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard width/height/depth/radius shorthand and corner-normal coordinates"
+)]
 fn build(rc: &RoundedCube) -> Result<IndexedMesh, PrimitiveError> {
     let (w, h, d) = (rc.width, rc.height, rc.depth);
     let r = rc.corner_radius;

@@ -27,6 +27,14 @@ use hashbrown::HashMap;
 /// from the global map rather than recomputed from raw snap-segment geometry.
 /// This guarantees that adjacent faces sharing an edge produce identical
 /// Steiner sequences → matching CDT triangulations → zero non-manifold edges.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard face-vertex, edge-parameter, and projected-coordinate naming"
+)]
+#[expect(
+    clippy::similar_names,
+    reason = "standard edge-endpoint and projected-coordinate naming in corefinement geometry"
+)]
 pub(crate) fn corefine_face(
     face: &FaceData,
     snap_segments: &[SnapSegment],

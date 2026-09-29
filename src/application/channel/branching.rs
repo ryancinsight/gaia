@@ -7,7 +7,7 @@
 //! ## Design Note
 //!
 //! All geometry and arithmetic is performed in `f64` (`Real`).  A generic
-//! `<T: Scalar>` parameter would be a fake generic (core_invariants rule 2)
+//! `<T: Scalar>` parameter would be a fake generic (`core_invariants` rule 2)
 //! because the algorithm uses `sin`/`cos`, square-root normalisation, and CSG
 //! Boolean union â€” all operating natively in `f64`.  Parametrising `T` would
 //! silently zero-out geometry via `unwrap_or(0.0)` on conversion failure.

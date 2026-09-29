@@ -272,7 +272,7 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
 
 /// Merge coincident vertices and compact the vertex pool.
 ///
-/// 1. **Dedup**: merge vertices with ‖p_i − p_j‖ < ε (union-find).
+/// 1. **Dedup**: merge vertices with ‖`p_i` − `p_j`‖ < ε (union-find).
 /// 2. **Compact**: remove unreferenced vertices, re-index face references.
 ///
 /// # Theorem — Vertex Pool Compaction Preserves Euler–Poincaré

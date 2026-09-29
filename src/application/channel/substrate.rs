@@ -57,21 +57,21 @@ impl SubstrateBuilder {
     ///
     /// Produces 12 triangles (2 per face × 6 faces) with outward normals.
     pub fn build(&self, vertex_pool: &mut VertexPool, region: RegionId) -> Vec<FaceData> {
-        let o = self.origin;
-        let w = self.width;
-        let d = self.depth;
-        let h = self.height;
+        let origin = self.origin;
+        let width = self.width;
+        let depth = self.depth;
+        let height = self.height;
 
         // 8 corners of the cuboid
         let corners = [
-            Point3r::new(o.x, o.y, o.z),             // 0: min
-            Point3r::new(o.x + w, o.y, o.z),         // 1
-            Point3r::new(o.x + w, o.y + d, o.z),     // 2
-            Point3r::new(o.x, o.y + d, o.z),         // 3
-            Point3r::new(o.x, o.y, o.z + h),         // 4
-            Point3r::new(o.x + w, o.y, o.z + h),     // 5
-            Point3r::new(o.x + w, o.y + d, o.z + h), // 6
-            Point3r::new(o.x, o.y + d, o.z + h),     // 7
+            Point3r::new(origin.x, origin.y, origin.z), // 0: min
+            Point3r::new(origin.x + width, origin.y, origin.z), // 1
+            Point3r::new(origin.x + width, origin.y + depth, origin.z), // 2
+            Point3r::new(origin.x, origin.y + depth, origin.z), // 3
+            Point3r::new(origin.x, origin.y, origin.z + height), // 4
+            Point3r::new(origin.x + width, origin.y, origin.z + height), // 5
+            Point3r::new(origin.x + width, origin.y + depth, origin.z + height), // 6
+            Point3r::new(origin.x, origin.y + depth, origin.z + height), // 7
         ];
 
         let normals = [
@@ -98,10 +98,10 @@ impl SubstrateBuilder {
         let mut faces = Vec::with_capacity(12);
 
         for (quad, normal_idx) in &face_quads {
-            let n = normals[*normal_idx];
+            let normal = normals[*normal_idx];
             let vids: Vec<_> = quad
                 .iter()
-                .map(|&ci| vertex_pool.insert_or_weld(corners[ci], n))
+                .map(|&ci| vertex_pool.insert_or_weld(corners[ci], normal))
                 .collect();
 
             faces.push(FaceData {

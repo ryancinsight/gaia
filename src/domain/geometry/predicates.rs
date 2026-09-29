@@ -265,6 +265,10 @@ pub fn incircle<T: Scalar>(
 /// - [`Degenerate`][Orientation::Degenerate] — `e` lies on the sphere.
 ///
 /// Used in 3-D Delaunay mesh generation to enforce the Delaunay property.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard tetrahedron-vertex naming for the insphere predicate"
+)]
 #[must_use]
 pub fn insphere<T: Scalar>(a: [T; 3], b: [T; 3], c: [T; 3], d: [T; 3], e: [T; 3]) -> Orientation {
     let to64 = |v: [T; 3]| [exact_f64(v[0]), exact_f64(v[1]), exact_f64(v[2])];
@@ -276,6 +280,11 @@ pub fn insphere<T: Scalar>(a: [T; 3], b: [T; 3], c: [T; 3], d: [T; 3], e: [T; 3]
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::many_single_char_names,
+        reason = "standard predicate-vertex naming in exact-geometry tests"
+    )]
+
     use super::*;
     use leto::geometry::Point2;
 

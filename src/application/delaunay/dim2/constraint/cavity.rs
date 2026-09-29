@@ -31,9 +31,9 @@ use crate::application::delaunay::dim2::pslg::vertex::{PslgVertex, PslgVertexId}
 /// with fewest circumcircle-interior violations produces a triangulation
 /// that is locally Delaunay wherever the polygon boundary allows.
 ///
-/// **Proof sketch**: An ear of a simple polygon is a triangle $(v_{i-1}, v_i,
+/// **Proof sketch**: An ear of a simple polygon is a triangle $(v_{i-1}, `v_i`,
 /// v_{i+1})$ whose interior lies entirely within the polygon.  Meisters'
-/// Two-Ears Theorem guarantees at least two such ears exist.  Clipping $v_i$
+/// Two-Ears Theorem guarantees at least two such ears exist.  Clipping $`v_i`$
 /// produces a polygon with $n-1$ vertices that is still simple, so the
 /// process terminates after $n - 2$ clips.  Preferring the ear with minimum
 /// incircle violations is a greedy heuristic: it yields a Delaunay

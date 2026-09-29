@@ -20,6 +20,10 @@ use super::types::IntersectionType;
 /// - [`IntersectionType::None`] when the triangles are disjoint.
 /// - [`IntersectionType::Coplanar`] when they lie in the same plane.
 /// - [`IntersectionType::Segment`] when they intersect along a segment.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard triangle vertex naming for exact intersection predicates"
+)]
 #[must_use]
 pub fn intersect_triangles(
     fa: &FaceData,

@@ -10,15 +10,15 @@
 //! Each bar spans the centre of a 2×2×2 volume along one axis.
 //! Volume = 3×1 − 3×(0.25) + 0 = 3 − 0.75 = 2.25 mm³ (inclusion-exclusion)
 //!
-//! Actually: bar_x = 0.5×0.5×2=0.5, bar_y=0.5, bar_z=0.5.
-//! Pairwise overlaps (bar_x∩bar_y etc.) each = 0.5×0.5×0.5=0.125, three of them.
+//! Actually: `bar_x` = 0.5×0.5×2=0.5, `bar_y=0.5`, `bar_z=0.5`.
+//! Pairwise overlaps (`bar_x∩bar_y` etc.) each = 0.5×0.5×0.5=0.125, three of them.
 //! Triple overlap = 0.5³=0.125. V = 3×0.5 − 3×0.125 + 0.125 = 1.5−0.375+0.125 = 1.25 mm³
 //!
 //! ## Shape 2: Notched L-bar
 //!
 //! `(CubeA ∪ CubeB) − CubeC` — union of two overlapping cubes with a corner notch.
-//! CubeA [0,2]³, CubeB [1,3]×[0,2]×[0,2] → bar 12 mm³.
-//! CubeC [2,4]×[1,3]×[1,3] → cuts a 1×1×1 corner = 1 mm³.
+//! `CubeA` [0,2]³, `CubeB` [1,3]×[0,2]×[0,2] → bar 12 mm³.
+//! `CubeC` [2,4]×[1,3]×[1,3] → cuts a 1×1×1 corner = 1 mm³.
 //! Expected: 12 − 1 = 11 mm³.
 //!
 //! Run with:

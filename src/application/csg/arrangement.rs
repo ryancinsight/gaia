@@ -175,6 +175,10 @@ use result_finalization::finalize_boolean_faces;
 /// # Returns
 ///
 /// A `Vec<FaceData>` representing the result, using vertex IDs from `pool`.
+#[expect(
+    clippy::similar_names,
+    reason = "paired operand-A and operand-B tracking is intrinsic to arrangement assembly"
+)]
 pub fn boolean_intersecting_arrangement(
     op: BooleanOp,
     faces_a: &[FaceData],
@@ -253,8 +257,8 @@ pub fn boolean_intersecting_arrangement(
         &mut segs_a,
         &mut segs_b,
     );
-    let coplanar_a_used = coplanar_groups.a_used;
-    let coplanar_b_used = coplanar_groups.b_used;
+    let used_plane_a_faces = coplanar_groups.a_used;
+    let used_plane_b_faces = coplanar_groups.b_used;
     let coplanar_results = coplanar_groups.results;
 
     // Coplanar-cap resolution can inject new seam segments onto rim triangles
@@ -282,7 +286,7 @@ pub fn boolean_intersecting_arrangement(
     append_corefined_fragments(
         &mut frags,
         faces_a,
-        &coplanar_a_used,
+        &used_plane_a_faces,
         &segs_a,
         pool,
         &seam_map_a,
@@ -295,7 +299,7 @@ pub fn boolean_intersecting_arrangement(
     append_corefined_fragments(
         &mut frags,
         faces_b,
-        &coplanar_b_used,
+        &used_plane_b_faces,
         &segs_b,
         pool,
         &seam_map_b,

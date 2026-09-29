@@ -175,16 +175,16 @@ pub fn eval_basis_and_deriv_to_slice<T: Scalar>(
     p: usize,
     knots: &KnotVector<T>,
     out_n: &mut [T],
-    out_dn: &mut [T],
+    out_derivative: &mut [T],
 ) {
     let required = p + 1;
     assert_output_len("basis output", out_n.len(), required);
-    assert_output_len("basis derivative output", out_dn.len(), required);
+    assert_output_len("basis derivative output", out_derivative.len(), required);
 
     eval_basis_to_slice(span, t, p, knots, out_n);
 
     if p == 0 {
-        out_dn[0] = <T as NumericElement>::ZERO;
+        out_derivative[0] = <T as NumericElement>::ZERO;
         return;
     }
 
@@ -211,7 +211,7 @@ pub fn eval_basis_and_deriv_to_slice<T: Scalar>(
         } else {
             safe_div(lower[j], knots.get(i + p + 1) - knots.get(i + 1))
         };
-        out_dn[j] = pp * (left - right);
+        out_derivative[j] = pp * (left - right);
     }
 }
 
@@ -307,14 +307,14 @@ mod tests {
         let kv = KnotVector::<f64>::clamped_uniform(6, 3);
         let t = 0.42;
         let span = kv.find_span(t, 6);
-        let (expected_n, expected_dn) = eval_basis_and_deriv(span, t, 3, &kv);
+        let (expected_n, expected_derivative) = eval_basis_and_deriv(span, t, 3, &kv);
         let mut actual_n = [0.0; 4];
-        let mut actual_dn = [0.0; 4];
+        let mut actual_derivative = [0.0; 4];
 
-        eval_basis_and_deriv_to_slice(span, t, 3, &kv, &mut actual_n, &mut actual_dn);
+        eval_basis_and_deriv_to_slice(span, t, 3, &kv, &mut actual_n, &mut actual_derivative);
 
         assert_eq!(actual_n.as_slice(), expected_n.as_slice());
-        assert_eq!(actual_dn.as_slice(), expected_dn.as_slice());
+        assert_eq!(actual_derivative.as_slice(), expected_derivative.as_slice());
     }
 
     #[test]
@@ -389,7 +389,7 @@ mod tests {
 
     /// The scalar seam monomorphizes: the `f32` instantiation holds the
     /// partition-of-unity invariant at its own precision. Tolerance derives
-    /// from the Cox–de Boor error growth at degree 3 — O(p²·ε_f32) ≈
+    /// from the Cox–de Boor error growth at degree 3 — `O(p²·ε_f32)` ≈
     /// 9 · 2⁻⁴⁴ ≈ 5.4e-7 — with 4× headroom; knot values are exact dyadics.
     #[test]
     fn f32_partition_of_unity() {
@@ -408,7 +408,7 @@ mod tests {
 
     /// Partition of unity at `f32` on the heap-degree path: degree 9 exceeds
     /// the stack limit of 8, so the evaluation exercises the allocating
-    /// branch. Error growth is O(p²·ε_f32) ≈ 81·2⁻²⁴ ≈ 4.8e-6; the
+    /// branch. Error growth is `O(p²·ε_f32)` ≈ 81·2⁻²⁴ ≈ 4.8e-6; the
     /// assertion carries 4× headroom.
     #[test]
     fn f32_partition_of_unity_at_heap_degree() {

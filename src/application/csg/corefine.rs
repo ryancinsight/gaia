@@ -68,9 +68,9 @@
 //!
 //! `vid_to_pslg` uses `HashMap<VertexId, PslgVertexId>` with capacity hint
 //! `boundary_vids.len() + interior_vids.len()`.  The previous `Vec<Option<_>>`
-//! of length `pool.len()` allocated O(pool_size) per call — up to 100 k entries
-//! for pools of 2 000+ vertices.  The HashMap reduces per-call allocation from
-//! O(pool_size) to O(face_vertex_count) (typically 3–12 entries).
+//! of length `pool.len()` allocated `O(pool_size)` per call — up to 100 k entries
+//! for pools of 2 000+ vertices.  The `HashMap` reduces per-call allocation from
+//! `O(pool_size)` to `O(face_vertex_count)` (typically 3–12 entries).
 
 use hashbrown::HashMap;
 
@@ -125,9 +125,9 @@ pub(crate) struct CorefinerScratch {
     edge_steiners: [Vec<(Real, VertexId)>; 3],
     /// Ordered list of boundary vertex IDs.
     boundary_vids: Vec<VertexId>,
-    /// Mapping from VertexId to PSLG vertex identifier.
+    /// Mapping from `VertexId` to PSLG vertex identifier.
     vid_to_pslg: HashMap<VertexId, PslgVertexId>,
-    /// Inverse mapping from PSLG vertex identifier index to VertexId.
+    /// Inverse mapping from PSLG vertex identifier index to `VertexId`.
     pslg_to_vid: Vec<VertexId>,
     /// Unique 2D coordinates of PSLG vertices.
     unique_pts: Vec<[Real; 2]>,

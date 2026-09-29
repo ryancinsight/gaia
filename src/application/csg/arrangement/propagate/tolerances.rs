@@ -33,8 +33,8 @@ use crate::domain::core::scalar::Real;
 /// is dimensionless and scale-invariant.  ∎
 ///
 /// The previous check `|cross|² ≤ C · |edge|²` was an absolute
-/// perpendicular-distance check (d_perp² ≤ C) that caused false positives
-/// at millimetre scale where d_perp < 1 mm for geometrically distant points.
+/// perpendicular-distance check (`d_perp²` ≤ C) that caused false positives
+/// at millimetre scale where `d_perp` < 1 mm for geometrically distant points.
 ///
 /// Delegates to [`POINT_ON_EDGE_SIN2_TOL`] (SSOT).
 pub(super) const COLLINEAR_TOL_SQ: Real = POINT_ON_EDGE_SIN2_TOL;

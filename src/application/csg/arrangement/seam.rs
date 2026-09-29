@@ -432,6 +432,11 @@ pub(crate) fn stitch_boundary_seams_conservative(faces: &mut Vec<FaceData>, pool
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::many_single_char_names,
+        reason = "standard geometric point and normal naming in seam tests"
+    )]
+
     use super::*;
     use crate::domain::core::scalar::{Point3r, Vector3r};
     use proptest::prelude::*;

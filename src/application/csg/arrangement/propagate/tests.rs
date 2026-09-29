@@ -1,5 +1,10 @@
 //! Contract tests for both propagation passes and the adjacency map.
 
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard geometric endpoint and normal naming in propagation tests"
+)]
+
 use super::adjacency::AdjacentFaces;
 use super::{inject_cap_seam_into_barrels, propagate_seam_vertices};
 use crate::application::csg::intersect::SnapSegment;

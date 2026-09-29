@@ -40,6 +40,10 @@ pub(crate) struct PlaneBasis<T = Real> {
 }
 
 impl<T: Scalar> PlaneBasis<T> {
+    #[expect(
+        clippy::many_single_char_names,
+        reason = "standard triangle vertex and in-plane basis naming"
+    )]
     pub(crate) fn from_triangle(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> Option<Self> {
         let ab = b - a;
         let ac = c - a;

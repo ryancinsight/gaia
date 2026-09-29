@@ -1,4 +1,4 @@
-//! Tests for conversion to IndexedMesh.
+//! Tests for conversion to `IndexedMesh`.
 
 use crate::application::delaunay::dim2::convert::indexed_mesh::to_indexed_mesh;
 use crate::application::delaunay::dim2::triangulation::bowyer_watson::DelaunayTriangulation;

@@ -1,11 +1,11 @@
 //! CFD volume-cell quality metrics.
 //!
-//! Two metrics that OpenFOAM reports for every internal face:
+//! Two metrics that `OpenFOAM` reports for every internal face:
 //!
 //! | Metric | Formula | Good | Acceptable | Invalid |
 //! |--------|---------|------|------------|---------|
 //! | Non-orthogonality | ∠(face normal, d) | < 70° | < 85° | ≥ 90° |
-//! | Skewness | \|fc - Pi\| / \|fc - C_owner\| | < 0.5 | < 0.85 | ≥ 1.0 |
+//! | Skewness | \|fc - Pi\| / \|fc - `C_owner`\| | < 0.5 | < 0.85 | ≥ 1.0 |
 //!
 //! where **d** is the owner→neighbour centroid vector, **fc** is the face
 //! centre, and **Pi** is the point where **d** intersects the face plane.
@@ -23,6 +23,10 @@ use crate::domain::mesh::IndexedMesh;
 /// owner→neighbour centroid vector **d**.
 ///
 /// Returns `None` when either cell identifier is not present.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard face-vertex, normal, and direction-vector naming"
+)]
 #[must_use]
 pub fn face_non_orthogonality(
     face: FaceId,
@@ -58,6 +62,10 @@ pub fn face_non_orthogonality(
 /// intersection point) to (distance from face centre to owner centroid).
 ///
 /// Returns `None` when either cell identifier is not present.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard face-vertex, normal, and line-parameter naming"
+)]
 #[must_use]
 pub fn face_skewness(
     face: FaceId,

@@ -45,6 +45,10 @@ impl PrimitiveMesh for Tetrahedron {
     }
 }
 
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard tetrahedron vertex and radius naming"
+)]
 fn build(t: &Tetrahedron) -> Result<IndexedMesh, PrimitiveError> {
     let r = t.radius;
     if r <= 0.0 {

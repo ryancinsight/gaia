@@ -1,4 +1,4 @@
-//! Export: SphericalShell → outputs/primitives/spherical_shell.stl
+//! Export: `SphericalShell` → `outputs/primitives/spherical_shell.stl`
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;

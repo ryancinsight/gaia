@@ -1,4 +1,4 @@
-//! Export: RoundedCube → outputs/primitives/rounded_cube.stl
+//! Export: `RoundedCube` → `outputs/primitives/rounded_cube.stl`
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;

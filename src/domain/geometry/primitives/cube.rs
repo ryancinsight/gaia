@@ -73,31 +73,33 @@ impl PrimitiveMesh for Cube {
     }
 }
 
-fn build(c: &Cube) -> Result<IndexedMesh, PrimitiveError> {
-    let (w, h, d) = (c.width, c.height, c.depth);
-    if w <= 0.0 || h <= 0.0 || d <= 0.0 {
+fn build(cube: &Cube) -> Result<IndexedMesh, PrimitiveError> {
+    let width = cube.width;
+    let height = cube.height;
+    let depth = cube.depth;
+    if width <= 0.0 || height <= 0.0 || depth <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(
-            "all dimensions must be > 0, got ({w}, {h}, {d})"
+            "all dimensions must be > 0, got ({width}, {height}, {depth})"
         )));
     }
 
     let region = RegionId::new(1);
     let mut mesh = IndexedMesh::new();
 
-    let ox = c.origin.x;
-    let oy = c.origin.y;
-    let oz = c.origin.z;
+    let origin_x = cube.origin.x;
+    let origin_y = cube.origin.y;
+    let origin_z = cube.origin.z;
 
     // 8 corner positions
-    let p = [
-        Point3r::new(ox, oy, oz),             // 0 left-bottom-back
-        Point3r::new(ox + w, oy, oz),         // 1 right-bottom-back
-        Point3r::new(ox + w, oy + h, oz),     // 2 right-top-back
-        Point3r::new(ox, oy + h, oz),         // 3 left-top-back
-        Point3r::new(ox, oy, oz + d),         // 4 left-bottom-front
-        Point3r::new(ox + w, oy, oz + d),     // 5 right-bottom-front
-        Point3r::new(ox + w, oy + h, oz + d), // 6 right-top-front
-        Point3r::new(ox, oy + h, oz + d),     // 7 left-top-front
+    let corners = [
+        Point3r::new(origin_x, origin_y, origin_z), // 0 left-bottom-back
+        Point3r::new(origin_x + width, origin_y, origin_z), // 1 right-bottom-back
+        Point3r::new(origin_x + width, origin_y + height, origin_z), // 2 right-top-back
+        Point3r::new(origin_x, origin_y + height, origin_z), // 3 left-top-back
+        Point3r::new(origin_x, origin_y, origin_z + depth), // 4 left-bottom-front
+        Point3r::new(origin_x + width, origin_y, origin_z + depth), // 5 right-bottom-front
+        Point3r::new(origin_x + width, origin_y + height, origin_z + depth), // 6 right-top-front
+        Point3r::new(origin_x, origin_y + height, origin_z + depth), // 7 left-top-front
     ];
 
     // 6 quads: (corner indices [CCW from outside], outward normal)
@@ -113,10 +115,10 @@ fn build(c: &Cube) -> Result<IndexedMesh, PrimitiveError> {
 
     for &(idx, normal) in quads {
         let [i0, i1, i2, i3] = idx;
-        let v0 = mesh.add_vertex(p[i0], normal);
-        let v1 = mesh.add_vertex(p[i1], normal);
-        let v2 = mesh.add_vertex(p[i2], normal);
-        let v3 = mesh.add_vertex(p[i3], normal);
+        let v0 = mesh.add_vertex(corners[i0], normal);
+        let v1 = mesh.add_vertex(corners[i1], normal);
+        let v2 = mesh.add_vertex(corners[i2], normal);
+        let v3 = mesh.add_vertex(corners[i3], normal);
         // Split quad into 2 CCW triangles
         mesh.add_face_with_region(v0, v1, v2, region);
         mesh.add_face_with_region(v0, v2, v3, region);

@@ -1,3 +1,8 @@
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard geometric shorthand in snapping-grid tests"
+)]
+
 use super::*;
 
 fn pt(x: Real, y: Real, z: Real) -> Point3r {
@@ -119,7 +124,7 @@ fn from_point_round_negative_half_cell_is_deterministic() {
 }
 
 /// Two slightly-different floating-point representations of the same point must
-/// land in the same GridCell when they are within the same ε-neighbourhood.
+/// land in the same `GridCell` when they are within the same ε-neighbourhood.
 #[test]
 fn snap_determinism_nearby_floats_same_cell() {
     let eps = 1e-4;
@@ -294,7 +299,7 @@ fn diagonal_cell_boundary_weld() {
     assert_eq!(i0, i1, "corner-adjacent point must weld via 27-neighbor");
 }
 
-/// query_within_eps must find all and only vertices within eps.
+/// `query_within_eps` must find all and only vertices within eps.
 #[test]
 fn query_within_eps_correctness() {
     let eps = 1e-3;
@@ -311,7 +316,7 @@ fn query_within_eps_correctness() {
     assert_eq!(results[0], 0);
 }
 
-/// SnappingGrid must not panic on subnormal epsilon values.
+/// `SnappingGrid` must not panic on subnormal epsilon values.
 #[test]
 fn very_small_eps() {
     let eps = 1e-15;
@@ -393,7 +398,7 @@ fn linear_clusters_separation() {
 }
 
 /// Points placed at all 27 neighbor cell centers around a seed must all
-/// be found by neighborhood_27 queries.
+/// be found by `neighborhood_27` queries.
 #[test]
 fn neighborhood_coverage_27_cells() {
     let eps = 1e-3;
@@ -446,7 +451,7 @@ fn stress_many_points_bounded_vertex_count() {
     assert!(!g.is_empty(), "at least one vertex must exist");
 }
 
-/// GridCell::to_point round-trips correctly through from_point_round.
+/// `GridCell::to_point` round-trips correctly through `from_point_round`.
 #[test]
 fn grid_cell_round_trip_all_octants() {
     let eps = 1e-4;

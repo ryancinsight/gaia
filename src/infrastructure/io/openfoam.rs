@@ -386,7 +386,7 @@ mod tests {
     use crate::domain::mesh::MeshBuilder;
     use crate::test_support::assert_rejects;
 
-    /// Helper: build a tiny tetrahedron IndexedMesh.
+    /// Helper: build a tiny tetrahedron `IndexedMesh`.
     fn tet_mesh() -> IndexedMesh {
         let mut b = MeshBuilder::new();
         let a = b.vertex(Point3r::new(0.0, 0.0, 0.0));

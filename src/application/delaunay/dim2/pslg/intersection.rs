@@ -90,6 +90,10 @@ pub(super) fn collinear_overlap_interior<T: Scalar>(
 /// The caller has already established a proper crossing from exact
 /// orientation signs, so a scale-relative angle threshold would discard valid
 /// shallow crossings.
+#[expect(
+    clippy::similar_names,
+    reason = "standard segment-endpoint and displacement naming for intersection math"
+)]
 pub(super) fn segment_cross_point<T: Scalar>(
     a1: &Point2<T>,
     a2: &Point2<T>,

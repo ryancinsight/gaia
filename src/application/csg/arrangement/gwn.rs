@@ -168,7 +168,7 @@ fn solid_angle_f64(
     }
 }
 
-/// Compute vertex offsets from query to each PreparedFace vertex.
+/// Compute vertex offsets from query to each `PreparedFace` vertex.
 ///
 /// Returns `None` if the query lies within sub-ULP distance of any vertex
 /// (near-vertex guard — prevents `atan2(0, 0) → NaN`).

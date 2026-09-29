@@ -13,11 +13,11 @@
 //!
 //! | Operation | Fragment from mesh i survives against mesh j iff |
 //! |-----------|--------------------------------------------------|
-//! | Union | class(frag, mesh_j) = OUTSIDE ∨ (COPLANAR_SAME ∧ i < j) |
-//! | Intersection | class(frag, mesh_j) ∈ {INSIDE, COPLANAR_SAME} |
-//! | Difference (i=0) | class(frag, mesh_j) = OUTSIDE |
-//! | Difference (i>0, j=0) | class(frag, mesh_j) ∈ {INSIDE, COPLANAR_OPPOSITE} |
-//! | Difference (i>0, j>0) | class(frag, mesh_j) = OUTSIDE ∨ (COPLANAR_SAME ∧ i < j) |
+//! | Union | class(frag, `mesh_j`) = OUTSIDE ∨ (`COPLANAR_SAME` ∧ i < j) |
+//! | Intersection | class(frag, `mesh_j`) ∈ {INSIDE, `COPLANAR_SAME`} |
+//! | Difference (i=0) | class(frag, `mesh_j`) = OUTSIDE |
+//! | Difference (i>0, j=0) | class(frag, `mesh_j`) ∈ {INSIDE, `COPLANAR_OPPOSITE`} |
+//! | Difference (i>0, j>0) | class(frag, `mesh_j`) = OUTSIDE ∨ (`COPLANAR_SAME` ∧ i < j) |
 //!
 //! For difference, subtrahend fragments (i > 0) that survive are
 //! **orientation-reversed** (winding order flipped) to form the inner

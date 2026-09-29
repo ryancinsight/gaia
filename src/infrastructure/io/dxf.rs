@@ -11,7 +11,7 @@ use crate::domain::mesh::IndexedMesh;
 
 /// Write an [`IndexedMesh`] as a DXF file with `3DFACE` entities.
 ///
-/// Uses the minimal DXF R12 ASCII format, compatible with AutoCAD, LibreCAD,
+/// Uses the minimal DXF R12 ASCII format, compatible with `AutoCAD`, `LibreCAD`,
 /// and most CNC software.
 ///
 /// # Errors

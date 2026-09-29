@@ -246,6 +246,10 @@ impl RuppertRefiner {
     }
 
     /// Phase 2: Iteratively fix bad triangles.
+    #[expect(
+        clippy::many_single_char_names,
+        reason = "standard triangle quality and circumcenter notation in Ruppert refinement"
+    )]
     fn fix_bad_triangles(&mut self) {
         let mut queue = self.build_bad_queue();
 
@@ -384,9 +388,9 @@ impl RuppertRefiner {
     /// quality of the original triangle.
     ///
     /// **Theorem**: |e|_M = |L·e|₂ for any edge vector e.  Therefore the
-    /// metric circumradius R_M = R_iso(La, Lb, Lc) and the metric shortest
-    /// edge l_min_M = l_min_iso(La, Lb, Lc).  The ratio R_M / l_min_M
-    /// equals the metric-quality ρ_M of the triangle.  QED.
+    /// metric circumradius `R_M` = `R_iso(La`, Lb, Lc) and the metric shortest
+    /// edge `l_min_M` = `l_min_iso(La`, Lb, Lc).  The ratio `R_M` / `l_min_M`
+    /// equals the metric-quality `ρ_M` of the triangle.  QED.
     fn triangle_quality(&self, tri: &Triangle) -> TriangleQuality {
         let dt = self.cdt.triangulation();
         let a = dt.vertex(tri.vertices[0]);
@@ -563,7 +567,7 @@ mod tests {
         );
     }
 
-    /// set_metric / clear_metric mutate metric field correctly.
+    /// `set_metric` / `clear_metric` mutate metric field correctly.
     #[test]
     fn set_and_clear_metric() {
         let mut refiner = RuppertRefiner::new(square_cdt());
@@ -575,7 +579,7 @@ mod tests {
         assert!(refiner.metric.is_none());
     }
 
-    /// with_metric builder sets metric; final CDT is valid (≥ 1 alive triangle).
+    /// `with_metric` builder sets metric; final CDT is valid (≥ 1 alive triangle).
     ///
     /// Uses a moderate 3:1 anisotropy to keep Steiner point count manageable.
     #[test]

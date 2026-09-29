@@ -1,4 +1,4 @@
-//! Export: HelixSweep → outputs/primitives/helix_sweep.stl
+//! Export: `HelixSweep` → `outputs/primitives/helix_sweep.stl`
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::geometry::primitives::PrimitiveMesh;
 use gaia::infrastructure::io::stl;

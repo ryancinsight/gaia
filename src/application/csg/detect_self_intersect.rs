@@ -176,6 +176,10 @@ pub fn detect_self_intersections(faces: &[FaceData], pool: &VertexPool) -> Vec<(
 /// 4. Project all 6 vertices onto the dominant axis of `L`.  Compute overlap
 ///    intervals for `ta` and `tb`; return whether they overlap.
 #[must_use]
+#[expect(
+    clippy::similar_names,
+    reason = "paired triangle interval notation is standard in triangle-triangle overlap tests"
+)]
 fn tri_tri_intersects(ta: &[Point3r; 3], tb: &[Point3r; 3]) -> bool {
     // Both tolerances below are relative to the geometry's own scale, so the same
     // configuration is decided the same way at 1 µm and at 1 km.

@@ -7,7 +7,7 @@
 //! ## Design Note
 //!
 //! All arithmetic is `f64` (`Real`). A generic `<T: Scalar>` parameter is a
-//! fake generic (core_invariants Â§2): the body unconditionally converts Tâ†’f64
+//! fake generic (`core_invariants` Â§2): the body unconditionally converts Tâ†’f64
 //! before computation; parametrising T adds no numerical benefit.
 
 use crate::domain::core::index::RegionId;
@@ -112,7 +112,7 @@ impl VenturiMeshBuilder {
 
 fn build_venturi_surface(b: &VenturiMeshBuilder) -> IndexedMesh {
     let (d_in, d_th) = (b.d_inlet, b.d_throat);
-    let (l_in, l_cv, l_th, l_dv, l_out) = (
+    let (inlet_length, convergent_length, throat_length, divergent_length, outlet_length) = (
         b.l_inlet,
         b.l_convergent,
         b.l_throat,
@@ -125,7 +125,8 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> IndexedMesh {
     } else {
         4
     };
-    let total_l = l_in + l_cv + l_th + l_dv + l_out;
+    let total_l =
+        inlet_length + convergent_length + throat_length + divergent_length + outlet_length;
 
     let wall_region = RegionId::from_usize(0);
     let inlet_region = RegionId::from_usize(1);
@@ -134,19 +135,19 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> IndexedMesh {
     let radius_at = |z: Real| -> Real {
         let (r_in, r_th) = (d_in / 2.0, d_th / 2.0);
         let (z1, z2, z3, z4) = (
-            l_in,
-            l_in + l_cv,
-            l_in + l_cv + l_th,
-            l_in + l_cv + l_th + l_dv,
+            inlet_length,
+            inlet_length + convergent_length,
+            inlet_length + convergent_length + throat_length,
+            inlet_length + convergent_length + throat_length + divergent_length,
         );
         if z <= z1 {
             r_in
         } else if z <= z2 {
-            r_in + (r_th - r_in) * (z - z1) / l_cv
+            r_in + (r_th - r_in) * (z - z1) / convergent_length
         } else if z <= z3 {
             r_th
         } else if z <= z4 {
-            r_th + (r_in - r_th) * (z - z3) / l_dv
+            r_th + (r_in - r_th) * (z - z3) / divergent_length
         } else {
             r_in
         }
@@ -208,7 +209,7 @@ mod tests {
     /// Pins the pre-refactor ring layout the same way as the serpentine
     /// builder's characterization test: ring 0 sits at `z = 0`, inside the
     /// inlet section (`0 <= l_inlet`), so its radius is the closed-form
-    /// `d_inlet / 2` with no piecewise taper applied. The PackedRows storage
+    /// `d_inlet / 2` with no piecewise taper applied. The `PackedRows` storage
     /// swap must not reorder or drop rows, so this must hold unchanged
     /// before and after it.
     #[test]

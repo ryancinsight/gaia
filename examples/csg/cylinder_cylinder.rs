@@ -30,14 +30,14 @@
 //! ```
 //!
 //! With r = 0.6, h = 3:
-//!   A_lens ≈ 2 · 0.36 · (1.0472 − 0.4330) ≈ 0.4422 mm²
+//!   `A_lens` ≈ 2 · 0.36 · (1.0472 − 0.4330) ≈ 0.4422 mm²
 //!   V_∩    ≈ 0.4422 · 3 ≈ 1.3267 mm³
 //!
 //! | Operation | Expected (mm³)          | Pipeline    |
 //! |-----------|------------------------|-------------|
-//! | A ∪ B     | 2·V_cyl − V_∩          | Arrangement |
+//! | A ∪ B     | `2·V_cyl` − V_∩          | Arrangement |
 //! | A ∩ B     | V_∩ ≈ 1.3267           | Arrangement |
-//! | A \ B     | V_cyl − V_∩ ≈ 2.0662   | Arrangement |
+//! | A \ B     | `V_cyl` − V_∩ ≈ 2.0662   | Arrangement |
 //!
 //! ## Run
 //!

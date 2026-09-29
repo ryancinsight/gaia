@@ -68,10 +68,14 @@ pub struct PlaneEquation {
 impl PlaneEquation {
     /// Construct from three CCW-ordered points.
     #[must_use]
+    #[expect(
+        clippy::similar_names,
+        reason = "standard point-A/B/C coordinate-array naming for plane construction"
+    )]
     pub fn from_points(pa: &Point3r, pb: &Point3r, pc: &Point3r) -> Self {
-        let pa_arr = [pa.x, pa.y, pa.z];
-        let pb_arr = [pb.x, pb.y, pb.z];
-        let pc_arr = [pc.x, pc.y, pc.z];
+        let point_a_coords = [pa.x, pa.y, pa.z];
+        let point_b_coords = [pb.x, pb.y, pb.z];
+        let point_c_coords = [pc.x, pc.y, pc.z];
 
         let ab = [pb.x - pa.x, pb.y - pa.y, pb.z - pa.z];
         let ac = [pc.x - pa.x, pc.y - pa.y, pc.z - pa.z];
@@ -83,9 +87,9 @@ impl PlaneEquation {
         let offset = n[0] * pa.x + n[1] * pa.y + n[2] * pa.z;
 
         Self {
-            pa: pa_arr,
-            pb: pb_arr,
-            pc: pc_arr,
+            pa: point_a_coords,
+            pb: point_b_coords,
+            pc: point_c_coords,
             normal: n,
             offset,
         }
@@ -270,7 +274,7 @@ pub fn clip_face_by_plane(
 /// 4. Straddling faces are split at the plane, producing 1–3 sub-faces per
 ///    side.
 ///
-/// Total: O(V + F_straddling) instead of O(3F) for naive per-face orient_3d.
+/// Total: O(V + `F_straddling`) instead of O(3F) for naive per-face `orient_3d`.
 ///
 /// Returns `(inside_faces, outside_faces)` — both are valid face soups using
 /// the same pool.  Coplanar faces are included in **both** halves.

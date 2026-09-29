@@ -115,7 +115,7 @@ const R: f64 = 0.5;
 const H: f64 = 3.0;
 
 /// Bend-centreline radius for the rounded corner [mm].
-/// Must be > R (tube radius).  R_BEND = 2·R gives a moderate fillet.
+/// Must be > R (tube radius).  `R_BEND` = 2·R gives a moderate fillet.
 const R_BEND: f64 = 2.0 * R; // = 1.0 mm
 
 // ── Main ──────────────────────────────────────────────────────────────────────

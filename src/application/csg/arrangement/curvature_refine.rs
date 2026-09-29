@@ -75,7 +75,7 @@
 //!
 //! ## Complexity
 //!
-//! O(F) per iteration (curvature computation is O(F), split is O(F_marked)).
+//! O(F) per iteration (curvature computation is O(F), split is `O(F_marked)`).
 //! At most `MAX_REFINE_ITERS` iterations.  Each iteration at most triples the
 //! face count of marked faces, but the curvature×edge product decreases by a
 //! factor of ~√3 per split (centroid splits reduce max edge length by ≈ 1/√3),
@@ -84,7 +84,7 @@
 //! ## References
 //!
 //! - Meyer et al., "Discrete Differential-Geometry Operators for Triangulated
-//!   2-Manifolds", VisMath 2003.
+//!   2-Manifolds", `VisMath` 2003.
 //! - Wardetzky et al., "Discrete Laplace operators: No free lunch", SGP 2007.
 //! - Descartes-Euler angle defect: `2π - Σ(angles at v) = K_G(v) × A_mixed(v)`
 
@@ -109,7 +109,7 @@ const MAX_REFINE_ITERS: usize = 3;
 /// curvature.
 ///
 /// Derivation: For a circular arc with curvature κ and chord length l,
-/// the chord-height deviation is δ ≈ κl²/8.  Setting δ_max = 0.01 mm
+/// the chord-height deviation is δ ≈ κl²/8.  Setting `δ_max` = 0.01 mm
 /// and κ = H (mean curvature as proxy for max principal curvature):
 ///   H × l ≈ √(8 × 0.01) ≈ 0.28
 /// Rounded to 0.3 for a small safety margin.
@@ -213,7 +213,7 @@ pub(crate) fn refine_high_curvature_faces(faces: &mut Vec<FaceData>, pool: &mut 
 /// ## References
 ///
 /// - Meyer et al., "Discrete Differential-Geometry Operators for Triangulated
-///   2-Manifolds", VisMath 2003.
+///   2-Manifolds", `VisMath` 2003.
 /// - Wardetzky et al., "Discrete Laplace operators: No free lunch", SGP 2007.
 fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<VertexId, Real> {
     let n_verts = pool.len();
@@ -270,16 +270,16 @@ fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<
             let cos_k = eki.dot(ekj);
             let sin_k = eki.cross(ekj).norm();
             // Clamp cotangent to avoid instability at degenerate angles.
-            let cot_k = if sin_k > Real::MIN_POSITIVE {
+            let cotangent_k = if sin_k > Real::MIN_POSITIVE {
                 (cos_k / sin_k).clamp(-100.0, 100.0)
             } else {
                 0.0
             };
 
-            // Accumulate: Hn(vi) += cot_k * (vj - vi) / 2
-            //             Hn(vj) += cot_k * (vi - vj) / 2
+            // Accumulate: Hn(vi) += cotangent_k * (vj - vi) / 2
+            //             Hn(vj) += cotangent_k * (vi - vj) / 2
             let diff = pj - pi;
-            let weighted = diff * (cot_k * 0.5);
+            let weighted = diff * (cotangent_k * 0.5);
             laplacian[vi.0 as usize] += weighted;
             laplacian[vj.0 as usize] -= weighted;
         }
@@ -384,7 +384,7 @@ mod tests {
     use crate::domain::core::index::RegionId;
     use crate::domain::core::scalar::Point3r;
 
-    /// Build a minimal VertexPool with tolerance-based welding.
+    /// Build a minimal `VertexPool` with tolerance-based welding.
     fn test_pool() -> VertexPool {
         VertexPool::with_tolerance(1e-4, 1e-8)
     }

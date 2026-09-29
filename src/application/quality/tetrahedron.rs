@@ -360,6 +360,10 @@ fn finite_vector<T: Scalar>(vector: &Vector3<T>) -> bool {
 /// `None` means that a coordinate is non-finite, the tetrahedron is
 /// degenerate, or a derived metric is non-finite.  The returned angle is the
 /// interior dihedral angle at the worst edge; lower values indicate a sliver.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard tetrahedron vertex and basis-vector naming"
+)]
 #[must_use]
 pub fn tetrahedron_quality<T: Scalar>(points: [Point3<T>; 4]) -> Option<TetrahedronQuality<T>> {
     if points.iter().any(|point| !finite_point(point)) {

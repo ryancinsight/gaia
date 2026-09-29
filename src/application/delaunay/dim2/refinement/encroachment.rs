@@ -28,10 +28,10 @@
 //! of the (at most two) triangles incident on that edge.
 //!
 //! **Proof sketch**: Let $D$ be the diametral circle of $(a,b)$.  In a
-//! CDT, $(a,b)$ is shared by at most two triangles $t_1 = (a,b,c)$ and
-//! $t_2 = (a,b,d)$.  Any other vertex $v$ strictly inside $D$ would
+//! CDT, $(a,b)$ is shared by at most two triangles $`t_1` = (a,b,c)$ and
+//! $`t_2` = (a,b,d)$.  Any other vertex $v$ strictly inside $D$ would
 //! violate the constrained empty-circumdisk property: $v$ would be inside
-//! the circumcircle of $t_1$ or $t_2$ (since $D$ is contained in both
+//! the circumcircle of $`t_1`$ or $`t_2`$ (since $D$ is contained in both
 //! circumcircles when the triangle exists), and visibility through the
 //! constraint edge is unrestricted for the opposite vertex.  Hence only
 //! $c$ and $d$ need to be tested.  ∎

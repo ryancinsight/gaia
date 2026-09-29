@@ -273,6 +273,10 @@ pub(crate) fn cdt_fill_loop(
 /// diagonal edges coincide with existing interior mesh edges are skipped.
 ///
 /// Returns the number of triangles added.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard polygon ear-clipping vertex and index naming"
+)]
 pub(crate) fn ear_clip_fill(
     poly: &[VertexId],
     pool: &VertexPool,

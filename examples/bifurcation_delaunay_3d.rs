@@ -6,6 +6,11 @@
 //! cargo run -p gaia --example bifurcation_delaunay_3d --release
 //! ```
 
+#![expect(
+    clippy::many_single_char_names,
+    reason = "standard tetrahedron-volume notation in a diagnostic example"
+)]
+
 use gaia::application::delaunay::dim3::{sdf::CapsuleSdf, sdf::SmoothUnionSdf, SdfMesher};
 use gaia::application::watertight::check::check_watertight;
 use gaia::domain::core::VertexId;

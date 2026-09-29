@@ -223,7 +223,7 @@ mod tests {
         Cdt::from_pslg(&p)
     }
 
-    /// min_angle_triangle: equilateral triangle has all angles = 60° = π/3.
+    /// `min_angle_triangle`: equilateral triangle has all angles = 60° = π/3.
     #[test]
     fn equilateral_triangle_min_angle_is_60_deg() {
         use std::f64::consts::FRAC_PI_3;

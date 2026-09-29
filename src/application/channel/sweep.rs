@@ -172,7 +172,7 @@ mod tests {
     /// exercises (3 stations, 4-point rectangular profile, both caps): ring
     /// `s` occupies vertex ids `[4*s, 4*s+4)` in construction order, followed
     /// by the start-cap center (id 12) then the end-cap center (id 13). The
-    /// PackedRows storage swap must not reorder or drop rows, so the exact
+    /// `PackedRows` storage swap must not reorder or drop rows, so the exact
     /// vertex-id triples of the first interior quad and both cap fans must
     /// hold unchanged before and after it.
     #[test]

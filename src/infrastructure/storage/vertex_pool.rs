@@ -332,7 +332,7 @@ impl<T: Scalar> VertexPool<T> {
         Self::with_tolerance(tol, tol)
     }
 
-    /// Create an empty clone with the exact same cell_size and tolerance_sq
+    /// Create an empty clone with the exact same `cell_size` and `tolerance_sq`
     /// settings as this pool. Useful for reconstructing a mesh without regressing
     /// to default scalar tolerances.
     #[must_use]
@@ -345,7 +345,7 @@ impl<T: Scalar> VertexPool<T> {
         }
     }
 
-    /// Create an empty clone with the exact same cell_size and tolerance_sq
+    /// Create an empty clone with the exact same `cell_size` and `tolerance_sq`
     /// settings, reserving capacity in both vertices and spatial hash.
     #[must_use]
     pub fn empty_clone_with_capacity(&self, capacity: usize) -> Self {

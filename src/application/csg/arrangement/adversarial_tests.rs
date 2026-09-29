@@ -13,6 +13,11 @@
 //! | Self-intersection | Non-manifold input detection |
 //! | Property-based | Proptest invariants: GWN exterior bound, snap determinism |
 
+#![expect(
+    clippy::similar_names,
+    reason = "standard Boolean-volume and geometry shorthand used throughout adversarial tests"
+)]
+
 #[cfg(test)]
 mod tests {
     use crate::application::csg::arrangement::classify::{
@@ -90,7 +95,7 @@ mod tests {
     /// The CSG union must complete (no panic) and return a non-empty result.
     ///
     /// This is the canonical "coaxial degeneracy" path documented in MEMORY.md.
-    /// The merge_collinear_segments fix in the blueprint pipeline is tested here
+    /// The `merge_collinear_segments` fix in the blueprint pipeline is tested here
     /// at the raw CSG level: if the union completes without panic, the guard works.
     #[test]
     fn coaxial_tubes_union_completes_without_panic() {
@@ -191,7 +196,7 @@ mod tests {
 
     // ── Self-intersection detection ────────────────────────────────────────
 
-    /// detect_self_intersections finds crossing triangles in a "butterfly"
+    /// `detect_self_intersections` finds crossing triangles in a "butterfly"
     /// mesh where two triangles share only a vertex but their interiors cross.
     #[test]
     fn self_intersection_detection_finds_crossing_triangles() {
@@ -688,7 +693,7 @@ mod tests {
     // ── BVH GWN integration ───────────────────────────────────────────────
 
     /// BVH-accelerated GWN must agree with linear GWN for interior/exterior
-    /// queries against a closed mesh.  This validates the gwn_bvh wiring.
+    /// queries against a closed mesh.  This validates the `gwn_bvh` wiring.
     #[test]
     fn gwn_bvh_agrees_with_linear() {
         use crate::application::csg::arrangement::gwn::prepare_classification_faces;
@@ -917,7 +922,7 @@ mod tests {
     }
 
     /// Cube minus an inscribed cylinder: tests difference with curved geometry.
-    /// Result volume = vol(cube) - vol(cylinder_inside_cube).
+    /// Result volume = vol(cube) - `vol(cylinder_inside_cube)`.
     #[test]
     fn cube_minus_inscribed_cylinder() {
         let cube = Cube {
@@ -1030,7 +1035,7 @@ mod tests {
         );
     }
 
-    /// fan_triangulate convex fast-path: a hexagonal polygon from Sutherland-Hodgman
+    /// `fan_triangulate` convex fast-path: a hexagonal polygon from Sutherland-Hodgman
     /// must produce exactly 4 triangles (n-2 for n=6).
     #[test]
     fn fan_triangulate_hexagon_produces_correct_count() {
@@ -1056,7 +1061,7 @@ mod tests {
         }
     }
 
-    /// fan_triangulate degenerate: duplicate vertices in polygon must be
+    /// `fan_triangulate` degenerate: duplicate vertices in polygon must be
     /// handled gracefully (deduplicated) and not produce degenerate triangles.
     #[test]
     fn fan_triangulate_with_duplicates() {
@@ -1237,7 +1242,7 @@ mod tests {
         );
     }
 
-    /// CsgNode tree flattening: a chain of unions is evaluated via the
+    /// `CsgNode` tree flattening: a chain of unions is evaluated via the
     /// n-ary engine.  The result must match iterative evaluation.
     #[test]
     fn csg_node_union_chain_flattening() {
@@ -1496,7 +1501,7 @@ mod tests {
     ///
     /// ## Known library failure mode
     ///
-    /// CGAL Nef_polyhedra and libigl boolean occasionally produce T-junctions
+    /// CGAL `Nef_polyhedra` and libigl boolean occasionally produce T-junctions
     /// at sphere-sphere intersection seams due to floating-point rounding
     /// during plane-splitting.  The arrangement pipeline uses shared vertex
     /// pool welding + seam propagation to avoid this.
@@ -1510,7 +1515,7 @@ mod tests {
     /// V_lens = (π/12)(2R − d)²(d + 4R)          (for r₁ = r₂ = R)
     /// ```
     ///
-    /// For R = 1.0, d = 1.0:  V_lens = π(2−1)²(1+4)/12 = 5π/12 ≈ 1.309.
+    /// For R = 1.0, d = 1.0:  `V_lens` = π(2−1)²(1+4)/12 = 5π/12 ≈ 1.309.
     /// Numerical mesh approximation: within 10% at 32-segment resolution.  ∎
     #[test]
     fn sphere_sphere_intersection_curvature_seam() {
@@ -1554,7 +1559,7 @@ mod tests {
     ///
     /// ## Known library failure mode
     ///
-    /// OpenSCAD / CGAL sometimes produce small holes at the sphere-cube
+    /// `OpenSCAD` / CGAL sometimes produce small holes at the sphere-cube
     /// boundary due to numerical precision issues at surface transitions.
     #[test]
     fn cube_minus_sphere_curved_cavity() {
@@ -1712,7 +1717,7 @@ mod tests {
     ///
     /// For a cube of side `a` with inner cube side `a - 2t` (shell thickness t):
     ///   `V_shell = a³ - (a-2t)³ = 6a²t - 12at² + 8t³`
-    /// For a=1, t=0.01: V_shell ≈ 0.0588.  ∎
+    /// For a=1, t=0.01: `V_shell` ≈ 0.0588.  ∎
     #[test]
     fn thin_wall_difference() {
         let outer = Cube {
@@ -1914,7 +1919,7 @@ mod tests {
         }
     }
 
-    /// Micro-scale cubes (millifluidic dimensions) — tests snap_round
+    /// Micro-scale cubes (millifluidic dimensions) — tests `snap_round`
     /// thresholds and T-junction handling at small scales.
     ///
     /// ## Known Library Failure

@@ -16,22 +16,22 @@
 //! ```
 //!
 //! - Trunk (A): axis +X, from `(−h_trunk, 0, 0)` to `(ε, 0, 0)`.
-//!   Built as a +Y cylinder, rotated −90° about Z (+Y → +X), translated (−h_trunk, 0, 0).
-//! - Branch up (B): axis `(cos θ, +sin θ, 0)`, base at origin, length h_branch.
+//!   Built as a +Y cylinder, rotated −90° about Z (+Y → +X), translated (−`h_trunk`, 0, 0).
+//! - Branch up (B): axis `(cos θ, +sin θ, 0)`, base at origin, length `h_branch`.
 //!   Built as +Y cylinder, rotated `(θ − π/2)` about Z.
-//! - Branch down (C): axis `(cos θ, −sin θ, 0)`, base at origin, length h_branch.
+//! - Branch down (C): axis `(cos θ, −sin θ, 0)`, base at origin, length `h_branch`.
 //!   Built as +Y cylinder, rotated `(−θ − π/2)` about Z.
 //!
 //! ## Volume analysis
 //!
-//! Let V_naive = πr²(h_trunk + ε) + 2πr²·h_branch (sum ignoring intersections).
+//! Let `V_naive` = `πr²(h_trunk` + ε) + `2πr²·h_branch` (sum ignoring intersections).
 //!
-//! The union subtracts the branch–branch overlap (V_B∩C) and the small
-//! trunk–branch overlaps (≈ ε-scale), so V_union < V_naive.
+//! The union subtracts the branch–branch overlap (`V_B∩C`) and the small
+//! trunk–branch overlaps (≈ ε-scale), so `V_union` < `V_naive`.
 //!
 //! Both branches are semi-infinite (start at origin, extend outward), so B ∩ C
 //! is the quarter of the Steinmetz bicylinder where both axial projections ≥ 0:
-//!   θ = 45° (90° between axes): V_B∩C = 4r³/3  (quarter-Steinmetz)
+//!   θ = 45° (90° between axes): `V_B∩C` = 4r³/3  (quarter-Steinmetz)
 //!
 //! ## Operations shown
 //!
@@ -318,7 +318,7 @@ fn build_y_junction(
 
 // ── Report helpers ────────────────────────────────────────────────────────────
 
-/// Report for union operations: checks bounds (0 < V < V_naive) instead of a
+/// Report for union operations: checks bounds (0 < V < `V_naive`) instead of a
 /// specific expected value, since the branch–branch overlap has no simple
 /// closed form.
 fn report_union(label: &str, mesh: &mut IndexedMesh, v_naive: f64, ms: u128) {

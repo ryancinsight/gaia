@@ -9,7 +9,7 @@
 //!
 //! Overlap of B with A = 1.5 × 1.5 × 3 = 6.75 mm³  (the material removed)
 //!
-//! Expected volume: V_block − V_overlap = 27 − 6.75 = 20.25 mm³
+//! Expected volume: `V_block` − `V_overlap` = 27 − 6.75 = 20.25 mm³
 //!
 //! Run with:
 //! ```sh

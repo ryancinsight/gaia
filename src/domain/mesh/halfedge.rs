@@ -4,7 +4,7 @@
 //! Reading and writing elements of the mesh requires a matching [`GhostToken<'id>`],
 //! which is enforced at compile-time with zero runtime cost.
 //!
-//! ## GhostCell brand contract
+//! ## `GhostCell` brand contract
 //!
 //! All mutable access to element data goes through `&mut GhostToken<'id>`.
 //! All immutable access goes through `&GhostToken<'id>`.  The `'id` brand is
@@ -200,7 +200,7 @@ impl std::fmt::Debug for HalfEdgeMesh<'_> {
     }
 }
 
-/// Canonical entry point — introduces the GhostCell brand `'id`.
+/// Canonical entry point — introduces the `GhostCell` brand `'id`.
 ///
 /// The token cannot escape the closure; return value `R` carries extracted data.
 ///

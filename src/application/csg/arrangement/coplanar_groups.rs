@@ -123,6 +123,10 @@ pub(crate) fn build_coplanar_group_index(
 
 /// Resolve all coplanar plane groups (Phase 2c) and propagate seam vertices
 /// into barrel faces (Phase 2d).
+#[expect(
+    clippy::similar_names,
+    reason = "paired operand-A and operand-B tracking is intrinsic to coplanar-group processing"
+)]
 pub(crate) fn process_coplanar_groups(
     op: BooleanOp,
     faces_a: &[FaceData],
@@ -132,9 +136,9 @@ pub(crate) fn process_coplanar_groups(
     segs_a: &mut [Vec<SnapSegment>],
     segs_b: &mut [Vec<SnapSegment>],
 ) -> CoplanarPhaseResult {
-    let mut coplanar_a_used: HashSet<usize> = HashSet::with_capacity(group_index.plane_a.len());
-    let mut coplanar_b_used: HashSet<usize> = HashSet::with_capacity(group_index.plane_b.len());
-    let mut coplanar_results: HashMap<usize, Vec<FaceData>> =
+    let mut used_plane_a_faces: HashSet<usize> = HashSet::with_capacity(group_index.plane_a.len());
+    let mut used_plane_b_faces: HashSet<usize> = HashSet::with_capacity(group_index.plane_b.len());
+    let mut resolved_coplanar_results: HashMap<usize, Vec<FaceData>> =
         HashMap::with_capacity(group_index.plane_a.len());
 
     // Processing a group mutates the shared vertex pool and barrel seam
@@ -189,16 +193,16 @@ pub(crate) fn process_coplanar_groups(
             seam_vids.iter().map(|&vid| *pool.position(vid)).collect();
 
         for &i in a_idxs {
-            coplanar_a_used.insert(i);
+            used_plane_a_faces.insert(i);
         }
         for &i in b_idxs {
-            coplanar_b_used.insert(i);
+            used_plane_b_faces.insert(i);
         }
 
         if !seam_positions.is_empty() {
             inject_cap_seam_into_barrels(
                 faces_a,
-                &coplanar_a_used,
+                &used_plane_a_faces,
                 &basis.origin,
                 &basis.normal,
                 &seam_positions,
@@ -207,7 +211,7 @@ pub(crate) fn process_coplanar_groups(
             );
             inject_cap_seam_into_barrels(
                 faces_b,
-                &coplanar_b_used,
+                &used_plane_b_faces,
                 &basis.origin,
                 &basis.normal,
                 &seam_positions,
@@ -216,13 +220,13 @@ pub(crate) fn process_coplanar_groups(
             );
         }
 
-        coplanar_results.insert(key, coplanar_result);
+        resolved_coplanar_results.insert(key, coplanar_result);
     }
 
     CoplanarPhaseResult {
-        a_used: coplanar_a_used,
-        b_used: coplanar_b_used,
-        results: coplanar_results,
+        a_used: used_plane_a_faces,
+        b_used: used_plane_b_faces,
+        results: resolved_coplanar_results,
     }
 }
 

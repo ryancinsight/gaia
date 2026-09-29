@@ -118,6 +118,10 @@ impl<T: Scalar> NurbsSurface<T> {
     /// are scaled before multiplication or subtraction to preserve
     /// representable partial components.
     #[must_use]
+    #[expect(
+        clippy::similar_names,
+        reason = "standard spline-basis, weight, and partial-derivative notation"
+    )]
     pub fn point_and_derivs(&self, u: T, v: T) -> (Point3<T>, Vector3<T>, Vector3<T>) {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows
@@ -222,6 +226,10 @@ impl<T: Scalar> NurbsSurface<T> {
 
     // -- internal --
 
+    #[expect(
+        clippy::similar_names,
+        reason = "standard spline-basis and weight notation"
+    )]
     fn rational_point(&self, u: T, v: T) -> Point3<T> {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows

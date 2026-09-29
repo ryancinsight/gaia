@@ -18,7 +18,7 @@
 //! The cylinder intersects the sphere surface at two latitude circles
 //! y = ±√(1 − 0.4²) = ±√0.84 ≈ ±0.9165.  The overlap (A ∩ B) is the
 //! **cylinder segment** that lies inside the sphere — a finite cylinder of
-//! radius ρ and half-length h_cap:
+//! radius ρ and half-length `h_cap`:
 //!
 //! ```text
 //! h_cap = √(R² − ρ²) = √0.84 ≈ 0.9165 mm
@@ -27,9 +27,9 @@
 //!
 //! | Operation | Expected (mm³)          | Pipeline    |
 //! |-----------|------------------------|-------------|
-//! | A ∪ B     | V_A + V_B − V_∩        | Arrangement |
+//! | A ∪ B     | `V_A` + `V_B` − V_∩        | Arrangement |
 //! | A ∩ B     | V_∩ ≈ 0.9215           | Arrangement |
-//! | A \ B     | V_A − V_∩ ≈ 3.2673     | Arrangement |
+//! | A \ B     | `V_A` − V_∩ ≈ 3.2673     | Arrangement |
 //!
 //! ## Run
 //!

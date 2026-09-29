@@ -518,7 +518,7 @@ mod tests {
     /// **Statement.** An edge shared by $k > 2$ faces is classified as
     /// non-manifold (valence $k$).
     ///
-    /// **Proof.** `register_edge` pushes each face_id into the edge's
+    /// **Proof.** `register_edge` pushes each `face_id` into the edge's
     /// face list.  After processing all faces, `edge.faces.len() == k`,
     /// and `is_non_manifold()` returns `k > 2`.  ∎
     #[test]

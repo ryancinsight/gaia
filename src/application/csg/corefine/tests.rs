@@ -47,8 +47,8 @@ fn inside_triangle_exact_handles_reversed_winding() {
     assert!(inside_triangle(inside, a, b, c, n, axis_u, axis_v));
 }
 
-/// Regression: when total Steiner count exceeds MAX_STEINER_PER_FACE (256),
-/// corefine_face must fall back to midpoint_subdivide and return non-empty.
+/// Regression: when total Steiner count exceeds `MAX_STEINER_PER_FACE` (256),
+/// `corefine_face` must fall back to `midpoint_subdivide` and return non-empty.
 ///
 /// This guards against O(s²) CDT blowup from complex multi-branch junctions.
 #[test]

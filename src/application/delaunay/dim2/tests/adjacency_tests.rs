@@ -1,7 +1,7 @@
 //! Tests for the triangle-triangle adjacency bookkeeping module.
 //!
-//! `adjacency.rs` provides link, find_edge, edge_opposite_vertex,
-//! neighbor, is_hull_triangle, and verify_symmetry.  These tests validate
+//! `adjacency.rs` provides link, `find_edge`, `edge_opposite_vertex`,
+//! neighbor, `is_hull_triangle`, and `verify_symmetry`.  These tests validate
 //! correctness of each operation and the symmetric-adjacency invariant.
 
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
@@ -31,7 +31,7 @@ fn link_sets_symmetric_adjacency() {
 }
 
 /// Verify that `link_one` sets only the specified side, leaving the other
-/// unchanged (e.g. at GHOST_TRIANGLE).
+/// unchanged (e.g. at `GHOST_TRIANGLE`).
 #[test]
 fn link_one_sets_single_direction() {
     let v = |i: usize| PslgVertexId::from_usize(i);
@@ -148,7 +148,7 @@ fn fully_linked_triangle_is_not_hull() {
     assert!(!Adjacency::is_hull_triangle(&tris, t0));
 }
 
-/// A triangle with at least one GHOST_TRIANGLE neighbor IS a hull triangle.
+/// A triangle with at least one `GHOST_TRIANGLE` neighbor IS a hull triangle.
 #[test]
 fn partial_ghost_is_hull() {
     let v = |i: usize| PslgVertexId::from_usize(i);
@@ -161,7 +161,7 @@ fn partial_ghost_is_hull() {
 
 // ── verify_symmetry ───────────────────────────────────────────────────────
 
-/// verify_symmetry succeeds on a properly linked pair.
+/// `verify_symmetry` succeeds on a properly linked pair.
 #[test]
 fn verify_symmetry_on_valid_pair() {
     let v = |i: usize| PslgVertexId::from_usize(i);
@@ -177,7 +177,7 @@ fn verify_symmetry_on_valid_pair() {
     assert!(Adjacency::verify_symmetry(&tris));
 }
 
-/// verify_symmetry detects a one-sided (asymmetric) adjacency.
+/// `verify_symmetry` detects a one-sided (asymmetric) adjacency.
 #[test]
 fn verify_symmetry_detects_asymmetry() {
     let v = |i: usize| PslgVertexId::from_usize(i);
@@ -194,7 +194,7 @@ fn verify_symmetry_detects_asymmetry() {
     assert!(!Adjacency::verify_symmetry(&tris));
 }
 
-/// verify_symmetry holds on a real Delaunay triangulation.
+/// `verify_symmetry` holds on a real Delaunay triangulation.
 #[test]
 fn verify_symmetry_on_triangulation() {
     let dt = DelaunayTriangulation::from_points(&[
@@ -210,7 +210,7 @@ fn verify_symmetry_on_triangulation() {
 // ── Integration: adjacency after BW insertion ─────────────────────────────
 
 /// After incremental insertion, every alive triangle has symmetric adjacency
-/// and no GHOST_TRIANGLE neighbor points to a dead triangle.
+/// and no `GHOST_TRIANGLE` neighbor points to a dead triangle.
 #[test]
 fn adjacency_integrity_after_incremental_insertion() {
     let pts: Vec<(f64, f64)> = (0..50)

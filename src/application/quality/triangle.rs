@@ -242,7 +242,7 @@ mod tests {
         )
     }
 
-    /// triangle_angles sums to π for an equilateral triangle.
+    /// `triangle_angles` sums to π for an equilateral triangle.
     #[test]
     fn triangle_angles_sum_to_pi_for_equilateral() {
         let (a, b, c) = equilateral();
@@ -267,7 +267,7 @@ mod tests {
         assert!((a2 - sixty).abs() < 1e-10, "angle at C = {a2}");
     }
 
-    /// min_angle and max_angle agree for equilateral triangle.
+    /// `min_angle` and `max_angle` agree for equilateral triangle.
     #[test]
     fn min_max_angle_consistent_equilateral() {
         let a = Point3r::new(0.0, 0.0, 0.0);

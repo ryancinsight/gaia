@@ -455,7 +455,7 @@ mod tests {
     /// # Theorem — Bowtie Vertex Incidence
     ///
     /// **Statement.** A pinch vertex v shared by two triangular fans of
-    /// sizes $f_1$ and $f_2$ has $|vertex\_faces(v)| = f_1 + f_2$.
+    /// sizes $`f_1`$ and $`f_2`$ has $|vertex\_faces(v)| = `f_1` + `f_2`$.
     ///
     /// **Proof.** The face-pass in `build()` pushes each incident face
     /// independently; it does not rely on edge-walking or fan-traversal,
@@ -509,7 +509,7 @@ mod tests {
 
     /// Vertex-neighbor uniqueness: no duplicate neighbors in a tetrahedron.
     ///
-    /// Validates the vertex-neighbor uniqueness theorem: since EdgeStore
+    /// Validates the vertex-neighbor uniqueness theorem: since `EdgeStore`
     /// stores each undirected edge exactly once, the push-both-directions
     /// step cannot create duplicates.
     #[test]

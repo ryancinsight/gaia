@@ -6,6 +6,10 @@ use crate::domain::core::scalar::{Point3r, Real};
 
 /// Compute the 3-D intersection segment for two triangles known to straddle
 /// each other's planes.
+#[expect(
+    clippy::many_single_char_names,
+    reason = "standard triangle vertex naming for segment-intersection math"
+)]
 pub(crate) fn compute_segment(
     a: &Point3r,
     b: &Point3r,

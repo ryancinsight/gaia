@@ -18,7 +18,7 @@ pub struct SdfMesher<T: Scalar> {
     pub cell_size: T,
     /// Number of gradient descent steps for boundary projection.
     pub snap_iterations: usize,
-    /// Distance threshold normalized to cell_size for points that undergo snapping.
+    /// Distance threshold normalized to `cell_size` for points that undergo snapping.
     pub snap_radius: T,
 }
 
@@ -38,6 +38,10 @@ impl<T: Scalar> SdfMesher<T> {
     /// The generated interior uses the Delaunay empty-circumsphere criterion;
     /// that establishes connectivity, not a quality optimum. Boundary
     /// projection follows the `Sdf3D` implementation's gradient contract.
+    #[expect(
+        clippy::similar_names,
+        reason = "standard jitter-component and grid-cell coordinate naming"
+    )]
     pub fn build_volume<S: Sdf3D<T>>(&self, sdf: &S) -> IndexedMesh<T> {
         let (min, max) = sdf.bounds();
 

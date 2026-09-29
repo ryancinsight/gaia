@@ -7,7 +7,7 @@
 //! other tetrahedron in the mesh.
 //!
 //! **Proof sketch for Zero-Allocation Cavity Buffer**: By evaluating the empty circumsphere criterion
-//! for each existing tetrahedron $T_i$, we construct the set $C$ of tetrahedra violating the invariant
+//! for each existing tetrahedron $`T_i`$, we construct the set $C$ of tetrahedra violating the invariant
 //! with regarding to the new vertex $P$. The boundaries of $C$ form a simply-connected star-shaped
 //! polyhedron. The construction of new tetrahedra connecting $P$ to the cavity boundary is independent
 //! of the global mesh history, therefore the data structures tracking the cavity faces and the set of

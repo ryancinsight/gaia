@@ -312,6 +312,10 @@ impl DelaunayTriangulation {
     /// Insert vertex `vid` on edge `edge` of triangle `tid`.
     ///
     /// Splits the two triangles sharing the edge into 4 sub-triangles.
+    #[expect(
+        clippy::similar_names,
+        reason = "standard adjacent-vertex and adjacent-triangle naming for local retriangulation"
+    )]
     fn insert_on_edge(&mut self, vid: PslgVertexId, tid: TriangleId, edge: usize) {
         let nbr_tid = self.triangles[tid.idx()].adj[edge];
 
@@ -400,6 +404,10 @@ impl DelaunayTriangulation {
     }
 
     /// Handle the special case where the edge is on the hull boundary.
+    #[expect(
+        clippy::similar_names,
+        reason = "standard adjacent-vertex and adjacent-triangle naming for local retriangulation"
+    )]
     fn insert_on_hull_edge(&mut self, vid: PslgVertexId, tid: TriangleId, edge: usize) {
         let old = self.triangles[tid.idx()];
         let v_opp = old.vertices[edge];
@@ -460,6 +468,10 @@ impl DelaunayTriangulation {
     ///
     /// Returns the neighbor triangle ID that shared `edge` before the flip.
     #[inline]
+    #[expect(
+        clippy::similar_names,
+        reason = "standard adjacent-vertex and adjacent-triangle naming for edge flips"
+    )]
     pub(crate) fn flip_shared_edge(&mut self, tid: TriangleId, edge: usize) -> TriangleId {
         let tri = self.triangles[tid.idx()];
         let nbr_tid = tri.adj[edge];
@@ -705,7 +717,7 @@ impl DelaunayTriangulation {
     ///
     /// **Statement**: After every insertion, for every inserted real vertex
     /// `$v_i$` with `$i < n$`, `$\text{vert\_to\_tri}[i]$` refers to an alive
-    /// triangle whose vertex list contains $v_i$.
+    /// triangle whose vertex list contains $`v_i`$.
     ///
     /// **Proof**: Each of `insert_in_triangle`, `insert_on_edge`, and
     /// `insert_on_hull_edge` explicitly sets `vert_to_tri[v]` for every

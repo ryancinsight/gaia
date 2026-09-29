@@ -86,6 +86,10 @@ impl<T: Scalar> BSplineSurface<T> {
 
     /// Evaluate the surface at `(u, v)`.
     #[must_use]
+    #[expect(
+        clippy::similar_names,
+        reason = "standard spline-basis and partial-derivative notation"
+    )]
     pub fn point(&self, u: T, v: T) -> Point3<T> {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows
@@ -125,6 +129,10 @@ impl<T: Scalar> BSplineSurface<T> {
 
     /// Evaluate surface point and partial derivatives `(S, dS/du, dS/dv)`.
     #[must_use]
+    #[expect(
+        clippy::similar_names,
+        reason = "standard spline-basis and partial-derivative notation"
+    )]
     pub fn point_and_derivs(&self, u: T, v: T) -> (Point3<T>, Vector3<T>, Vector3<T>) {
         let n_u = self.control_grid.n_cols() - 1; // u = cols
         let n_v = self.control_grid.n_rows() - 1; // v = rows
