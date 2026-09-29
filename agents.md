@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 17 complete (Lint Ratchet Round 5 — 4 classes removed; GAIA-016 float_cmp fully discharged; ratchet 725 total).
+> **Rewrite status**: Phase 18 complete (cast_possible_wrap discharged; function splits for too_many_lines; ratchet 706 total).
 
 ---
 
@@ -714,6 +714,7 @@ proptest! {
 | **15** Lint Ratchet Round 3 + Architecture | ✅ DONE | `Cargo.toml`, `welding/snap.rs`, `welding/snap_tests.rs`, 5 geometric algorithm files, ~63 sites across 20+ files | Removed 7 lint classes: `items_after_statements` (22), `must_use_candidate` (12), `return_self_not_must_use` (2), `inline_always` (8), `doc_overindented_list_items` (1), `empty_line_after_doc_comments` (1), `missing_panics_doc` (17). `too_many_arguments` (7): per-site `#[expect]` with geometric-algorithm reasons at all 5 library sites. `snap.rs` split: tests extracted to `snap_tests.rs`, reducing snap.rs from 783→343 lines (1 fewer oversized file). Ratchet total: 1210 (down from 2400 at Phase 12 start). 1139 tests pass. |
 | **16** Lint Ratchet Round 4 + GAIA-005 | ✅ DONE | `Cargo.toml`, 33 primitive/io/permission/mesh files, ~80 lint sites | Removed 3 lint classes: `unreadable_literal` (34→0), `cast_lossless` (3→0), `missing_errors_doc` (43→0 — all Result-returning fns documented). GAIA-005: doctests retired 37→13 `rust,ignore`; 36 doctests now execute under `cargo test --doc` (up from 5); 24 converted to runnable examples with correct imports for all TPMS spheres, Cube, Torus, sweep primitives, GhostCell/GhostToken permission API, and HalfEdgeMesh. Ratchet: 729 numeric + 258 doc_markdown = 987 remaining. 1139 tests pass. |
 | **17** Lint Ratchet Round 5 + GAIA-016 Safety | ✅ DONE | `Cargo.toml`, `lib.rs`, seam/normalization/cdt/geometry/stl.rs, ~380 doc/style sites | Removed 4 classes: `doc_markdown` (258→0), `similar_names` (72→0), `many_single_char_names` (50→0), `float_cmp` (25→0). `float_cmp` discharged: 5 production sites carry `#[expect]` with documented reasons (tie-breaking, identity, degenerate-edge, convex-hull pivot); test sites covered by crate-root carve-out. Fixed stl.rs `Ok(n)` regression from P16. Ratchet: 667 numeric + 58 size = **725 total** (down from 2400 at Phase 12). 1139 tests, 36 doctests pass. |
+| **18** Safety + Architecture | ✅ DONE | `Cargo.toml`, `watertight/check.rs`, `vertex_star.rs`, `box_clip.rs`, `normals.rs`, `welder.rs` | `cast_possible_wrap` (17→0): 17 wrapping `usize→i64/isize` casts replaced with `try_from().expect()` (setup paths) or no-cast arithmetic (TPMS hot loops). Function splits: `analyze_normals()` 216→~110 lines via `flood_orientation_bfs()` helper; `weld()` 148→~105 lines via `pack_merged_vertices()` helper. `too_many_lines` 58→56. Ratchet: 650 numeric + 56 size = **706 total**. 1139 tests pass. |
 
 ---
 
