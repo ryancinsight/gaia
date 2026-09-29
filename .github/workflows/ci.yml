@@ -160,6 +160,12 @@ jobs:
           --lib
           infrastructure::permission::cell::tests
         env:
+          # The repository pins stable 1.97.0 in `rust-toolchain.toml`, which
+          # takes precedence over the nightly installed above: without this,
+          # `cargo miri` resolves to 1.97.0's cargo and fails with "the 'miri'
+          # component is not available". This overrides every selection
+          # mechanism, scoped to the one step that invokes cargo.
+          RUSTUP_TOOLCHAIN: nightly
           MIRIFLAGS: >-
             -Zmiri-strict-provenance
             -Zmiri-isolation-error=warn
