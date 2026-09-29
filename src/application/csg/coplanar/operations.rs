@@ -206,6 +206,10 @@ fn build_tri_data(faces: &[FaceData], pool: &VertexPool, basis: &PlaneBasis) -> 
 ///
 /// `want_inside = true`  → emit src ∩ (∪ opp)   (Intersection)
 /// `want_inside = false` → emit src \ (∪ opp)   (Difference / Union B\A)
+#[expect(
+    clippy::too_many_arguments,
+    reason = "coplanar Boolean kernel: source geometry, opposing slices, spatial index, classification flag, output buffers, and scratch space are all required by the algorithm — grouping into a struct would add indirection to a hot inner loop"
+)]
 fn process_triangle(
     src: &[Real; 6],       // [ax,ay,bx,by,cx,cy] of source in 2-D
     src_3d: &[Point3r; 3], // 3-D positions for fast-path emit

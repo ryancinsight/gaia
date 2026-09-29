@@ -305,6 +305,10 @@ pub(crate) fn collect_points_on_segment_interior(
 /// for all points within the distance tolerance corridor of the segment. Since
 /// final acceptance still uses exact projection and distance checks, this index
 /// stage can only change performance, not geometric correctness. ∎
+#[expect(
+    clippy::too_many_arguments,
+    reason = "segment-point query requires both endpoints, tolerances, a spatial index, a scratch buffer, and an output buffer — splitting would force extra allocations"
+)]
 pub(crate) fn collect_points_on_segment_interior_indexed(
     unique_pts: &[[Real; 2]],
     point_index: &PlanarPointGridIndex,

@@ -22,6 +22,10 @@ use crate::domain::geometry::predicates::{orient_2d_arr, Orientation};
 /// **Consequence**: Callers receive `false` for degenerate triangles rather
 /// than the previous behavior where all collinear points were classified as
 /// "inside" (since no edge had both positive and negative orientations).  ∎
+#[expect(
+    clippy::too_many_arguments,
+    reason = "2-D triangle-containment predicate: 3 vertices + 1 query = 8 scalar coordinates; struct grouping would obscure the mathematical structure"
+)]
 #[inline]
 pub(crate) fn point_in_tri_2d_exact(
     px: Real,

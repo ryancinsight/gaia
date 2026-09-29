@@ -12,6 +12,10 @@ use crate::infrastructure::storage::vertex_pool::DEFAULT_MESH_CELL_SIZE;
 pub(super) const ANGULAR_SEGMENTS: usize = 32;
 
 /// Build one closed, region-labelled tube operand for a branch composition.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "tube geometry requires origin, direction, radius, step count, and allocation hints — no natural grouping without obscuring the geometric meaning"
+)]
 pub(super) fn build_closed_tube(
     origin: (Real, Real, Real),
     dir: (Real, Real, Real),

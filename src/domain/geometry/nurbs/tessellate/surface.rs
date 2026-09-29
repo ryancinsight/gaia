@@ -34,6 +34,10 @@ fn quad_max_angle_deg<T: Scalar>(surf: &NurbsSurface<T>, u0: T, v0: T, u1: T, v1
 /// Recursively subdivide a parameter quad until the normal deviation falls
 /// below the threshold or the maximum depth is reached.
 /// Appends leaf quads `(u0, v0, u1, v1)` to `leaves`.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "NURBS tessellation recursive helper: (u0,v0)-(u1,v1) parameter corners, depth counter, options reference, and output buffer are all required — no natural config-struct grouping"
+)]
 fn subdivide_quad<T: Scalar>(
     surf: &NurbsSurface<T>,
     u0: T,
