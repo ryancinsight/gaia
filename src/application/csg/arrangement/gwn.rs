@@ -151,7 +151,7 @@ pub fn gwn<T: Scalar>(
 }
 
 #[inline(always)]
-fn solid_angle_f64(
+fn triangle_solid_angle(
     va: leto::geometry::Vector3<f64>,
     vb: leto::geometry::Vector3<f64>,
     vc: leto::geometry::Vector3<f64>,
@@ -205,7 +205,7 @@ pub(crate) fn gwn_prepared(query: &Point3r, faces: &[PreparedFace]) -> f64 {
     let mut solid_angle_sum = 0.0_f64;
     for face in faces {
         if let Some((va, vb, vc)) = vertex_offsets(query, face) {
-            solid_angle_sum += solid_angle_f64(va, vb, vc);
+            solid_angle_sum += triangle_solid_angle(va, vb, vc);
         }
     }
     (solid_angle_sum / (4.0 * std::f64::consts::PI)).clamp(-1.0, 1.0)
@@ -240,7 +240,7 @@ pub(crate) fn gwn_bounded_prepared(query: &Point3r, faces: &[PreparedFace]) -> f
     let max_omega = 2.0 * std::f64::consts::PI - GWN_SOLID_ANGLE_CLIP;
     for face in faces {
         if let Some((va, vb, vc)) = vertex_offsets(query, face) {
-            let omega = solid_angle_f64(va, vb, vc);
+            let omega = triangle_solid_angle(va, vb, vc);
             solid_angle_sum += omega.clamp(-max_omega, max_omega);
         }
     }

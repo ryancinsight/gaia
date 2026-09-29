@@ -27,11 +27,6 @@
 //! - **Aspect ratio**: `longest_edge / shortest_edge` per triangle — high
 //!   aspect ratios (> 10) indicate poor mesh quality.
 
-#![allow(clippy::items_after_statements)]
-#![allow(clippy::needless_range_loop)]
-#![allow(clippy::field_reassign_with_default)]
-#![allow(clippy::cast_precision_loss)]
-
 use gaia::domain::core::scalar::{Point3r, Real, Vector3r};
 use hashbrown::HashMap;
 use std::env;
@@ -167,12 +162,12 @@ fn analyze_mesh(
     faces: &gaia::infrastructure::storage::face_store::FaceStore,
 ) -> StlStats {
     let mut stats = StlStats {
+        triangle_count: faces.len(),
+        vertex_count: pool.len(),
         min_corner: Point3r::new(Real::MAX, Real::MAX, Real::MAX),
         max_corner: Point3r::new(Real::MIN, Real::MIN, Real::MIN),
         ..Default::default()
     };
-    stats.triangle_count = faces.len();
-    stats.vertex_count = pool.len();
 
     let mut edge_counts: HashMap<(u32, u32), usize> = HashMap::new();
     let mut centroid_sum = Vector3r::zeros();
