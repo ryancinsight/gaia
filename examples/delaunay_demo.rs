@@ -165,13 +165,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Steiner points added: {steiner_count}");
     println!(
         "   Final triangles     : {}",
-        refined.triangulation().triangle_count()
+        refined_cdt.triangulation().triangle_count()
     );
     println!("   Skinny triangles before (ratio > 1.5): {skinny_before}");
     println!("   Skinny triangles after  (ratio > 1.5): {skinny_after}");
     println!(
         "   Delaunay property   : {}",
-        refined.triangulation().is_delaunay()
+        refined_cdt.triangulation().is_delaunay()
     );
     println!();
 
@@ -179,7 +179,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("5. Export: Refined Square → STL");
     println!("   -----------------------------");
 
-    let indexed = to_indexed_mesh(refined.triangulation());
+    let indexed = to_indexed_mesh(refined_cdt.triangulation());
 
     let stl_path = out_dir.join("refined_square.stl");
     let file = fs::File::create(&stl_path)?;
@@ -195,7 +195,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("6. Quality Statistics for Refined Mesh");
     println!("   ------------------------------------");
 
-    let stats = compute_quality_stats(refined.triangulation());
+    let stats = compute_quality_stats(refined_cdt.triangulation());
 
     println!("   Min angle       : {:.2}°", stats.min_angle_deg);
     println!("   Max angle       : {:.2}°", stats.max_angle_deg);
