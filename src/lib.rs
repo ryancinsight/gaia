@@ -91,6 +91,11 @@
         reason = "test code: an unwrap is the assertion, not an input-dependent failure path"
     )
 )]
+// Restated at the crate root, where the public API is defined, so the docs
+// floor is visible at the point it governs. Cargo.toml
+// `[workspace.lints.rust] missing_docs = "deny"` carries the same floor and is
+// what CI runs under; this is the crate-root declaration of it.
+#![deny(missing_docs)]
 
 pub mod application;
 pub mod domain;
@@ -150,46 +155,17 @@ pub use domain::geometry::Aabb;
 pub use domain::geometry::primitives;
 
 /// Primitive builder re-exports for ergonomic top-level access.
-pub use domain::geometry::{
-    Antiprism,
-    BiconcaveDisk,
-    Capsule,
-    Cone,
-    Cube,
-    Cuboctahedron,
-    Cylinder,
-    Disk,
-    Dodecahedron,
-    Elbow,
-    Ellipsoid,
-    // TPMS expansion: Neovius, Lidinoid, I-WP, Split P, FRD, Fischer-Koch C(Y)
-    FischerKochCySphere,
-    FrdSphere,
-    Frustum,
-    GeodesicSphere,
-    GyroidSphere,
-    HelixSweep,
-    Icosahedron,
-    IwpSphere,
-    LidinoidSphere,
-    LinearSweep,
-    NeoviusSphere,
-    Octahedron,
-    Pipe,
-    Pyramid,
-    RevolutionSweep,
-    RoundedCube,
-    SchwarzDSphere,
-    SchwarzPSphere,
-    SerpentineTube,
-    SphericalShell,
-    SplitPSphere,
-    StadiumPrism,
-    Tetrahedron,
-    Torus,
-    TruncatedIcosahedron,
-    UvSphere,
-};
+pub use domain::geometry::primitives::{Antiprism, BiconcaveDisk, Capsule, Cone, Cube};
+pub use domain::geometry::primitives::{Cuboctahedron, Cylinder, Disk, Dodecahedron};
+// TPMS expansion: Neovius, Lidinoid, I-WP, Split P, FRD, Fischer-Koch C(Y)
+pub use domain::geometry::primitives::{Elbow, Ellipsoid, FischerKochCySphere, FrdSphere};
+pub use domain::geometry::primitives::{Frustum, GeodesicSphere, GyroidSphere, HelixSweep};
+pub use domain::geometry::primitives::{Icosahedron, IwpSphere, LidinoidSphere, LinearSweep};
+pub use domain::geometry::primitives::{NeoviusSphere, Octahedron, Pipe, Pyramid};
+pub use domain::geometry::primitives::{RevolutionSweep, RoundedCube, SchwarzDSphere};
+pub use domain::geometry::primitives::{SchwarzPSphere, SerpentineTube, SphericalShell};
+pub use domain::geometry::primitives::{SplitPSphere, StadiumPrism, Tetrahedron, Torus};
+pub use domain::geometry::primitives::{TruncatedIcosahedron, UvSphere};
 
 /// Application-level channel builders.
 pub use application::channel::{

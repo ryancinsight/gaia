@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-04
-- Driver: `CHECKLIST.md` Phase 52
+- Driver: `checklist.md` Phase 52
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-02
-- Board item: [Phase 48](../../CHECKLIST.md#phase-48-mesh-builder-input-and-branch-stability-safety)
+- Board item: [Phase 48](../../checklist.md#phase-48-mesh-builder-input-and-branch-stability-safety)
 
 ## Context
 
