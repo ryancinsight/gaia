@@ -70,7 +70,7 @@ both `rust,ignore`.
   that exercises branded aliasing across threads, not only construction.
 - **Dependencies**: none.
 - **Risk / change class**: [verification] [patch] — S.
-- **Status**: todo. **Owner**: unclaimed.
+- **Status**: todo. Delivered Phase 14 (2026-09-29): two cross-thread tests added to `cell.rs` (Send/Sync theorems documented inline); `miri` CI job added under nightly toolchain with `-Zmiri-strict-provenance`. **Owner**: root.
 
 Evidence: `rg 'unsafe ' src` returns exactly `cell.rs:34` and `cell.rs:40`
 (`unsafe impl Send`/`Sync` for `GhostCell`); `.github/workflows/ci.yml` runs

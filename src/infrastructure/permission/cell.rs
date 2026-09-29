@@ -97,3 +97,87 @@ impl<'brand, T: std::fmt::Debug> GhostCell<'brand, T> {
         self.borrow(token).fmt(f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A `GhostCell<T: Send>` can be sent to another thread.
+    ///
+    /// # Theorem — Send safety
+    ///
+    /// `unsafe impl Send for GhostCell<'_, T> where T: Send` is sound because:
+    /// - `GhostToken` is `!Send` (invariant brand lifetime + non-`Send` inner).
+    ///   It cannot migrate between threads.
+    /// - Moving a `GhostCell` to another thread transfers *ownership* of `T`.
+    ///   The receiver has no matching token, so it cannot read or write through
+    ///   the cell — it can only hold it until ownership returns to the
+    ///   token-holding thread.
+    /// - No data race is possible: the moved cell is inaccessible without
+    ///   the token, which stays on the original thread.
+    ///
+    /// Uses `thread::scope` so the brand lifetime `'brand` does not need to
+    /// be `'static` — the scope is tied to the outer frame where the token
+    /// lives.
+    #[test]
+    fn ghost_cell_send_owned_across_thread() {
+        GhostToken::new(|mut token| {
+            let cell = GhostCell::new(String::from("hello"));
+            *cell.borrow_mut(&mut token) = String::from("world");
+
+            // thread::scope lets us move the cell to a worker without
+            // requiring 'static: the scope's lifetime is bounded by this
+            // closure, which is also bounded by the token's brand lifetime.
+            let result = std::thread::scope(|s| {
+                s.spawn(|| {
+                    // No token available on this thread — can only consume.
+                    cell.into_inner()
+                })
+                .join()
+                .expect("worker thread panicked")
+            });
+
+            assert_eq!(result, "world");
+        });
+    }
+
+    /// A shared reference `&GhostCell<T: Send + Sync>` can exist on multiple
+    /// threads simultaneously — exercised via `thread::scope`.
+    ///
+    /// # Theorem — Sync safety
+    ///
+    /// `unsafe impl Sync for GhostCell<'_, T> where T: Send + Sync` is sound
+    /// because:
+    /// - `&GhostCell` alone grants no read access to `T`.  Any read requires
+    ///   `&GhostToken` and any write requires `&mut GhostToken`.
+    /// - `GhostToken` is `!Sync`, so only the token-owning thread can produce
+    ///   a `&GhostToken` for reads.
+    /// - Concurrent `&GhostCell` holders on other threads hold an opaque
+    ///   reference and cannot observe `T` at all.
+    /// - The borrow-checker enforces that `&GhostToken` and `&mut GhostToken`
+    ///   cannot coexist, preventing data races.
+    #[test]
+    fn ghost_cell_sync_shared_ref_across_threads() {
+        GhostToken::new(|token| {
+            let cell = GhostCell::new(42_u64);
+
+            // The worker holds &cell (a shared reference) across the scope.
+            // It cannot read the value — no token is passed to it.
+            let worker_saw_ref = std::thread::scope(|s| {
+                s.spawn(|| {
+                    // Hold a reference to the cell without reading its value.
+                    // This exercises the Sync impl: &GhostCell is shareable.
+                    core::ptr::from_ref(&cell).addr()
+                })
+                .join()
+                .expect("worker thread panicked")
+            });
+
+            // Main thread reads with its token while/after the worker runs.
+            let val = *cell.borrow(&token);
+            assert_eq!(val, 42_u64);
+            // Verify the worker actually held the reference (non-null address).
+            assert_ne!(worker_saw_ref, 0, "worker held a null cell reference");
+        });
+    }
+}

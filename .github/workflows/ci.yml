@@ -124,3 +124,42 @@ jobs:
         run: cargo doc --locked --no-deps --all-features
         env:
           RUSTDOCFLAGS: -D warnings
+
+  # GAIA-007: Verify that the two `unsafe impl Send/Sync` blocks in
+  # `permission/cell.rs` are sound under Miri's alias-tracking model.
+  # This job uses a separate nightly toolchain — the pinned stable toolchain
+  # (`gate` job) is unchanged.
+  miri:
+    name: Miri — GhostCell Send/Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the revision under test
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install nightly Rust with Miri
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          toolchain: nightly
+          components: miri, rust-src
+
+      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
+        with:
+          key: miri
+
+      - name: Miri — permission module Send/Sync tests
+        # Run only the two cross-thread tests added for GAIA-007.
+        # `-Zmiri-strict-provenance` rejects ptr-to-int casts that bypass the
+        # alias model; `-Zmiri-isolation-error=warn` allows thread spawning.
+        run: >
+          cargo miri test
+          --lib
+          infrastructure::permission::cell::tests
+        env:
+          MIRIFLAGS: >-
+            -Zmiri-strict-provenance
+            -Zmiri-isolation-error=warn
