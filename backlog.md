@@ -198,7 +198,7 @@ type-checking, so no bench body has ever been executed by a gate.
 - **Dependencies**: GAIA-003 retires the largest class (1268 cast lints).
 - **ADR**: 0003 — Align CSG repair module ownership with directory paths.
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: done — Phase 13 (2026-09-29). Four lint classes removed from ratchet (`needless_range_loop`, `manual_clamp`, `format_push_string`, `manual_let_else`); `float_cmp` test ceiling 44→25 (GAIA-016); `unwrap_used` production sites 2→0 (normals.rs invariants proved). 38 oversized files (was 40). 1137 tests pass. **Owner**: root.
+- **Status**: todo. Incrementally delivered — Phase 13 (2026-09-29) removed four lint classes and discharged `unwrap_used`; remaining: cast-precision ratchet (blocked by GAIA-003), file-size splits, `too_many_lines` 58. **Owner**: root.
 
 Evidence: `cargo clippy --all-targets --all-features -- --force-warn
 clippy::too_many_lines` emits 58 diagnostics at this revision; `unwrap_production`
@@ -220,7 +220,7 @@ ratchet baseline auto-tightened 2→0 on push.
   ratchet entries; `manual_let_else` (51 allowed) drops as let-chains land.
 - **Dependencies**: none.
 - **Risk / change class**: [patch] — M.
-- **Status**: done — delivered with GAIA-013 / Phase 13. **Owner**: root.
+- **Status**: todo. Delivered with GAIA-013 / Phase 13. **Owner**: root.
 
 Evidence: delivered with [GAIA-013](#GAIA-013): the manifest now uses edition
 2024 and resolver 3 with the pinned Rust 1.97.0 toolchain. Strict all-target
