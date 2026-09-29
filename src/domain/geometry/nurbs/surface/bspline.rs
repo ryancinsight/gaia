@@ -32,6 +32,13 @@ pub struct BSplineSurface<T = Real> {
 
 impl<T: Scalar> BSplineSurface<T> {
     /// Create a B-spline surface, validating knot / control-point consistency.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SurfaceError::EmptyControlGrid`] if the control grid has no
+    /// rows or columns, [`SurfaceError::ZeroDegree`] if either degree is zero,
+    /// or [`SurfaceError::KnotCountMismatch`] if either knot vector length does
+    /// not match the control-grid dimensions and degree.
     pub fn new(
         control_grid: ControlGrid<T>,
         knots_u: KnotVector<T>,
@@ -50,6 +57,12 @@ impl<T: Scalar> BSplineSurface<T> {
     }
 
     /// Create with clamped uniform knot vectors constructed automatically.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SurfaceError::EmptyControlGrid`] if the control grid has no
+    /// rows or columns, or [`SurfaceError::ZeroDegree`] if either degree is
+    /// zero.
     pub fn clamped(
         control_grid: ControlGrid<T>,
         degree_u: usize,

@@ -12,6 +12,11 @@ use crate::infrastructure::storage::face_store::FaceStore;
 ///
 /// For each manifold edge shared by two faces, the edge should appear as
 /// `(a, b)` in one face and `(b, a)` in the other.
+///
+/// # Errors
+///
+/// Returns [`MeshError::InconsistentWinding`] when two adjacent faces traverse
+/// a shared manifold edge in the same direction.
 #[inline]
 pub fn check_orientation(face_store: &FaceStore, edge_store: &EdgeStore) -> MeshResult<()> {
     for edge in edge_store.iter() {

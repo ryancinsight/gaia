@@ -178,12 +178,12 @@ fn stress_100_points() {
     let mut pts = Vec::with_capacity(100);
     for _ in 0..100 {
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let x = (rng >> 33) as f64 / (1u64 << 31) as f64;
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let y = (rng >> 33) as f64 / (1u64 << 31) as f64;
         pts.push((x, y));
     }
@@ -362,12 +362,12 @@ fn stress_1000_points() {
     let mut pts = Vec::with_capacity(1000);
     for _ in 0..1000 {
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let x = (rng >> 33) as f64 / (1u64 << 31) as f64;
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let y = (rng >> 33) as f64 / (1u64 << 31) as f64;
         pts.push((x, y));
     }
@@ -410,12 +410,12 @@ fn euler_formula_stress_100() {
     let mut pts = Vec::with_capacity(100);
     for _ in 0..100 {
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let x = (rng >> 33) as f64 / (1u64 << 31) as f64;
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let y = (rng >> 33) as f64 / (1u64 << 31) as f64;
         pts.push((x, y));
     }
@@ -488,12 +488,12 @@ fn min_connectivity_large_random() {
     let mut pts = Vec::with_capacity(50);
     for _ in 0..50 {
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let x = (rng >> 33) as f64 / (1u64 << 31) as f64;
         rng = rng
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         let y = (rng >> 33) as f64 / (1u64 << 31) as f64;
         pts.push((x, y));
     }

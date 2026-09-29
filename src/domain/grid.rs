@@ -40,6 +40,11 @@ impl StructuredGridBuilder {
     }
 
     /// Build the mesh.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GridError`] if the internal tetrahedral decomposition
+    /// produces an invalid cell while assembling the structured grid.
     pub fn build(self) -> Result<IndexedMesh<f64>, GridError> {
         build_structured_grid(self.nx, self.ny, self.nz)
     }

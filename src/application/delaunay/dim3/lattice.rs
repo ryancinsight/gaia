@@ -64,15 +64,15 @@ impl<T: Scalar> SdfMesher<T> {
                     // Adding an infinitesimal deterministic pseudo-random spatial jitter breaks exact symmetry.
                     let jitter_mag = <T as Scalar>::from_f64(1e-5) * h;
                     let hash_jitter = |ix: i32, iy: i32, iz: i32, seed: i32| -> T {
-                        let mut h_val = (ix.wrapping_mul(73856093)
-                            ^ iy.wrapping_mul(19349663)
-                            ^ iz.wrapping_mul(83492791)
-                            ^ seed.wrapping_mul(41293819))
+                        let mut h_val = (ix.wrapping_mul(73_856_093)
+                            ^ iy.wrapping_mul(19_349_663)
+                            ^ iz.wrapping_mul(83_492_791)
+                            ^ seed.wrapping_mul(41_293_819))
                             as u32;
                         h_val ^= h_val >> 16;
-                        h_val = h_val.wrapping_mul(0x85ebca6b);
+                        h_val = h_val.wrapping_mul(0x85EB_CA6B);
                         h_val ^= h_val >> 13;
-                        h_val = h_val.wrapping_mul(0xc2b2ae35);
+                        h_val = h_val.wrapping_mul(0xC2B2_AE35);
                         h_val ^= h_val >> 16;
                         // Map [0, u32::MAX] to [-1.0, 1.0]
                         let fract = f64::from(h_val) / f64::from(u32::MAX) * 2.0 - 1.0;

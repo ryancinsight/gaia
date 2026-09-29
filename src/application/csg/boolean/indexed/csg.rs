@@ -31,6 +31,12 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 ///
 /// For three or more operands, prefer [`csg_boolean_nary`] to avoid error
 /// accumulation from repeated binary operations.
+///
+/// # Errors
+///
+/// Returns [`MeshError::EmptyBooleanResult`] if no surface survives the
+/// Boolean selection, or propagates repair/validation failures such as
+/// [`MeshError::NotWatertight`] from the arrangement postprocessing stage.
 pub fn csg_boolean(
     op: BooleanOp,
     mesh_a: &IndexedMesh,

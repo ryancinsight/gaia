@@ -66,6 +66,11 @@ pub fn check_manifold(edge_store: &EdgeStore) -> ManifoldReport {
 }
 
 /// Assert that the mesh is a closed 2-manifold, returning an error if not.
+///
+/// # Errors
+///
+/// Returns [`MeshError::NonManifoldEdge`] for the first edge with valence other
+/// than 1 or 2, or [`MeshError::NotWatertight`] if the mesh has boundary edges.
 #[inline]
 pub fn assert_manifold(edge_store: &EdgeStore) -> MeshResult<ManifoldReport> {
     let report = check_manifold(edge_store);

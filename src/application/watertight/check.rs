@@ -166,6 +166,13 @@ pub fn check_watertight_with_self_intersections(
 }
 
 /// Assert the mesh is watertight, returning an error if not.
+///
+/// # Errors
+///
+/// Returns [`MeshError::NotWatertight`] if the mesh has boundary edges,
+/// propagates [`MeshError::InconsistentWinding`] from the orientation check,
+/// and returns [`MeshError::Other`] if the signed volume is non-finite or not
+/// strictly positive.
 pub fn assert_watertight<T: Scalar>(
     vertex_pool: &VertexPool<T>,
     face_store: &FaceStore,

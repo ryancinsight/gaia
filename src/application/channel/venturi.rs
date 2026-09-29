@@ -101,6 +101,10 @@ impl VenturiMeshBuilder {
     }
 
     /// Build a watertight surface mesh.
+    ///
+    /// # Errors
+    ///
+    /// This constructor is currently infallible and always returns `Ok`.
     pub fn build_surface(&self) -> Result<IndexedMesh, BuildError> {
         Ok(build_venturi_surface(self))
     }

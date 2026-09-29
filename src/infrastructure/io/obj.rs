@@ -1,4 +1,4 @@
-//! Wavefront OBJ import and export.
+﻿//! Wavefront OBJ import and export.
 //!
 //! Supports triangle meshes with vertex positions and normals.
 
@@ -20,6 +20,10 @@ use super::parse;
 ///
 /// Emits `v` (position), `vn` (normal), and `f` (face) records.
 /// OBJ uses 1-based indexing.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing any OBJ record to `writer` fails.
 pub fn write_obj<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
     writeln!(writer, "# OBJ exported by gaia").map_err(MeshError::Io)?;
 
@@ -179,12 +183,17 @@ pub fn read_obj<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
 /// inner body of a `cargo-fuzz` target.
 ///
 /// # Example (in a fuzz target)
-/// ```rust,ignore
+/// ```rust,no_run
 /// #![no_main]
 /// libfuzzer_sys::fuzz_target!(|data: &[u8]| {
 ///     let _ = gaia::infrastructure::io::obj::fuzz_read_obj(data);
 /// });
 /// ```
+///
+/// # Errors
+///
+/// Returns the same malformed-record, coordinate-validation, and I/O errors as
+/// [`read_obj`].
 pub fn fuzz_read_obj(data: &[u8]) -> MeshResult<IndexedMesh> {
     read_obj(std::io::Cursor::new(data))
 }

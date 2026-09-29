@@ -88,8 +88,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut all_cutters = Vec::with_capacity(96);
     for row in 0..8 {
         for col in 0..12 {
-            let cx = cx_start + (col as f64) * well_spacing;
-            let cz = cz_start + (row as f64) * well_spacing;
+            let cx = cx_start + f64::from(col) * well_spacing;
+            let cz = cz_start + f64::from(row) * well_spacing;
 
             // Actual fluid domain inside the well
             let frustum = Frustum {

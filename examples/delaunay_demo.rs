@@ -39,7 +39,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let rng = 42_u64.wrapping_mul((i + 1) as u64);
             let x = ((rng >> 33) as f64 / (1u64 << 31) as f64) * 10.0;
             let y =
-                ((rng.wrapping_mul(6364136223846793005) >> 33) as f64 / (1u64 << 31) as f64) * 10.0;
+                ((rng.wrapping_mul(6_364_136_223_846_793_005) >> 33) as f64
+                    / (1u64 << 31) as f64)
+                    * 10.0;
             (x, y)
         })
         .collect();
@@ -268,7 +270,7 @@ fn compute_quality_stats(
         min_radius_edge: min_re,
         max_radius_edge: max_re,
         mean_area: if count > 0 {
-            total_area / count as f64
+            total_area / f64::from(count)
         } else {
             0.0
         },

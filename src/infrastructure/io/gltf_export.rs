@@ -11,6 +11,11 @@ use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::mesh::IndexedMesh;
 
 /// Write an [`IndexedMesh`] as a glTF 2.0 Binary (`.glb`) file.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing the GLB header, JSON chunk, or binary
+/// chunk to `writer` fails.
 pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
     let vertex_count = mesh.vertex_count();
     let face_count = mesh.face_count();
@@ -122,7 +127,7 @@ pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
         .write_all(&(padded_json_len as u32).to_le_bytes())
         .map_err(MeshError::Io)?;
     writer
-        .write_all(&0x4E4F534Au32.to_le_bytes())
+        .write_all(&0x4E4F_534Au32.to_le_bytes())
         .map_err(MeshError::Io)?; // "JSON"
     writer.write_all(&json_bytes).map_err(MeshError::Io)?;
 
@@ -131,7 +136,7 @@ pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
         .write_all(&(padded_bin_len as u32).to_le_bytes())
         .map_err(MeshError::Io)?;
     writer
-        .write_all(&0x004E4942u32.to_le_bytes())
+        .write_all(&0x004E_4942u32.to_le_bytes())
         .map_err(MeshError::Io)?; // "BIN\0"
     writer.write_all(&bin_buf).map_err(MeshError::Io)?;
 

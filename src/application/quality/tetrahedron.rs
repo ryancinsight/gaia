@@ -511,7 +511,7 @@ mod tests {
         let quality = analytical_quality::<T>();
         assert!((quality.volume.to_f64() - 1.0 / 6.0).abs() < 1e-6);
         assert!((quality.radius_edge_ratio.to_f64() - 3.0_f64.sqrt() / 2.0).abs() < 1e-6);
-        assert!((quality.normalized_volume.to_f64() - 0.769800358919501).abs() < 1e-6);
+        assert!((quality.normalized_volume.to_f64() - 0.769_800_358_919_501).abs() < 1e-6);
         assert!(quality.min_dihedral_angle.to_f64().to_degrees() > 54.0);
     }
 

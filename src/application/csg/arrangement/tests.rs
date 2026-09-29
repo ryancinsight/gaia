@@ -273,8 +273,8 @@ fn exact_algebraic_coplanarity_no_shatter() {
     let a3 = mesh_a.add_vertex(Point3r::new(0.0, 1.0, 0.0), Vector3r::z());
     mesh_a.add_face(a1, a2, a3);
 
-    let b1 = mesh_b.add_vertex(Point3r::new(0.0, 0.0, 0.0000001), Vector3r::z());
-    let b2 = mesh_b.add_vertex(Point3r::new(1.0, 0.0, 0.0000001), Vector3r::z());
+    let b1 = mesh_b.add_vertex(Point3r::new(0.0, 0.0, 0.000_000_1), Vector3r::z());
+    let b2 = mesh_b.add_vertex(Point3r::new(1.0, 0.0, 0.000_000_1), Vector3r::z());
     let b3 = mesh_b.add_vertex(Point3r::new(0.0, 1.0, 0.0), Vector3r::z());
     mesh_b.add_face(b1, b2, b3);
 

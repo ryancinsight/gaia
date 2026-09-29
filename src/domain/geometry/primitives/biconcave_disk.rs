@@ -65,9 +65,9 @@ impl Default for BiconcaveDisk {
             center: Point3r::origin(),
             segments: 32,
             rings: 16,
-            c0: 0.207161,
-            c1: 2.002558,
-            c2: -1.122762,
+            c0: 0.207_161,
+            c1: 2.002_558,
+            c2: -1.122_762,
         }
     }
 }

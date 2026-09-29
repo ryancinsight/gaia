@@ -128,6 +128,11 @@ impl Default for TpmsParams {
 /// This is the single shared build path used by all TPMS sphere primitives.
 /// New TPMS primitives need only implement [`Tpms`] and delegate to this
 /// function — O(1) cost per new surface type.
+///
+/// # Errors
+///
+/// Returns [`PrimitiveError::InvalidParam`] if the radius or period is not
+/// positive, or if the marching-cubes resolution is below 4 samples per axis.
 pub fn build_tpms_sphere<S: Tpms>(
     surface: &S,
     params: &TpmsParams,

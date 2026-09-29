@@ -1,4 +1,4 @@
-//! Stanford PLY import and export.
+﻿//! Stanford PLY import and export.
 //!
 //! Supports ASCII PLY with vertex positions, normals, and triangular faces.
 
@@ -17,6 +17,11 @@ use super::parse;
 // =============================================================================
 
 /// Write an [`IndexedMesh`] as ASCII PLY.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing the PLY header, vertex records, or
+/// face records fails.
 pub fn write_ply<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
     let vertex_count = mesh.vertex_count();
     let face_count = mesh.face_count();
@@ -250,12 +255,17 @@ pub fn read_ply<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
 /// inner body of a `cargo-fuzz` target.
 ///
 /// # Example (in a fuzz target)
-/// ```rust,ignore
+/// ```rust,no_run
 /// #![no_main]
 /// libfuzzer_sys::fuzz_target!(|data: &[u8]| {
 ///     let _ = gaia::infrastructure::io::ply::fuzz_read_ply(data);
 /// });
 /// ```
+///
+/// # Errors
+///
+/// Returns the same malformed-record, coordinate-validation, and I/O errors as
+/// [`read_ply`].
 pub fn fuzz_read_ply(data: &[u8]) -> MeshResult<IndexedMesh> {
     read_ply(std::io::Cursor::new(data))
 }

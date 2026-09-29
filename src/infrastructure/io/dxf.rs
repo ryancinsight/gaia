@@ -13,6 +13,11 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// Uses the minimal DXF R12 ASCII format, compatible with AutoCAD, LibreCAD,
 /// and most CNC software.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing any DXF section, entity, or coordinate
+/// record to `writer` fails.
 pub fn write_dxf<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
     // HEADER section (minimal)
     w(writer, "0")?;

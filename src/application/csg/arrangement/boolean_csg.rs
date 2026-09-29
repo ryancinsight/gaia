@@ -42,6 +42,12 @@ pub enum BooleanOp {
 ///
 /// This avoids the progressive geometry degradation associated with iteratively computing
 /// `(A op B) op C`, solving directly for the global multi-way topological boundaries.
+///
+/// # Errors
+///
+/// Returns [`MeshError::EmptyBooleanResult`] if the selected boundary is empty,
+/// or propagates repair/validation failures such as [`MeshError::NotWatertight`]
+/// from the finalization pass.
 pub fn csg_boolean(
     op: BooleanOp,
     meshes: &[Vec<FaceData>],

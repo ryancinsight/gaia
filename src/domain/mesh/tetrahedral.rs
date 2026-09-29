@@ -203,6 +203,11 @@ impl<T: Scalar> TetrahedralMeshBuilder<T> {
     }
 
     /// Add a tetrahedron from four coordinate arrays.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeshError::InvalidCell`] if any coordinate is non-finite or
+    /// if the four points define a tetrahedron with zero signed volume.
     pub fn tetrahedron_array(&mut self, positions: [[T; 3]; 4]) -> MeshResult<usize> {
         let vertices = positions.map(|position| self.vertex_array(position));
         self.tetrahedron(vertices)

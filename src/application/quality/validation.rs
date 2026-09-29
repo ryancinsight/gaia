@@ -152,6 +152,12 @@ impl MeshValidator {
     }
 
     /// Validate and return error if quality is below threshold.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeshError::QualityBelowThreshold`] if any face has a
+    /// non-finite metric or violates the configured aspect-ratio, minimum-angle,
+    /// skewness, or edge-ratio thresholds.
     pub fn assert_quality<T: Scalar>(
         &self,
         face_store: &FaceStore,

@@ -1,4 +1,4 @@
-//! STL import and export.
+﻿//! STL import and export.
 //!
 //! Supports both ASCII and binary STL formats.
 
@@ -14,6 +14,11 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 use super::parse;
 
 /// Write an indexed mesh as ASCII STL.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing any header, facet, or vertex record
+/// to `writer` fails.
 pub fn write_ascii_stl<W: Write>(
     writer: &mut W,
     name: &str,
@@ -49,6 +54,11 @@ pub fn write_ascii_stl<W: Write>(
 }
 
 /// Write an indexed mesh as binary STL.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing the header, triangle count, triangle
+/// payload, or attribute bytes to `writer` fails.
 pub fn write_binary_stl<W: Write>(
     writer: &mut W,
     vertex_pool: &VertexPool,
@@ -94,6 +104,13 @@ pub fn write_binary_stl<W: Write>(
 }
 
 /// Read an ASCII STL into the vertex pool and face store.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if the input cannot be read line-by-line,
+/// [`MeshError::Other`] if a vertex field is not a valid number, and
+/// [`MeshError::InvalidCoordinate`] if a parsed vertex contains NaN or
+/// infinity.
 pub fn read_ascii_stl<R: Read>(
     reader: R,
     vertex_pool: &mut VertexPool,
@@ -157,6 +174,12 @@ fn write_f32<W: Write>(w: &mut W, v: f32) -> MeshResult<()> {
 /// triangle: 12-byte normal, 3 × 12-byte vertices, 2-byte attribute count.
 /// Vertex normals are recomputed from face geometry rather than read from the
 /// file (the spec does not require them to be correct).
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if the binary records cannot be read,
+/// or [`MeshError::InvalidCoordinate`] if any decoded vertex coordinate is NaN
+/// or infinite.
 pub fn read_binary_stl<R: Read>(
     reader: R,
     vertex_pool: &mut VertexPool,
@@ -218,6 +241,11 @@ pub fn read_binary_stl<R: Read>(
 /// `file_bytes == 84 + triangle_count * 50`.  Any file that satisfies this
 /// is parsed as binary; everything else is attempted as ASCII.
 /// All faces are tagged with `RegionId(0)` (wall).
+///
+/// # Errors
+///
+/// Returns the same read or coordinate-validation errors as
+/// [`read_binary_stl`] or [`read_ascii_stl`], depending on the detected format.
 pub fn read_stl<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
     let mut data = Vec::new();
     // read_to_end needs the Read trait in scope — it is via `use std::io::Read`.
@@ -251,11 +279,19 @@ pub fn read_stl<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
 }
 
 /// Write an [`IndexedMesh`] as ASCII STL (convenience wrapper).
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if emitting the ASCII STL stream fails.
 pub fn write_stl_ascii<W: Write>(writer: &mut W, name: &str, mesh: &IndexedMesh) -> MeshResult<()> {
     write_ascii_stl(writer, name, &mesh.vertices, &mesh.faces)
 }
 
 /// Write an [`IndexedMesh`] as binary STL (convenience wrapper).
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if emitting the binary STL stream fails.
 pub fn write_stl_binary<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
     write_binary_stl(writer, &mesh.vertices, &mesh.faces)
 }
@@ -271,12 +307,16 @@ pub fn write_stl_binary<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshRes
 /// inner body of a `cargo-fuzz` target.
 ///
 /// # Example (in a fuzz target)
-/// ```rust,ignore
+/// ```rust,no_run
 /// #![no_main]
 /// libfuzzer_sys::fuzz_target!(|data: &[u8]| {
 ///     let _ = gaia::infrastructure::io::stl::fuzz_read_stl(data);
 /// });
 /// ```
+///
+/// # Errors
+///
+/// Returns the same parse and coordinate-validation errors as [`read_stl`].
 pub fn fuzz_read_stl(data: &[u8]) -> MeshResult<IndexedMesh> {
     read_stl(std::io::Cursor::new(data))
 }

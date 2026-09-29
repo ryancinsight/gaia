@@ -89,6 +89,11 @@ impl<T: Default> Default for GhostCell<'_, T> {
 
 impl<'brand, T: std::fmt::Debug> GhostCell<'brand, T> {
     /// Debug-format the inner value. Requires `&GhostToken`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`std::fmt::Error`] if the destination formatter reports a
+    /// formatting failure while writing the inner value.
     pub fn debug_with(
         &self,
         token: &GhostToken<'brand>,

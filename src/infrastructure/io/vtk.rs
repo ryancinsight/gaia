@@ -12,6 +12,11 @@ use crate::infrastructure::storage::face_store::FaceStore;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
 /// Write an indexed mesh as a VTK legacy ASCII unstructured grid.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing the VTK header, point list, cell
+/// connectivity, or cell-type table fails.
 pub fn write_vtk<W: Write>(
     writer: &mut W,
     vertex_pool: &VertexPool,
@@ -57,6 +62,10 @@ pub fn write_vtk<W: Write>(
 }
 
 /// Write an [`IndexedMesh`] as a VTK legacy ASCII unstructured grid (convenience).
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if emitting the indexed VTK stream fails.
 pub fn write_vtk_indexed<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
     write_vtk(writer, &mesh.vertices, &mesh.faces)
 }
@@ -66,6 +75,11 @@ pub fn write_vtk_indexed<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshRe
 /// Vertex keys are mapped to sequential indices 0..n in iteration order.
 /// Only triangular faces (those with exactly 3 vertices) are emitted.
 /// The VTK cell type is always `5` (VTK_TRIANGLE).
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing the VTK header, point list, cell
+/// connectivity, or cell-type table fails.
 pub fn write_vtk_he<'id, W: Write>(
     writer: &mut W,
     mesh: &HalfEdgeMesh<'id>,

@@ -63,6 +63,12 @@ impl ChannelPath {
     }
 
     /// Create a straight-line path between two points.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ChannelPathError::NonFinitePoint`] if either endpoint has a
+    /// non-finite coordinate, or [`ChannelPathError::DegenerateSegment`] if
+    /// `start` and `end` are identical.
     pub fn straight(start: Point3r, end: Point3r) -> Result<Self, ChannelPathError> {
         Self::new(vec![start, end])
     }

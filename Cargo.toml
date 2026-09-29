@@ -142,21 +142,18 @@ dbg_macro = "deny"
 # permanent per-file suppressions on targets whose whole job is printing, which
 # is noise, not a ratchet. The library-code guarantee is the measured zero.
 
-# ── Ratchet: numeric-conversion debt (729) ──────────────────────────────────
+# ── Ratchet: numeric-conversion debt (692) ──────────────────────────────────
 # The real fix is a `Scalar`-parameterized conversion boundary, not blanket
 # `as` casts from index to coordinate space.
 cast_precision_loss = "allow"        # 437
 cast_possible_truncation = "allow"   # 160
 cast_sign_loss = "allow"             # 53
-unreadable_literal = "allow"         # 34
 float_cmp = "allow"                  # 25 — separately tracked as the CSG
                                      #      epsilon-classification item
 cast_possible_wrap = "allow"         # 17
-cast_lossless = "allow"              # 3
 
-# ── Ratchet: documentation debt (334) ─────────────────────────────────────────
+# ── Ratchet: documentation debt (291) ─────────────────────────────────────────
 doc_markdown = "allow"               # 258
-missing_errors_doc = "allow"         # 43
 
 # ── Ratchet: naming and style debt (152) ──────────────────────────────────────
 similar_names = "allow"              # 72

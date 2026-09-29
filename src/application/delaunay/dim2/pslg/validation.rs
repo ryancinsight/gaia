@@ -15,6 +15,14 @@ impl<T: Scalar> Pslg<T> {
     /// - No duplicate segments.
     /// - No segment-segment interior intersections (shared endpoints allowed).
     ///
+    /// # Errors
+    ///
+    /// Returns [`PslgValidationError::NonFiniteVertex`] for NaN or infinite
+    /// coordinates, [`PslgValidationError::CoincidentVertices`] for distinct
+    /// vertices that collapse within tolerance, and the corresponding segment
+    /// validation variants for out-of-range endpoints, degenerate segments,
+    /// duplicate segments, or intersecting constraints.
+    ///
     /// # Panics
     ///
     /// Panics if a segment endpoint index becomes invalid after the explicit

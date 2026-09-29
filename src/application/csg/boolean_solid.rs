@@ -38,12 +38,30 @@ use crate::domain::mesh::IndexedMesh;
 /// ```
 pub trait BooleanSolid: Sized {
     /// Compute `self ∪ other`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeshError::EmptyBooleanResult`] if the union has no surviving
+    /// boundary, or [`MeshError::NotWatertight`] if the Boolean result cannot
+    /// be repaired into a watertight mesh.
     fn union(&self, other: &Self) -> MeshResult<Self>;
 
     /// Compute `self ∩ other`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeshError::EmptyBooleanResult`] if the operands have no
+    /// intersecting volume, or [`MeshError::NotWatertight`] if the Boolean
+    /// result cannot be repaired into a watertight mesh.
     fn intersection(&self, other: &Self) -> MeshResult<Self>;
 
     /// Compute `self \ other` (self minus other).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeshError::EmptyBooleanResult`] if subtraction removes the
+    /// entire minuend, or [`MeshError::NotWatertight`] if the Boolean result
+    /// cannot be repaired into a watertight mesh.
     fn difference(&self, other: &Self) -> MeshResult<Self>;
 }
 

@@ -60,7 +60,7 @@ fn adversarial_near_parallel_crossing_is_propagated() {
     let mut segs = vec![Vec::new(); 2];
     segs[0].push(SnapSegment {
         start: Point3r::new(0.5, -1.0e-10, 0.0),
-        end: Point3r::new(0.5000000001, 1.0e-10, 0.0),
+        end: Point3r::new(0.500_000_000_1, 1.0e-10, 0.0),
     });
 
     propagate_seam_vertices(&faces, &mut segs, &pool);

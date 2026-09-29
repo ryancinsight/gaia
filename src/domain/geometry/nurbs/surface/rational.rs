@@ -37,6 +37,14 @@ pub struct NurbsSurface<T = Real> {
 impl<T: Scalar> NurbsSurface<T> {
     /// Create a NURBS surface, validating all dimensions.
     ///
+    /// # Errors
+    ///
+    /// Returns [`SurfaceError::EmptyControlGrid`] if the control grid has no
+    /// rows or columns, [`SurfaceError::ZeroDegree`] if either degree is zero,
+    /// [`SurfaceError::KnotCountMismatch`] if a knot vector length does not
+    /// match the control-grid dimensions and degree, or
+    /// [`SurfaceError::WeightGridMismatch`] if the weight grid dimensions do
+    /// not match the control grid.
     pub fn new(
         control_grid: ControlGrid<T>,
         weights: WeightGrid<T>,
@@ -74,6 +82,12 @@ impl<T: Scalar> NurbsSurface<T> {
     }
 
     /// Create with automatic clamped uniform knot vectors and uniform weights.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SurfaceError::EmptyControlGrid`] if the control grid has no
+    /// rows or columns, or [`SurfaceError::ZeroDegree`] if either degree is
+    /// zero.
     pub fn clamped(
         control_grid: ControlGrid<T>,
         degree_u: usize,

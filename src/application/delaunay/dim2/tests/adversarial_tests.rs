@@ -300,7 +300,7 @@ fn stress_5000_uniform_random() {
     // Deterministic pseudo-random via LCG (no rand dependency).
     let mut rng: u64 = 0xDEAD_BEEF_CAFE_1234;
     let mut next_f64 = || -> f64 {
-        rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);
+        rng = rng.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
         (rng >> 11) as f64 / (1u64 << 53) as f64
     };
     let pts: Vec<(f64, f64)> = (0..5000).map(|_| (next_f64(), next_f64())).collect();

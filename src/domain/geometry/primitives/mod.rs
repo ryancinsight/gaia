@@ -53,10 +53,10 @@
 //!
 //! ## Example
 //!
-//! ```rust,ignore
-//! use gaia::domain::geometry::primitives::UvSphere;
+//! ```rust
+//! use gaia::{UvSphere, primitives::PrimitiveMesh};
 //!
-//! let mesh = UvSphere { radius: 1.0, segments: 32, stacks: 16 }
+//! let mesh = UvSphere { radius: 1.0, segments: 8, stacks: 6 }
 //!     .build()
 //!     .expect("sphere");
 //! assert!(mesh.signed_volume() > 0.0);
@@ -159,5 +159,11 @@ pub enum PrimitiveError {
 /// Trait for all primitive mesh builders.
 pub trait PrimitiveMesh {
     /// Build the mesh, returning a watertight, outward-oriented [`IndexedMesh`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PrimitiveError::InvalidParam`] when a builder parameter is
+    /// outside its valid range, or [`PrimitiveError::Mesh`] if internal mesh
+    /// assembly fails validation.
     fn build(&self) -> Result<IndexedMesh, PrimitiveError>;
 }

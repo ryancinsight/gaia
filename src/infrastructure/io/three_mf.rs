@@ -14,6 +14,11 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// The output is a ZIP archive containing the required content types and
 /// relationships files, plus the `3D/3dmodel.model` XML payload.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if a ZIP member payload cannot be written, or
+/// [`MeshError::Other`] if starting or finishing a ZIP entry fails.
 pub fn write_3mf<W: Write + Seek>(writer: W, mesh: &IndexedMesh) -> MeshResult<()> {
     let mut zip = zip::ZipWriter::new(writer);
     let options = zip::write::SimpleFileOptions::default()

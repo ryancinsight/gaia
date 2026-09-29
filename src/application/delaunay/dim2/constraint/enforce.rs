@@ -1,4 +1,4 @@
-//! Constraint edge enforcement — turning a Delaunay triangulation into a CDT.
+﻿//! Constraint edge enforcement — turning a Delaunay triangulation into a CDT.
 //!
 //! # Algorithm — Edge-Flip Constraint Recovery
 //!
@@ -66,7 +66,7 @@ use crate::application::delaunay::dim2::triangulation::triangle::{TriangleId, GH
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust,no_run
 /// use gaia::application::delaunay::{Pslg, Cdt};
 ///
 /// let mut pslg = Pslg::new();
@@ -146,6 +146,14 @@ impl Cdt {
     ///
     /// Returns an error if the PSLG contains degenerate/duplicate segments,
     /// out-of-range segment endpoints, or segment intersections.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PslgValidationError::NonFiniteVertex`] if any vertex
+    /// coordinate is NaN or infinite, [`PslgValidationError::CoincidentVertices`]
+    /// if two vertices collapse within tolerance, and the corresponding
+    /// segment validation variants for out-of-range endpoints, degenerate
+    /// segments, duplicate segments, or intersecting constraints.
     pub fn try_from_pslg(pslg: &Pslg) -> Result<Self, PslgValidationError> {
         pslg.validate()?;
 

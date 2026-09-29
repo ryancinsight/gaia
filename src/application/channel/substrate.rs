@@ -121,6 +121,10 @@ impl SubstrateBuilder {
     ///
     /// Creates a fresh `VertexPool` using millifluidic tolerances, assembles
     /// the face soup, and packs it into an `IndexedMesh` ready for CSG operations.
+    ///
+    /// # Errors
+    ///
+    /// This constructor is currently infallible and always returns `Ok`.
     pub fn build_indexed(&self) -> MeshResult<IndexedMesh> {
         let mut pool = VertexPool::default_millifluidic();
         let region = RegionId::from_usize(0);
