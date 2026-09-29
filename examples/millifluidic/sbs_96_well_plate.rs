@@ -74,8 +74,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📦 Block STL  → {}", block_path.display());
 
     // ── Well parameters ───────────────────────────────────────────────────────
-    let cx_start = 14.3;
-    let cz_start = 11.375;
+    let origin_x = 14.3;
+    let origin_z = 11.375;
     let well_spacing = 9.0;
     let well_bottom_radius = 6.5 / 2.0;
     let well_top_radius = 7.05 / 2.0;
@@ -88,8 +88,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut all_cutters = Vec::with_capacity(96);
     for row in 0..8 {
         for col in 0..12 {
-            let cx = cx_start + f64::from(col) * well_spacing;
-            let cz = cz_start + f64::from(row) * well_spacing;
+            let cx = origin_x + f64::from(col) * well_spacing;
+            let cz = origin_z + f64::from(row) * well_spacing;
 
             // Actual fluid domain inside the well
             let frustum = Frustum {

@@ -44,6 +44,7 @@ pub(super) fn cube() -> IndexedMesh<Real> {
 
 /// A quad spanning y and z in `[-1, 1]` at a fixed `x`, so it faces the
 /// camera's default `+x` eye.
+#[allow(clippy::many_single_char_names)] // quad corners a/b/c/d read naturally
 pub(super) fn quad_facing_camera(mesh: &mut IndexedMesh<Real>, x: Real) {
     let a = mesh.add_vertex_pos(Point3r::new(x, -1.0, -1.0));
     let b = mesh.add_vertex_pos(Point3r::new(x, 1.0, -1.0));

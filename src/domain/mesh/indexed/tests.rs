@@ -244,6 +244,7 @@ fn inward_tet() -> IndexedMesh<f64> {
 /// changes sign under face reversal (swapping two vertices negates
 /// the cross product).  `orient_outward`'s signed-volume check
 /// detects $V < 0$ and flips every face, yielding $V > 0$.
+#[allow(clippy::doc_markdown)] // LaTeX math identifiers, not Rust items
 #[test]
 fn orient_outward_corrects_all_inward_tet() {
     let mut mesh = inward_tet();

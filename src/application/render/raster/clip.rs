@@ -52,6 +52,7 @@ mod tests {
     /// unclipped triangle would have covered; a projection through the eye would
     /// instead fling it far outside that footprint.
     #[test]
+    #[allow(clippy::many_single_char_names)] // triangle corners a/b/c read naturally
     fn geometry_crossing_the_near_plane_is_clipped_not_smeared() {
         let mut mesh = IndexedMesh::new();
         // The default camera looks down -x from +x, so eye-space depth is
@@ -131,9 +132,9 @@ mod tests {
             if whole_color[index] != background {
                 continue;
             }
-            let (x, y) = (index % width, index / width);
-            let touches = (y.saturating_sub(1)..=(y + 1).min(height - 1)).any(|row| {
-                (x.saturating_sub(1)..=(x + 1).min(width - 1))
+            let (px, py) = (index % width, index / width);
+            let touches = (py.saturating_sub(1)..=(py + 1).min(height - 1)).any(|row| {
+                (px.saturating_sub(1)..=(px + 1).min(width - 1))
                     .any(|column| whole_color[row * width + column] != background)
             });
             if !touches {
