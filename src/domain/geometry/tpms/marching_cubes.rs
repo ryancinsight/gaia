@@ -335,7 +335,7 @@ pub const TRI_TABLE: [[i8; 16]; 256] = [
 
 /// Cube corner offsets: `CORNERS[i]` = `(dx, dy, dz)` for corner `i` of a
 /// unit voxel cube.  Corners are numbered 0-7 in the Lorensen & Cline sense.
-pub const CORNERS: [(i32, i32, i32); 8] = [
+pub const CORNERS: [(usize, usize, usize); 8] = [
     (0, 0, 0),
     (1, 0, 0),
     (1, 1, 0),
@@ -514,6 +514,12 @@ pub(crate) fn extract_surface<S: super::Tpms>(
     extract_impl(mesh, params, surface);
 }
 
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "the `tri_row[ti] >= 0` loop guard is the proof: TRI_TABLE stores -1 as
+        the no-triangle sentinel, so every entry reached here is an edge index in
+        [0, 16) and the cast cannot lose a sign"
+)]
 fn extract_impl<E: SurfaceEvaluator + ?Sized>(
     mesh: &mut IndexedMesh,
     params: &McParams,
@@ -550,7 +556,7 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(dx, dy, dz)) in CORNERS.iter().enumerate() {
-                    let v = field[idx(ix + dx as usize, iy + dy as usize, iz + dz as usize)];
+                    let v = field[idx(ix + dx, iy + dy, iz + dz)];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -571,16 +577,10 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
                     let slot = cache.slot(ix, iy, iz, ei);
                     let vid = match *slot {
                         EdgeVertexCache::UNMAPPED => {
-                            let (ax, ay, az) = (
-                                ix + CORNERS[ca].0 as usize,
-                                iy + CORNERS[ca].1 as usize,
-                                iz + CORNERS[ca].2 as usize,
-                            );
-                            let (bx, by, bz) = (
-                                ix + CORNERS[cb].0 as usize,
-                                iy + CORNERS[cb].1 as usize,
-                                iz + CORNERS[cb].2 as usize,
-                            );
+                            let (ax, ay, az) =
+                                (ix + CORNERS[ca].0, iy + CORNERS[ca].1, iz + CORNERS[ca].2);
+                            let (bx, by, bz) =
+                                (ix + CORNERS[cb].0, iy + CORNERS[cb].1, iz + CORNERS[cb].2);
                             let va = cube_vals[ca];
                             let vb = cube_vals[cb];
                             let t = if (vb - va).abs() > 1e-15 {

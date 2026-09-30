@@ -85,7 +85,8 @@ impl VenturiMeshBuilder {
         }
     }
 
-    /// Create a Venturi mesh builder from typed [`aequitas`] [`Length`] quantities.
+    /// Create a Venturi mesh builder from typed
+    /// [`aequitas`](aequitas::systems::si::quantities) `Length` quantities.
     ///
     /// All values are stored in SI metres internally.  Using typed quantities
     /// prevents accidental unit mix-ups between diameters and lengths.

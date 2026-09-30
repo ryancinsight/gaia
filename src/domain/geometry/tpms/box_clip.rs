@@ -21,11 +21,6 @@ use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Point3r, Scalar};
 use hashbrown::HashMap;
 
-#[inline]
-fn corner_offset(offset: i32) -> usize {
-    usize::from(u8::try_from(offset).expect("marching-cubes corner offsets are 0 or 1"))
-}
-
 // ── Parameters ────────────────────────────────────────────────────────────────
 
 /// Parameters for AABB-clipped TPMS extraction.
@@ -97,6 +92,12 @@ impl TpmsBoxParams {
 /// # Errors
 ///
 /// Returns [`PrimitiveError::InvalidParam`] on parameter validation failure.
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "the `tri_row[ti] >= 0` loop guard is the proof: TRI_TABLE stores -1 as
+        the no-triangle sentinel, so every entry reached here is an edge index in
+        [0, 16) and the cast cannot lose a sign"
+)]
 pub fn build_tpms_box<S: Tpms>(
     surface: &S,
     params: &TpmsBoxParams,
@@ -159,11 +160,7 @@ pub fn build_tpms_box<S: Tpms>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(cdx, cdy, cdz)) in marching_cubes::CORNERS.iter().enumerate() {
-                    let v = field[idx(
-                        ix + corner_offset(cdx),
-                        iy + corner_offset(cdy),
-                        iz + corner_offset(cdz),
-                    )];
+                    let v = field[idx(ix + cdx, iy + cdy, iz + cdz)];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -183,14 +180,14 @@ pub fn build_tpms_box<S: Tpms>(
                     }
                     let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
                         let (ax, ay, az) = (
-                            ix + corner_offset(marching_cubes::CORNERS[ca].0),
-                            iy + corner_offset(marching_cubes::CORNERS[ca].1),
-                            iz + corner_offset(marching_cubes::CORNERS[ca].2),
+                            ix + marching_cubes::CORNERS[ca].0,
+                            iy + marching_cubes::CORNERS[ca].1,
+                            iz + marching_cubes::CORNERS[ca].2,
                         );
                         let (bx, by, bz) = (
-                            ix + corner_offset(marching_cubes::CORNERS[cb].0),
-                            iy + corner_offset(marching_cubes::CORNERS[cb].1),
-                            iz + corner_offset(marching_cubes::CORNERS[cb].2),
+                            ix + marching_cubes::CORNERS[cb].0,
+                            iy + marching_cubes::CORNERS[cb].1,
+                            iz + marching_cubes::CORNERS[cb].2,
                         );
                         let va = cube_vals[ca];
                         let vb = cube_vals[cb];
@@ -329,6 +326,12 @@ fn validate_box_bounds(bounds: &[f64; 6], resolution: usize) -> Result<(), Primi
 ///
 /// Returns [`PrimitiveError::InvalidParam`] on degenerate bounds or low
 /// resolution.
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "the `tri_row[ti] >= 0` loop guard is the proof: TRI_TABLE stores -1 as
+        the no-triangle sentinel, so every entry reached here is an edge index in
+        [0, 16) and the cast cannot lose a sign"
+)]
 pub fn build_tpms_box_graded<S: Tpms>(
     surface: &S,
     bounds: [f64; 6],
@@ -389,11 +392,7 @@ pub fn build_tpms_box_graded<S: Tpms>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(cdx, cdy, cdz)) in marching_cubes::CORNERS.iter().enumerate() {
-                    let v = field[idx(
-                        ix + corner_offset(cdx),
-                        iy + corner_offset(cdy),
-                        iz + corner_offset(cdz),
-                    )];
+                    let v = field[idx(ix + cdx, iy + cdy, iz + cdz)];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -412,14 +411,14 @@ pub fn build_tpms_box_graded<S: Tpms>(
                     }
                     let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
                         let (ax, ay, az) = (
-                            ix + corner_offset(marching_cubes::CORNERS[ca].0),
-                            iy + corner_offset(marching_cubes::CORNERS[ca].1),
-                            iz + corner_offset(marching_cubes::CORNERS[ca].2),
+                            ix + marching_cubes::CORNERS[ca].0,
+                            iy + marching_cubes::CORNERS[ca].1,
+                            iz + marching_cubes::CORNERS[ca].2,
                         );
                         let (bx, by, bz) = (
-                            ix + corner_offset(marching_cubes::CORNERS[cb].0),
-                            iy + corner_offset(marching_cubes::CORNERS[cb].1),
-                            iz + corner_offset(marching_cubes::CORNERS[cb].2),
+                            ix + marching_cubes::CORNERS[cb].0,
+                            iy + marching_cubes::CORNERS[cb].1,
+                            iz + marching_cubes::CORNERS[cb].2,
                         );
                         let va = cube_vals[ca];
                         let vb = cube_vals[cb];
