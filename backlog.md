@@ -362,3 +362,16 @@ never in an optimization pass. The audit's finding still holds.
 - basis: `e43c3e6` (current main).
 - next: compare each unchecked entry with the current tree, backlog, and PRs.
 
+
+<a id="GAIA-023"></a>
+## GAIA-023 — Unformatted landings outpace fmt fixes; enforce the gate on the pushing side
+
+- status: todo
+- outcome: `main` stays green on `cargo fmt --check` for longer than one landing cycle, because unformatted code cannot reach it.
+- priority: correctness
+- needs: none
+- scope: `.githooks/pre-push` installation and bypass discipline; no source changes.
+- acceptance: three consecutive `main` pushes each pass the fmt job with no fmt-fix commit between them.
+- basis: `eb98a58` (current main).
+- evidence (2026-09-30, measured): `main` flip-flopped green 15:31 -> red 15:36 on fresh `Diff in` lines (`multi_mesh_resolution.rs:377`, `merge.rs:100/150/320/328/353`) from code landed in between; an earlier round (tube/collapse/merge/welder/constants) was fixed the same way and superseded within the hour. A file-level fmt PR cannot converge while landings outpace it — closed gaia#130 unmerged for exactly this reason after verifying its content was correct but stale. The hook carries a documented `SKIP_LOCAL_GATE=1` escape and installs opt-in per checkout (`install-hooks`), so either path lets unformatted code through.
+- next: decide the enforcement (mandatory hook install via the setup path, removing or gating the skip, or a required fmt status check that blocks merge rather than reporting after it) and implement that decision; do not open another file-level fmt PR.
