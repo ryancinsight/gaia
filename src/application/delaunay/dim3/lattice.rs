@@ -1,4 +1,4 @@
-﻿//! Body-Centered Cubic (BCC) Lattice Seeding and SDF Volumetric Meshing.
+//! Body-Centered Cubic (BCC) Lattice Seeding and SDF Volumetric Meshing.
 //!
 //! Generates an unstructured `IndexedMesh<T>` conforming to an implicit `Sdf3D` surface
 //! using gradient descent and the robust-predicate `BowyerWatson3D`
@@ -58,11 +58,13 @@ impl<T: Scalar> SdfMesher<T> {
         }
 
         fn ceil_to_isize(value: f64) -> isize {
-            isize::try_from(truncate_floor_to_int(value.ceil())).expect("grid dimension fits in isize")
+            isize::try_from(truncate_floor_to_int(value.ceil()))
+                .expect("grid dimension fits in isize")
         }
 
         fn floor_to_isize(value: f64) -> isize {
-            isize::try_from(truncate_floor_to_int(value.floor())).expect("grid coordinate fits in isize")
+            isize::try_from(truncate_floor_to_int(value.floor()))
+                .expect("grid coordinate fits in isize")
         }
 
         fn compress_axis_coord(value: isize) -> i32 {

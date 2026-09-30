@@ -128,8 +128,17 @@ fn sah_split(
 
         for &idx in &indices[start..end] {
             let c = axis_value(&centroids[idx], axis);
-            let b = ((c - min_c) * inv_extent * n_bins) as usize;
-            let b = b.min(N_BINS - 1);
+            // Clamp the value, not the cast result. A centroid a hair below the
+            // computed axis minimum makes the product negative, and `f64 as usize`
+            // wraps that to a huge value which the following `min` then sends to
+            // the LAST bin; a point below the range belongs in the first.
+            let scaled = ((c - min_c) * inv_extent).max(0.0) * N_BINS as f64;
+            #[expect(
+                clippy::cast_sign_loss,
+                reason = "the `.max(0.0)` above is the proof: a bin index below the axis
+                minimum clamps to zero, so the cast cannot lose a sign"
+            )]
+            let b = (scaled as usize).min(N_BINS - 1);
             bin_aabb[b] = bin_aabb[b].union(&aabbs[idx]);
             bin_count[b] += 1;
         }
