@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 18 complete (cast_possible_wrap discharged; function splits for too_many_lines; ratchet 706 total).
+> **Rewrite status**: Phase 19 in progress (eunomia/aequitas Scalar seam; from_usize/from_index added; cast replacement in progress).
 
 ---
 
@@ -715,6 +715,7 @@ proptest! {
 | **16** Lint Ratchet Round 4 + GAIA-005 | ✅ DONE | `Cargo.toml`, 33 primitive/io/permission/mesh files, ~80 lint sites | Removed 3 lint classes: `unreadable_literal` (34→0), `cast_lossless` (3→0), `missing_errors_doc` (43→0 — all Result-returning fns documented). GAIA-005: doctests retired 37→13 `rust,ignore`; 36 doctests now execute under `cargo test --doc` (up from 5); 24 converted to runnable examples with correct imports for all TPMS spheres, Cube, Torus, sweep primitives, GhostCell/GhostToken permission API, and HalfEdgeMesh. Ratchet: 729 numeric + 258 doc_markdown = 987 remaining. 1139 tests pass. |
 | **17** Lint Ratchet Round 5 + GAIA-016 Safety | ✅ DONE | `Cargo.toml`, `lib.rs`, seam/normalization/cdt/geometry/stl.rs, ~380 doc/style sites | Removed 4 classes: `doc_markdown` (258→0), `similar_names` (72→0), `many_single_char_names` (50→0), `float_cmp` (25→0). `float_cmp` discharged: 5 production sites carry `#[expect]` with documented reasons (tie-breaking, identity, degenerate-edge, convex-hull pivot); test sites covered by crate-root carve-out. Fixed stl.rs `Ok(n)` regression from P16. Ratchet: 667 numeric + 58 size = **725 total** (down from 2400 at Phase 12). 1139 tests, 36 doctests pass. |
 | **18** Safety + Architecture | ✅ DONE | `Cargo.toml`, `watertight/check.rs`, `vertex_star.rs`, `box_clip.rs`, `normals.rs`, `welder.rs` | `cast_possible_wrap` (17→0): 17 wrapping `usize→i64/isize` casts replaced with `try_from().expect()` (setup paths) or no-cast arithmetic (TPMS hot loops). Function splits: `analyze_normals()` 216→~110 lines via `flood_orientation_bfs()` helper; `weld()` 148→~105 lines via `pack_merged_vertices()` helper. `too_many_lines` 58→56. Ratchet: 650 numeric + 56 size = **706 total**. 1139 tests pass. |
+| **19** Eunomia/Aequitas Scalar Seam (in progress) | 🔄 WIP | `domain/core/scalar.rs`, `domain/core/constants.rs`, cast replacement in progress | Added `Scalar::from_usize(n)` and `Scalar::from_index(k)` via eunomia's `FloatElement::from_f64` widening seam; 37 doctests pass. Added aequitas-typed `length_m/mm`, `angle_rad/deg`, and default channel dimension accessors using `aequitas::systems::si::quantities::{Length, Angle}`. Fixed themis→moirai-executor dependency break. Subagent replacing 56+ `as Real` casts with `Scalar::from_usize()`. |
 
 ---
 
