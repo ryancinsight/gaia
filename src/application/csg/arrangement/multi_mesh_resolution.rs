@@ -67,6 +67,7 @@ use super::classify::{
 };
 use super::fragment_analysis::is_degenerate_sliver_with_normal;
 use super::tiebreaker::FragmentClass;
+use crate::application::welding::GridCell;
 use crate::domain::core::constants::MULTI_MESH_CONSOLIDATE_LEN;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Point3r, Real};
@@ -372,42 +373,32 @@ fn consolidate_cross_mesh_vertices(frags: &mut Vec<BooleanFragmentRecord>, pool:
         return;
     }
 
-    let mut grid: HashMap<(i64, i64, i64), Vec<usize>> = HashMap::with_capacity(all_vids.len());
+    let mut grid: HashMap<GridCell, Vec<usize>> = HashMap::with_capacity(all_vids.len());
     let positions: Vec<Point3r> = all_vids.iter().map(|&vid| *pool.position(vid)).collect();
 
     for (index, position) in positions.iter().enumerate() {
-        let ix = (position.x * inv_cell).floor() as i64;
-        let iy = (position.y * inv_cell).floor() as i64;
-        let iz = (position.z * inv_cell).floor() as i64;
-        grid.entry((ix, iy, iz)).or_default().push(index);
+        grid.entry(GridCell::from_point(position, inv_cell)).or_default().push(index);
     }
 
     let mut parent: Vec<usize> = (0..all_vids.len()).collect();
     let mut rank: Vec<u8> = vec![0; all_vids.len()];
 
     for (index, position) in positions.iter().enumerate() {
-        let ix = (position.x * inv_cell).floor() as i64;
-        let iy = (position.y * inv_cell).floor() as i64;
-        let iz = (position.z * inv_cell).floor() as i64;
-
-        for dx in -1_i64..=1 {
-            for dy in -1_i64..=1 {
-                for dz in -1_i64..=1 {
-                    if let Some(candidates) = grid.get(&(ix + dx, iy + dy, iz + dz)) {
-                        for &other_index in candidates {
-                            if other_index <= index {
-                                continue;
-                            }
-
-                            let other_position = &positions[other_index];
-                            let d_sq = (other_position.x - position.x).powi(2)
-                                + (other_position.y - position.y).powi(2)
-                                + (other_position.z - position.z).powi(2);
-                            if d_sq < tol_sq {
-                                union(&mut parent, &mut rank, index, other_index);
-                            }
-                        }
-                    }
+        let cell = GridCell::from_point(position, inv_cell);
+        for nb_cell in cell.neighborhood_27() {
+            let Some(candidates) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &other_index in candidates {
+                if other_index <= index {
+                    continue;
+                }
+                let other_position = &positions[other_index];
+                let d_sq = (other_position.x - position.x).powi(2)
+                    + (other_position.y - position.y).powi(2)
+                    + (other_position.z - position.z).powi(2);
+                if d_sq < tol_sq {
+                    union(&mut parent, &mut rank, index, other_index);
                 }
             }
         }

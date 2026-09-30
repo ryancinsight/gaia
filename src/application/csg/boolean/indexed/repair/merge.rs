@@ -3,6 +3,7 @@
 use super::collapse::collapse_degenerate_faces;
 use super::edges::split_non_manifold_edges;
 use super::uf_find;
+use crate::application::welding::GridCell;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
@@ -94,47 +95,39 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
         let inv_tol = 1.0 / tol;
         let mut best: Option<(VertexId, VertexId, f64)> = None;
         {
-            let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
+            let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> =
                 hashbrown::HashMap::with_capacity(bv.len());
             let bv_pos: Vec<leto::geometry::Point3<f64>> =
                 bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
             for (i, p) in bv_pos.iter().enumerate().take(bv.len()) {
-                let cx = (p.x * inv_tol).floor() as i64;
-                let cy = (p.y * inv_tol).floor() as i64;
-                let cz = (p.z * inv_tol).floor() as i64;
-                grid.entry((cx, cy, cz)).or_default().push(i);
+                grid.entry(GridCell::from_point(p, inv_tol)).or_default().push(i);
             }
             for (i, pi) in bv_pos.iter().enumerate().take(bv.len()) {
-                let cx = (pi.x * inv_tol).floor() as i64;
-                let cy = (pi.y * inv_tol).floor() as i64;
-                let cz = (pi.z * inv_tol).floor() as i64;
-                for dx in -1..=1_i64 {
-                    for dy in -1..=1_i64 {
-                        for dz in -1..=1_i64 {
-                            if let Some(cell) = grid.get(&(cx + dx, cy + dy, cz + dz)) {
-                                for &j in cell {
-                                    if j <= i {
-                                        continue;
-                                    }
-                                    let pair_key = if bv[i] < bv[j] {
-                                        (bv[i], bv[j])
-                                    } else {
-                                        (bv[j], bv[i])
-                                    };
-                                    if skip_pairs.contains(&pair_key) {
-                                        continue;
-                                    }
-                                    let pj = &bv_pos[j];
-                                    let d = (pi - pj).norm();
-                                    let is_better = match best {
-                                        Some((_, _, best_dist)) => d < best_dist,
-                                        None => true,
-                                    };
-                                    if d < tol && is_better {
-                                        best = Some((bv[i], bv[j], d));
-                                    }
-                                }
-                            }
+                let cell = GridCell::from_point(pi, inv_tol);
+                for nb_cell in cell.neighborhood_27() {
+                    let Some(cell_verts) = grid.get(&nb_cell) else {
+                        continue;
+                    };
+                    for &j in cell_verts {
+                        if j <= i {
+                            continue;
+                        }
+                        let pair_key = if bv[i] < bv[j] {
+                            (bv[i], bv[j])
+                        } else {
+                            (bv[j], bv[i])
+                        };
+                        if skip_pairs.contains(&pair_key) {
+                            continue;
+                        }
+                        let pj = &bv_pos[j];
+                        let d = (pi - pj).norm();
+                        let is_better = match best {
+                            Some((_, _, best_dist)) => d < best_dist,
+                            None => true,
+                        };
+                        if d < tol && is_better {
+                            best = Some((bv[i], bv[j], d));
                         }
                     }
                 }
@@ -148,7 +141,7 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
             let inv_pvt = 1.0 / per_vertex_tol;
             // Build grid over interior vertices only.
             let all_vids: Vec<VertexId> = mesh.vertices.iter().map(|(id, _)| id).collect();
-            let mut igrid: hashbrown::HashMap<(i64, i64, i64), Vec<VertexId>> =
+            let mut igrid: hashbrown::HashMap<GridCell, Vec<VertexId>> =
                 hashbrown::HashMap::with_capacity(
                     all_vids.len().saturating_sub(boundary_verts.len()),
                 );
@@ -157,40 +150,32 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
                     continue;
                 }
                 let ip = mesh.vertices.position(ivid);
-                let cx = (ip.x * inv_pvt).floor() as i64;
-                let cy = (ip.y * inv_pvt).floor() as i64;
-                let cz = (ip.z * inv_pvt).floor() as i64;
-                igrid.entry((cx, cy, cz)).or_default().push(ivid);
+                igrid.entry(GridCell::from_point(ip, inv_pvt)).or_default().push(ivid);
             }
             for &bvid in &bv {
                 let bp = mesh.vertices.position(bvid);
-                let cx = (bp.x * inv_pvt).floor() as i64;
-                let cy = (bp.y * inv_pvt).floor() as i64;
-                let cz = (bp.z * inv_pvt).floor() as i64;
-                for dx in -1..=1_i64 {
-                    for dy in -1..=1_i64 {
-                        for dz in -1..=1_i64 {
-                            if let Some(cell) = igrid.get(&(cx + dx, cy + dy, cz + dz)) {
-                                for &ivid in cell {
-                                    let pair_key = if bvid < ivid {
-                                        (bvid, ivid)
-                                    } else {
-                                        (ivid, bvid)
-                                    };
-                                    if skip_pairs.contains(&pair_key) {
-                                        continue;
-                                    }
-                                    let ip = mesh.vertices.position(ivid);
-                                    let d = (bp - ip).norm();
-                                    let is_better = match best {
-                                        Some((_, _, best_dist)) => d < best_dist,
-                                        None => true,
-                                    };
-                                    if d < per_vertex_tol && is_better {
-                                        best = Some((ivid, bvid, d));
-                                    }
-                                }
-                            }
+                let cell = GridCell::from_point(bp, inv_pvt);
+                for nb_cell in cell.neighborhood_27() {
+                    let Some(cell_verts) = igrid.get(&nb_cell) else {
+                        continue;
+                    };
+                    for &ivid in cell_verts {
+                        let pair_key = if bvid < ivid {
+                            (bvid, ivid)
+                        } else {
+                            (ivid, bvid)
+                        };
+                        if skip_pairs.contains(&pair_key) {
+                            continue;
+                        }
+                        let ip = mesh.vertices.position(ivid);
+                        let d = (bp - ip).norm();
+                        let is_better = match best {
+                            Some((_, _, best_dist)) => d < best_dist,
+                            None => true,
+                        };
+                        if d < per_vertex_tol && is_better {
+                            best = Some((ivid, bvid, d));
                         }
                     }
                 }
@@ -335,49 +320,41 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     let mut parent: Vec<u32> = (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
 
     // Build spatial hash: cell → list of vertex indices.
-    let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
+    let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> =
         hashbrown::HashMap::with_capacity(n);
     let positions: Vec<leto::geometry::Point3<f64>> = (0..n)
         .map(|i| *mesh.vertices.position(VertexId::from_usize(i)))
         .collect();
     for (i, p) in positions.iter().enumerate().take(n) {
-        let cx = (p.x * inv_eps).floor() as i64;
-        let cy = (p.y * inv_eps).floor() as i64;
-        let cz = (p.z * inv_eps).floor() as i64;
-        grid.entry((cx, cy, cz)).or_default().push(i);
+        grid.entry(GridCell::from_point(p, inv_eps)).or_default().push(i);
     }
 
     // For each vertex, check the 27-cell neighbourhood for coincident vertices.
     for i in 0..n {
         let pi = &positions[i];
-        let cx = (pi.x * inv_eps).floor() as i64;
-        let cy = (pi.y * inv_eps).floor() as i64;
-        let cz = (pi.z * inv_eps).floor() as i64;
-        for dx in -1..=1_i64 {
-            for dy in -1..=1_i64 {
-                for dz in -1..=1_i64 {
-                    if let Some(cell) = grid.get(&(cx + dx, cy + dy, cz + dz)) {
-                        for &j in cell {
-                            if j <= i {
-                                continue;
-                            }
-                            let pj = &positions[j];
-                            if (pi - pj).norm_squared() < eps_sq {
-                                let ci = uf_find(
-                                    &mut parent,
-                                    u32::try_from(i).expect("vertex index fits in u32"),
-                                );
-                                let cj = uf_find(
-                                    &mut parent,
-                                    u32::try_from(j).expect("vertex index fits in u32"),
-                                );
-                                if ci != cj {
-                                    let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
-                                    parent[usize::try_from(hi)
-                                        .expect("union-find index fits in usize")] = lo;
-                                }
-                            }
-                        }
+        let cell = GridCell::from_point(pi, inv_eps);
+        for nb_cell in cell.neighborhood_27() {
+            let Some(cell_verts) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &j in cell_verts {
+                if j <= i {
+                    continue;
+                }
+                let pj = &positions[j];
+                if (pi - pj).norm_squared() < eps_sq {
+                    let ci = uf_find(
+                        &mut parent,
+                        u32::try_from(i).expect("vertex index fits in u32"),
+                    );
+                    let cj = uf_find(
+                        &mut parent,
+                        u32::try_from(j).expect("vertex index fits in u32"),
+                    );
+                    if ci != cj {
+                        let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
+                        parent[usize::try_from(hi)
+                            .expect("union-find index fits in usize")] = lo;
                     }
                 }
             }
