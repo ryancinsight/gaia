@@ -1,5 +1,11 @@
 //! Physical and geometric constants for millifluidic design.
+//!
+//! Physical dimensions (channel diameter, substrate height, wall thickness,
+//! etc.) are also exposed as typed [`aequitas`] `Quantity` helpers so callers
+//! can write dimension-safe channel geometry: `length_m(0.5 * MM)` instead of
+//! bare `0.5e-3_f64`.
 
+use aequitas::systems::si::quantities::{Angle, Length};
 use crate::domain::core::scalar::Real;
 
 /// π
@@ -63,6 +69,65 @@ pub const DEFAULT_MIN_EDGE_RATIO: Real = 0.1 as Real;
 
 /// Default channel radius for millifluidic devices (m).
 pub const DEFAULT_CHANNEL_RADIUS: Real = 0.5e-3 as Real;
+
+// ── Aequitas-typed physical-quantity helpers ──────────────────────────────────
+//
+// These zero-cost constructors wrap bare `f64` values in dimensioned
+// [`aequitas::Quantity`] types, enabling the type system to prevent
+// accidental swaps of, say, a channel diameter and a substrate height.
+// Values are stored in SI base units (metres, radians).
+
+/// Construct a typed [`Length`] quantity from a value in metres.
+///
+/// Intended for use with the [`MM`] / [`UM`] scale factors:
+/// `length_m(1.5 * MM)` gives a 1.5 mm length as a type-safe quantity.
+#[inline]
+#[must_use]
+pub fn length_m(metres: Real) -> Length<Real> {
+    Length::from_base(metres)
+}
+
+/// Construct a typed [`Length`] quantity from a value in millimetres.
+#[inline]
+#[must_use]
+pub fn length_mm(millimetres: Real) -> Length<Real> {
+    Length::from_base(millimetres * MM)
+}
+
+/// Construct a typed [`Angle`] quantity from a value in radians.
+#[inline]
+#[must_use]
+pub fn angle_rad(radians: Real) -> Angle<Real> {
+    Angle::from_base(radians)
+}
+
+/// Construct a typed [`Angle`] quantity from a value in degrees.
+#[inline]
+#[must_use]
+pub fn angle_deg(degrees: Real) -> Angle<Real> {
+    Angle::from_base(degrees * (std::f64::consts::PI / 180.0))
+}
+
+/// Default channel diameter as a typed [`Length`] quantity.
+#[inline]
+#[must_use]
+pub fn default_channel_diameter() -> Length<Real> {
+    length_mm(DEFAULT_CHANNEL_DIAMETER_MM)
+}
+
+/// Default substrate height as a typed [`Length`] quantity.
+#[inline]
+#[must_use]
+pub fn default_substrate_height() -> Length<Real> {
+    length_mm(DEFAULT_SUBSTRATE_HEIGHT_MM)
+}
+
+/// Default wall thickness as a typed [`Length`] quantity.
+#[inline]
+#[must_use]
+pub fn default_wall_thickness() -> Length<Real> {
+    length_mm(DEFAULT_WALL_THICKNESS_MM)
+}
 
 // ── CSG / GWN numerical tolerances (SSOT) ────────────────────────────────────
 

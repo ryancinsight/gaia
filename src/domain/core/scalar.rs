@@ -78,6 +78,43 @@ pub trait Scalar:
     /// Enables generic code to write `T::from_f64(0.5)` instead of `0.5_T`.
     fn from_f64(v: f64) -> Self;
 
+    /// Convert a `usize` index to this scalar type.
+    ///
+    /// The canonical replacement for `i as T` in generic mesh code.
+    /// Correct for indices up to 2^53 (the `f64` mantissa limit) — mesh element
+    /// counts are well within this bound in practice.  Delegates to `from_f64`
+    /// so generic code that works in either `f32` or `f64` automatically selects
+    /// the right precision-correct construction path provided by eunomia's
+    /// `FloatElement::from_f64`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use gaia::domain::core::scalar::Scalar;
+    ///
+    /// assert_eq!(f64::from_usize(7), 7.0_f64);
+    /// assert_eq!(f32::from_usize(7), 7.0_f32);
+    /// ```
+    #[inline]
+    #[must_use]
+    fn from_usize(n: usize) -> Self {
+        // `usize as f64` is exact for all values ≤ 2^53; mesh element counts
+        // never approach that bound.  Converting through f64 is the eunomia-
+        // sanctioned route: FloatElement::from_f64 is the crate's explicit
+        // precision-correct widening seam.
+        <Self as Scalar>::from_f64(n as f64)
+    }
+
+    /// Convert a signed index (e.g. an offset or delta) to this scalar type.
+    ///
+    /// The canonical replacement for `k as T` where `k: isize` or `k: i64`.
+    /// Sign is preserved; the absolute value must not exceed 2^53.
+    #[inline]
+    #[must_use]
+    fn from_index(k: i64) -> Self {
+        <Self as Scalar>::from_f64(k as f64)
+    }
+
     /// Compare values using the IEEE 754 total order, including signed zero and NaN.
     ///
     /// ```
