@@ -49,6 +49,28 @@ impl<T: Scalar> SdfMesher<T> {
         reason = "standard jitter-component and grid-cell coordinate naming"
     )]
     pub fn build_volume<S: Sdf3D<T>>(&self, sdf: &S) -> IndexedMesh<T> {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "ceil/floor values are range-checked via the checked integer conversion immediately afterward"
+        )]
+        fn truncate_floor_to_int(value: f64) -> i64 {
+            value as i64
+        }
+
+        fn ceil_to_isize(value: f64) -> isize {
+            isize::try_from(truncate_floor_to_int(value.ceil()))
+                .expect("grid dimension fits in isize")
+        }
+
+        fn floor_to_isize(value: f64) -> isize {
+            isize::try_from(truncate_floor_to_int(value.floor()))
+                .expect("grid coordinate fits in isize")
+        }
+
+        fn compress_axis_coord(value: isize) -> i32 {
+            i32::try_from(value).expect("lattice coordinate fits in i32")
+        }
+
         let (min, max) = sdf.bounds();
 
         let h = self.cell_size;
@@ -58,9 +80,9 @@ impl<T: Scalar> SdfMesher<T> {
         let w_x = eunomia::NumericElement::to_f64((max.x - min.x) / h);
         let w_y = eunomia::NumericElement::to_f64((max.y - min.y) / h);
         let w_z = eunomia::NumericElement::to_f64((max.z - min.z) / h);
-        let num_x = w_x.ceil() as isize + 2;
-        let num_y = w_y.ceil() as isize + 2;
-        let num_z = w_z.ceil() as isize + 2;
+        let num_x = ceil_to_isize(w_x) + 2;
+        let num_y = ceil_to_isize(w_y) + 2;
+        let num_z = ceil_to_isize(w_z) + 2;
         let total_capacity = usize::try_from(2 * (num_x + 2) * (num_y + 2) * (num_z + 2))
             .expect("BCC lattice point capacity is non-negative");
 
@@ -90,13 +112,16 @@ impl<T: Scalar> SdfMesher<T> {
                         <T as Scalar>::from_f64(fract)
                     };
 
-                    let jx_a = hash_jitter(i as i32, j as i32, k as i32, 0) * jitter_mag;
-                    let jy_a = hash_jitter(i as i32, j as i32, k as i32, 1) * jitter_mag;
-                    let jz_a = hash_jitter(i as i32, j as i32, k as i32, 2) * jitter_mag;
+                    let ix = compress_axis_coord(i);
+                    let jy = compress_axis_coord(j);
+                    let kz = compress_axis_coord(k);
+                    let jx_a = hash_jitter(ix, jy, kz, 0) * jitter_mag;
+                    let jy_a = hash_jitter(ix, jy, kz, 1) * jitter_mag;
+                    let jz_a = hash_jitter(ix, jy, kz, 2) * jitter_mag;
 
-                    let jx_b = hash_jitter(i as i32, j as i32, k as i32, 3) * jitter_mag;
-                    let jy_b = hash_jitter(i as i32, j as i32, k as i32, 4) * jitter_mag;
-                    let jz_b = hash_jitter(i as i32, j as i32, k as i32, 5) * jitter_mag;
+                    let jx_b = hash_jitter(ix, jy, kz, 3) * jitter_mag;
+                    let jy_b = hash_jitter(ix, jy, kz, 4) * jitter_mag;
+                    let jz_b = hash_jitter(ix, jy, kz, 5) * jitter_mag;
 
                     // Lattice A (Cartesian) with jitter
                     let i_scalar = <T as Scalar>::from_index(
@@ -168,9 +193,9 @@ impl<T: Scalar> SdfMesher<T> {
             let px: f64 = eunomia::NumericElement::to_f64(p.x);
             let py: f64 = eunomia::NumericElement::to_f64(p.y);
             let pz: f64 = eunomia::NumericElement::to_f64(p.z);
-            let cx = (px / c_s_f64).floor() as isize;
-            let cy = (py / c_s_f64).floor() as isize;
-            let cz = (pz / c_s_f64).floor() as isize;
+            let cx = floor_to_isize(px / c_s_f64);
+            let cy = floor_to_isize(py / c_s_f64);
+            let cz = floor_to_isize(pz / c_s_f64);
 
             let mut duplicate = false;
             'outer: for dx in -1..=1 {
@@ -224,9 +249,9 @@ impl<T: Scalar> SdfMesher<T> {
                 let px: f64 = eunomia::NumericElement::to_f64(p.x);
                 let py: f64 = eunomia::NumericElement::to_f64(p.y);
                 let pz: f64 = eunomia::NumericElement::to_f64(p.z);
-                let cx = (px / macro_h).floor() as isize;
-                let cy = (py / macro_h).floor() as isize;
-                let cz = (pz / macro_h).floor() as isize;
+                let cx = floor_to_isize(px / macro_h);
+                let cy = floor_to_isize(py / macro_h);
+                let cz = floor_to_isize(pz / macro_h);
                 blocks
                     .entry([cx, cy, cz])
                     .or_insert_with(|| Vec::with_capacity(32))

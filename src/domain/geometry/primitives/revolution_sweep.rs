@@ -50,7 +50,7 @@ use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a solid of revolution by sweeping a 2D profile in the YR plane
@@ -190,7 +190,7 @@ fn build(s: &RevolutionSweep) -> Result<IndexedMesh, PrimitiveError> {
 
     // Compute the actual angular step — for a full revolution the last column
     // wraps back to the first.
-    let angular_step = s.angle / nm as f64;
+    let angular_step = s.angle / f64::from_usize(nm);
 
     // Number of angular "columns" to generate vertices for:
     //   full revolution:    nm columns  (wrap: col nm → col 0)
@@ -200,7 +200,7 @@ fn build(s: &RevolutionSweep) -> Result<IndexedMesh, PrimitiveError> {
     // Vertex ID grid: grid[j][i] = VertexId at angular col j, profile row i.
     let mut grid: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(ncols);
     for j in 0..ncols {
-        let phi = j as f64 * angular_step;
+        let phi = f64::from_usize(j) * angular_step;
         let cp = phi.cos();
         let sp = phi.sin();
 

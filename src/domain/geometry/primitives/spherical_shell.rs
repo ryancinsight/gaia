@@ -5,7 +5,7 @@ use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a hollow sphere — two concentric sphere surfaces connected by
@@ -97,6 +97,8 @@ fn build(s: &SphericalShell) -> Result<IndexedMesh, PrimitiveError> {
     let cz = s.center.z;
     let ns = s.segments;
     let nk = s.stacks;
+    let segments = f64::from_usize(ns);
+    let stacks = f64::from_usize(nk);
 
     // phi ranges over [phi1, pi - phi1] where phi1 = pi/nk (one step from each pole).
     // This creates nk-1 latitudinal rings (indices 1 .. nk-1 inclusive).
@@ -105,13 +107,13 @@ fn build(s: &SphericalShell) -> Result<IndexedMesh, PrimitiveError> {
     let mut outer_rings: Vec<Vec<crate::domain::core::index::VertexId>> =
         Vec::with_capacity(nk - 1);
     for k in 0..nk - 1 {
-        let phi = (k + 1) as f64 / nk as f64 * PI;
+        let phi = f64::from_usize(k + 1) / stacks * PI;
         let sp = phi.sin();
         let cp = phi.cos();
         let y = cy + ro * cp;
         let row: Vec<_> = (0..ns)
             .map(|j| {
-                let theta = j as f64 / ns as f64 * TAU;
+                let theta = f64::from_usize(j) / segments * TAU;
                 let ct = theta.cos();
                 let st = theta.sin();
                 let pos = Point3r::new(cx + ro * sp * ct, y, cz + ro * sp * st);
@@ -126,13 +128,13 @@ fn build(s: &SphericalShell) -> Result<IndexedMesh, PrimitiveError> {
     let mut inner_rings: Vec<Vec<crate::domain::core::index::VertexId>> =
         Vec::with_capacity(nk - 1);
     for k in 0..nk - 1 {
-        let phi = (k + 1) as f64 / nk as f64 * PI;
+        let phi = f64::from_usize(k + 1) / stacks * PI;
         let sp = phi.sin();
         let cp = phi.cos();
         let y = cy + ri * cp;
         let row: Vec<_> = (0..ns)
             .map(|j| {
-                let theta = j as f64 / ns as f64 * TAU;
+                let theta = f64::from_usize(j) / segments * TAU;
                 let ct = theta.cos();
                 let st = theta.sin();
                 let pos = Point3r::new(cx + ri * sp * ct, y, cz + ri * sp * st);

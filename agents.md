@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 20 complete (cast_sign_loss removed; cast_precision_loss 437→255; GridCell SSOT replaces 42+ inline spatial-hash casts; ratchet 440 total).
+> **Rewrite status**: Phase 21 complete (GridCell2d SSOT; cast_precision_loss 437→142; cast_possible_truncation 127→107; aequitas typed channel builders; ratchet 307 total).
 
 ---
 
@@ -717,6 +717,7 @@ proptest! {
 | **18** Safety + Architecture | ✅ DONE | `Cargo.toml`, `watertight/check.rs`, `vertex_star.rs`, `box_clip.rs`, `normals.rs`, `welder.rs` | `cast_possible_wrap` (17→0): 17 wrapping `usize→i64/isize` casts replaced with `try_from().expect()` (setup paths) or no-cast arithmetic (TPMS hot loops). Function splits: `analyze_normals()` 216→~110 lines via `flood_orientation_bfs()` helper; `weld()` 148→~105 lines via `pack_merged_vertices()` helper. `too_many_lines` 58→56. Ratchet: 650 numeric + 56 size = **706 total**. 1139 tests pass. |
 | **19** Eunomia/Aequitas Scalar Seam | ✅ DONE | `domain/core/scalar.rs`, `domain/core/constants.rs`, ~60 cast sites across 15 files | Added `Scalar::from_usize(n)` + `Scalar::from_index(k)` via eunomia's `FloatElement::from_f64` widening seam. Replaced 56+ `i as Real` index-to-float casts with the seam. Added aequitas-typed `length_m/mm`, `angle_rad/deg`, and default channel dimension accessors (`length_m`, `length_mm`, `angle_rad/deg`, `default_channel_diameter/substrate_height/wall_thickness`). Fixed themis→moirai-executor dependency break. `cast_precision_loss` 437→**331** (−106), `cast_possible_truncation` 160→**127** (−33), `cast_sign_loss` 53→**50** (−3). Ratchet: 508 numeric + 56 size = **564 total**. 1139 tests, 37 doctests pass. |
 | **20** GridCell SSOT + Cast Cleanup | ✅ DONE | `fragment_refinement.rs`, `multi_mesh_resolution.rs`, `merge.rs`, NURBS/primitive/quality/channel/scalar sites | `cast_precision_loss` 331→**255** (−76); `cast_sign_loss` **50→0** (removed); GridCell SSOT: 42+ inline `floor() as i64` spatial-hash casts replaced with `GridCell::from_point()` + `neighborhood_27()` across 3 CSG repair files (cleaner, 3-level loops → iterators). Ratchet: 255 precision + 127 truncation = **382 numeric** + 58 size = **440 total**. 1139 tests pass. |
+| **21** GridCell2d SSOT + Aequitas Channels + Cast Cuts | ✅ DONE | `welding/snap.rs`, `planar.rs`, `seam.rs`, `cdt.rs`, `venturi.rs`, `serpentine.rs`, lattice/histograms/ordering | `cast_precision_loss` 255→**142** (−113); `cast_possible_truncation` 127→**107** (−20). GridCell2d: 2-D floor-quantization SSOT added; applies to planar.rs, seam.rs, cdt.rs — eliminates 13+ casts, 3-level loops → `neighborhood_9()`. Aequitas: `VenturiMeshBuilder::from_quantities(Length<Real>…)` and `SerpentineMeshBuilder::from_quantities(Length<f64>…)` — prevent channel dimension unit mix-ups. Doctests: 37→**39** (2 new from_quantities). Ratchet: 249 numeric + 58 size = **307 total**. 1139 tests pass. |
 
 ---
 

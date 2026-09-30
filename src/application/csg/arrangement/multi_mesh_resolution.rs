@@ -377,7 +377,9 @@ fn consolidate_cross_mesh_vertices(frags: &mut Vec<BooleanFragmentRecord>, pool:
     let positions: Vec<Point3r> = all_vids.iter().map(|&vid| *pool.position(vid)).collect();
 
     for (index, position) in positions.iter().enumerate() {
-        grid.entry(GridCell::from_point(position, inv_cell)).or_default().push(index);
+        grid.entry(GridCell::from_point(position, inv_cell))
+            .or_default()
+            .push(index);
     }
 
     let mut parent: Vec<usize> = (0..all_vids.len()).collect();

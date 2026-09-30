@@ -18,13 +18,8 @@ use crate::domain::geometry::tpms::Vector3r;
 use crate::domain::mesh::IndexedMesh;
 
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::Point3r;
+use crate::domain::core::scalar::{Point3r, Scalar};
 use hashbrown::HashMap;
-
-#[inline]
-fn corner_offset(offset: i32) -> usize {
-    usize::from(u8::try_from(offset).expect("marching-cubes corner offsets are 0 or 1"))
-}
 
 // ── Parameters ────────────────────────────────────────────────────────────────
 
@@ -97,6 +92,12 @@ impl TpmsBoxParams {
 /// # Errors
 ///
 /// Returns [`PrimitiveError::InvalidParam`] on parameter validation failure.
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "the `tri_row[ti] >= 0` loop guard is the proof: TRI_TABLE stores -1 as
+        the no-triangle sentinel, so every entry reached here is an edge index in
+        [0, 16) and the cast cannot lose a sign"
+)]
 pub fn build_tpms_box<S: Tpms>(
     surface: &S,
     params: &TpmsBoxParams,
@@ -108,9 +109,10 @@ pub fn build_tpms_box<S: Tpms>(
     let n = params.resolution;
     let iso = params.iso_value;
 
-    let dx = (x1 - x0) / n as f64;
-    let dy = (y1 - y0) / n as f64;
-    let dz = (z1 - z0) / n as f64;
+    let resolution = f64::from_usize(n);
+    let dx = (x1 - x0) / resolution;
+    let dy = (y1 - y0) / resolution;
+    let dz = (z1 - z0) / resolution;
     // Pad by 1 voxel on each side so the marching cubes bounds enclose the box
     let gs = n + 3;
 
@@ -127,9 +129,9 @@ pub fn build_tpms_box<S: Tpms>(
     for iz in 0..gs {
         for iy in 0..gs {
             for ix in 0..gs {
-                let wx = x0 + (ix as f64 - 1.0) * dx;
-                let wy = y0 + (iy as f64 - 1.0) * dy;
-                let wz = z0 + (iz as f64 - 1.0) * dz;
+                let wx = x0 + (f64::from_usize(ix) - 1.0) * dx;
+                let wy = y0 + (f64::from_usize(iy) - 1.0) * dy;
+                let wz = z0 + (f64::from_usize(iz) - 1.0) * dz;
 
                 let tpms_val = surface.field(wx, wy, wz, k) - iso;
 
@@ -158,11 +160,7 @@ pub fn build_tpms_box<S: Tpms>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(cdx, cdy, cdz)) in marching_cubes::CORNERS.iter().enumerate() {
-                    let v = field[idx(
-                        ix + corner_offset(cdx),
-                        iy + corner_offset(cdy),
-                        iz + corner_offset(cdz),
-                    )];
+                    let v = field[idx(ix + cdx, iy + cdy, iz + cdz)];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -182,14 +180,14 @@ pub fn build_tpms_box<S: Tpms>(
                     }
                     let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
                         let (ax, ay, az) = (
-                            ix + corner_offset(marching_cubes::CORNERS[ca].0),
-                            iy + corner_offset(marching_cubes::CORNERS[ca].1),
-                            iz + corner_offset(marching_cubes::CORNERS[ca].2),
+                            ix + marching_cubes::CORNERS[ca].0,
+                            iy + marching_cubes::CORNERS[ca].1,
+                            iz + marching_cubes::CORNERS[ca].2,
                         );
                         let (bx, by, bz) = (
-                            ix + corner_offset(marching_cubes::CORNERS[cb].0),
-                            iy + corner_offset(marching_cubes::CORNERS[cb].1),
-                            iz + corner_offset(marching_cubes::CORNERS[cb].2),
+                            ix + marching_cubes::CORNERS[cb].0,
+                            iy + marching_cubes::CORNERS[cb].1,
+                            iz + marching_cubes::CORNERS[cb].2,
                         );
                         let va = cube_vals[ca];
                         let vb = cube_vals[cb];
@@ -199,9 +197,15 @@ pub fn build_tpms_box<S: Tpms>(
                             0.5
                         };
 
-                        let wx = x0 + (ax as f64 * (1.0 - t) + bx as f64 * t - 1.0) * dx;
-                        let wy = y0 + (ay as f64 * (1.0 - t) + by as f64 * t - 1.0) * dy;
-                        let wz = z0 + (az as f64 * (1.0 - t) + bz as f64 * t - 1.0) * dz;
+                        let wx = x0
+                            + (f64::from_usize(ax) * (1.0 - t) + f64::from_usize(bx) * t - 1.0)
+                                * dx;
+                        let wy = y0
+                            + (f64::from_usize(ay) * (1.0 - t) + f64::from_usize(by) * t - 1.0)
+                                * dy;
+                        let wz = z0
+                            + (f64::from_usize(az) * (1.0 - t) + f64::from_usize(bz) * t - 1.0)
+                                * dz;
 
                         // Because the boundary is defined by the Box SDF max intersection,
                         // surface normals at the exact box boundary should point inwards (from wall).
@@ -322,6 +326,12 @@ fn validate_box_bounds(bounds: &[f64; 6], resolution: usize) -> Result<(), Primi
 ///
 /// Returns [`PrimitiveError::InvalidParam`] on degenerate bounds or low
 /// resolution.
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "the `tri_row[ti] >= 0` loop guard is the proof: TRI_TABLE stores -1 as
+        the no-triangle sentinel, so every entry reached here is an edge index in
+        [0, 16) and the cast cannot lose a sign"
+)]
 pub fn build_tpms_box_graded<S: Tpms>(
     surface: &S,
     bounds: [f64; 6],
@@ -335,9 +345,10 @@ pub fn build_tpms_box_graded<S: Tpms>(
     let n = resolution;
     let iso = iso_value;
 
-    let dx = (x1 - x0) / n as f64;
-    let dy = (y1 - y0) / n as f64;
-    let dz = (z1 - z0) / n as f64;
+    let resolution = f64::from_usize(n);
+    let dx = (x1 - x0) / resolution;
+    let dy = (y1 - y0) / resolution;
+    let dz = (z1 - z0) / resolution;
     let gs = n + 3;
 
     let cx = (x0 + x1) * 0.5;
@@ -353,9 +364,9 @@ pub fn build_tpms_box_graded<S: Tpms>(
     for iz in 0..gs {
         for iy in 0..gs {
             for ix in 0..gs {
-                let wx = x0 + (ix as f64 - 1.0) * dx;
-                let wy = y0 + (iy as f64 - 1.0) * dy;
-                let wz = z0 + (iz as f64 - 1.0) * dz;
+                let wx = x0 + (f64::from_usize(ix) - 1.0) * dx;
+                let wy = y0 + (f64::from_usize(iy) - 1.0) * dy;
+                let wz = z0 + (f64::from_usize(iz) - 1.0) * dz;
                 let local_period = period_fn(wx, wy, wz).max(1e-12);
                 let local_k = std::f64::consts::TAU / local_period;
                 let tpms_val = surface.field(wx, wy, wz, local_k) - iso;
@@ -381,11 +392,7 @@ pub fn build_tpms_box_graded<S: Tpms>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(cdx, cdy, cdz)) in marching_cubes::CORNERS.iter().enumerate() {
-                    let v = field[idx(
-                        ix + corner_offset(cdx),
-                        iy + corner_offset(cdy),
-                        iz + corner_offset(cdz),
-                    )];
+                    let v = field[idx(ix + cdx, iy + cdy, iz + cdz)];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -404,14 +411,14 @@ pub fn build_tpms_box_graded<S: Tpms>(
                     }
                     let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
                         let (ax, ay, az) = (
-                            ix + corner_offset(marching_cubes::CORNERS[ca].0),
-                            iy + corner_offset(marching_cubes::CORNERS[ca].1),
-                            iz + corner_offset(marching_cubes::CORNERS[ca].2),
+                            ix + marching_cubes::CORNERS[ca].0,
+                            iy + marching_cubes::CORNERS[ca].1,
+                            iz + marching_cubes::CORNERS[ca].2,
                         );
                         let (bx, by, bz) = (
-                            ix + corner_offset(marching_cubes::CORNERS[cb].0),
-                            iy + corner_offset(marching_cubes::CORNERS[cb].1),
-                            iz + corner_offset(marching_cubes::CORNERS[cb].2),
+                            ix + marching_cubes::CORNERS[cb].0,
+                            iy + marching_cubes::CORNERS[cb].1,
+                            iz + marching_cubes::CORNERS[cb].2,
                         );
                         let va = cube_vals[ca];
                         let vb = cube_vals[cb];
@@ -420,9 +427,15 @@ pub fn build_tpms_box_graded<S: Tpms>(
                         } else {
                             0.5
                         };
-                        let wx = x0 + (ax as f64 * (1.0 - t) + bx as f64 * t - 1.0) * dx;
-                        let wy = y0 + (ay as f64 * (1.0 - t) + by as f64 * t - 1.0) * dy;
-                        let wz = z0 + (az as f64 * (1.0 - t) + bz as f64 * t - 1.0) * dz;
+                        let wx = x0
+                            + (f64::from_usize(ax) * (1.0 - t) + f64::from_usize(bx) * t - 1.0)
+                                * dx;
+                        let wy = y0
+                            + (f64::from_usize(ay) * (1.0 - t) + f64::from_usize(by) * t - 1.0)
+                                * dy;
+                        let wz = z0
+                            + (f64::from_usize(az) * (1.0 - t) + f64::from_usize(bz) * t - 1.0)
+                                * dz;
 
                         let qx = (wx - cx).abs() - hx;
                         let qy = (wy - cy).abs() - hy;
@@ -543,7 +556,7 @@ mod tests {
             iso_value: 0.0,
         };
         let mesh = build_tpms_box(&Gyroid, &params).expect("should succeed");
-        let eps = params.period / params.resolution as f64; // one voxel tolerance
+        let eps = params.period / f64::from_usize(params.resolution); // one voxel tolerance
         for vid in 0..mesh.vertex_count() {
             let p = mesh.vertices.position(VertexId(vid as u32));
             assert!(

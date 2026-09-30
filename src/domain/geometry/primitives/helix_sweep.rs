@@ -130,10 +130,11 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
     let ns = hs.tube_segments;
     let arc_segments = f64::from_usize(hs.arc_segments_per_turn) * hs.turns;
     #[expect(
-        clippy::cast_sign_loss,
-        reason = "arc segment count is validated positive above, so the rounded segment count is non-negative"
+        clippy::cast_possible_truncation,
+        reason = "the validated positive rounded arc-segment count is converted through a checked integer boundary"
     )]
-    let na = arc_segments.round() as usize;
+    let na =
+        usize::try_from(arc_segments.round() as i64).expect("helix segment count fits in usize");
     let theta_max = TAU * hs.turns;
 
     // Constant arc-length factor L = sqrt(R² + (pitch/2π)²)
@@ -167,10 +168,10 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
     // Pre-build ring vertex arrays for shared edge connectivity
     let mut rings: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(na + 1);
     for ia in 0..=na {
-        let theta = ia as f64 / na as f64 * theta_max;
+        let theta = f64::from_usize(ia) / f64::from_usize(na) * theta_max;
         let row: Vec<_> = (0..ns)
             .map(|ib| {
-                let beta = ib as f64 / ns as f64 * TAU;
+                let beta = f64::from_usize(ib) / f64::from_usize(ns) * TAU;
                 let (p, n) = tube_vertex(theta, beta);
                 mesh.add_vertex(p, n)
             })

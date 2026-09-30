@@ -7,6 +7,7 @@
 //! hexahedral cell topology and is exempt from the surface-mesh deprecation.
 
 use crate::domain::core::index::{FaceId, VertexId};
+use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::{IndexedMesh, TetrahedralMeshBuilder};
 use crate::domain::topology::{Cell, ElementType};
 use leto::geometry::Point3;
@@ -85,9 +86,9 @@ fn build_structured_hex_grid(nx: usize, ny: usize, nz: usize) -> IndexedMesh<f64
         for iy in 0..=ny {
             for ix in 0..=nx {
                 vertex_ids.push(mesh.add_vertex_pos(Point3::new(
-                    ix as f64 / nx as f64,
-                    iy as f64 / ny as f64,
-                    iz as f64 / nz as f64,
+                    f64::from_usize(ix) / f64::from_usize(nx),
+                    f64::from_usize(iy) / f64::from_usize(ny),
+                    f64::from_usize(iz) / f64::from_usize(nz),
                 )));
             }
         }
@@ -153,9 +154,9 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     for iz in 0..vnz {
         for iy in 0..vny {
             for ix in 0..vnx {
-                let x = ix as f64 / nx as f64;
-                let y = iy as f64 / ny as f64;
-                let z = iz as f64 / nz as f64;
+                let x = f64::from_usize(ix) / f64::from_usize(nx);
+                let y = f64::from_usize(iy) / f64::from_usize(ny);
+                let z = f64::from_usize(iz) / f64::from_usize(nz);
                 v_ids.push(builder.vertex_array([x, y, z]));
             }
         }

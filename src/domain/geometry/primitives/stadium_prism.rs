@@ -4,7 +4,7 @@ use std::f64::consts::PI;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a prism with a stadium (rounded-rectangle) cross-section.
@@ -131,7 +131,7 @@ fn build(sp: &StadiumPrism) -> Result<IndexedMesh, PrimitiveError> {
     // Going from bottom-right (+flat/2, -r) around the right end to top-right (+flat/2, +r)
     // in CCW direction from above:
     for i in 0..=cs {
-        let angle = -PI / 2.0 + i as f64 / cs as f64 * PI;
+        let angle = -PI / 2.0 + f64::from_usize(i) / f64::from_usize(cs) * PI;
         let x = flat / 2.0 + r * angle.cos();
         let z = r * angle.sin();
         profile.push([x, z]);
@@ -139,7 +139,7 @@ fn build(sp: &StadiumPrism) -> Result<IndexedMesh, PrimitiveError> {
     // Left semicircle: centre (-flat/2, 0), angles +π/2 → 3π/2
     // Going from top-left (-flat/2, +r) around the left end to bottom-left (-flat/2, -r)
     for i in 0..=cs {
-        let angle = PI / 2.0 + i as f64 / cs as f64 * PI;
+        let angle = PI / 2.0 + f64::from_usize(i) / f64::from_usize(cs) * PI;
         let x = -flat / 2.0 + r * angle.cos();
         let z = r * angle.sin();
         profile.push([x, z]);

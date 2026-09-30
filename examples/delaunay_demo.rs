@@ -36,7 +36,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let points: Vec<(f64, f64)> = (0..100)
         .map(|i| {
             // Deterministic pseudo-random via LCG
-            let rng = 42_u64.wrapping_mul((i + 1) as u64);
+            let rng =
+                42_u64.wrapping_mul(u64::try_from(i + 1).expect("demo point index fits in u64"));
             let x = ((rng >> 33) as f64 / (1u64 << 31) as f64) * 10.0;
             let y = ((rng.wrapping_mul(6_364_136_223_846_793_005) >> 33) as f64
                 / (1u64 << 31) as f64)

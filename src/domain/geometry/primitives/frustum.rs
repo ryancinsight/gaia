@@ -4,7 +4,7 @@ use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a closed truncated right circular cone (frustum).
@@ -98,14 +98,15 @@ fn build(f: &Frustum) -> Result<IndexedMesh, PrimitiveError> {
     let bx = f.base_center.x;
     let by = f.base_center.y;
     let bz = f.base_center.z;
+    let segments = f64::from_usize(f.segments);
 
     // Slant normal denominator: ||(h·r̂, r0−r1, h·ŝ)|| = √(h² + (r0−r1)²)
     let slant = (h * h + (r0 - r1) * (r0 - r1)).sqrt();
 
     // ── Lateral surface ──────────────────────────────────────────────────────
     for i in 0..f.segments {
-        let a0 = i as f64 / f.segments as f64 * TAU;
-        let a1 = (i + 1) as f64 / f.segments as f64 * TAU;
+        let a0 = f64::from_usize(i) / segments * TAU;
+        let a1 = f64::from_usize(i + 1) / segments * TAU;
 
         let (c0, s0) = (a0.cos(), a0.sin());
         let (c1, s1) = (a1.cos(), a1.sin());
@@ -135,8 +136,8 @@ fn build(f: &Frustum) -> Result<IndexedMesh, PrimitiveError> {
         let center = Point3r::new(bx, by, bz);
         let vc = mesh.add_vertex(center, n_down);
         for i in 0..f.segments {
-            let a0 = i as f64 / f.segments as f64 * TAU;
-            let a1 = (i + 1) as f64 / f.segments as f64 * TAU;
+            let a0 = f64::from_usize(i) / segments * TAU;
+            let a1 = f64::from_usize(i + 1) / segments * TAU;
             let p0 = Point3r::new(bx + r0 * a0.cos(), by, bz + r0 * a0.sin());
             let p1 = Point3r::new(bx + r0 * a1.cos(), by, bz + r0 * a1.sin());
             let v0 = mesh.add_vertex(p0, n_down);
@@ -152,8 +153,8 @@ fn build(f: &Frustum) -> Result<IndexedMesh, PrimitiveError> {
         let center = Point3r::new(bx, by + h, bz);
         let vc = mesh.add_vertex(center, n_up);
         for i in 0..f.segments {
-            let a0 = i as f64 / f.segments as f64 * TAU;
-            let a1 = (i + 1) as f64 / f.segments as f64 * TAU;
+            let a0 = f64::from_usize(i) / segments * TAU;
+            let a1 = f64::from_usize(i + 1) / segments * TAU;
             let p0 = Point3r::new(bx + r1 * a0.cos(), by + h, bz + r1 * a0.sin());
             let p1 = Point3r::new(bx + r1 * a1.cos(), by + h, bz + r1 * a1.sin());
             let v0 = mesh.add_vertex(p0, n_up);

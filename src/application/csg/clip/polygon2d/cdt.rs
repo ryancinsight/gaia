@@ -12,6 +12,7 @@ use crate::application::csg::arrangement::planar::{
     build_pslg_from_points_and_edges, collect_points_on_segment_interior_indexed,
     insert_shattered_subedges, PlanarEdgeKey, PlanarPointGridIndex,
 };
+use crate::application::welding::GridCell2d;
 use crate::domain::core::constants::{
     CLIP2D_INTERSECT_PARAM_MARGIN, CLIP2D_SHATTER_DIST_SQ, CLIP2D_SHATTER_PARAM_MARGIN,
     CLIP2D_WELD_LEN,
@@ -93,7 +94,7 @@ impl EdgeAabb2d {
 struct SpatialHashWeld2d {
     inv_cell: Real,
     tol_sq: Real,
-    bins: HashMap<(i64, i64), Vec<usize>>,
+    bins: HashMap<GridCell2d, Vec<usize>>,
 }
 
 impl SpatialHashWeld2d {
@@ -106,26 +107,21 @@ impl SpatialHashWeld2d {
     }
 
     #[inline]
-    fn cell_of(&self, p: [Real; 2]) -> (i64, i64) {
-        (
-            (p[0] * self.inv_cell).floor() as i64,
-            (p[1] * self.inv_cell).floor() as i64,
-        )
+    fn cell_of(&self, p: [Real; 2]) -> GridCell2d {
+        GridCell2d::from_point(&p, self.inv_cell)
     }
 
     fn insert_or_weld(&mut self, p: [Real; 2], unique: &mut Vec<[Real; 2]>) -> usize {
-        let (cx, cy) = self.cell_of(p);
+        let cell = self.cell_of(p);
 
-        for dx in -1_i64..=1 {
-            for dy in -1_i64..=1 {
-                if let Some(candidates) = self.bins.get(&(cx + dx, cy + dy)) {
-                    for &idx in candidates {
-                        let q = unique[idx];
-                        let ex = p[0] - q[0];
-                        let ey = p[1] - q[1];
-                        if ex * ex + ey * ey <= self.tol_sq {
-                            return idx;
-                        }
+        for nb_cell in cell.neighborhood_9() {
+            if let Some(candidates) = self.bins.get(&nb_cell) {
+                for &idx in candidates {
+                    let q = unique[idx];
+                    let ex = p[0] - q[0];
+                    let ey = p[1] - q[1];
+                    if ex * ex + ey * ey <= self.tol_sq {
+                        return idx;
                     }
                 }
             }
@@ -133,7 +129,7 @@ impl SpatialHashWeld2d {
 
         let idx = unique.len();
         unique.push(p);
-        self.bins.entry((cx, cy)).or_default().push(idx);
+        self.bins.entry(cell).or_default().push(idx);
         idx
     }
 }

@@ -9,17 +9,14 @@ use super::mesh_ops::{apply_vertex_merge, boundary_half_edges, merge_root};
 use super::snap_round;
 #[cfg(test)]
 use crate::application::csg::diagnostics::trace_enabled;
+use crate::application::welding::GridCell;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Real, Scalar};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
-fn cell_key(p: &leto::geometry::Point3<Real>, inv_cell: Real) -> (i64, i64, i64) {
-    (
-        (p.x * inv_cell + 0.5).floor() as i64,
-        (p.y * inv_cell + 0.5).floor() as i64,
-        (p.z * inv_cell + 0.5).floor() as i64,
-    )
+fn cell_key(p: &leto::geometry::Point3<Real>, inv_cell: Real) -> GridCell {
+    GridCell::from_point_round(p, inv_cell)
 }
 
 /// Build merge pairs by mutual-nearest-neighbor (MNN) matching within
@@ -53,7 +50,7 @@ fn build_mutual_nearest_merge_map(
     let cell = max_dist_sq.sqrt().max(1e-12);
     let inv_cell = 1.0 / cell;
 
-    let mut grid: HashMap<(i64, i64, i64), Vec<VertexId>> = HashMap::new();
+    let mut grid: HashMap<GridCell, Vec<VertexId>> = HashMap::new();
     for &vid in bnd_verts {
         grid.entry(cell_key(pool.position(vid), inv_cell))
             .or_default()
@@ -63,28 +60,22 @@ fn build_mutual_nearest_merge_map(
     let mut nearest: HashMap<VertexId, VertexId> = HashMap::new();
     for &vi in bnd_verts {
         let pi = pool.position(vi);
-        let (cx, cy, cz) = cell_key(pi, inv_cell);
         let mut best_d = max_dist_sq;
         let mut best_v: Option<VertexId> = None;
-        for dx in -1_i64..=1 {
-            for dy in -1_i64..=1 {
-                for dz in -1_i64..=1 {
-                    let key = (cx + dx, cy + dy, cz + dz);
-                    let Some(cands) = grid.get(&key) else {
-                        continue;
-                    };
-                    for &vj in cands {
-                        if vj == vi {
-                            continue;
-                        }
-                        let d = (pool.position(vj) - pi).norm_squared();
-                        if d < best_d {
-                            best_d = d;
-                            best_v = Some(vj);
-                        } else if d == best_d && best_v.is_none_or(|best| vj.raw() < best.raw()) {
-                            best_v = Some(vj);
-                        }
-                    }
+        for nb_cell in cell_key(pi, inv_cell).neighborhood_27() {
+            let Some(cands) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &vj in cands {
+                if vj == vi {
+                    continue;
+                }
+                let d = (pool.position(vj) - pi).norm_squared();
+                if d < best_d {
+                    best_d = d;
+                    best_v = Some(vj);
+                } else if d == best_d && best_v.is_none_or(|best| vj.raw() < best.raw()) {
+                    best_v = Some(vj);
                 }
             }
         }
@@ -139,7 +130,7 @@ fn build_greedy_nearest_merge_map(
     let cell = max_dist_sq.sqrt().max(1e-12);
     let inv_cell = 1.0 / cell;
 
-    let mut grid: HashMap<(i64, i64, i64), Vec<VertexId>> = HashMap::new();
+    let mut grid: HashMap<GridCell, Vec<VertexId>> = HashMap::new();
     for &vid in bnd_verts {
         grid.entry(cell_key(pool.position(vid), inv_cell))
             .or_default()
@@ -159,26 +150,18 @@ fn build_greedy_nearest_merge_map(
         let mut best_d = max_dist_sq;
         let mut best_j: Option<VertexId> = None;
 
-        let (cx, cy, cz) = cell_key(pi, inv_cell);
-        for dx in -1_i64..=1 {
-            for dy in -1_i64..=1 {
-                for dz in -1_i64..=1 {
-                    let key = (cx + dx, cy + dy, cz + dz);
-                    let Some(cands) = grid.get(&key) else {
-                        continue;
-                    };
-                    for &vj in cands {
-                        if vj.raw() <= vi.raw() || merge_map.contains_key(&vj) {
-                            continue;
-                        }
-                        let d = (pool.position(vj) - pi).norm_squared();
-                        if d < best_d
-                            || (d == best_d && best_j.is_some_and(|best| vj.raw() < best.raw()))
-                        {
-                            best_d = d;
-                            best_j = Some(vj);
-                        }
-                    }
+        for nb_cell in cell_key(pi, inv_cell).neighborhood_27() {
+            let Some(cands) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &vj in cands {
+                if vj.raw() <= vi.raw() || merge_map.contains_key(&vj) {
+                    continue;
+                }
+                let d = (pool.position(vj) - pi).norm_squared();
+                if d < best_d || (d == best_d && best_j.is_some_and(|best| vj.raw() < best.raw())) {
+                    best_d = d;
+                    best_j = Some(vj);
                 }
             }
         }

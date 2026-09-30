@@ -25,14 +25,16 @@
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertex;
 use crate::domain::core::scalar::Real;
 
-#[expect(
-    clippy::cast_sign_loss,
-    reason = "normalized Hilbert coordinates are clamped to [0, scale] before rounding"
-)]
 fn normalized_hilbert_coord(value: Real, min: Real, range: Real, scale: u32) -> u32 {
-    (((value - min) / range) * f64::from(scale))
-        .clamp(0.0, f64::from(scale))
-        .round() as u32
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the normalized coordinate is clamped to [0, scale] before converting through a checked integer boundary"
+    )]
+    fn rounded_coord(value: Real) -> u32 {
+        u32::try_from(value.round() as i64).expect("Hilbert coordinate fits in u32")
+    }
+
+    rounded_coord((((value - min) / range) * f64::from(scale)).clamp(0.0, f64::from(scale)))
 }
 
 /// Compute a Hilbert-curve-based insertion order for a set of 2D vertices.

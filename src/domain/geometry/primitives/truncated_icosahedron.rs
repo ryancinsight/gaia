@@ -2,7 +2,7 @@
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::mesh::IndexedMesh;
 
@@ -160,7 +160,7 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
             .iter()
             .map(|&i| verts[i].coords)
             .fold(Vector3r::zeros(), |a, v| a + v)
-            / n as f64;
+            / f64::from_usize(n);
         // Average cross-products for a polygon.
         let p0 = verts[face_verts[0]];
         let mut n_sum = Vector3r::zeros();
