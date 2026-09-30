@@ -170,13 +170,9 @@ impl Scalar for f32 {
     }
     #[inline]
     fn from_f64(v: f64) -> Self {
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "f32 Scalar implementation: deliberately truncating f64 to f32 precision — f32 is the lower-precision scalar type by design"
-        )]
-        {
-            v as f32
-        }
+        // Intentional precision loss: f32 is the lower-precision scalar type.
+        // Covered by workspace cast_precision_loss ratchet until GAIA-003 completes.
+        v as f32
     }
     #[inline]
     fn total_cmp(&self, other: &Self) -> core::cmp::Ordering {

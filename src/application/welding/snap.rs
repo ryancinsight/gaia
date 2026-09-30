@@ -88,6 +88,10 @@ impl GridCell {
     ///
     /// Floor maps each point to the cell at or below it on every axis.
     /// Used by `SpatialHashGrid` for O(1) bucket lookup.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "floor() guarantees an integer value; practical mesh coordinates lie far below i64::MAX"
+    )]
     #[inline]
     #[must_use]
     pub fn from_point(p: &Point3r, inv_cell_size: Real) -> Self {
@@ -106,6 +110,10 @@ impl GridCell {
     /// paths to the same geometric point straddle a half-integer boundary,
     /// `.round()` can assign different cells; `floor(v + 0.5)` always assigns
     /// the same cell. \u220e
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "floor() guarantees an integer value; weld-grid coordinates lie far below i64::MAX"
+    )]
     #[inline]
     #[must_use]
     pub fn from_point_round(p: &Point3r, inv_eps: Real) -> Self {

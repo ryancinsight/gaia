@@ -4,6 +4,8 @@
 
 use std::io::{BufRead, BufReader, Read, Write};
 
+use eunomia::FloatElement;
+
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Real, Vector3r};
@@ -86,16 +88,16 @@ pub fn write_binary_stl<W: Write>(
         let normal =
             crate::domain::geometry::normal::triangle_normal(a, b, c).unwrap_or_else(Vector3r::z);
 
-        // Normal (3 × f32)
-        write_f32(writer, normal.x as f32)?;
-        write_f32(writer, normal.y as f32)?;
-        write_f32(writer, normal.z as f32)?;
+        // Normal (3 × f32) — eunomia's to_f32() is the explicit precision-reduction path
+        write_f32(writer, normal.x.to_f32())?;
+        write_f32(writer, normal.y.to_f32())?;
+        write_f32(writer, normal.z.to_f32())?;
 
         // Vertices (3 × 3 × f32)
         for p in [&a, &b, &c] {
-            write_f32(writer, p.x as f32)?;
-            write_f32(writer, p.y as f32)?;
-            write_f32(writer, p.z as f32)?;
+            write_f32(writer, p.x.to_f32())?;
+            write_f32(writer, p.y.to_f32())?;
+            write_f32(writer, p.z.to_f32())?;
         }
 
         // Attribute byte count

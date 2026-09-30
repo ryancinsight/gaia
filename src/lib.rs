@@ -102,6 +102,23 @@
         reason = "test code: direct float equality assertions verify exact computed values and IEEE-754 properties"
     )
 )]
+// Test code is exempt from integer-truncation and floating-point precision-loss
+// lints: test fixtures deliberately use raw casts to construct boundary values,
+// small mesh counts, and coordinate arrays that are known to be in range.
+#![cfg_attr(
+    test,
+    expect(
+        clippy::cast_possible_truncation,
+        reason = "test code: truncation casts in known-bounded test fixture values"
+    )
+)]
+#![cfg_attr(
+    test,
+    expect(
+        clippy::cast_precision_loss,
+        reason = "test code: precision-loss casts for test fixture coordinates and counts"
+    )
+)]
 
 pub mod application;
 pub mod domain;
