@@ -32,6 +32,17 @@ Triage order: correctness → architecture → verification → tightening → f
 - basis: `e43c3e6` (current main; `Real` references remeasured).
 - next: make the CSG arrangement generic over the PSLG scalar.
 
+Progress (Phase 19, 2026-09-30):
+- Added `Scalar::from_usize(n: usize)` and `Scalar::from_index(k: i64)` to
+  the `Scalar` trait — eunomia-backed replacement for `i as Real` index casts.
+  Implemented via `<Self as Scalar>::from_f64(n as f64)` following eunomia's
+  `FloatElement` widening-seam contract. Documented with IEEE-754 exactness
+  bound; 37 doctests pass.
+- Added aequitas-typed physical-quantity constructors to `constants.rs`:
+  `length_m()`, `length_mm()`, `angle_rad()`, `angle_deg()`, and default
+  channel dimension accessors using `aequitas::systems::si::quantities`.
+- Phase 19 subagent replacing 56+ `as Real` index casts with `from_usize()`.
+
 ---
 
 ## GAIA-005 — Retire the 39 ignored doctests
