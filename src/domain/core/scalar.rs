@@ -158,9 +158,9 @@ impl Scalar for f32 {
     }
     #[inline]
     fn from_f64(v: f64) -> Self {
-        #[allow(
+        #[expect(
             clippy::cast_precision_loss,
-            reason = "f32 Scalar implementation: deliberately truncating f64 to f32 precision"
+            reason = "f32 Scalar implementation: deliberately truncating f64 to f32 precision — f32 is the lower-precision scalar type by design"
         )]
         {
             v as f32
