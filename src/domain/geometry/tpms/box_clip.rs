@@ -21,6 +21,11 @@ use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Point3r;
 use hashbrown::HashMap;
 
+#[inline]
+fn corner_offset(offset: i32) -> usize {
+    usize::from(u8::try_from(offset).expect("marching-cubes corner offsets are 0 or 1"))
+}
+
 // ── Parameters ────────────────────────────────────────────────────────────────
 
 /// Parameters for AABB-clipped TPMS extraction.
@@ -153,7 +158,11 @@ pub fn build_tpms_box<S: Tpms>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(cdx, cdy, cdz)) in marching_cubes::CORNERS.iter().enumerate() {
-                    let v = field[idx(ix + cdx as usize, iy + cdy as usize, iz + cdz as usize)];
+                    let v = field[idx(
+                        ix + corner_offset(cdx),
+                        iy + corner_offset(cdy),
+                        iz + corner_offset(cdz),
+                    )];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -173,14 +182,14 @@ pub fn build_tpms_box<S: Tpms>(
                     }
                     let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
                         let (ax, ay, az) = (
-                            ix + marching_cubes::CORNERS[ca].0 as usize,
-                            iy + marching_cubes::CORNERS[ca].1 as usize,
-                            iz + marching_cubes::CORNERS[ca].2 as usize,
+                            ix + corner_offset(marching_cubes::CORNERS[ca].0),
+                            iy + corner_offset(marching_cubes::CORNERS[ca].1),
+                            iz + corner_offset(marching_cubes::CORNERS[ca].2),
                         );
                         let (bx, by, bz) = (
-                            ix + marching_cubes::CORNERS[cb].0 as usize,
-                            iy + marching_cubes::CORNERS[cb].1 as usize,
-                            iz + marching_cubes::CORNERS[cb].2 as usize,
+                            ix + corner_offset(marching_cubes::CORNERS[cb].0),
+                            iy + corner_offset(marching_cubes::CORNERS[cb].1),
+                            iz + corner_offset(marching_cubes::CORNERS[cb].2),
                         );
                         let va = cube_vals[ca];
                         let vb = cube_vals[cb];
@@ -372,7 +381,11 @@ pub fn build_tpms_box_graded<S: Tpms>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(cdx, cdy, cdz)) in marching_cubes::CORNERS.iter().enumerate() {
-                    let v = field[idx(ix + cdx as usize, iy + cdy as usize, iz + cdz as usize)];
+                    let v = field[idx(
+                        ix + corner_offset(cdx),
+                        iy + corner_offset(cdy),
+                        iz + corner_offset(cdz),
+                    )];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -391,14 +404,14 @@ pub fn build_tpms_box_graded<S: Tpms>(
                     }
                     let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
                         let (ax, ay, az) = (
-                            ix + marching_cubes::CORNERS[ca].0 as usize,
-                            iy + marching_cubes::CORNERS[ca].1 as usize,
-                            iz + marching_cubes::CORNERS[ca].2 as usize,
+                            ix + corner_offset(marching_cubes::CORNERS[ca].0),
+                            iy + corner_offset(marching_cubes::CORNERS[ca].1),
+                            iz + corner_offset(marching_cubes::CORNERS[ca].2),
                         );
                         let (bx, by, bz) = (
-                            ix + marching_cubes::CORNERS[cb].0 as usize,
-                            iy + marching_cubes::CORNERS[cb].1 as usize,
-                            iz + marching_cubes::CORNERS[cb].2 as usize,
+                            ix + corner_offset(marching_cubes::CORNERS[cb].0),
+                            iy + corner_offset(marching_cubes::CORNERS[cb].1),
+                            iz + corner_offset(marching_cubes::CORNERS[cb].2),
                         );
                         let va = cube_vals[ca];
                         let vb = cube_vals[cb];

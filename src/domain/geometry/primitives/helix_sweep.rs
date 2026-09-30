@@ -4,7 +4,7 @@ use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a closed circular tube swept along a helical centreline.
@@ -128,7 +128,12 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
     let r = hs.tube_radius;
     let pitch = hs.pitch;
     let ns = hs.tube_segments;
-    let na = (hs.arc_segments_per_turn as f64 * hs.turns).round() as usize;
+    let arc_segments = f64::from_usize(hs.arc_segments_per_turn) * hs.turns;
+    #[expect(
+        clippy::cast_sign_loss,
+        reason = "arc segment count is validated positive above, so the rounded segment count is non-negative"
+    )]
+    let na = arc_segments.round() as usize;
     let theta_max = TAU * hs.turns;
 
     // Constant arc-length factor L = sqrt(R² + (pitch/2π)²)

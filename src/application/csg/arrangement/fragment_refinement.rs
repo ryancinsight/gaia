@@ -7,6 +7,7 @@ use hashbrown::{HashMap, HashSet};
 use super::super::corefine::{corefine_face, CorefinerScratch, SeamVertexMap};
 use super::super::intersect::SnapSegment;
 use super::classify::FragRecord;
+use crate::application::welding::GridCell;
 use crate::domain::core::constants::COREFINE_WELD_TOL_SQ;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Real;
@@ -103,24 +104,20 @@ fn build_cross_mesh_merge_map(
     let a_positions: Vec<_> = pure_a.iter().map(|&vid| *pool.position(vid)).collect();
     let b_positions: Vec<_> = pure_b.iter().map(|&vid| *pool.position(vid)).collect();
 
-    let mut grid: HashMap<(i64, i64, i64), Vec<usize>> =
+    let mut grid: HashMap<GridCell, Vec<usize>> =
         HashMap::with_capacity(usize::min(a_positions.len(), b_positions.len()));
 
     if grid_on_a {
         for (i, p) in a_positions.iter().enumerate() {
-            let ix = (p.x * inv_cell).floor() as i64;
-            let iy = (p.y * inv_cell).floor() as i64;
-            let iz = (p.z * inv_cell).floor() as i64;
-            grid.entry((ix, iy, iz))
+            let cell = GridCell::from_point(p, inv_cell);
+            grid.entry(cell)
                 .or_insert_with(|| Vec::with_capacity(2))
                 .push(i);
         }
     } else {
         for (i, p) in b_positions.iter().enumerate() {
-            let ix = (p.x * inv_cell).floor() as i64;
-            let iy = (p.y * inv_cell).floor() as i64;
-            let iz = (p.z * inv_cell).floor() as i64;
-            grid.entry((ix, iy, iz))
+            let cell = GridCell::from_point(p, inv_cell);
+            grid.entry(cell)
                 .or_insert_with(|| Vec::with_capacity(2))
                 .push(i);
         }
@@ -143,34 +140,22 @@ fn build_cross_mesh_merge_map(
     if grid_on_a {
         // Grid on A, probe B.
         for (b_idx, probe_p) in b_positions.iter().enumerate() {
-            let ix = (probe_p.x * inv_cell).floor() as i64;
-            let iy = (probe_p.y * inv_cell).floor() as i64;
-            let iz = (probe_p.z * inv_cell).floor() as i64;
-            for dx in -1_i64..=1 {
-                for dy in -1_i64..=1 {
-                    for dz in -1_i64..=1 {
-                        if let Some(cands) = grid.get(&(ix + dx, iy + dy, iz + dz)) {
-                            for &a_idx in cands {
-                                let pa = a_positions[a_idx];
-                                let ddx = probe_p.x - pa.x;
-                                let ddy = probe_p.y - pa.y;
-                                let ddz = probe_p.z - pa.z;
-                                if ddx * ddx + ddy * ddy + ddz * ddz < tol_sq {
-                                    let ia = a_idx;
-                                    let ib = na + b_idx;
-                                    let ra = find_root(&mut parent, ia);
-                                    let rb = find_root(&mut parent, ib);
-                                    if ra != rb {
-                                        // A-root invariant: attach B-root under A-root.
-                                        parent[rb] = ra;
-                                        debug_assert!(
-                                            ra < na,
-                                            "A-root invariant violated: ra={ra} must be \
-                                             in A-partition (na={na})"
-                                        );
-                                    }
-                                }
-                            }
+            let probe_cell = GridCell::from_point(probe_p, inv_cell);
+            for nb_cell in probe_cell.neighborhood_27() {
+                let Some(cands) = grid.get(&nb_cell) else {
+                    continue;
+                };
+                for &a_idx in cands {
+                    let pa = a_positions[a_idx];
+                    let ddx = probe_p.x - pa.x;
+                    let ddy = probe_p.y - pa.y;
+                    let ddz = probe_p.z - pa.z;
+                    if ddx * ddx + ddy * ddy + ddz * ddz < tol_sq {
+                        let ra = find_root(&mut parent, a_idx);
+                        let rb = find_root(&mut parent, na + b_idx);
+                        if ra != rb {
+                            parent[rb] = ra;
+                            debug_assert!(ra < na, "A-root invariant violated");
                         }
                     }
                 }
@@ -179,34 +164,22 @@ fn build_cross_mesh_merge_map(
     } else {
         // Grid on B, probe A.
         for (a_idx, probe_p) in a_positions.iter().enumerate() {
-            let ix = (probe_p.x * inv_cell).floor() as i64;
-            let iy = (probe_p.y * inv_cell).floor() as i64;
-            let iz = (probe_p.z * inv_cell).floor() as i64;
-            for dx in -1_i64..=1 {
-                for dy in -1_i64..=1 {
-                    for dz in -1_i64..=1 {
-                        if let Some(cands) = grid.get(&(ix + dx, iy + dy, iz + dz)) {
-                            for &b_idx in cands {
-                                let pb = b_positions[b_idx];
-                                let ddx = pb.x - probe_p.x;
-                                let ddy = pb.y - probe_p.y;
-                                let ddz = pb.z - probe_p.z;
-                                if ddx * ddx + ddy * ddy + ddz * ddz < tol_sq {
-                                    let ia = a_idx;
-                                    let ib = na + b_idx;
-                                    let ra = find_root(&mut parent, ia);
-                                    let rb = find_root(&mut parent, ib);
-                                    if ra != rb {
-                                        // A-root invariant: attach B-root under A-root.
-                                        parent[rb] = ra;
-                                        debug_assert!(
-                                            ra < na,
-                                            "A-root invariant violated: ra={ra} must be \
-                                             in A-partition (na={na})"
-                                        );
-                                    }
-                                }
-                            }
+            let probe_cell = GridCell::from_point(probe_p, inv_cell);
+            for nb_cell in probe_cell.neighborhood_27() {
+                let Some(cands) = grid.get(&nb_cell) else {
+                    continue;
+                };
+                for &b_idx in cands {
+                    let pb = b_positions[b_idx];
+                    let ddx = pb.x - probe_p.x;
+                    let ddy = pb.y - probe_p.y;
+                    let ddz = pb.z - probe_p.z;
+                    if ddx * ddx + ddy * ddy + ddz * ddz < tol_sq {
+                        let ra = find_root(&mut parent, a_idx);
+                        let rb = find_root(&mut parent, na + b_idx);
+                        if ra != rb {
+                            parent[rb] = ra;
+                            debug_assert!(ra < na, "A-root invariant violated");
                         }
                     }
                 }

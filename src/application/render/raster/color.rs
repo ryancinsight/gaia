@@ -56,6 +56,10 @@ impl Rgba8 {
     /// `NaN` factor yields zero rather than propagating a `NaN` into a channel
     /// cast, which would be an unspecified value.
     #[must_use]
+    #[expect(
+        clippy::cast_sign_loss,
+        reason = "the non-NaN branch clamps each channel into the positive u8 range before conversion"
+    )]
     pub fn scaled(self, factor: Real) -> Self {
         let scale = |channel: u8| -> u8 {
             let value = Real::from(channel) * factor;

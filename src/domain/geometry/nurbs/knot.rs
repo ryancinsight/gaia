@@ -82,8 +82,7 @@ impl<T: Scalar> KnotVector<T> {
         }
         // interior knots
         for j in 1..interior {
-            knots
-                .push(<T as Scalar>::from_f64(j as f64) / <T as Scalar>::from_f64(interior as f64));
+            knots.push(<T as Scalar>::from_usize(j) / <T as Scalar>::from_usize(interior));
         }
         // p+1 ones
         for _ in 0..=p {

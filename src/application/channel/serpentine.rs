@@ -5,7 +5,7 @@
 
 use crate::application::channel::venturi::BuildError;
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::PackedRows;
 
@@ -79,7 +79,7 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> IndexedMesh {
     } else {
         4
     };
-    let total_len = b.wavelength * b.num_periods as f64;
+    let total_len = b.wavelength * f64::from_usize(b.num_periods);
 
     let wall_region = RegionId::from_usize(0);
     let inlet_region = RegionId::from_usize(1);
@@ -88,7 +88,7 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> IndexedMesh {
     let mut mesh = IndexedMesh::new();
     let spine: Vec<(f64, f64, f64)> = (0..n_ax)
         .map(|i| {
-            let z = total_len * i as f64 / (n_ax - 1) as f64;
+            let z = total_len * f64::from_usize(i) / f64::from_usize(n_ax - 1);
             let y = b.amplitude * (std::f64::consts::TAU * z / b.wavelength).sin();
             (0.0, y, z)
         })
@@ -100,7 +100,7 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> IndexedMesh {
     ring_offsets.push(0);
     for &(cx, cy, cz) in &spine {
         for ia in 0..n_ang {
-            let theta = std::f64::consts::TAU * ia as f64 / n_ang as f64;
+            let theta = std::f64::consts::TAU * f64::from_usize(ia) / f64::from_usize(n_ang);
             let (sin_t, cos_t) = theta.sin_cos();
             ring_values.push(mesh.add_vertex(
                 Point3r::new(cx + r * cos_t, cy + r * sin_t, cz),

@@ -56,14 +56,16 @@ impl PlanarPointGridIndex {
         let (ix0, iy0) = self.cell_of(min);
         let (ix1, iy1) = self.cell_of(max);
 
-        let span_x = (ix1 - ix0 + 1).max(0) as u128;
-        let span_y = (iy1 - iy0 + 1).max(0) as u128;
+        let span_x = u128::try_from((ix1 - ix0 + 1).max(0_i64)).expect("non-negative after max(0)");
+        let span_y = u128::try_from((iy1 - iy0 + 1).max(0_i64)).expect("non-negative after max(0)");
         let dense_cell_visits = span_x.saturating_mul(span_y);
+        let occupied_bin_count =
+            u128::try_from(self.bins.len()).expect("usize always fits in u128");
 
         // Sparse guard: very small cell widths can produce huge AABB cell spans.
         // Fall back to scanning occupied bins only when a dense cell sweep would
         // exceed a small multiple of occupied bins.
-        if dense_cell_visits > (self.bins.len() as u128).saturating_mul(8) {
+        if dense_cell_visits > occupied_bin_count.saturating_mul(8) {
             for (&(ix, iy), slots) in &self.bins {
                 if ix >= ix0 && ix <= ix1 && iy >= iy0 && iy <= iy1 {
                     out.extend_from_slice(slots);
@@ -208,11 +210,13 @@ impl PlanarPointGridIndex {
         let diameter = radius_u.saturating_mul(2).saturating_add(1);
         let neighborhood = diameter.saturating_mul(diameter);
         let dda_visits = steps.saturating_mul(neighborhood);
+        let occupied_bin_count =
+            u128::try_from(self.bins.len()).expect("usize always fits in u128");
 
         // Guard against pathological tiny-cell / long-segment traversals.
         // In those cases, scanning occupied bins in a segment AABB corridor
         // is asymptotically better than stepping every crossed grid cell.
-        if dda_visits > (self.bins.len() as u128).saturating_mul(8) {
+        if dda_visits > occupied_bin_count.saturating_mul(8) {
             let min = [p1[0].min(p2[0]) - tol, p1[1].min(p2[1]) - tol];
             let max = [p1[0].max(p2[0]) + tol, p1[1].max(p2[1]) + tol];
             self.collect_aabb_candidates(min, max, out);

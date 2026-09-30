@@ -101,7 +101,7 @@ impl<T: Scalar> PlaneBasis<T> {
         let v = normal.cross(u);
 
         // Centroid origin — arithmetic mean of the loop vertices.
-        let inv_n = <T as Scalar>::from_f64(1.0 / points.len() as f64);
+        let inv_n = one / <T as Scalar>::from_usize(points.len());
         let mut sum = Vector3::new(zero, zero, zero);
         for p in points {
             sum += p.coords;

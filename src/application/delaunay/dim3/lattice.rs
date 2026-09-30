@@ -38,6 +38,12 @@ impl<T: Scalar> SdfMesher<T> {
     /// The generated interior uses the Delaunay empty-circumsphere criterion;
     /// that establishes connectivity, not a quality optimum. Boundary
     /// projection follows the `Sdf3D` implementation's gradient contract.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the derived lattice dimensions or signed loop indices exceed
+    /// the representable host integer ranges used for internal capacities and
+    /// scalar conversion.
     #[expect(
         clippy::similar_names,
         reason = "standard jitter-component and grid-cell coordinate naming"
@@ -55,11 +61,12 @@ impl<T: Scalar> SdfMesher<T> {
         let num_x = w_x.ceil() as isize + 2;
         let num_y = w_y.ceil() as isize + 2;
         let num_z = w_z.ceil() as isize + 2;
+        let total_capacity = usize::try_from(2 * (num_x + 2) * (num_y + 2) * (num_z + 2))
+            .expect("BCC lattice point capacity is non-negative");
 
-        let total_points = 2 * (num_x + 2) * (num_y + 2) * (num_z + 2);
-        let mut delaunay = BowyerWatson3D::with_capacity(min, max, total_points as usize);
+        let mut delaunay = BowyerWatson3D::with_capacity(min, max, total_capacity);
 
-        let mut raw_points = Vec::with_capacity(total_points as usize);
+        let mut raw_points = Vec::with_capacity(total_capacity);
 
         for i in -1..=num_x {
             for j in -1..=num_y {
@@ -68,11 +75,11 @@ impl<T: Scalar> SdfMesher<T> {
                     // Adding an infinitesimal deterministic pseudo-random spatial jitter breaks exact symmetry.
                     let jitter_mag = <T as Scalar>::from_f64(1e-5) * h;
                     let hash_jitter = |ix: i32, iy: i32, iz: i32, seed: i32| -> T {
-                        let mut h_val = (ix.wrapping_mul(73_856_093)
+                        let hash_seed = ix.wrapping_mul(73_856_093)
                             ^ iy.wrapping_mul(19_349_663)
                             ^ iz.wrapping_mul(83_492_791)
-                            ^ seed.wrapping_mul(41_293_819))
-                            as u32;
+                            ^ seed.wrapping_mul(41_293_819);
+                        let mut h_val = u32::from_ne_bytes(hash_seed.to_ne_bytes());
                         h_val ^= h_val >> 16;
                         h_val = h_val.wrapping_mul(0x85EB_CA6B);
                         h_val ^= h_val >> 13;
@@ -92,19 +99,28 @@ impl<T: Scalar> SdfMesher<T> {
                     let jz_b = hash_jitter(i as i32, j as i32, k as i32, 5) * jitter_mag;
 
                     // Lattice A (Cartesian) with jitter
+                    let i_scalar = <T as Scalar>::from_index(
+                        i64::try_from(i).expect("lattice index fits in i64"),
+                    );
+                    let j_scalar = <T as Scalar>::from_index(
+                        i64::try_from(j).expect("lattice index fits in i64"),
+                    );
+                    let k_scalar = <T as Scalar>::from_index(
+                        i64::try_from(k).expect("lattice index fits in i64"),
+                    );
                     let p_a = min
                         + Vector3::new(
-                            <T as Scalar>::from_f64(i as f64) * h + jx_a,
-                            <T as Scalar>::from_f64(j as f64) * h + jy_a,
-                            <T as Scalar>::from_f64(k as f64) * h + jz_a,
+                            i_scalar * h + jx_a,
+                            j_scalar * h + jy_a,
+                            k_scalar * h + jz_a,
                         );
 
                     // Lattice B (Body-centered offset) with jitter
                     let p_b = min
                         + Vector3::new(
-                            <T as Scalar>::from_f64(i as f64) * h + half_h + jx_b,
-                            <T as Scalar>::from_f64(j as f64) * h + half_h + jy_b,
-                            <T as Scalar>::from_f64(k as f64) * h + half_h + jz_b,
+                            i_scalar * h + half_h + jx_b,
+                            j_scalar * h + half_h + jy_b,
+                            k_scalar * h + half_h + jz_b,
                         );
 
                     for mut p in [p_a, p_b] {
@@ -223,7 +239,7 @@ impl<T: Scalar> SdfMesher<T> {
             // Randomize global block progression
             block_list.shuffle(&mut rng);
 
-            let mut sorted_points = Vec::with_capacity(total_points as usize);
+            let mut sorted_points = Vec::with_capacity(total_capacity);
             for (_, mut block) in block_list {
                 // Randomize local cell insertion
                 block.shuffle(&mut rng);
@@ -421,8 +437,7 @@ impl<T: Scalar> SdfMesher<T> {
                 for &vid in &cell.vertex_ids {
                     cell_sum += mesh.vertices.position(VertexId::from_usize(vid)).coords;
                 }
-                let cell_centroid =
-                    cell_sum / <T as Scalar>::from_f64(cell.vertex_ids.len() as f64);
+                let cell_centroid = cell_sum / <T as Scalar>::from_usize(cell.vertex_ids.len());
 
                 let out_vec = face_centroid - cell_centroid;
                 if out_vec.dot(unorm) < <T as eunomia::NumericElement>::ZERO {
@@ -486,7 +501,7 @@ impl<T: Scalar> SdfMesher<T> {
                     sum += mesh.vertices.position(n_vid).coords;
                 }
 
-                let weight = <T as Scalar>::from_f64(neighbors.len() as f64);
+                let weight = <T as Scalar>::from_usize(neighbors.len());
                 let mut p = Point3::from(sum / weight);
 
                 // Reproject strictly to the mathematical SDF manifold

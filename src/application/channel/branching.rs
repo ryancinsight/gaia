@@ -149,11 +149,12 @@ fn build_branching_union(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildE
     meshes.push(mesh_parent);
 
     // 2. Daughter tubes
+    let half_daughters = Real::from_usize(b.n_daughters - 1) / 2.0_f64;
     for d in 0..b.n_daughters {
         let angle_step = if b.n_daughters == 1 {
             0.0_f64
         } else {
-            branching_angle * (d as f64 - (b.n_daughters - 1) as f64 / 2.0_f64)
+            branching_angle * (Real::from_usize(d) - half_daughters)
         };
         let sin_a = angle_step.sin();
         let cos_a = angle_step.cos();

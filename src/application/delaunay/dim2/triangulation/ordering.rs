@@ -25,6 +25,16 @@
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertex;
 use crate::domain::core::scalar::Real;
 
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "normalized Hilbert coordinates are clamped to [0, scale] before rounding"
+)]
+fn normalized_hilbert_coord(value: Real, min: Real, range: Real, scale: u32) -> u32 {
+    (((value - min) / range) * f64::from(scale))
+        .clamp(0.0, f64::from(scale))
+        .round() as u32
+}
+
 /// Compute a Hilbert-curve-based insertion order for a set of 2D vertices.
 ///
 /// 1. Maps each vertex to integer coordinates in a $2^{16} \times 2^{16}$ grid.
@@ -62,8 +72,8 @@ pub(crate) fn hilbert_order(vertices: &[PslgVertex]) -> Vec<usize> {
         .iter()
         .enumerate()
         .map(|(i, v)| {
-            let ix = (((v.x - min_x) / range_x) * f64::from(scale)).round() as u32;
-            let iy = (((v.y - min_y) / range_y) * f64::from(scale)).round() as u32;
+            let ix = normalized_hilbert_coord(v.x, min_x, range_x, scale);
+            let iy = normalized_hilbert_coord(v.y, min_y, range_y, scale);
             let hilbert_idx = xy_to_hilbert(ix.min(scale), iy.min(scale), 16);
             (hilbert_idx, i)
         })

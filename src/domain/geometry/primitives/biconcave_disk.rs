@@ -4,7 +4,7 @@ use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a biconcave disk matching the Evans-Fung parametrization of a
@@ -120,7 +120,8 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
     // For a human-RBC default (r = 4 µm, nr = 16, ns = 32) this gives
     // tolerance ≈ 4.9 × 10⁻⁵ mm — finer than the fixed 1 × 10⁻⁴ mm that
     // caused incorrect welding of innermost-ring vertices at that scale.
-    let min_ring_spacing = std::f64::consts::TAU * r / (bd.rings as f64 * bd.segments as f64);
+    let min_ring_spacing =
+        std::f64::consts::TAU * r / (f64::from_usize(bd.rings) * f64::from_usize(bd.segments));
     let tol = (min_ring_spacing / 10.0).max(1e-10); // never go below 1 pm
     let mut mesh = IndexedMesh::with_cell_size(tol);
     let cx = bd.center.x;
@@ -171,7 +172,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
 
         (0..ns)
             .map(|i| {
-                let theta = i as f64 / ns as f64 * TAU;
+                let theta = f64::from_usize(i) / f64::from_usize(ns) * TAU;
                 let (ct, st) = (theta.cos(), theta.sin());
                 let pos = Point3r::new(cx + r * rho * ct, cy + y_val, cz + r * rho * st);
 
@@ -203,7 +204,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
     // Both upper and lower lobes end at the rim. Build it once for shared topology.
     let rim_ids: Vec<crate::domain::core::index::VertexId> = (0..ns)
         .map(|i| {
-            let theta = i as f64 / ns as f64 * TAU;
+            let theta = f64::from_usize(i) / f64::from_usize(ns) * TAU;
             let (ct, st) = (theta.cos(), theta.sin());
             let pos = Point3r::new(cx + r * ct, cy, cz + r * st);
             // Normal at rim points radially outward in XZ plane
@@ -223,7 +224,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
         let mut upper_ring_ids: Vec<Vec<crate::domain::core::index::VertexId>> =
             Vec::with_capacity(nr);
         for k in 1..=nr {
-            let rho = k as f64 / nr as f64;
+            let rho = f64::from_usize(k) / f64::from_usize(nr);
             let ids: Vec<_> = if k == nr {
                 rim_ids.clone()
             } else {
@@ -277,7 +278,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
         let mut lower_ring_ids: Vec<Vec<crate::domain::core::index::VertexId>> =
             Vec::with_capacity(nr);
         for k in 1..=nr {
-            let rho = k as f64 / nr as f64;
+            let rho = f64::from_usize(k) / f64::from_usize(nr);
             let ids: Vec<_> = if k == nr {
                 rim_ids.clone()
             } else {

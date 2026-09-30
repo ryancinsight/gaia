@@ -27,7 +27,12 @@ pub fn exact_percentile(values: &[Real], p: f64) -> Option<Real> {
         return None;
     }
     finite.sort_unstable_by(f64::total_cmp);
-    let target_idx = (p.clamp(0.0, 1.0) * (finite.len() - 1) as f64).round() as usize;
+    let target_position = p.clamp(0.0, 1.0) * Real::from_usize(finite.len() - 1);
+    #[expect(
+        clippy::cast_sign_loss,
+        reason = "percentile clamp keeps the rounded target index in [0, len - 1], so it is non-negative"
+    )]
+    let target_idx = target_position.round() as usize;
     Some(finite[target_idx])
 }
 // ── Histogram ─────────────────────────────────────────────────────────────────
@@ -93,6 +98,10 @@ impl Histogram {
         let mut bins = vec![0usize; n_bins];
         let inv_w = 1.0 / bin_w;
         for &v in &finite {
+            #[expect(
+                clippy::cast_sign_loss,
+                reason = "histogram values are shifted by min before flooring, so the bin index is provably non-negative"
+            )]
             let idx = ((v - min) * inv_w).floor() as usize;
             let idx = idx.min(n_bins - 1);
             bins[idx] += 1;

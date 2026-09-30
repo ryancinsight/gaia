@@ -166,7 +166,9 @@ impl MeshValidator {
         let report = self.validate(face_store, vertex_pool);
         if !report.passed {
             return Err(MeshError::QualityBelowThreshold {
-                score: 1.0 - (report.failing_faces as f64 / report.total_faces as f64),
+                score: 1.0
+                    - (Real::from_usize(report.failing_faces)
+                        / Real::from_usize(report.total_faces)),
                 threshold: 1.0,
             });
         }
