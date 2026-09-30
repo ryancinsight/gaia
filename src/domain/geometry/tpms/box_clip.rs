@@ -26,6 +26,14 @@ fn corner_offset(offset: i32) -> usize {
     usize::from(u8::try_from(offset).expect("marching-cubes corner offsets are 0 or 1"))
 }
 
+#[inline]
+fn triangle_edge_index(edge: i8) -> usize {
+    usize::from(
+        u8::try_from(edge)
+            .expect("TRI_TABLE emits non-negative edge indices while the sentinel guard is active"),
+    )
+}
+
 // ── Parameters ────────────────────────────────────────────────────────────────
 
 /// Parameters for AABB-clipped TPMS extraction.
@@ -259,9 +267,9 @@ pub fn build_tpms_box<S: Tpms>(
                 let tri_row = &marching_cubes::TRI_TABLE[cube_cfg];
                 let mut ti = 0;
                 while ti + 2 < 16 && tri_row[ti] >= 0 {
-                    let e0 = tri_row[ti] as usize;
-                    let e1 = tri_row[ti + 1] as usize;
-                    let e2 = tri_row[ti + 2] as usize;
+                    let e0 = triangle_edge_index(tri_row[ti]);
+                    let e1 = triangle_edge_index(tri_row[ti + 1]);
+                    let e2 = triangle_edge_index(tri_row[ti + 2]);
                     if let (Some(v0), Some(v1), Some(v2)) =
                         (edge_vids[e0], edge_vids[e1], edge_vids[e2])
                     {
@@ -485,9 +493,9 @@ pub fn build_tpms_box_graded<S: Tpms>(
                 let tri_row = &marching_cubes::TRI_TABLE[cube_cfg];
                 let mut ti = 0;
                 while ti + 2 < 16 && tri_row[ti] >= 0 {
-                    let e0 = tri_row[ti] as usize;
-                    let e1 = tri_row[ti + 1] as usize;
-                    let e2 = tri_row[ti + 2] as usize;
+                    let e0 = triangle_edge_index(tri_row[ti]);
+                    let e1 = triangle_edge_index(tri_row[ti + 1]);
+                    let e2 = triangle_edge_index(tri_row[ti + 2]);
                     if let (Some(v0), Some(v1), Some(v2)) =
                         (edge_vids[e0], edge_vids[e1], edge_vids[e2])
                     {

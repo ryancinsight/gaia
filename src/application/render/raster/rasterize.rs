@@ -52,6 +52,14 @@ fn edge(a: &ScreenVertex, b: &ScreenVertex, px: Real, py: Real) -> Real {
     (b.x - a.x) * (py - a.y) - (b.y - a.y) * (px - a.x)
 }
 
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "screen-space bounds are clamped to the finite viewport before flooring to integer pixel coordinates"
+)]
+fn floor_pixel_coord(value: Real) -> i64 {
+    value.floor() as i64
+}
+
 /// Fill a triangle, testing and updating the depth buffer.
 ///
 /// Returns the number of pixels that passed the depth test. A half-space test
@@ -109,10 +117,10 @@ pub(super) fn rasterize(
         return 0;
     }
 
-    let x0 = min_px.floor() as i64;
-    let x1 = max_px.floor() as i64;
-    let y0 = min_py.floor() as i64;
-    let y1 = max_py.floor() as i64;
+    let x0 = floor_pixel_coord(min_px);
+    let x1 = floor_pixel_coord(max_px);
+    let y0 = floor_pixel_coord(min_py);
+    let y1 = floor_pixel_coord(max_py);
     let stride = usize::try_from(width).expect("raster width fits in usize");
 
     let mut written = 0;

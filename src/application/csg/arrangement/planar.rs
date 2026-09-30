@@ -25,6 +25,14 @@ pub(crate) struct PlanarPointGridIndex {
 }
 
 impl PlanarPointGridIndex {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the corridor radius is ceil()'d to an integer number of cells, non-negative, and bounded by practical mesh geometry"
+    )]
+    fn corridor_radius(tol: Real, cell_size: Real) -> i64 {
+        ((tol.max(0.0) / cell_size).ceil() as i64).max(0)
+    }
+
     #[must_use]
     pub(crate) fn new(points: &[[Real; 2]], cell: Real) -> Self {
         let safe_cell = cell.max(1e-12);
@@ -198,7 +206,7 @@ impl PlanarPointGridIndex {
     ) {
         out.clear();
         let cell_size = 1.0 / self.inv_cell;
-        let radius = ((tol.max(0.0) / cell_size).ceil() as i64).max(0);
+        let radius = Self::corridor_radius(tol, cell_size);
         let c_start = self.cell_of(p1);
         let c_end = self.cell_of(p2);
         let (sx, sy) = (c_start.x, c_start.y);

@@ -20,6 +20,14 @@ pub struct Rgba8 {
 }
 
 impl Rgba8 {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "scaled colour channels are clamped into the open interval (0, 255) before flooring and checked conversion"
+    )]
+    fn scaled_channel(value: Real) -> u8 {
+        u8::try_from(value.floor() as i64).expect("scaled colour channel fits in u8")
+    }
+
     /// Opaque black.
     pub const BLACK: Self = Self::rgb(0, 0, 0);
     /// Opaque white.
@@ -56,10 +64,6 @@ impl Rgba8 {
     /// `NaN` factor yields zero rather than propagating a `NaN` into a channel
     /// cast, which would be an unspecified value.
     #[must_use]
-    #[expect(
-        clippy::cast_sign_loss,
-        reason = "the non-NaN branch clamps each channel into the positive u8 range before conversion"
-    )]
     pub fn scaled(self, factor: Real) -> Self {
         let scale = |channel: u8| -> u8 {
             let value = Real::from(channel) * factor;
@@ -68,7 +72,7 @@ impl Rgba8 {
             } else if value >= 255.0 {
                 255
             } else {
-                value as u8
+                Self::scaled_channel(value)
             }
         };
         Self {

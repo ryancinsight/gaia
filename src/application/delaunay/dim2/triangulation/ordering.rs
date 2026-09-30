@@ -25,10 +25,6 @@
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertex;
 use crate::domain::core::scalar::Real;
 
-#[expect(
-    clippy::cast_sign_loss,
-    reason = "normalized Hilbert coordinates are clamped to [0, scale] before rounding"
-)]
 fn normalized_hilbert_coord(value: Real, min: Real, range: Real, scale: u32) -> u32 {
     #[expect(
         clippy::cast_possible_truncation,

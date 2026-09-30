@@ -55,7 +55,7 @@ impl<T: Scalar> IndexedMesh<T> {
 
         let largest_size = components.iter().map(<[_]>::len).max().unwrap_or(0);
         // Discard if face_count < max(4, largest * 0.05).
-        let min_keep = ((largest_size as f64 * 0.05).ceil() as usize).max(4);
+        let min_keep = largest_size.saturating_mul(5).div_ceil(100).max(4);
 
         let mut discarded = 0;
         for component in &components {

@@ -25,6 +25,16 @@ pub(super) fn range_aabb(aabbs: &[Aabb], indices: &[usize], start: usize, end: u
     a
 }
 
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "bucket coordinates are clamped to the finite bin range before flooring and checked conversion"
+)]
+fn bucket_index(value: f64, n_bins: usize) -> usize {
+    let max_bin = n_bins.saturating_sub(1);
+    let clamped = value.clamp(0.0, f64::from_usize(max_bin));
+    usize::try_from(clamped.floor() as i64).expect("BVH bucket index fits in usize")
+}
+
 /// Recursively build SAH-BVH into parallel plain `Vec`s.
 ///
 /// Appends to `out_aabbs` and `out_kinds` in sync and returns the index of the
@@ -128,8 +138,7 @@ fn sah_split(
 
         for &idx in &indices[start..end] {
             let c = axis_value(&centroids[idx], axis);
-            let b = ((c - min_c) * inv_extent * n_bins) as usize;
-            let b = b.min(N_BINS - 1);
+            let b = bucket_index((c - min_c) * inv_extent * n_bins, N_BINS);
             bin_aabb[b] = bin_aabb[b].union(&aabbs[idx]);
             bin_count[b] += 1;
         }

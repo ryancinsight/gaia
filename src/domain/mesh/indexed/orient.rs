@@ -96,14 +96,11 @@ impl<T: Scalar> IndexedMesh<T> {
         // replaces began at `neg_infinity()`, so a face with a NaN or -infinite
         // centroid could never win it and must not be selectable here either.
         let neg_inf = <T as eunomia::RealField>::neg_infinity();
-        let mut seed_order: Vec<u32> = (0..n_faces as u32)
-            .filter(|&fi| {
-                let fi = fi as usize;
-                face_normals[fi].is_some() && centroid_x[fi] > neg_inf
-            })
+        let mut seed_order: Vec<usize> = (0..n_faces)
+            .filter(|&fi| face_normals[fi].is_some() && centroid_x[fi] > neg_inf)
             .collect();
         seed_order.sort_unstable_by(|&a, &b| {
-            let (xa, xb) = (centroid_x[a as usize], centroid_x[b as usize]);
+            let (xa, xb) = (centroid_x[a], centroid_x[b]);
             xb.partial_cmp(&xa)
                 .unwrap_or(std::cmp::Ordering::Equal)
                 .then(a.cmp(&b))
@@ -153,9 +150,7 @@ impl<T: Scalar> IndexedMesh<T> {
         // amortised O(n) in total rather than O(n) per component.
         let mut seed_cursor = 0usize;
         loop {
-            while seed_cursor < seed_order.len()
-                && orientation[seed_order[seed_cursor] as usize].is_some()
-            {
+            while seed_cursor < seed_order.len() && orientation[seed_order[seed_cursor]].is_some() {
                 seed_cursor += 1;
             }
             if seed_cursor >= seed_order.len() {
@@ -163,7 +158,7 @@ impl<T: Scalar> IndexedMesh<T> {
             }
             // The unvisited non-degenerate face with the maximum centroid X:
             // the highest such entry the cursor has not yet passed.
-            let seed_fi = seed_order[seed_cursor] as usize;
+            let seed_fi = seed_order[seed_cursor];
 
             component_seeds.push(seed_fi);
 
@@ -259,7 +254,11 @@ impl<T: Scalar> IndexedMesh<T> {
                 component_aabbs[comp].expand(self.vertices.position(face.vertices[0]));
                 component_aabbs[comp].expand(self.vertices.position(face.vertices[1]));
                 component_aabbs[comp].expand(self.vertices.position(face.vertices[2]));
-                component_faces.write(&mut face_cursors, comp, fi as u32);
+                component_faces.write(
+                    &mut face_cursors,
+                    comp,
+                    u32::try_from(fi).expect("face index fits in u32"),
+                );
             }
 
             // Prepared geometry, laid out in the partition's own order, so one
@@ -269,7 +268,7 @@ impl<T: Scalar> IndexedMesh<T> {
             let mut prepared: Vec<PreparedFace> =
                 Vec::with_capacity(component_faces.values().len());
             for &fi in component_faces.values() {
-                let fi = fi as usize;
+                let fi = usize::try_from(fi).expect("packed face index fits in usize");
                 let v = face_list[fi].vertices;
                 let (i0, i1, i2) = if orientation[fi] == Some(false) {
                     (v[0], v[2], v[1])
