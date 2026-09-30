@@ -4,7 +4,7 @@ use std::f64::consts::{PI, TAU};
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a triaxial ellipsoid.
@@ -117,6 +117,8 @@ fn build(e: &Ellipsoid) -> Result<IndexedMesh, PrimitiveError> {
     let cx = e.center.x;
     let cy = e.center.y;
     let cz = e.center.z;
+    let segments = f64::from_usize(e.segments);
+    let stacks = f64::from_usize(e.stacks);
 
     // Sample (position, outward_normal) at (theta, phi).
     // Normal = gradient of implicit F = (x/a)²+(y/b)²+(z/c)²−1, normalised.
@@ -141,12 +143,12 @@ fn build(e: &Ellipsoid) -> Result<IndexedMesh, PrimitiveError> {
     };
 
     for i in 0..e.segments {
-        let theta0 = i as f64 / e.segments as f64 * TAU;
-        let theta1 = (i + 1) as f64 / e.segments as f64 * TAU;
+        let theta0 = f64::from_usize(i) / segments * TAU;
+        let theta1 = f64::from_usize(i + 1) / segments * TAU;
 
         for j in 0..e.stacks {
-            let phi0 = j as f64 / e.stacks as f64 * PI;
-            let phi1 = (j + 1) as f64 / e.stacks as f64 * PI;
+            let phi0 = f64::from_usize(j) / stacks * PI;
+            let phi1 = f64::from_usize(j + 1) / stacks * PI;
 
             let (pos00, n00) = vertex_at(theta0, phi0);
             let (pos10, n10) = vertex_at(theta1, phi0);

@@ -4,7 +4,7 @@ use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a closed right circular cylinder.
@@ -77,13 +77,14 @@ fn build(c: &Cylinder) -> Result<IndexedMesh, PrimitiveError> {
     let bx = c.base_center.x;
     let by = c.base_center.y;
     let bz = c.base_center.z;
+    let segments = f64::from_usize(c.segments);
 
     // ── Lateral surface ──────────────────────────────────────────────────────
     // Viewed from outside (+radial), the quad winds CCW as:
     //   bot0 → top0 → top1 → bot1
     for i in 0..c.segments {
-        let a0 = i as f64 / c.segments as f64 * TAU;
-        let a1 = (i + 1) as f64 / c.segments as f64 * TAU;
+        let a0 = f64::from_usize(i) / segments * TAU;
+        let a1 = f64::from_usize(i + 1) / segments * TAU;
 
         let (c0, s0) = (a0.cos(), a0.sin());
         let (c1, s1) = (a1.cos(), a1.sin());
@@ -113,8 +114,8 @@ fn build(c: &Cylinder) -> Result<IndexedMesh, PrimitiveError> {
         let vc = mesh.add_vertex(center, n_down);
 
         for i in 0..c.segments {
-            let a0 = i as f64 / c.segments as f64 * TAU;
-            let a1 = (i + 1) as f64 / c.segments as f64 * TAU;
+            let a0 = f64::from_usize(i) / segments * TAU;
+            let a1 = f64::from_usize(i + 1) / segments * TAU;
             let p0 = Point3r::new(bx + r * a0.cos(), by, bz + r * a0.sin());
             let p1 = Point3r::new(bx + r * a1.cos(), by, bz + r * a1.sin());
             let v0 = mesh.add_vertex(p0, n_down);
@@ -131,8 +132,8 @@ fn build(c: &Cylinder) -> Result<IndexedMesh, PrimitiveError> {
         let vc = mesh.add_vertex(center, n_up);
 
         for i in 0..c.segments {
-            let a0 = i as f64 / c.segments as f64 * TAU;
-            let a1 = (i + 1) as f64 / c.segments as f64 * TAU;
+            let a0 = f64::from_usize(i) / segments * TAU;
+            let a1 = f64::from_usize(i + 1) / segments * TAU;
             let p0 = Point3r::new(bx + r * a0.cos(), by + h, bz + r * a0.sin());
             let p1 = Point3r::new(bx + r * a1.cos(), by + h, bz + r * a1.sin());
             let v0 = mesh.add_vertex(p0, n_up);

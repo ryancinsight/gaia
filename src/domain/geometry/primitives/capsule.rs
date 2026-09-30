@@ -4,7 +4,7 @@ use std::f64::consts::{PI, TAU};
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a capsule: a closed right cylinder capped with two hemispheres.
@@ -95,6 +95,8 @@ fn build(cap: &Capsule) -> Result<IndexedMesh, PrimitiveError> {
     let cz = cap.center.z;
     let ns = cap.segments;
     let hs = cap.hemisphere_stacks;
+    let segments = f64::from_usize(ns);
+    let hemisphere_stacks = f64::from_usize(hs);
 
     // Y-offsets for the two hemisphere centres (= cylinder cap positions).
     let top_cy = cy + hl / 2.0;
@@ -104,11 +106,11 @@ fn build(cap: &Capsule) -> Result<IndexedMesh, PrimitiveError> {
     // φ = 0 → north pole (y = top_cy + r)
     // φ = π/2 → equator ring (y = top_cy, r_xy = r) → shared with cylinder top ring
     for i in 0..ns {
-        let t0 = i as f64 / ns as f64 * TAU;
-        let t1 = (i + 1) as f64 / ns as f64 * TAU;
+        let t0 = f64::from_usize(i) / segments * TAU;
+        let t1 = f64::from_usize(i + 1) / segments * TAU;
         for j in 0..hs {
-            let phi0 = j as f64 / hs as f64 * PI / 2.0;
-            let phi1 = (j + 1) as f64 / hs as f64 * PI / 2.0;
+            let phi0 = f64::from_usize(j) / hemisphere_stacks * PI / 2.0;
+            let phi1 = f64::from_usize(j + 1) / hemisphere_stacks * PI / 2.0;
 
             let vat = |theta: f64, phi: f64| -> (Point3r, Vector3r) {
                 let sp = phi.sin();
@@ -143,8 +145,8 @@ fn build(cap: &Capsule) -> Result<IndexedMesh, PrimitiveError> {
     // ── Cylinder lateral (only when cylinder_height > 0) ────────────────────
     if hl > 0.0 {
         for i in 0..ns {
-            let t0 = i as f64 / ns as f64 * TAU;
-            let t1 = (i + 1) as f64 / ns as f64 * TAU;
+            let t0 = f64::from_usize(i) / segments * TAU;
+            let t1 = f64::from_usize(i + 1) / segments * TAU;
 
             let (c0, s0) = (t0.cos(), t0.sin());
             let (c1, s1) = (t1.cos(), t1.sin());
@@ -165,11 +167,11 @@ fn build(cap: &Capsule) -> Result<IndexedMesh, PrimitiveError> {
     // φ = π/2 → equator ring (y = bot_cy) → shared with cylinder bottom ring
     // φ = π  → south pole (y = bot_cy − r)
     for i in 0..ns {
-        let t0 = i as f64 / ns as f64 * TAU;
-        let t1 = (i + 1) as f64 / ns as f64 * TAU;
+        let t0 = f64::from_usize(i) / segments * TAU;
+        let t1 = f64::from_usize(i + 1) / segments * TAU;
         for j in 0..hs {
-            let phi0 = PI / 2.0 + j as f64 / hs as f64 * PI / 2.0;
-            let phi1 = PI / 2.0 + (j + 1) as f64 / hs as f64 * PI / 2.0;
+            let phi0 = PI / 2.0 + f64::from_usize(j) / hemisphere_stacks * PI / 2.0;
+            let phi1 = PI / 2.0 + f64::from_usize(j + 1) / hemisphere_stacks * PI / 2.0;
 
             let vat = |theta: f64, phi: f64| -> (Point3r, Vector3r) {
                 let sp = phi.sin();

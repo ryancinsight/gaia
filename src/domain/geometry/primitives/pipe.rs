@@ -4,7 +4,7 @@ use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a hollow right circular cylinder (pipe / annular tube).
@@ -99,12 +99,13 @@ fn build(p: &Pipe) -> Result<IndexedMesh, PrimitiveError> {
     let bx = p.base_center.x;
     let by = p.base_center.y;
     let bz = p.base_center.z;
+    let segments = f64::from_usize(p.segments);
 
     // ── Outer lateral (normal = +radial) ─────────────────────────────────────
     // Same winding as Cylinder: bot0 → top0 → top1, bot0 → top1 → bot1
     for i in 0..p.segments {
-        let a0 = i as f64 / p.segments as f64 * TAU;
-        let a1 = (i + 1) as f64 / p.segments as f64 * TAU;
+        let a0 = f64::from_usize(i) / segments * TAU;
+        let a1 = f64::from_usize(i + 1) / segments * TAU;
         let (c0, s0) = (a0.cos(), a0.sin());
         let (c1, s1) = (a1.cos(), a1.sin());
         let n0 = Vector3r::new(c0, 0.0, s0);
@@ -120,8 +121,8 @@ fn build(p: &Pipe) -> Result<IndexedMesh, PrimitiveError> {
     // ── Inner lateral (normal = −radial, pointing toward bore axis) ──────────
     // Reversed winding so that the outward normal points into the bore.
     for i in 0..p.segments {
-        let a0 = i as f64 / p.segments as f64 * TAU;
-        let a1 = (i + 1) as f64 / p.segments as f64 * TAU;
+        let a0 = f64::from_usize(i) / segments * TAU;
+        let a1 = f64::from_usize(i + 1) / segments * TAU;
         let (c0, s0) = (a0.cos(), a0.sin());
         let (c1, s1) = (a1.cos(), a1.sin());
         // Inward-facing normal (toward axis)
@@ -141,8 +142,8 @@ fn build(p: &Pipe) -> Result<IndexedMesh, PrimitiveError> {
     {
         let n_down = -Vector3r::y();
         for i in 0..p.segments {
-            let a0 = i as f64 / p.segments as f64 * TAU;
-            let a1 = (i + 1) as f64 / p.segments as f64 * TAU;
+            let a0 = f64::from_usize(i) / segments * TAU;
+            let a1 = f64::from_usize(i + 1) / segments * TAU;
             let oi = mesh.add_vertex(
                 Point3r::new(bx + ro * a0.cos(), by, bz + ro * a0.sin()),
                 n_down,
@@ -169,8 +170,8 @@ fn build(p: &Pipe) -> Result<IndexedMesh, PrimitiveError> {
     {
         let n_up = Vector3r::y();
         for i in 0..p.segments {
-            let a0 = i as f64 / p.segments as f64 * TAU;
-            let a1 = (i + 1) as f64 / p.segments as f64 * TAU;
+            let a0 = f64::from_usize(i) / segments * TAU;
+            let a1 = f64::from_usize(i + 1) / segments * TAU;
             let oi = mesh.add_vertex(
                 Point3r::new(bx + ro * a0.cos(), by + h, bz + ro * a0.sin()),
                 n_up,

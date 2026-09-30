@@ -87,7 +87,7 @@ use std::f64::consts::{PI, TAU};
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::{RegionId, VertexId};
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a planar serpentine tube (multi-pass channel with U-turn bends).
@@ -219,7 +219,7 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
     let mut all_stations: Vec<Station> = Vec::new();
 
     for pass in 0..n_passes {
-        let x_col = pass as f64 * pitch;
+        let x_col = f64::from_usize(pass) * pitch;
         let going_up = pass % 2 == 0;
 
         // Straight leg
@@ -233,7 +233,7 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
 
         let k_start = usize::from(pass != 0);
         for k in k_start..=n_straight {
-            let t = k as f64 / n_straight as f64;
+            let t = f64::from_usize(k) / f64::from_usize(n_straight);
             all_stations.push(Station {
                 centre: Point3r::new(x_col, 0.0, z_start + t * (z_end - z_start)),
                 tangent: tang_s,
@@ -243,7 +243,7 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
         // U-turn bend (not after last leg)
         if pass + 1 < n_passes {
             for k in 1..=n_bend {
-                let psi = PI * k as f64 / n_bend as f64;
+                let psi = PI * f64::from_usize(k) / f64::from_usize(n_bend);
                 let (cp, sp) = (psi.cos(), psi.sin());
                 let (centre, tangent) = if going_up {
                     // CW top bend: arc extends above z = sl
@@ -274,7 +274,7 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
         let n_frame = frame_normal(station.tangent);
         let row: Vec<VertexId> = (0..ns)
             .map(|ib| {
-                let beta = ib as f64 / ns as f64 * TAU;
+                let beta = f64::from_usize(ib) / f64::from_usize(ns) * TAU;
                 let n_out = n_frame * beta.cos() + b_fixed * beta.sin();
                 let pos = station.centre + n_out * r;
                 mesh.add_vertex(pos, n_out)

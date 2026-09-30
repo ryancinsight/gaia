@@ -4,7 +4,7 @@ use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a ring torus centred at the origin, lying in the XZ plane.
@@ -101,6 +101,8 @@ fn build(t: &Torus) -> Result<IndexedMesh, PrimitiveError> {
     let mut mesh = IndexedMesh::new();
     let r_maj = t.major_radius;
     let r_min = t.minor_radius;
+    let major_segments = f64::from_usize(t.major_segments);
+    let minor_segments = f64::from_usize(t.minor_segments);
 
     // Sample (position, outward_normal) at (φ, θ).
     //
@@ -127,12 +129,12 @@ fn build(t: &Torus) -> Result<IndexedMesh, PrimitiveError> {
     //   (i, j) → (i+1, j) → (i+1, j+1) → (i, j+1)
     // which in indices wraps via modulo.
     for i in 0..t.major_segments {
-        let phi0 = i as f64 / t.major_segments as f64 * TAU;
-        let phi1 = (i + 1) as f64 / t.major_segments as f64 * TAU;
+        let phi0 = f64::from_usize(i) / major_segments * TAU;
+        let phi1 = f64::from_usize(i + 1) / major_segments * TAU;
 
         for j in 0..t.minor_segments {
-            let theta0 = j as f64 / t.minor_segments as f64 * TAU;
-            let theta1 = (j + 1) as f64 / t.minor_segments as f64 * TAU;
+            let theta0 = f64::from_usize(j) / minor_segments * TAU;
+            let theta1 = f64::from_usize(j + 1) / minor_segments * TAU;
 
             let (pos00, n00) = vertex_at(phi0, theta0);
             let (pos10, n10) = vertex_at(phi1, theta0);

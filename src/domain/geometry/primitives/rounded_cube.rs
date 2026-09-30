@@ -4,7 +4,7 @@ use std::f64::consts::{PI, TAU};
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a box with cylindrical edge fillets and spherical corner octants.
@@ -217,8 +217,8 @@ fn build(rc: &RoundedCube) -> Result<IndexedMesh, PrimitiveError> {
     ];
     for ([cx_, cy_, _], a_start, a_end, _snx, _sny) in z_edges {
         for k in 0..cs {
-            let a0 = a_start + k as f64 / cs as f64 * (a_end - a_start);
-            let a1 = a_start + (k + 1) as f64 / cs as f64 * (a_end - a_start);
+            let a0 = a_start + f64::from_usize(k) / f64::from_usize(cs) * (a_end - a_start);
+            let a1 = a_start + f64::from_usize(k + 1) / f64::from_usize(cs) * (a_end - a_start);
             let (c0, s0) = (a0.cos(), a0.sin());
             let (c1, s1) = (a1.cos(), a1.sin());
             let n0 = Vector3r::new(c0, s0, 0.0);
@@ -249,8 +249,8 @@ fn build(rc: &RoundedCube) -> Result<IndexedMesh, PrimitiveError> {
     ];
     for ([_, cy_, cz_], a_start, a_end) in x_edges {
         for k in 0..cs {
-            let a0 = a_start + k as f64 / cs as f64 * (a_end - a_start);
-            let a1 = a_start + (k + 1) as f64 / cs as f64 * (a_end - a_start);
+            let a0 = a_start + f64::from_usize(k) / f64::from_usize(cs) * (a_end - a_start);
+            let a1 = a_start + f64::from_usize(k + 1) / f64::from_usize(cs) * (a_end - a_start);
             let (c0, s0) = (a0.cos(), a0.sin());
             let (c1, s1) = (a1.cos(), a1.sin());
             let n0 = Vector3r::new(0.0, s0, c0);
@@ -280,8 +280,8 @@ fn build(rc: &RoundedCube) -> Result<IndexedMesh, PrimitiveError> {
     ];
     for ([cx_, _, cz_], a_start, a_end) in y_edges {
         for k in 0..cs {
-            let a0 = a_start + k as f64 / cs as f64 * (a_end - a_start);
-            let a1 = a_start + (k + 1) as f64 / cs as f64 * (a_end - a_start);
+            let a0 = a_start + f64::from_usize(k) / f64::from_usize(cs) * (a_end - a_start);
+            let a1 = a_start + f64::from_usize(k + 1) / f64::from_usize(cs) * (a_end - a_start);
             let (c0, s0) = (a0.cos(), a0.sin());
             let (c1, s1) = (a1.cos(), a1.sin());
             let n0 = Vector3r::new(c0, 0.0, s0);
@@ -323,10 +323,10 @@ fn build(rc: &RoundedCube) -> Result<IndexedMesh, PrimitiveError> {
 
                 for iu in 0..cs {
                     for iv in 0..cs {
-                        let u0 = iu as f64 / cs as f64 * PI / 2.0;
-                        let u1 = (iu + 1) as f64 / cs as f64 * PI / 2.0;
-                        let v0 = iv as f64 / cs as f64 * PI / 2.0;
-                        let v1 = (iv + 1) as f64 / cs as f64 * PI / 2.0;
+                        let u0 = f64::from_usize(iu) / f64::from_usize(cs) * PI / 2.0;
+                        let u1 = f64::from_usize(iu + 1) / f64::from_usize(cs) * PI / 2.0;
+                        let v0 = f64::from_usize(iv) / f64::from_usize(cs) * PI / 2.0;
+                        let v1 = f64::from_usize(iv + 1) / f64::from_usize(cs) * PI / 2.0;
 
                         let corner_pt = |u: f64, v: f64| -> (Point3r, Vector3r) {
                             let nx = sx * u.cos();

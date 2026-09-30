@@ -102,7 +102,13 @@ pub trait Scalar:
         // never approach that bound.  Converting through f64 is the eunomia-
         // sanctioned route: FloatElement::from_f64 is the crate's explicit
         // precision-correct widening seam.
-        <Self as Scalar>::from_f64(n as f64)
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "usize mesh counts stay below the 2^53 exact-in-f64 bound documented above"
+        )]
+        {
+            <Self as Scalar>::from_f64(n as f64)
+        }
     }
 
     /// Convert a signed index (e.g. an offset or delta) to this scalar type.
@@ -112,7 +118,13 @@ pub trait Scalar:
     #[inline]
     #[must_use]
     fn from_index(k: i64) -> Self {
-        <Self as Scalar>::from_f64(k as f64)
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "signed mesh indices stay within the documented 2^53 exact-in-f64 conversion bound"
+        )]
+        {
+            <Self as Scalar>::from_f64(k as f64)
+        }
     }
 
     /// Compare values using the IEEE 754 total order, including signed zero and NaN.

@@ -22,17 +22,21 @@ use crate::domain::core::scalar::{Real, Scalar};
 /// O(n log n) due to `sort_unstable_by`.
 #[must_use]
 pub fn exact_percentile(values: &[Real], p: f64) -> Option<Real> {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the rounded percentile position is clamped into the finite slice bounds before the checked integer conversion"
+    )]
+    fn rounded_index(value: Real) -> usize {
+        usize::try_from(value.round() as i64).expect("percentile index fits in usize")
+    }
+
     let mut finite: Vec<Real> = values.iter().copied().filter(|v| v.is_finite()).collect();
     if finite.is_empty() {
         return None;
     }
     finite.sort_unstable_by(f64::total_cmp);
     let target_position = p.clamp(0.0, 1.0) * Real::from_usize(finite.len() - 1);
-    #[expect(
-        clippy::cast_sign_loss,
-        reason = "percentile clamp keeps the rounded target index in [0, len - 1], so it is non-negative"
-    )]
-    let target_idx = target_position.round() as usize;
+    let target_idx = rounded_index(target_position);
     Some(finite[target_idx])
 }
 // ── Histogram ─────────────────────────────────────────────────────────────────
@@ -99,10 +103,11 @@ impl Histogram {
         let inv_w = 1.0 / bin_w;
         for &v in &finite {
             #[expect(
-                clippy::cast_sign_loss,
-                reason = "histogram values are shifted by min before flooring, so the bin index is provably non-negative"
+                clippy::cast_possible_truncation,
+                reason = "the floored histogram bucket coordinate is non-negative and converted through a checked integer boundary"
             )]
-            let idx = ((v - min) * inv_w).floor() as usize;
+            let idx = usize::try_from(((v - min) * inv_w).floor() as i64)
+                .expect("bin index fits in usize");
             let idx = idx.min(n_bins - 1);
             bins[idx] += 1;
         }
