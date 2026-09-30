@@ -40,6 +40,37 @@ impl SerpentineMeshBuilder {
         }
     }
 
+    /// Create a serpentine builder from typed [`aequitas`] [`Length`] quantities.
+    ///
+    /// All values are stored in SI metres internally.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use gaia::SerpentineMeshBuilder;
+    /// use gaia::domain::core::constants::length_mm;
+    ///
+    /// let builder = SerpentineMeshBuilder::from_quantities(
+    ///     length_mm(1.0),   // diameter
+    ///     length_mm(5.0),   // amplitude
+    ///     length_mm(10.0),  // wavelength
+    /// );
+    /// let mesh = builder.build_surface().unwrap();
+    /// assert!(!mesh.faces.is_empty());
+    /// ```
+    #[must_use]
+    pub fn from_quantities(
+        diameter: aequitas::systems::si::quantities::Length<f64>,
+        amplitude: aequitas::systems::si::quantities::Length<f64>,
+        wavelength: aequitas::systems::si::quantities::Length<f64>,
+    ) -> Self {
+        Self::new(
+            diameter.into_base(),
+            amplitude.into_base(),
+            wavelength.into_base(),
+        )
+    }
+
     /// Set the number of full sinusoidal periods.
     #[must_use]
     pub fn with_periods(mut self, periods: usize) -> Self {

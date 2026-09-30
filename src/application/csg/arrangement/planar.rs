@@ -8,6 +8,7 @@
 use hashbrown::HashMap;
 
 use crate::application::delaunay::{Pslg, PslgVertexId};
+use crate::application::welding::GridCell2d;
 use crate::domain::core::scalar::{Real, Scalar};
 
 /// Canonical undirected edge key between two point slots.
@@ -20,7 +21,7 @@ pub(crate) type PlanarEdgeKey = (usize, usize);
 /// the number of points that actually fall into each segment's local corridor.
 pub(crate) struct PlanarPointGridIndex {
     inv_cell: Real,
-    bins: HashMap<(i64, i64), Vec<usize>>,
+    bins: HashMap<GridCell2d, Vec<usize>>,
 }
 
 impl PlanarPointGridIndex {
@@ -28,22 +29,17 @@ impl PlanarPointGridIndex {
     pub(crate) fn new(points: &[[Real; 2]], cell: Real) -> Self {
         let safe_cell = cell.max(1e-12);
         let inv_cell = 1.0 / safe_cell;
-        let mut bins: HashMap<(i64, i64), Vec<usize>> = HashMap::with_capacity(points.len());
+        let mut bins: HashMap<GridCell2d, Vec<usize>> = HashMap::with_capacity(points.len());
         for (slot, &p) in points.iter().enumerate() {
-            let key = (
-                (p[0] * inv_cell).floor() as i64,
-                (p[1] * inv_cell).floor() as i64,
-            );
-            bins.entry(key).or_default().push(slot);
+            bins.entry(GridCell2d::from_point(&p, inv_cell))
+                .or_default()
+                .push(slot);
         }
         Self { inv_cell, bins }
     }
 
-    fn cell_of(&self, p: [Real; 2]) -> (i64, i64) {
-        (
-            (p[0] * self.inv_cell).floor() as i64,
-            (p[1] * self.inv_cell).floor() as i64,
-        )
+    fn cell_of(&self, p: [Real; 2]) -> GridCell2d {
+        GridCell2d::from_point(&p, self.inv_cell)
     }
 
     pub(crate) fn collect_aabb_candidates(
@@ -53,8 +49,10 @@ impl PlanarPointGridIndex {
         out: &mut Vec<usize>,
     ) {
         out.clear();
-        let (ix0, iy0) = self.cell_of(min);
-        let (ix1, iy1) = self.cell_of(max);
+        let c_min = self.cell_of(min);
+        let c_max = self.cell_of(max);
+        let (ix0, iy0) = (c_min.x, c_min.y);
+        let (ix1, iy1) = (c_max.x, c_max.y);
 
         let span_x = u128::try_from((ix1 - ix0 + 1).max(0_i64)).expect("non-negative after max(0)");
         let span_y = u128::try_from((iy1 - iy0 + 1).max(0_i64)).expect("non-negative after max(0)");
@@ -62,12 +60,9 @@ impl PlanarPointGridIndex {
         let occupied_bin_count =
             u128::try_from(self.bins.len()).expect("usize always fits in u128");
 
-        // Sparse guard: very small cell widths can produce huge AABB cell spans.
-        // Fall back to scanning occupied bins only when a dense cell sweep would
-        // exceed a small multiple of occupied bins.
         if dense_cell_visits > occupied_bin_count.saturating_mul(8) {
-            for (&(ix, iy), slots) in &self.bins {
-                if ix >= ix0 && ix <= ix1 && iy >= iy0 && iy <= iy1 {
+            for (&cell, slots) in &self.bins {
+                if cell.x >= ix0 && cell.x <= ix1 && cell.y >= iy0 && cell.y <= iy1 {
                     out.extend_from_slice(slots);
                 }
             }
@@ -76,7 +71,7 @@ impl PlanarPointGridIndex {
 
         for ix in ix0..=ix1 {
             for iy in iy0..=iy1 {
-                if let Some(slots) = self.bins.get(&(ix, iy)) {
+                if let Some(slots) = self.bins.get(&GridCell2d { x: ix, y: iy }) {
                     out.extend_from_slice(slots);
                 }
             }
@@ -85,7 +80,7 @@ impl PlanarPointGridIndex {
 
     #[inline]
     fn append_cell_slots(&self, ix: i64, iy: i64, out: &mut Vec<usize>) {
-        if let Some(slots) = self.bins.get(&(ix, iy)) {
+        if let Some(slots) = self.bins.get(&GridCell2d { x: ix, y: iy }) {
             out.extend_from_slice(slots);
         }
     }
@@ -104,8 +99,10 @@ impl PlanarPointGridIndex {
         p2: [Real; 2],
         mut visit: impl FnMut(i64, i64),
     ) {
-        let (mut cx, mut cy) = self.cell_of(p1);
-        let (tx, ty) = self.cell_of(p2);
+        let c1 = self.cell_of(p1);
+        let c2 = self.cell_of(p2);
+        let (mut cx, mut cy) = (c1.x, c1.y);
+        let (tx, ty) = (c2.x, c2.y);
 
         visit(cx, cy);
         if cx == tx && cy == ty {
@@ -202,8 +199,10 @@ impl PlanarPointGridIndex {
         out.clear();
         let cell_size = 1.0 / self.inv_cell;
         let radius = ((tol.max(0.0) / cell_size).ceil() as i64).max(0);
-        let (sx, sy) = self.cell_of(p1);
-        let (tx, ty) = self.cell_of(p2);
+        let c_start = self.cell_of(p1);
+        let c_end = self.cell_of(p2);
+        let (sx, sy) = (c_start.x, c_start.y);
+        let (tx, ty) = (c_end.x, c_end.y);
 
         let steps = u128::from(sx.abs_diff(tx).max(sy.abs_diff(ty))).saturating_add(1);
         let radius_u = u128::try_from(radius).unwrap_or(0);

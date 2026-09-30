@@ -145,6 +145,57 @@ impl GridCell {
     }
 }
 
+// ── GridCell2d ────────────────────────────────────────────────────────────────
+
+/// Canonical 2-D grid cell coordinate — SSOT for planar spatial-hash consumers.
+///
+/// The 2-D analogue of [`GridCell`] for algorithms that work in the XY plane
+/// or on 2-D polygon coordinate arrays.  Uses `i64` for the same correctness
+/// and overflow reasons as the 3-D variant.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct GridCell2d {
+    /// Quantized X index.
+    pub x: i64,
+    /// Quantized Y index.
+    pub y: i64,
+}
+
+impl GridCell2d {
+    /// Quantize a 2-D point `[x, y]` using **floor** quantization.
+    ///
+    /// # Safety / Correctness
+    ///
+    /// After `floor()`, the value is an exact integer; it lies in the range
+    /// representable by `i64` for any coordinate that fits in millifluidic
+    /// models (|coord| ≤ 9 × 10¹² ε-units for a 1 nm ε).
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "floor() guarantees integer value; 2-D coordinates in millifluidic models are far from i64::MAX"
+    )]
+    #[inline]
+    #[must_use]
+    pub fn from_point(p: &[Real; 2], inv_cell_size: Real) -> Self {
+        Self {
+            x: (p[0] * inv_cell_size).floor() as i64,
+            y: (p[1] * inv_cell_size).floor() as i64,
+        }
+    }
+
+    /// Iterator over the **8 face-adjacent neighbours plus self** (9 cells total).
+    ///
+    /// Covers all face- and corner-adjacent cells so that a planar query cannot
+    /// miss a point lying just across a cell boundary.
+    #[inline]
+    pub fn neighborhood_9(self) -> impl Iterator<Item = GridCell2d> {
+        (-1i64..=1).flat_map(move |dy| {
+            (-1i64..=1).map(move |dx| GridCell2d {
+                x: self.x + dx,
+                y: self.y + dy,
+            })
+        })
+    }
+}
+
 // ── SnappingGrid ──────────────────────────────────────────────────────────────
 
 /// Unified vertex snapping and welding structure.

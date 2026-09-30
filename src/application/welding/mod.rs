@@ -18,6 +18,6 @@ pub mod snap;
 pub mod spatial_hash;
 pub mod welder;
 
-pub use snap::{GridCell, SnappingGrid};
+pub use snap::{GridCell, GridCell2d, SnappingGrid};
 pub use spatial_hash::SpatialHashGrid;
 pub use welder::MeshWelder;

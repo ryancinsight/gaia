@@ -85,6 +85,50 @@ impl VenturiMeshBuilder {
         }
     }
 
+    /// Create a Venturi mesh builder from typed [`aequitas`] [`Length`] quantities.
+    ///
+    /// All values are stored in SI metres internally.  Using typed quantities
+    /// prevents accidental unit mix-ups between diameters and lengths.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use gaia::VenturiMeshBuilder;
+    /// use gaia::domain::core::constants::{length_mm, default_channel_diameter};
+    ///
+    /// let builder = VenturiMeshBuilder::from_quantities(
+    ///     length_mm(10.0),  // d_inlet
+    ///     length_mm(4.0),   // d_throat
+    ///     length_mm(20.0),  // l_inlet
+    ///     length_mm(40.0),  // l_convergent
+    ///     length_mm(10.0),  // l_throat
+    ///     length_mm(60.0),  // l_divergent
+    ///     length_mm(20.0),  // l_outlet
+    /// );
+    /// let mesh = builder.build_surface().unwrap();
+    /// assert!(!mesh.faces.is_empty());
+    /// ```
+    #[must_use]
+    pub fn from_quantities(
+        d_inlet: aequitas::systems::si::quantities::Length<Real>,
+        d_throat: aequitas::systems::si::quantities::Length<Real>,
+        l_inlet: aequitas::systems::si::quantities::Length<Real>,
+        l_convergent: aequitas::systems::si::quantities::Length<Real>,
+        l_throat: aequitas::systems::si::quantities::Length<Real>,
+        l_divergent: aequitas::systems::si::quantities::Length<Real>,
+        l_outlet: aequitas::systems::si::quantities::Length<Real>,
+    ) -> Self {
+        Self::new(
+            d_inlet.into_base(),
+            d_throat.into_base(),
+            l_inlet.into_base(),
+            l_convergent.into_base(),
+            l_throat.into_base(),
+            l_divergent.into_base(),
+            l_outlet.into_base(),
+        )
+    }
+
     /// Set the mesh resolution (axial Ã— radial).
     #[must_use]
     pub fn with_resolution(mut self, x: usize, y: usize) -> Self {

@@ -100,7 +100,9 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
             let bv_pos: Vec<leto::geometry::Point3<f64>> =
                 bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
             for (i, p) in bv_pos.iter().enumerate().take(bv.len()) {
-                grid.entry(GridCell::from_point(p, inv_tol)).or_default().push(i);
+                grid.entry(GridCell::from_point(p, inv_tol))
+                    .or_default()
+                    .push(i);
             }
             for (i, pi) in bv_pos.iter().enumerate().take(bv.len()) {
                 let cell = GridCell::from_point(pi, inv_tol);
@@ -150,7 +152,10 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
                     continue;
                 }
                 let ip = mesh.vertices.position(ivid);
-                igrid.entry(GridCell::from_point(ip, inv_pvt)).or_default().push(ivid);
+                igrid
+                    .entry(GridCell::from_point(ip, inv_pvt))
+                    .or_default()
+                    .push(ivid);
             }
             for &bvid in &bv {
                 let bp = mesh.vertices.position(bvid);
@@ -320,13 +325,14 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     let mut parent: Vec<u32> = (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
 
     // Build spatial hash: cell → list of vertex indices.
-    let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> =
-        hashbrown::HashMap::with_capacity(n);
+    let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> = hashbrown::HashMap::with_capacity(n);
     let positions: Vec<leto::geometry::Point3<f64>> = (0..n)
         .map(|i| *mesh.vertices.position(VertexId::from_usize(i)))
         .collect();
     for (i, p) in positions.iter().enumerate().take(n) {
-        grid.entry(GridCell::from_point(p, inv_eps)).or_default().push(i);
+        grid.entry(GridCell::from_point(p, inv_eps))
+            .or_default()
+            .push(i);
     }
 
     // For each vertex, check the 27-cell neighbourhood for coincident vertices.
@@ -353,8 +359,7 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
                     );
                     if ci != cj {
                         let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
-                        parent[usize::try_from(hi)
-                            .expect("union-find index fits in usize")] = lo;
+                        parent[usize::try_from(hi).expect("union-find index fits in usize")] = lo;
                     }
                 }
             }
