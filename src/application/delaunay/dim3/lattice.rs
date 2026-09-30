@@ -1,4 +1,4 @@
-//! Body-Centered Cubic (BCC) Lattice Seeding and SDF Volumetric Meshing.
+﻿//! Body-Centered Cubic (BCC) Lattice Seeding and SDF Volumetric Meshing.
 //!
 //! Generates an unstructured `IndexedMesh<T>` conforming to an implicit `Sdf3D` surface
 //! using gradient descent and the robust-predicate `BowyerWatson3D`
@@ -53,19 +53,19 @@ impl<T: Scalar> SdfMesher<T> {
             clippy::cast_possible_truncation,
             reason = "ceil/floor values are range-checked via the checked integer conversion immediately afterward"
         )]
-        fn f64_to_i64(value: f64) -> i64 {
+        fn truncate_floor_to_int(value: f64) -> i64 {
             value as i64
         }
 
         fn ceil_to_isize(value: f64) -> isize {
-            isize::try_from(f64_to_i64(value.ceil())).expect("grid dimension fits in isize")
+            isize::try_from(truncate_floor_to_int(value.ceil())).expect("grid dimension fits in isize")
         }
 
         fn floor_to_isize(value: f64) -> isize {
-            isize::try_from(f64_to_i64(value.floor())).expect("grid coordinate fits in isize")
+            isize::try_from(truncate_floor_to_int(value.floor())).expect("grid coordinate fits in isize")
         }
 
-        fn lattice_axis_to_i32(value: isize) -> i32 {
+        fn compress_axis_coord(value: isize) -> i32 {
             i32::try_from(value).expect("lattice coordinate fits in i32")
         }
 
@@ -110,9 +110,9 @@ impl<T: Scalar> SdfMesher<T> {
                         <T as Scalar>::from_f64(fract)
                     };
 
-                    let ix = lattice_axis_to_i32(i);
-                    let jy = lattice_axis_to_i32(j);
-                    let kz = lattice_axis_to_i32(k);
+                    let ix = compress_axis_coord(i);
+                    let jy = compress_axis_coord(j);
+                    let kz = compress_axis_coord(k);
                     let jx_a = hash_jitter(ix, jy, kz, 0) * jitter_mag;
                     let jy_a = hash_jitter(ix, jy, kz, 1) * jitter_mag;
                     let jz_a = hash_jitter(ix, jy, kz, 2) * jitter_mag;
