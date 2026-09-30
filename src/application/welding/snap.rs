@@ -59,7 +59,7 @@
 
 use hashbrown::HashMap;
 
-use crate::domain::core::scalar::{Point3r, Real};
+use crate::domain::core::scalar::{Point3r, Real, Scalar};
 use crate::infrastructure::storage::CellIndices;
 
 // ── GridCell ─────────────────────────────────────────────────────────────────
@@ -121,9 +121,9 @@ impl GridCell {
     #[must_use]
     pub fn to_point(self, eps: Real) -> Point3r {
         Point3r::new(
-            self.x as Real * eps,
-            self.y as Real * eps,
-            self.z as Real * eps,
+            Real::from_index(self.x) * eps,
+            Real::from_index(self.y) * eps,
+            Real::from_index(self.z) * eps,
         )
     }
 
@@ -309,6 +309,10 @@ impl SnappingGrid {
     /// # Returns
     /// A `(index, is_new)` pair.  `is_new` is `true` when a fresh vertex was
     /// added, `false` when an existing vertex was reused.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the snapped vertex count exceeds `u32::MAX`.
     #[inline]
     pub fn insert_or_weld(&mut self, point: Point3r) -> (u32, bool) {
         let home = GridCell::from_point_round(&point, self.inv_eps);
@@ -322,7 +326,7 @@ impl SnappingGrid {
 
         // New vertex: snap to grid center and insert
         let snapped = home.to_point(self.eps);
-        let new_idx = self.positions.len() as u32;
+        let new_idx = u32::try_from(self.positions.len()).expect("vertex count fits in u32");
         self.positions.push(snapped);
         self.buckets
             .entry(home)

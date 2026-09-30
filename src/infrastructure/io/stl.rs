@@ -59,6 +59,10 @@ pub fn write_ascii_stl<W: Write>(
 ///
 /// Returns [`MeshError::Io`] if writing the header, triangle count, triangle
 /// payload, or attribute bytes to `writer` fails.
+///
+/// # Panics
+///
+/// Panics if the triangle count exceeds the binary STL `u32` header field.
 pub fn write_binary_stl<W: Write>(
     writer: &mut W,
     vertex_pool: &VertexPool,
@@ -69,7 +73,7 @@ pub fn write_binary_stl<W: Write>(
     writer.write_all(&header).map_err(MeshError::Io)?;
 
     // Number of triangles
-    let n_triangles = face_store.len() as u32;
+    let n_triangles = u32::try_from(face_store.len()).expect("triangle count fits in u32");
     writer
         .write_all(&n_triangles.to_le_bytes())
         .map_err(MeshError::Io)?;

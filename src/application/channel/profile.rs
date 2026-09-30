@@ -1,7 +1,7 @@
 //! Cross-section profiles for channels.
 
 use crate::domain::core::constants;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 /// Cross-section shape for a channel.
 #[derive(Clone, Debug)]
@@ -44,7 +44,7 @@ impl ChannelProfile {
                 let n = *segments;
                 (0..n)
                     .map(|i| {
-                        let angle = constants::TAU * (i as Real) / (n as Real);
+                        let angle = constants::TAU * Real::from_usize(i) / Real::from_usize(n);
                         [radius * angle.cos(), radius * angle.sin()]
                     })
                     .collect()
@@ -75,7 +75,8 @@ impl ChannelProfile {
 
                 for (cx, cy, start_angle) in &corners {
                     for i in 0..=n {
-                        let angle = start_angle + constants::FRAC_PI_2 * (i as Real) / (n as Real);
+                        let angle = start_angle
+                            + constants::FRAC_PI_2 * Real::from_usize(i) / Real::from_usize(n);
                         points.push([
                             cx + corner_radius * angle.cos(),
                             cy + corner_radius * angle.sin(),

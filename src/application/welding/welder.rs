@@ -49,6 +49,10 @@ impl MeshWelder {
     ///
     /// Returns a `WeldResult` containing the new canonical positions. The provided
     /// `FaceStore` is updated in-place to reference the new packed vertex indices.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the vertex count exceeds `u32::MAX`.
     pub fn weld(&self, positions: &[Point3r], face_store: &mut FaceStore) -> WeldResult {
         let n = positions.len();
         if n == 0 {
@@ -86,7 +90,7 @@ impl MeshWelder {
         // 2. Build a SpatialHashGrid containing all original positions
         let mut grid = SpatialHashGrid::new(self.tolerance * 2.0);
         for (i, p) in positions.iter().enumerate() {
-            grid.insert(p, i as u32);
+            grid.insert(p, u32::try_from(i).expect("vertex index fits in u32"));
         }
 
         // Pre-allocate scratch buffers for is_safe_to_merge — reused each iteration
@@ -96,22 +100,23 @@ impl MeshWelder {
 
         // 3. Greedy topological clustering
         // remap[i] maps original vertex i to its canonical merged vertex head.
-        let mut remap: Vec<u32> = (0..n as u32).collect();
+        let mut remap: Vec<u32> =
+            (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
         let mut candidates = Vec::new();
 
-        for i in 0..n as u32 {
-            if remap[i as usize] != i {
+        for i in 0..u32::try_from(n).expect("vertex count fits in u32") {
+            if remap[usize::try_from(i).expect("vertex index fits in usize")] != i {
                 continue; // Already merged into another vertex.
             }
 
-            if v_faces[i as usize].is_empty() {
+            if v_faces[usize::try_from(i).expect("vertex index fits in usize")].is_empty() {
                 continue; // Unused vertex, ignore.
             }
 
             // Find all spatial neighbors
             candidates.clear();
             grid.query_radius_to(
-                &positions[i as usize],
+                &positions[usize::try_from(i).expect("vertex index fits in usize")],
                 self.tolerance,
                 positions,
                 &mut candidates,
@@ -122,12 +127,12 @@ impl MeshWelder {
                     continue; // Only merge larger indices into smaller/earlier indices.
                 }
 
-                let root_c = remap[c as usize];
+                let root_c = remap[usize::try_from(c).expect("vertex index fits in usize")];
                 if root_c != c {
                     continue;
                 }
 
-                if v_faces[c as usize].is_empty() {
+                if v_faces[usize::try_from(c).expect("vertex index fits in usize")].is_empty() {
                     continue;
                 }
 
@@ -135,28 +140,35 @@ impl MeshWelder {
                 if Self::is_safe_to_merge(
                     i,
                     c,
-                    &v_faces[i as usize],
-                    &v_faces[c as usize],
+                    &v_faces[usize::try_from(i).expect("vertex index fits in usize")],
+                    &v_faces[usize::try_from(c).expect("vertex index fits in usize")],
                     &cur_face_verts,
                     &mut dst_scratch,
                     &mut src_scratch,
                 ) {
                     // SAFE! Merge c into i.
-                    remap[c as usize] = i;
+                    remap[usize::try_from(c).expect("vertex index fits in usize")] = i;
 
                     // Update dynamic topology.
                     // Move all faces from c to i.
-                    let faces_of_c = std::mem::take(&mut v_faces[c as usize]);
+                    let faces_of_c = std::mem::take(
+                        &mut v_faces[usize::try_from(c).expect("vertex index fits in usize")],
+                    );
                     for f_id in faces_of_c {
                         // Update cur_face_verts
-                        if let Some(verts) = cur_face_verts.get_mut(f_id as usize) {
+                        if let Some(verts) = cur_face_verts
+                            .get_mut(usize::try_from(f_id).expect("face index fits in usize"))
+                        {
                             for v in verts.iter_mut() {
                                 if *v == c {
                                     *v = i;
                                 }
                             }
                         }
-                        push_unique_face(&mut v_faces[i as usize], f_id);
+                        push_unique_face(
+                            &mut v_faces[usize::try_from(i).expect("vertex index fits in usize")],
+                            f_id,
+                        );
                     }
                 }
             }
@@ -172,7 +184,8 @@ impl MeshWelder {
             let mut changed = false;
             for v in &mut face.vertices {
                 let old_raw = v.raw();
-                let canonical_id = remap[old_raw as usize];
+                let canonical_id =
+                    remap[usize::try_from(old_raw).expect("vertex index fits in usize")];
 
                 if canonical_id != old_raw {
                     changed = true;
@@ -180,8 +193,12 @@ impl MeshWelder {
 
                 // Find or assign packed id
                 let packed_id = *pack_map.entry(canonical_id).or_insert_with(|| {
-                    let new_idx = packed_positions.len() as u32;
-                    packed_positions.push(positions[canonical_id as usize]);
+                    let new_idx =
+                        u32::try_from(packed_positions.len()).expect("packed vertex count fits in u32");
+                    packed_positions.push(
+                        positions[usize::try_from(canonical_id)
+                            .expect("vertex index fits in usize")],
+                    );
                     new_idx
                 });
 
@@ -225,7 +242,9 @@ impl MeshWelder {
         // Reuse pre-allocated scratch buffers — clear here rather than allocating.
         dst_scratch.clear();
         for &f_id in dst_faces {
-            if let Some(verts) = cur_face_verts.get(f_id as usize) {
+            if let Some(verts) =
+                cur_face_verts.get(usize::try_from(f_id).expect("face index fits in usize"))
+            {
                 for &v in verts {
                     if v != dst {
                         if let Some(entry) = dst_scratch.iter_mut().find(|e| e.0 == v) {
@@ -240,7 +259,9 @@ impl MeshWelder {
 
         src_scratch.clear();
         for &f_id in src_faces {
-            if let Some(verts) = cur_face_verts.get(f_id as usize) {
+            if let Some(verts) =
+                cur_face_verts.get(usize::try_from(f_id).expect("face index fits in usize"))
+            {
                 for &v in verts {
                     if v != src {
                         if let Some(entry) = src_scratch.iter_mut().find(|e| e.0 == v) {
@@ -296,13 +317,18 @@ fn pack_merged_vertices(
         let mut changed = false;
         for v in &mut face.vertices {
             let old_raw = v.raw();
-            let canonical_id = remap[old_raw as usize];
+            let canonical_id =
+                remap[usize::try_from(old_raw).expect("vertex index fits in usize")];
             if canonical_id != old_raw {
                 changed = true;
             }
             let packed_id = *pack_map.entry(canonical_id).or_insert_with(|| {
-                let new_idx = packed_positions.len() as u32;
-                packed_positions.push(positions[canonical_id as usize]);
+                let new_idx =
+                    u32::try_from(packed_positions.len()).expect("packed vertex count fits in u32");
+                packed_positions.push(
+                    positions[usize::try_from(canonical_id)
+                        .expect("vertex index fits in usize")],
+                );
                 new_idx
             });
             *v = VertexId::new(packed_id);

@@ -14,7 +14,7 @@
 
 use crate::application::channel::venturi::BuildError;
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 use crate::domain::mesh::IndexedMesh;
 
 mod tube;
@@ -235,9 +235,9 @@ fn validate_branching_result(
     b: &BranchingMeshBuilder,
 ) -> Result<(), BuildError> {
     let r_daughter = b.d_daughter / 2.0;
-    let half_daughters = (b.n_daughters - 1) as Real / 2.0;
+    let half_daughters = Real::from_usize(b.n_daughters - 1) / 2.0;
     for daughter in 0..b.n_daughters {
-        let angle = b.branching_angle * (daughter as Real - half_daughters);
+        let angle = b.branching_angle * (Real::from_usize(daughter) - half_daughters);
         let expected_x = b.l_daughter * angle.sin();
         let expected_z = b.l_parent + b.l_daughter * angle.cos();
         let has_outlet_neighborhood = mesh.vertices.positions().any(|point| {

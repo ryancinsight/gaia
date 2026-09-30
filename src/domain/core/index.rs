@@ -121,10 +121,14 @@ impl VertexId {
         self.0
     }
     /// Return as `usize`.
+    ///
+    /// # Panics
+    ///
+    /// Panics only on targets where `usize` cannot represent every `u32`.
     #[inline]
     #[must_use]
     pub fn as_usize(self) -> usize {
-        self.0 as usize
+        usize::try_from(self.0).expect("vertex index fits in usize")
     }
 }
 
@@ -160,10 +164,14 @@ impl FaceId {
         Self::try_from(n).expect("Index exceeds u32::MAX")
     }
     /// Return as `usize`.
+    ///
+    /// # Panics
+    ///
+    /// Panics only on targets where `usize` cannot represent every `u32`.
     #[inline]
     #[must_use]
     pub fn as_usize(self) -> usize {
-        self.0 as usize
+        usize::try_from(self.0).expect("face index fits in usize")
     }
 }
 
@@ -202,10 +210,14 @@ impl EdgeId {
         Self::try_from(n).expect("Index exceeds u32::MAX")
     }
     /// Return as `usize`.
+    ///
+    /// # Panics
+    ///
+    /// Panics only on targets where `usize` cannot represent every `u32`.
     #[inline]
     #[must_use]
     pub fn as_usize(self) -> usize {
-        self.0 as usize
+        usize::try_from(self.0).expect("edge index fits in usize")
     }
 }
 
@@ -249,10 +261,14 @@ impl RegionId {
         Self::try_from(n).expect("Index exceeds u32::MAX")
     }
     /// Return as `usize`.
+    ///
+    /// # Panics
+    ///
+    /// Panics only on targets where `usize` cannot represent every `u32`.
     #[inline]
     #[must_use]
     pub fn as_usize(self) -> usize {
-        self.0 as usize
+        usize::try_from(self.0).expect("region index fits in usize")
     }
 }
 

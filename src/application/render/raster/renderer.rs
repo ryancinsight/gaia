@@ -182,5 +182,7 @@ impl Renderer {
 
 /// `width * height` as a pixel count, saturating rather than wrapping.
 fn pixel_count(width: u32, height: u32) -> usize {
-    (width as usize).saturating_mul(height as usize)
+    usize::try_from(width)
+        .expect("renderer width fits in usize")
+        .saturating_mul(usize::try_from(height).expect("renderer height fits in usize"))
 }

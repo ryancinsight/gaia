@@ -62,10 +62,14 @@ impl PslgSegmentId {
     }
 
     /// Create from `usize`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n` exceeds `u32::MAX`.
     #[inline]
     #[must_use]
     pub fn from_usize(n: usize) -> Self {
-        Self(n as u32)
+        Self(u32::try_from(n).expect("segment index fits in u32"))
     }
 
     /// Raw index.
@@ -76,17 +80,21 @@ impl PslgSegmentId {
     }
 
     /// As `usize`.
+    ///
+    /// # Panics
+    ///
+    /// Panics only on targets where `usize` cannot represent every `u32`.
     #[inline]
     #[must_use]
     pub fn idx(self) -> usize {
-        self.0 as usize
+        usize::try_from(self.0).expect("segment index fits in usize")
     }
 }
 
 impl From<usize> for PslgSegmentId {
     #[inline]
     fn from(n: usize) -> Self {
-        Self(n as u32)
+        Self::from_usize(n)
     }
 }
 

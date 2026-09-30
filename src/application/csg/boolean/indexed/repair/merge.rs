@@ -331,13 +331,14 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     let eps = (mean_edge * 1e-4).max(1e-15);
     let eps_sq = eps * eps;
     let inv_eps = 1.0 / eps;
-    let mut parent: Vec<u32> = (0..n as u32).collect();
+    let mut parent: Vec<u32> =
+        (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
 
     // Build spatial hash: cell → list of vertex indices.
     let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
         hashbrown::HashMap::with_capacity(n);
     let positions: Vec<leto::geometry::Point3<f64>> = (0..n)
-        .map(|i| *mesh.vertices.position(VertexId(i as u32)))
+        .map(|i| *mesh.vertices.position(VertexId::from_usize(i)))
         .collect();
     for (i, p) in positions.iter().enumerate().take(n) {
         let cx = (p.x * inv_eps).floor() as i64;
@@ -362,11 +363,17 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
                             }
                             let pj = &positions[j];
                             if (pi - pj).norm_squared() < eps_sq {
-                                let ci = uf_find(&mut parent, i as u32);
-                                let cj = uf_find(&mut parent, j as u32);
+                                let ci = uf_find(
+                                    &mut parent,
+                                    u32::try_from(i).expect("vertex index fits in u32"),
+                                );
+                                let cj = uf_find(
+                                    &mut parent,
+                                    u32::try_from(j).expect("vertex index fits in u32"),
+                                );
                                 if ci != cj {
                                     let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
-                                    parent[hi as usize] = lo;
+                                    parent[usize::try_from(hi).expect("union-find index fits in usize")] = lo;
                                 }
                             }
                         }
@@ -377,14 +384,16 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     }
 
     // Flatten union-find: old_id → canonical_id.
-    let dedup: Vec<u32> = (0..n).map(|i| uf_find(&mut parent, i as u32)).collect();
+    let dedup: Vec<u32> = (0..n)
+        .map(|i| uf_find(&mut parent, u32::try_from(i).expect("vertex index fits in u32")))
+        .collect();
 
     // Phase 2: remap face references through dedup mapping.
     let face_list: Vec<FaceData> = mesh.faces.iter().copied().collect();
     let mut remapped_faces: Vec<FaceData> = Vec::with_capacity(face_list.len());
     for mut face in face_list {
         for v in &mut face.vertices {
-            *v = VertexId(dedup[v.0 as usize]);
+            *v = VertexId(dedup[v.as_usize()]);
         }
         if face.vertices[0] != face.vertices[1]
             && face.vertices[1] != face.vertices[2]
@@ -414,14 +423,14 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
         let pos = *mesh.vertices.position(vid);
         let normal = *mesh.vertices.normal(vid);
         let new_id = new_pool.insert_unique(pos, normal);
-        old_to_new[old_id as usize] = new_id.0;
+        old_to_new[usize::try_from(old_id).expect("vertex id fits in usize")] = new_id.0;
     }
 
     // Re-index face references.
     mesh.faces = crate::infrastructure::storage::face_store::FaceStore::new();
     for mut face in remapped_faces {
         for v in &mut face.vertices {
-            *v = VertexId(old_to_new[v.0 as usize]);
+            *v = VertexId(old_to_new[v.as_usize()]);
         }
         mesh.faces.push(face);
     }

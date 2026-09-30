@@ -11,7 +11,7 @@
 
 use crate::application::quality::histograms::Histogram;
 use crate::application::quality::validation::QualityReport;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 // ── Full quality report ────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ impl FullQualityReport {
         if self.base.total_faces == 0 {
             return 0.0;
         }
-        self.bad_angle_count as Real / self.base.total_faces as Real
+        Real::from_usize(self.bad_angle_count) / Real::from_usize(self.base.total_faces)
     }
 
     /// Fraction of faces failing the aspect-ratio threshold `[0, 1]`.
@@ -58,7 +58,7 @@ impl FullQualityReport {
         if self.base.total_faces == 0 {
             return 0.0;
         }
-        self.bad_aspect_count as Real / self.base.total_faces as Real
+        Real::from_usize(self.bad_aspect_count) / Real::from_usize(self.base.total_faces)
     }
 
     /// `true` when all faces satisfy both the minimum-angle and aspect-ratio thresholds.

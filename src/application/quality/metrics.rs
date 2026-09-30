@@ -37,7 +37,7 @@ impl QualityMetric {
         Some(Self {
             min,
             max,
-            mean: sum / values.len() as Real,
+            mean: sum / Real::from_usize(values.len()),
             count: values.len(),
         })
     }
@@ -75,7 +75,7 @@ impl QualityMetric {
             .iter()
             .copied()
             .fold(<T as NumericElement>::ZERO, |sum, value| sum + value);
-        let count = <T as Scalar>::from_f64(values.len() as f64);
+        let count = <T as Scalar>::from_usize(values.len());
         Some(Self {
             min: min.to_f64(),
             max: max.to_f64(),

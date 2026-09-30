@@ -8,7 +8,7 @@
 use hashbrown::HashMap;
 
 use crate::application::delaunay::{Pslg, PslgVertexId};
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 /// Canonical undirected edge key between two point slots.
 pub(crate) type PlanarEdgeKey = (usize, usize);
@@ -136,9 +136,9 @@ impl PlanarPointGridIndex {
 
         if step_x != 0 {
             let next_boundary_x = if step_x > 0 {
-                (cx + 1) as Real * cell_size
+                Real::from_index(cx + 1) * cell_size
             } else {
-                cx as Real * cell_size
+                Real::from_index(cx) * cell_size
             };
             t_max_x = ((next_boundary_x - p1[0]) / dx).max(0.0);
             t_delta_x = cell_size / dx.abs();
@@ -146,9 +146,9 @@ impl PlanarPointGridIndex {
 
         if step_y != 0 {
             let next_boundary_y = if step_y > 0 {
-                (cy + 1) as Real * cell_size
+                Real::from_index(cy + 1) * cell_size
             } else {
-                cy as Real * cell_size
+                Real::from_index(cy) * cell_size
             };
             t_max_y = ((next_boundary_y - p1[1]) / dy).max(0.0);
             t_delta_y = cell_size / dy.abs();

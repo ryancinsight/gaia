@@ -11,7 +11,7 @@
 //!
 //! Sturges, H.A. (1926). "The Choice of a Class Interval". *JASA* 21(153): 65-66.
 
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 /// Compute the exact p-th percentile (0.0 = min, 1.0 = max) from a slice of values.
 ///
@@ -79,10 +79,10 @@ impl Histogram {
         let bin_w = if range < Real::EPSILON {
             1.0
         } else {
-            range / n_bins as Real
+            range / Real::from_usize(n_bins)
         };
         for i in 0..=n_bins {
-            edges.push(min + i as Real * bin_w);
+            edges.push(min + Real::from_usize(i) * bin_w);
         }
         // Invariant: the 0..=n_bins loop pushes n_bins+1 elements, so `edges` is always non-empty.
         *edges

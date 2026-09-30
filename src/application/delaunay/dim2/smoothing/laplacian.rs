@@ -46,7 +46,7 @@
 
 use crate::application::delaunay::dim2::constraint::enforce::Cdt;
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -184,7 +184,7 @@ fn centroid(
     neighbors: &[PslgVertexId],
     dt: &crate::application::delaunay::dim2::triangulation::bowyer_watson::DelaunayTriangulation,
 ) -> (Real, Real) {
-    let n = neighbors.len() as Real;
+    let n = Real::from_usize(neighbors.len());
     let (sx, sy) = neighbors.iter().fold((0.0, 0.0), |(ax, ay), &id| {
         let v = dt.vertex(id);
         (ax + v.x, ay + v.y)

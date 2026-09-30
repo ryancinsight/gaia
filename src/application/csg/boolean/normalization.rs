@@ -115,7 +115,7 @@ pub(super) fn normalize_operand(
     let mut normalized = mesh.clone();
     let vertex_count = normalized.vertices.len();
     for index in 0..vertex_count {
-        let vertex_id = VertexId::new(index as u32);
+        let vertex_id = VertexId::from_usize(index);
         let position = *normalized.vertices.position(vertex_id);
         normalized
             .vertices
@@ -135,7 +135,7 @@ pub(super) fn denormalize_result(
 
     let vertex_count = mesh.vertices.len();
     for index in 0..vertex_count {
-        let vertex_id = VertexId::new(index as u32);
+        let vertex_id = VertexId::from_usize(index);
         let position = *mesh.vertices.position(vertex_id);
         mesh.vertices
             .set_position(vertex_id, transform.inverse(position));

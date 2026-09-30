@@ -129,7 +129,7 @@ fn build_recursive(
     nodes: &mut Vec<GwnBvhNode>,
     reordered: &mut Vec<PreparedFace>,
 ) -> u32 {
-    let node_idx = nodes.len() as u32;
+    let node_idx = u32::try_from(nodes.len()).expect("GWN BVH node count fits in u32");
     // Reserve the node slot, then patch its child range after partitioning.
     nodes.push(GwnBvhNode {
         center: [0.0; 3],
@@ -145,13 +145,13 @@ fn build_recursive(
     let count = end - start;
     if count <= MAX_LEAF_FACES {
         // Leaf: copy faces into reordered, record their contiguous range.
-        let face_start = reordered.len() as u32;
+        let face_start = u32::try_from(reordered.len()).expect("GWN BVH face start fits in u32");
         for &idx in &sorted[start..end] {
             reordered.push(src[idx]);
         }
-        let face_end = reordered.len() as u32;
+        let face_end = u32::try_from(reordered.len()).expect("GWN BVH face end fits in u32");
 
-        nodes[node_idx as usize] = GwnBvhNode {
+        nodes[usize::try_from(node_idx).expect("GWN BVH node index fits in usize")] = GwnBvhNode {
             center,
             circumradius_sq,
             total_area,
@@ -176,7 +176,7 @@ fn build_recursive(
     let left = build_recursive(src, sorted, start, mid, nodes, reordered);
     let right = build_recursive(src, sorted, mid, end, nodes, reordered);
 
-    nodes[node_idx as usize] = GwnBvhNode {
+    nodes[usize::try_from(node_idx).expect("GWN BVH node index fits in usize")] = GwnBvhNode {
         center,
         circumradius_sq,
         total_area,

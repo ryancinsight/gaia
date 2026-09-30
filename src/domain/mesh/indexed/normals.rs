@@ -40,10 +40,10 @@ impl<T: Scalar> IndexedMesh<T> {
 
         for (i, (sum, count)) in normal_sums.iter().zip(counts.iter()).enumerate() {
             if *count > 0 {
-                let avg = *sum / <T as Scalar>::from_f64(*count as f64);
+                let avg = *sum / <T as Scalar>::from_usize(*count);
                 let len = avg.norm();
                 if len > <T as Scalar>::from_f64(1e-12) {
-                    self.vertices.set_normal(VertexId::new(i as u32), avg / len);
+                    self.vertices.set_normal(VertexId::from_usize(i), avg / len);
                 }
             }
         }

@@ -137,7 +137,8 @@ fn merge_near_coincident_vertices(mesh: &mut IndexedMesh, workspace: &mut Collap
         return;
     }
 
-    let mut parent: Vec<u32> = (0..vertex_count as u32).collect();
+    let mut parent: Vec<u32> = (0..u32::try_from(vertex_count).expect("vertex count fits in u32"))
+        .collect();
     for face in mesh.faces.iter() {
         let FaceGeometry::Degenerate {
             edge_lengths_squared,
@@ -168,17 +169,17 @@ fn merge_near_coincident_vertices(mesh: &mut IndexedMesh, workspace: &mut Collap
             } else {
                 (remove_root, keep_root)
             };
-            parent[upper as usize] = lower;
+            parent[usize::try_from(upper).expect("union-find index fits in usize")] = lower;
         }
     }
 
     let roots: Vec<u32> = (0..vertex_count)
-        .map(|index| uf_find(&mut parent, index as u32))
+        .map(|index| uf_find(&mut parent, u32::try_from(index).expect("vertex index fits in u32")))
         .collect();
     if !roots
         .iter()
         .enumerate()
-        .any(|(index, &root)| root != index as u32)
+        .any(|(index, &root)| root != u32::try_from(index).expect("vertex index fits in u32"))
     {
         return;
     }
@@ -189,7 +190,7 @@ fn merge_near_coincident_vertices(mesh: &mut IndexedMesh, workspace: &mut Collap
     for face in mesh.faces.iter() {
         let mut remapped = *face;
         for vertex in &mut remapped.vertices {
-            *vertex = VertexId(roots[vertex.0 as usize]);
+            *vertex = VertexId(roots[vertex.as_usize()]);
         }
         if has_repeated_vertices(remapped.vertices)
             || !workspace

@@ -16,6 +16,11 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// Returns [`MeshError::Io`] if writing the GLB header, JSON chunk, or binary
 /// chunk to `writer` fails.
+///
+/// # Panics
+///
+/// Panics if any mesh-derived count or chunk length exceeds the GLB `u32`
+/// field width.
 pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
     let vertex_count = mesh.vertex_count();
     let face_count = mesh.face_count();
@@ -29,7 +34,7 @@ pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
     let mut max_pos = [f32::MIN; 3];
 
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
-        id_to_idx.insert(vid, idx as u32);
+        id_to_idx.insert(vid, u32::try_from(idx).expect("vertex index fits in u32"));
         let p = [
             vdata.position.x as f32,
             vdata.position.y as f32,
@@ -119,12 +124,20 @@ pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
         .map_err(MeshError::Io)?;
     // Total file length
     writer
-        .write_all(&(total_len as u32).to_le_bytes())
+        .write_all(
+            &u32::try_from(total_len)
+                .expect("GLB total length fits in u32")
+                .to_le_bytes(),
+        )
         .map_err(MeshError::Io)?;
 
     // JSON chunk header
     writer
-        .write_all(&(padded_json_len as u32).to_le_bytes())
+        .write_all(
+            &u32::try_from(padded_json_len)
+                .expect("GLB JSON chunk length fits in u32")
+                .to_le_bytes(),
+        )
         .map_err(MeshError::Io)?;
     writer
         .write_all(&0x4E4F_534Au32.to_le_bytes())
@@ -133,7 +146,11 @@ pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
 
     // BIN chunk header
     writer
-        .write_all(&(padded_bin_len as u32).to_le_bytes())
+        .write_all(
+            &u32::try_from(padded_bin_len)
+                .expect("GLB BIN chunk length fits in u32")
+                .to_le_bytes(),
+        )
         .map_err(MeshError::Io)?;
     writer
         .write_all(&0x004E_4942u32.to_le_bytes())

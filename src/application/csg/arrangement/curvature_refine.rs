@@ -241,9 +241,9 @@ fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<
 
         let bary_area = face_area / 3.0;
 
-        let v0_idx = v0.0 as usize;
-        let v1_idx = v1.0 as usize;
-        let v2_idx = v2.0 as usize;
+        let v0_idx = v0.as_usize();
+        let v1_idx = v1.as_usize();
+        let v2_idx = v2.as_usize();
 
         area_sum[v0_idx] += bary_area;
         area_sum[v1_idx] += bary_area;
@@ -280,8 +280,8 @@ fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<
             //             Hn(vj) += cotangent_k * (vi - vj) / 2
             let diff = pj - pi;
             let weighted = diff * (cotangent_k * 0.5);
-            laplacian[vi.0 as usize] += weighted;
-            laplacian[vj.0 as usize] -= weighted;
+            laplacian[vi.as_usize()] += weighted;
+            laplacian[vj.as_usize()] -= weighted;
         }
     }
 
@@ -301,7 +301,7 @@ fn vertex_curvature_from_soup(faces: &[FaceData], pool: &VertexPool) -> HashMap<
         // H = |Hn| / (2 * A_mixed)
         let h = hn.norm() / (2.0 * area);
         if h.is_finite() && h > 0.0 {
-            curvature.insert(VertexId(i as u32), h);
+            curvature.insert(VertexId::from_usize(i), h);
         }
     }
 

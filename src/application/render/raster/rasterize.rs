@@ -1,6 +1,6 @@
 //! Scanline fill of a screen-space triangle, testing a depth buffer.
 
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 use super::super::transform::Vec4;
 
@@ -113,13 +113,13 @@ pub(super) fn rasterize(
     let x1 = max_px.floor() as i64;
     let y0 = min_py.floor() as i64;
     let y1 = max_py.floor() as i64;
-    let stride = width as usize;
+    let stride = usize::try_from(width).expect("raster width fits in usize");
 
     let mut written = 0;
     for y in y0..=y1 {
-        let py = y as Real + 0.5;
+        let py = Real::from_index(y) + 0.5;
         for x in x0..=x1 {
-            let px = x as Real + 0.5;
+            let px = Real::from_index(x) + 0.5;
             let w0 = edge(&v[1], &v[2], px, py);
             let w1 = edge(&v[2], &v[0], px, py);
             let w2 = edge(&v[0], &v[1], px, py);
@@ -132,7 +132,8 @@ pub(super) fn rasterize(
             if inv_w.is_nan() || inv_w <= 0.0 {
                 continue;
             }
-            let index = y as usize * stride + x as usize;
+            let index = usize::try_from(y).expect("screen y is non-negative") * stride
+                + usize::try_from(x).expect("screen x is non-negative");
             if inv_w <= depth[index] {
                 continue;
             }

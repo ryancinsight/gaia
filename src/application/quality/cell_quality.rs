@@ -14,7 +14,7 @@ use leto::geometry::Point3;
 
 use crate::application::quality::metrics::QualityMetric;
 use crate::domain::core::index::{FaceId, VertexId};
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 use crate::domain::mesh::IndexedMesh;
 
 // ── Per-face computations ─────────────────────────────────────────────────────
@@ -200,7 +200,7 @@ pub fn cell_centroid(cell_id: usize, mesh: &IndexedMesh) -> Option<Point3<Real>>
             .fold(leto::geometry::Vector3::zeros(), |sum, position| {
                 sum + position
             });
-        return Some(Point3::from(sum / cell.vertex_ids.len() as Real));
+        return Some(Point3::from(sum / Real::from_usize(cell.vertex_ids.len())));
     }
 
     let mut sum = leto::geometry::Vector3::<Real>::zeros();
@@ -218,7 +218,7 @@ pub fn cell_centroid(cell_id: usize, mesh: &IndexedMesh) -> Option<Point3<Real>>
     if count == 0 {
         None
     } else {
-        Some(Point3::from(sum / count as Real))
+        Some(Point3::from(sum / Real::from_usize(count)))
     }
 }
 
