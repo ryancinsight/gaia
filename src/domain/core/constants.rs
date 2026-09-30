@@ -5,8 +5,8 @@
 //! can write dimension-safe channel geometry: `length_m(0.5 * MM)` instead of
 //! bare `0.5e-3_f64`.
 
-use aequitas::systems::si::quantities::{Angle, Length};
 use crate::domain::core::scalar::Real;
+use aequitas::systems::si::quantities::{Angle, Length};
 
 /// π
 pub const PI: Real = std::f64::consts::PI;

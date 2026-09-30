@@ -331,8 +331,7 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     let eps = (mean_edge * 1e-4).max(1e-15);
     let eps_sq = eps * eps;
     let inv_eps = 1.0 / eps;
-    let mut parent: Vec<u32> =
-        (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
+    let mut parent: Vec<u32> = (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
 
     // Build spatial hash: cell → list of vertex indices.
     let mut grid: hashbrown::HashMap<(i64, i64, i64), Vec<usize>> =
@@ -373,7 +372,8 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
                                 );
                                 if ci != cj {
                                     let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
-                                    parent[usize::try_from(hi).expect("union-find index fits in usize")] = lo;
+                                    parent[usize::try_from(hi)
+                                        .expect("union-find index fits in usize")] = lo;
                                 }
                             }
                         }
@@ -385,7 +385,12 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
 
     // Flatten union-find: old_id → canonical_id.
     let dedup: Vec<u32> = (0..n)
-        .map(|i| uf_find(&mut parent, u32::try_from(i).expect("vertex index fits in u32")))
+        .map(|i| {
+            uf_find(
+                &mut parent,
+                u32::try_from(i).expect("vertex index fits in u32"),
+            )
+        })
         .collect();
 
     // Phase 2: remap face references through dedup mapping.

@@ -137,8 +137,8 @@ fn merge_near_coincident_vertices(mesh: &mut IndexedMesh, workspace: &mut Collap
         return;
     }
 
-    let mut parent: Vec<u32> = (0..u32::try_from(vertex_count).expect("vertex count fits in u32"))
-        .collect();
+    let mut parent: Vec<u32> =
+        (0..u32::try_from(vertex_count).expect("vertex count fits in u32")).collect();
     for face in mesh.faces.iter() {
         let FaceGeometry::Degenerate {
             edge_lengths_squared,
@@ -174,7 +174,12 @@ fn merge_near_coincident_vertices(mesh: &mut IndexedMesh, workspace: &mut Collap
     }
 
     let roots: Vec<u32> = (0..vertex_count)
-        .map(|index| uf_find(&mut parent, u32::try_from(index).expect("vertex index fits in u32")))
+        .map(|index| {
+            uf_find(
+                &mut parent,
+                u32::try_from(index).expect("vertex index fits in u32"),
+            )
+        })
         .collect();
     if !roots
         .iter()

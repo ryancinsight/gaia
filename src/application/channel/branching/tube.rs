@@ -74,8 +74,8 @@ pub(super) fn build_closed_tube(
         let cz = oz + dz * t;
         ring.clear();
         for ia in 0..ANGULAR_SEGMENTS {
-            let theta = std::f64::consts::TAU * Real::from_usize(ia)
-                / Real::from_usize(ANGULAR_SEGMENTS);
+            let theta =
+                std::f64::consts::TAU * Real::from_usize(ia) / Real::from_usize(ANGULAR_SEGMENTS);
             let (sin_t, cos_t) = theta.sin_cos();
             let normal_x = cos_t * ex + sin_t * fx;
             let normal_y = cos_t * ey + sin_t * fy;

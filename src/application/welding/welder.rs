@@ -193,11 +193,11 @@ impl MeshWelder {
 
                 // Find or assign packed id
                 let packed_id = *pack_map.entry(canonical_id).or_insert_with(|| {
-                    let new_idx =
-                        u32::try_from(packed_positions.len()).expect("packed vertex count fits in u32");
+                    let new_idx = u32::try_from(packed_positions.len())
+                        .expect("packed vertex count fits in u32");
                     packed_positions.push(
-                        positions[usize::try_from(canonical_id)
-                            .expect("vertex index fits in usize")],
+                        positions
+                            [usize::try_from(canonical_id).expect("vertex index fits in usize")],
                     );
                     new_idx
                 });
@@ -317,8 +317,7 @@ fn pack_merged_vertices(
         let mut changed = false;
         for v in &mut face.vertices {
             let old_raw = v.raw();
-            let canonical_id =
-                remap[usize::try_from(old_raw).expect("vertex index fits in usize")];
+            let canonical_id = remap[usize::try_from(old_raw).expect("vertex index fits in usize")];
             if canonical_id != old_raw {
                 changed = true;
             }
@@ -326,8 +325,7 @@ fn pack_merged_vertices(
                 let new_idx =
                     u32::try_from(packed_positions.len()).expect("packed vertex count fits in u32");
                 packed_positions.push(
-                    positions[usize::try_from(canonical_id)
-                        .expect("vertex index fits in usize")],
+                    positions[usize::try_from(canonical_id).expect("vertex index fits in usize")],
                 );
                 new_idx
             });
