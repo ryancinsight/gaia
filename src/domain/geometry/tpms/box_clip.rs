@@ -240,11 +240,7 @@ pub fn build_tpms_box<S: Tpms>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(cdx, cdy, cdz)) in marching_cubes::CORNERS.iter().enumerate() {
-                    let v = field[idx(
-                        ix + cdx,
-                        iy + cdy,
-                        iz + cdz,
-                    )];
+                    let v = field[idx(ix + cdx, iy + cdy, iz + cdz)];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -406,11 +402,7 @@ pub fn build_tpms_box_graded<S: Tpms>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(cdx, cdy, cdz)) in marching_cubes::CORNERS.iter().enumerate() {
-                    let v = field[idx(
-                        ix + cdx,
-                        iy + cdy,
-                        iz + cdz,
-                    )];
+                    let v = field[idx(ix + cdx, iy + cdy, iz + cdz)];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
