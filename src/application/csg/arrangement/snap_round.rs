@@ -173,6 +173,106 @@ fn update_best_split(
     }
 }
 
+/// Collect the best split candidate for each face across boundary vertices.
+///
+/// The constrained endpoint-index pass runs first for every boundary vertex.
+/// When that pass finds no exact on-edge hit for a vertex, the historical
+/// full-face exact scan is used as a fallback so exact T-junctions still split
+/// even without boundary-endpoint adjacency.
+fn collect_split_candidates(
+    bnd_verts: &[VertexId],
+    bnd_adj: &HashMap<VertexId, Vec<VertexId>>,
+    endpoint_index: &HashMap<VertexId, Vec<FaceEdgeRef>>,
+    pool: &VertexPool,
+    faces: &[FaceData],
+) -> HashMap<usize, SplitCandidate> {
+    let bnd_set: HashSet<VertexId> = bnd_verts.iter().copied().collect();
+    let mut best_split_for_face: HashMap<usize, SplitCandidate> = HashMap::new();
+
+    for &v in bnd_verts {
+        let pv = pool.position(v);
+        let mut found_exact_candidate = false;
+        for (fi, a, b) in candidate_face_edges_for_vertex(v, bnd_adj, endpoint_index) {
+            let Some(face) = faces.get(fi) else {
+                continue;
+            };
+            if face.vertices.contains(&v) || !endpoint_constrained(v, a, b, bnd_adj) {
+                continue;
+            }
+
+            let pa = pool.position(a);
+            let pb = pool.position(b);
+            let ab = pb - pa;
+            let edge_len_sq = ab.norm_squared();
+            if edge_len_sq < 1e-30 {
+                continue;
+            }
+
+            let mut exact_hit = false;
+            let t;
+            let dist_metric;
+            if let Some(t_exact) = point_on_segment_exact(pa, pb, pv) {
+                if t_exact <= SNAP_EDGE_PARAM_EPS || t_exact >= 1.0 - SNAP_EDGE_PARAM_EPS {
+                    continue;
+                }
+                exact_hit = true;
+                found_exact_candidate = true;
+                t = t_exact;
+                dist_metric = 0.0;
+            } else {
+                let av = pv - pa;
+                t = av.dot(ab) / edge_len_sq;
+                if t <= SNAP_EDGE_PARAM_EPS || t >= 1.0 - SNAP_EDGE_PARAM_EPS {
+                    continue;
+                }
+
+                let cross = ab.cross(av);
+                let dist_sq = cross.norm_squared() / edge_len_sq;
+                if dist_sq > SNAP_TOL_SQ * edge_len_sq {
+                    continue;
+                }
+                dist_metric = dist_sq / edge_len_sq.max(1e-30);
+            }
+
+            if !exact_hit && bnd_set.contains(&a) && bnd_set.contains(&b) {
+                continue;
+            }
+
+            let center_bias = (t - 0.5).abs();
+            let candidate = (exact_hit, dist_metric, center_bias, a, b, v);
+            update_best_split(&mut best_split_for_face, fi, candidate);
+        }
+
+        if found_exact_candidate {
+            continue;
+        }
+
+        for (fi, face) in faces.iter().enumerate() {
+            if face.vertices.contains(&v) {
+                continue;
+            }
+            for edge_idx in 0..3_usize {
+                let a = face.vertices[edge_idx];
+                let b = face.vertices[(edge_idx + 1) % 3];
+                let pa = pool.position(a);
+                let pb = pool.position(b);
+                let Some(t_exact) = point_on_segment_exact(pa, pb, pv) else {
+                    continue;
+                };
+                if t_exact <= SNAP_EDGE_PARAM_EPS || t_exact >= 1.0 - SNAP_EDGE_PARAM_EPS {
+                    continue;
+                }
+
+                let center_bias = (t_exact - 0.5).abs();
+                let candidate = (true, 0.0, center_bias, a, b, v);
+                update_best_split(&mut best_split_for_face, fi, candidate);
+            }
+        }
+    }
+
+    best_split_for_face
+}
+
 // ── Main entry point ─────────────────────────────────────────────────────────
 
 /// Resolve T-junctions by splitting face edges at boundary vertices.
@@ -208,104 +308,10 @@ pub(crate) fn snap_round_tjunctions(faces: &mut Vec<FaceData>, pool: &VertexPool
         let mut bnd_verts: Vec<VertexId> = boundary.iter().flat_map(|&(a, b)| [a, b]).collect();
         bnd_verts.sort();
         bnd_verts.dedup();
-        let bnd_set: HashSet<VertexId> = bnd_verts.iter().copied().collect();
         let bnd_adj = build_boundary_adjacency(&boundary);
         let endpoint_index = build_endpoint_edge_index(faces);
-        // For each face, keep the best constrained split candidate:
-        // exact-hit first, then shortest residual distance, then centrality.
-        let mut best_split_for_face: HashMap<usize, SplitCandidate> = HashMap::new();
-
-        for &v in &bnd_verts {
-            let pv = pool.position(v);
-            let mut found_exact_candidate = false;
-            for (fi, a, b) in candidate_face_edges_for_vertex(v, &bnd_adj, &endpoint_index) {
-                let Some(face) = faces.get(fi) else {
-                    continue;
-                };
-                // Skip faces that already contain this vertex.
-                if face.vertices.contains(&v) {
-                    continue;
-                }
-                if !endpoint_constrained(v, a, b, &bnd_adj) {
-                    continue;
-                }
-
-                let pa = pool.position(a);
-                let pb = pool.position(b);
-                let ab = pb - pa;
-                let edge_len_sq = ab.norm_squared();
-                if edge_len_sq < 1e-30 {
-                    continue;
-                }
-
-                let mut exact_hit = false;
-                let t;
-                let dist_metric;
-                if let Some(t_exact) = point_on_segment_exact(pa, pb, pv) {
-                    if t_exact <= SNAP_EDGE_PARAM_EPS || t_exact >= 1.0 - SNAP_EDGE_PARAM_EPS {
-                        continue;
-                    }
-                    exact_hit = true;
-                    found_exact_candidate = true;
-                    t = t_exact;
-                    dist_metric = 0.0;
-                } else {
-                    let av = pv - pa;
-
-                    // Projection parameter: t = dot(AV, AB) / |AB|²
-                    t = av.dot(ab) / edge_len_sq;
-                    // V must be strictly interior to edge (not at endpoints).
-                    if t <= SNAP_EDGE_PARAM_EPS || t >= 1.0 - SNAP_EDGE_PARAM_EPS {
-                        continue;
-                    }
-
-                    // Perpendicular distance: |cross(AB, AV)|² / |AB|²
-                    let cross = ab.cross(av);
-                    let dist_sq = cross.norm_squared() / edge_len_sq;
-                    if dist_sq > SNAP_TOL_SQ * edge_len_sq {
-                        continue;
-                    }
-                    dist_metric = dist_sq / edge_len_sq.max(1e-30);
-                }
-
-                // Found a T-junction: V lies on edge [A, B] of face fi.
-                // Keep the historical seam-ribbon guard for tolerance-only
-                // hits, but allow exact constrained hits through.
-                if !exact_hit && bnd_set.contains(&a) && bnd_set.contains(&b) {
-                    continue;
-                }
-
-                let center_bias = (t - 0.5).abs();
-                let candidate = (exact_hit, dist_metric, center_bias, a, b, v);
-                update_best_split(&mut best_split_for_face, fi, candidate);
-            }
-
-            if found_exact_candidate {
-                continue;
-            }
-
-            for (fi, face) in faces.iter().enumerate() {
-                if face.vertices.contains(&v) {
-                    continue;
-                }
-                for edge_idx in 0..3_usize {
-                    let a = face.vertices[edge_idx];
-                    let b = face.vertices[(edge_idx + 1) % 3];
-                    let pa = pool.position(a);
-                    let pb = pool.position(b);
-                    let Some(t_exact) = point_on_segment_exact(pa, pb, pv) else {
-                        continue;
-                    };
-                    if t_exact <= SNAP_EDGE_PARAM_EPS || t_exact >= 1.0 - SNAP_EDGE_PARAM_EPS {
-                        continue;
-                    }
-
-                    let center_bias = (t_exact - 0.5).abs();
-                    let candidate = (true, 0.0, center_bias, a, b, v);
-                    update_best_split(&mut best_split_for_face, fi, candidate);
-                }
-            }
-        }
+        let best_split_for_face =
+            collect_split_candidates(&bnd_verts, &bnd_adj, &endpoint_index, pool, faces);
 
         let mut splits: Vec<(usize, VertexId, VertexId, VertexId)> = best_split_for_face
             .into_iter()

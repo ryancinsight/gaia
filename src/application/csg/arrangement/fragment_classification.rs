@@ -2,7 +2,7 @@
 
 use super::classify::{
     centroid, classify_fragment_prepared, prepare_classification_faces, tri_normal, FragRecord,
-    FragmentClass,
+    FragmentClass, PreparedFace,
 };
 use super::fragment_analysis::{component_roots_from_edges, is_degenerate_sliver_with_normal};
 use crate::application::csg::boolean::BooleanOp;
@@ -83,6 +83,40 @@ fn valid_fragment(
     })
 }
 
+/// Classify one representative fragment for each connected-component root.
+fn classify_component_roots(
+    roots_to_classify: &[(usize, usize)],
+    valid_frags: &[ValidFrag],
+    prepared_a: &[PreparedFace],
+    prepared_b: &[PreparedFace],
+    frags: &[FragRecord],
+) -> Vec<FragmentClass> {
+    use moirai::ParallelSlice;
+
+    roots_to_classify.par().map_collect(|&(_, vf_idx)| {
+        let vf = &valid_frags[vf_idx];
+        let frag = &frags[vf.frag_idx];
+        let tri = [vf.p0, vf.p1, vf.p2];
+        let c = centroid(&tri);
+        let n = tri_normal(&tri);
+        let nlen = n.norm();
+        let e1 = (vf.p1 - vf.p0).norm();
+        let e2 = (vf.p2 - vf.p0).norm();
+        let edge_product = e1 * e2;
+        let face_normal = if nlen > 1e-10 * edge_product {
+            n / nlen
+        } else {
+            Vector3r::zeros()
+        };
+
+        if frag.from_a {
+            classify_fragment_prepared(&c, &face_normal, prepared_b)
+        } else {
+            classify_fragment_prepared(&c, &face_normal, prepared_a)
+        }
+    })
+}
+
 /// Classify co-refined fragments and return kept (optionally flipped) faces.
 pub(crate) fn classify_kept_fragments(
     op: BooleanOp,
@@ -145,31 +179,13 @@ pub(crate) fn classify_kept_fragments(
         }
     }
 
-    let classifications: Vec<FragmentClass> = {
-        use moirai::ParallelSlice;
-        roots_to_classify.par().map_collect(|&(_, vf_idx)| {
-            let vf = &valid_frags[vf_idx];
-            let frag = &frags[vf.frag_idx];
-            let tri = [vf.p0, vf.p1, vf.p2];
-            let c = centroid(&tri);
-            let n = tri_normal(&tri);
-            let nlen = n.norm();
-            let e1 = (vf.p1 - vf.p0).norm();
-            let e2 = (vf.p2 - vf.p0).norm();
-            let edge_product = e1 * e2;
-            let face_normal = if nlen > 1e-10 * edge_product {
-                n / nlen
-            } else {
-                Vector3r::zeros()
-            };
-
-            if frag.from_a {
-                classify_fragment_prepared(&c, &face_normal, &prepared_b)
-            } else {
-                classify_fragment_prepared(&c, &face_normal, &prepared_a)
-            }
-        })
-    };
+    let classifications = classify_component_roots(
+        &roots_to_classify,
+        &valid_frags,
+        &prepared_a,
+        &prepared_b,
+        frags,
+    );
 
     let mut class_cache = vec![None; frags.len()];
     for (i, &(root, _)) in roots_to_classify.iter().enumerate() {

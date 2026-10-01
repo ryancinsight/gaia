@@ -160,6 +160,31 @@ use fragment_refinement::{append_corefined_fragments, consolidate_cross_mesh_ver
 use propagate::propagate_seam_vertices_until_stable;
 use result_finalization::finalize_boolean_faces;
 
+/// Intersect broad-phase candidates and collect seam segments plus coplanar pairs.
+fn collect_binary_pair_intersections(
+    pairs: &[super::broad_phase::CandidatePair],
+    faces_a: &[FaceData],
+    faces_b: &[FaceData],
+    pool: &VertexPool,
+    segs_a: &mut [Vec<SnapSegment>],
+    segs_b: &mut [Vec<SnapSegment>],
+    coplanar_pairs: &mut Vec<(usize, usize)>,
+) {
+    for pair in pairs {
+        let fa = &faces_a[pair.face_a];
+        let fb = &faces_b[pair.face_b];
+        match intersect_triangles(fa, pool, fb, pool) {
+            IntersectionType::Segment { start, end } => {
+                let snap = SnapSegment { start, end };
+                segs_a[pair.face_a].push(snap);
+                segs_b[pair.face_b].push(snap);
+            }
+            IntersectionType::Coplanar => coplanar_pairs.push((pair.face_a, pair.face_b)),
+            IntersectionType::None => {}
+        }
+    }
+}
+
 /// Perform a Boolean operation on two **curved** (non-flat-face) face soups
 /// using the Mesh Arrangement pipeline.
 ///
@@ -202,21 +227,15 @@ pub fn boolean_intersecting_arrangement(
     let mut coplanar_pairs: Vec<(usize, usize)> = Vec::new();
     let t_narrow_phase = std::time::Instant::now();
     // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 2: narrow phase Ã¢â‚¬â€ exact intersection test Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-    for pair in &pairs {
-        let fa = &faces_a[pair.face_a];
-        let fb = &faces_b[pair.face_b];
-        match intersect_triangles(fa, pool, fb, pool) {
-            IntersectionType::Segment { start, end } => {
-                let snap = SnapSegment { start, end };
-                segs_a[pair.face_a].push(snap);
-                segs_b[pair.face_b].push(snap);
-            }
-            IntersectionType::Coplanar => {
-                coplanar_pairs.push((pair.face_a, pair.face_b));
-            }
-            IntersectionType::None => {}
-        }
-    }
+    collect_binary_pair_intersections(
+        &pairs,
+        faces_a,
+        faces_b,
+        pool,
+        &mut segs_a,
+        &mut segs_b,
+        &mut coplanar_pairs,
+    );
 
     // Phase 2b: DSU coplanar group construction.
     let coplanar_index = build_coplanar_group_index(faces_a.len(), faces_b.len(), &coplanar_pairs);

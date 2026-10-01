@@ -158,6 +158,14 @@ struct CoplanarBuffers {
     aabbs: leto::Array<[Real; 4], leto::VecStorage<[Real; 4]>, 1>,
 }
 
+struct CoplanarOperandView<'a> {
+    faces: &'a [FaceData],
+    data: &'a [TriData],
+    tris: &'a [[Real; 6]],
+    aabbs: &'a [[Real; 4]],
+    index: &'a SweepAabbIndex2d,
+}
+
 impl CoplanarBuffers {
     fn from_tri_data(data: &[TriData]) -> Self {
         let tris = data.iter().map(|tri| tri.coords2d).collect();
@@ -325,6 +333,92 @@ fn process_triangle(
     }
 }
 
+/// Process one operand's coplanar source triangles against the opposing operand.
+fn process_coplanar_operand(
+    op: BooleanOp,
+    src: &CoplanarOperandView<'_>,
+    opp: &CoplanarOperandView<'_>,
+    basis: &PlaneBasis,
+    result: &mut Vec<FaceData>,
+    pool: &mut VertexPool,
+    candidate_buf: &mut Vec<usize>,
+) {
+    for (src_idx, face) in src.faces.iter().enumerate() {
+        let src_tri = &src.tris[src_idx];
+        let src_3d = &src.data[src_idx].verts3d;
+        let src_aabb = &src.aabbs[src_idx];
+
+        match op {
+            BooleanOp::Union => {
+                process_triangle(
+                    src_tri,
+                    src_3d,
+                    src_aabb,
+                    opp.index,
+                    opp.data,
+                    opp.tris,
+                    opp.aabbs,
+                    false,
+                    basis,
+                    face.region,
+                    result,
+                    pool,
+                    candidate_buf,
+                );
+                process_triangle(
+                    src_tri,
+                    src_3d,
+                    src_aabb,
+                    opp.index,
+                    opp.data,
+                    opp.tris,
+                    opp.aabbs,
+                    true,
+                    basis,
+                    face.region,
+                    result,
+                    pool,
+                    candidate_buf,
+                );
+            }
+            BooleanOp::Intersection => {
+                process_triangle(
+                    src_tri,
+                    src_3d,
+                    src_aabb,
+                    opp.index,
+                    opp.data,
+                    opp.tris,
+                    opp.aabbs,
+                    true,
+                    basis,
+                    face.region,
+                    result,
+                    pool,
+                    candidate_buf,
+                );
+            }
+            BooleanOp::Difference => {
+                process_triangle(
+                    src_tri,
+                    src_3d,
+                    src_aabb,
+                    opp.index,
+                    opp.data,
+                    opp.tris,
+                    opp.aabbs,
+                    false,
+                    basis,
+                    face.region,
+                    result,
+                    pool,
+                    candidate_buf,
+                );
+            }
+        }
+    }
+}
+
 pub(crate) fn boolean_coplanar(
     op: BooleanOp,
     faces_a: &[FaceData],
@@ -347,100 +441,41 @@ pub(crate) fn boolean_coplanar(
     let a_index = SweepAabbIndex2d::build(a_aabbs);
     let mut candidate_buf_ab: Vec<usize> = Vec::new();
     let mut candidate_buf_ba: Vec<usize> = Vec::new();
+    let a_view = CoplanarOperandView {
+        faces: faces_a,
+        data: &a_data,
+        tris: a_tris,
+        aabbs: a_aabbs,
+        index: &a_index,
+    };
+    let b_view = CoplanarOperandView {
+        faces: faces_b,
+        data: &b_data,
+        tris: b_tris,
+        aabbs: b_aabbs,
+        index: &b_index,
+    };
 
-    for (ai, fa) in faces_a.iter().enumerate() {
-        let src = &a_tris[ai];
-        let src_3d = &a_data[ai].verts3d;
-        let aabb = &a_aabbs[ai];
-
-        match op {
-            BooleanOp::Union => {
-                process_triangle(
-                    src,
-                    src_3d,
-                    aabb,
-                    &b_index,
-                    &b_data,
-                    b_tris,
-                    b_aabbs,
-                    false,
-                    basis,
-                    fa.region,
-                    &mut result,
-                    pool,
-                    &mut candidate_buf_ab,
-                );
-                process_triangle(
-                    src,
-                    src_3d,
-                    aabb,
-                    &b_index,
-                    &b_data,
-                    b_tris,
-                    b_aabbs,
-                    true,
-                    basis,
-                    fa.region,
-                    &mut result,
-                    pool,
-                    &mut candidate_buf_ab,
-                );
-            }
-            BooleanOp::Intersection => {
-                process_triangle(
-                    src,
-                    src_3d,
-                    aabb,
-                    &b_index,
-                    &b_data,
-                    b_tris,
-                    b_aabbs,
-                    true,
-                    basis,
-                    fa.region,
-                    &mut result,
-                    pool,
-                    &mut candidate_buf_ab,
-                );
-            }
-            BooleanOp::Difference => {
-                process_triangle(
-                    src,
-                    src_3d,
-                    aabb,
-                    &b_index,
-                    &b_data,
-                    b_tris,
-                    b_aabbs,
-                    false,
-                    basis,
-                    fa.region,
-                    &mut result,
-                    pool,
-                    &mut candidate_buf_ab,
-                );
-            }
-        }
-    }
+    process_coplanar_operand(
+        op,
+        &a_view,
+        &b_view,
+        basis,
+        &mut result,
+        pool,
+        &mut candidate_buf_ab,
+    );
 
     if matches!(op, BooleanOp::Union) {
-        for (bi, fb) in faces_b.iter().enumerate() {
-            process_triangle(
-                &b_tris[bi],
-                &b_data[bi].verts3d,
-                &b_aabbs[bi],
-                &a_index,
-                &a_data,
-                a_tris,
-                a_aabbs,
-                false,
-                basis,
-                fb.region,
-                &mut result,
-                pool,
-                &mut candidate_buf_ba,
-            );
-        }
+        process_coplanar_operand(
+            BooleanOp::Difference,
+            &b_view,
+            &a_view,
+            basis,
+            &mut result,
+            pool,
+            &mut candidate_buf_ba,
+        );
     }
 
     result

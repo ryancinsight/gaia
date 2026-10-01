@@ -112,6 +112,73 @@ struct CoplanarPlaneInfo {
     c: Point3r,
 }
 
+/// Find the current union-find representative with path compression.
+fn find_consolidation_root(parent: &mut [usize], mut x: usize) -> usize {
+    let mut root = x;
+    while parent[root] != root {
+        root = parent[root];
+    }
+    while parent[x] != root {
+        let next = parent[x];
+        parent[x] = root;
+        x = next;
+    }
+    root
+}
+
+/// Union two vertex-index sets with rank balancing and deterministic ties.
+fn union_consolidation_roots(parent: &mut [usize], rank: &mut [u8], a: usize, b: usize) {
+    let ra = find_consolidation_root(parent, a);
+    let rb = find_consolidation_root(parent, b);
+    if ra == rb {
+        return;
+    }
+    match rank[ra].cmp(&rank[rb]) {
+        std::cmp::Ordering::Less => parent[ra] = rb,
+        std::cmp::Ordering::Greater => parent[rb] = ra,
+        std::cmp::Ordering::Equal => {
+            if ra < rb {
+                parent[rb] = ra;
+                rank[ra] = rank[ra].saturating_add(1);
+            } else {
+                parent[ra] = rb;
+                rank[rb] = rank[rb].saturating_add(1);
+            }
+        }
+    }
+}
+
+/// Union all same-position vertex clusters discovered by the spatial hash.
+fn union_coincident_vertex_groups(
+    positions: &[Point3r],
+    grid: &HashMap<GridCell, Vec<usize>>,
+    inv_cell: Real,
+    tol_sq: Real,
+    parent: &mut [usize],
+    rank: &mut [u8],
+) {
+    for (index, position) in positions.iter().enumerate() {
+        let cell = GridCell::from_point(position, inv_cell);
+        for nb_cell in cell.neighborhood_27() {
+            let Some(candidates) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &other_index in candidates {
+                if other_index <= index {
+                    continue;
+                }
+                let other_position = &positions[other_index];
+                let d_sq = (other_position.x - position.x).powi(2)
+                    + (other_position.y - position.y).powi(2)
+                    + (other_position.z - position.z).powi(2);
+                if d_sq < tol_sq {
+                    union_consolidation_roots(parent, rank, index, other_index);
+                }
+            }
+        }
+    }
+}
+
 /// Resolve Boolean fragments into result faces using one survivorship policy
 /// for both binary and dense N-way inputs.
 pub(crate) fn resolve_multi_mesh_fragments(
@@ -307,56 +374,6 @@ const CONSOLIDATE_TOL: Real = MULTI_MESH_CONSOLIDATE_LEN;
 /// coincident pairs and rewrites fragment vertex references to canonical
 /// (lowest-ID) representatives.
 fn consolidate_cross_mesh_vertices(frags: &mut Vec<BooleanFragmentRecord>, pool: &VertexPool) {
-    /// Union-find with full path compression and union-by-rank.
-    ///
-    /// # Theorem — Amortised Complexity
-    ///
-    /// With path compression and union-by-rank, $m$ find/union operations on
-    /// $n$ elements run in $O(m \cdot \alpha(n))$ amortised time, where
-    /// $\alpha$ is the inverse Ackermann function ($\alpha(n) \le 4$ for all
-    /// practical $n$).
-    ///
-    /// **Proof sketch.**  Path compression flattens the tree on every `find`,
-    /// and union-by-rank ensures the tree depth grows logarithmically.
-    /// Combined, Tarjan's analysis shows the amortised cost per operation
-    /// is $\alpha(n)$.  ∎
-    fn find_root(parent: &mut [usize], mut x: usize) -> usize {
-        // Find root.
-        let mut root = x;
-        while parent[root] != root {
-            root = parent[root];
-        }
-        // Path compression: point all ancestors directly to root.
-        while parent[x] != root {
-            let next = parent[x];
-            parent[x] = root;
-            x = next;
-        }
-        root
-    }
-
-    fn union(parent: &mut [usize], rank: &mut [u8], a: usize, b: usize) {
-        let ra = find_root(parent, a);
-        let rb = find_root(parent, b);
-        if ra == rb {
-            return;
-        }
-        // Union-by-rank with tie-break to lower index for determinism.
-        match rank[ra].cmp(&rank[rb]) {
-            std::cmp::Ordering::Less => parent[ra] = rb,
-            std::cmp::Ordering::Greater => parent[rb] = ra,
-            std::cmp::Ordering::Equal => {
-                if ra < rb {
-                    parent[rb] = ra;
-                    rank[ra] = rank[ra].saturating_add(1);
-                } else {
-                    parent[ra] = rb;
-                    rank[rb] = rank[rb].saturating_add(1);
-                }
-            }
-        }
-    }
-
     let tol = CONSOLIDATE_TOL;
     let tol_sq = tol * tol;
     let inv_cell = 1.0 / tol;
@@ -384,31 +401,11 @@ fn consolidate_cross_mesh_vertices(frags: &mut Vec<BooleanFragmentRecord>, pool:
 
     let mut parent: Vec<usize> = (0..all_vids.len()).collect();
     let mut rank: Vec<u8> = vec![0; all_vids.len()];
-
-    for (index, position) in positions.iter().enumerate() {
-        let cell = GridCell::from_point(position, inv_cell);
-        for nb_cell in cell.neighborhood_27() {
-            let Some(candidates) = grid.get(&nb_cell) else {
-                continue;
-            };
-            for &other_index in candidates {
-                if other_index <= index {
-                    continue;
-                }
-                let other_position = &positions[other_index];
-                let d_sq = (other_position.x - position.x).powi(2)
-                    + (other_position.y - position.y).powi(2)
-                    + (other_position.z - position.z).powi(2);
-                if d_sq < tol_sq {
-                    union(&mut parent, &mut rank, index, other_index);
-                }
-            }
-        }
-    }
+    union_coincident_vertex_groups(&positions, &grid, inv_cell, tol_sq, &mut parent, &mut rank);
 
     let mut merge_map: HashMap<VertexId, VertexId> = HashMap::with_capacity(all_vids.len() / 2);
     for index in 0..all_vids.len() {
-        let root = find_root(&mut parent, index);
+        let root = find_consolidation_root(&mut parent, index);
         if root != index {
             merge_map.insert(all_vids[index], all_vids[root]);
         }

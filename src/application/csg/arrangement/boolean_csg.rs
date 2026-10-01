@@ -244,6 +244,31 @@ fn non_empty_result(op: BooleanOp, result: Vec<FaceData>) -> MeshResult<Vec<Face
     }
 }
 
+/// Classify broad-phase face-pair hits into seam segments and coplanar pairs.
+fn collect_pair_intersections(
+    pairs: &[BooleanCandidatePair],
+    meshes: &[Vec<FaceData>],
+    pool: &VertexPool,
+    segs: &mut [Vec<Vec<SnapSegment>>],
+    coplanar_pairs: &mut Vec<(usize, usize, usize, usize)>,
+) {
+    for pair in pairs {
+        let fa = &meshes[pair.mesh_a][pair.face_a];
+        let fb = &meshes[pair.mesh_b][pair.face_b];
+        match intersect_triangles(fa, pool, fb, pool) {
+            IntersectionType::Segment { start, end } => {
+                let snap = SnapSegment { start, end };
+                segs[pair.mesh_a][pair.face_a].push(snap);
+                segs[pair.mesh_b][pair.face_b].push(snap);
+            }
+            IntersectionType::Coplanar => {
+                coplanar_pairs.push((pair.mesh_a, pair.face_a, pair.mesh_b, pair.face_b));
+            }
+            IntersectionType::None => {}
+        }
+    }
+}
+
 fn execute_arrangement_pass(
     op: BooleanOp,
     meshes: &[Vec<FaceData>],
@@ -336,22 +361,7 @@ fn execute_arrangement_pass(
         meshes.iter().map(|m| vec![Vec::new(); m.len()]).collect();
     let coplanar_pair_capacity = pairs.len().min(total_face_count);
     let mut coplanar_pairs = Vec::with_capacity(coplanar_pair_capacity);
-
-    for pair in &pairs {
-        let fa = &meshes[pair.mesh_a][pair.face_a];
-        let fb = &meshes[pair.mesh_b][pair.face_b];
-        match intersect_triangles(fa, pool, fb, pool) {
-            IntersectionType::Segment { start, end } => {
-                let snap = SnapSegment { start, end };
-                segs[pair.mesh_a][pair.face_a].push(snap);
-                segs[pair.mesh_b][pair.face_b].push(snap);
-            }
-            IntersectionType::Coplanar => {
-                coplanar_pairs.push((pair.mesh_a, pair.face_a, pair.mesh_b, pair.face_b));
-            }
-            IntersectionType::None => {}
-        }
-    }
+    collect_pair_intersections(&pairs, meshes, pool, &mut segs, &mut coplanar_pairs);
 
     // ── Phase 2b.5: Propagate seam vertices
     for i in 0..n_meshes {

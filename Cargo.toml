@@ -153,7 +153,7 @@ cast_possible_truncation = "allow"   # 98 (GridCell/GridCell2d carry #[expect];
 
 # ── Ratchet: size and shape debt (58) ────────────────────────────────────────
 # Source files over the 500-line target are the split backlog.
-too_many_lines = "allow"             # 18 (remeasured for Phase 24)
+too_many_lines = "allow"             # 8 (remeasured for Phase 25)
 # too_many_arguments: all 7 sites carry per-site #[expect] with stated reasons.
 # snap.rs test extraction reduces snap.rs from 783 to 343 lines.
 

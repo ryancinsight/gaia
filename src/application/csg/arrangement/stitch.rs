@@ -93,6 +93,76 @@ fn record_triangle(
     }
 }
 
+/// Find one ear in the current polygon and clip it if possible.
+///
+/// Returns `true` when an ear vertex was removed from `indices`, regardless of
+/// whether the triangle was emitted or skipped by the non-manifold guard.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "ear clipping needs geometry, mesh output, and guard state together"
+)]
+fn find_and_clip_ear(
+    poly: &[VertexId],
+    pts2d: &[[Real; 2]],
+    ccw: bool,
+    pool: &VertexPool,
+    indices: &mut Vec<usize>,
+    out: &mut Vec<FaceData>,
+    valence: &mut HashMap<(VertexId, VertexId), u32>,
+    guard: &mut usize,
+) -> bool {
+    let m = indices.len();
+    for i in 0..m {
+        let prev = if i == 0 { m - 1 } else { i - 1 };
+        let next = (i + 1) % m;
+
+        let a = indices[prev];
+        let b = indices[i];
+        let c = indices[next];
+
+        let turn = orient_2d_arr(pts2d[a], pts2d[b], pts2d[c]);
+        let convex = if ccw {
+            turn == Orientation::Positive
+        } else {
+            turn == Orientation::Negative
+        };
+        if !convex {
+            *guard += 1;
+            continue;
+        }
+
+        let mut ear_ok = true;
+        for j in 0..m {
+            if j == prev || j == i || j == next {
+                continue;
+            }
+            if point_in_triangle(&pts2d[indices[j]], &pts2d[a], &pts2d[b], &pts2d[c]) {
+                ear_ok = false;
+                break;
+            }
+        }
+
+        if !ear_ok {
+            *guard += 1;
+            continue;
+        }
+
+        let (va, vb, vc) = (poly[a], poly[b], poly[c]);
+        let pa = pool.position(va);
+        let pb = pool.position(vb);
+        let pc = pool.position(vc);
+        if (pb - pa).cross(pc - pa).norm_squared() > 1e-30 && !would_create_nm(va, vb, vc, valence)
+        {
+            out.push(FaceData::untagged(va, vb, vc));
+            record_triangle(va, vb, vc, valence);
+        }
+        indices.remove(i);
+        return true;
+    }
+
+    false
+}
+
 /// Fill all boundary loops in the face set by ear-clipping triangulation.
 ///
 /// Iterates until no boundary loops remain or no progress is made.
@@ -273,10 +343,6 @@ pub(crate) fn cdt_fill_loop(
 /// diagonal edges coincide with existing interior mesh edges are skipped.
 ///
 /// Returns the number of triangles added.
-#[expect(
-    clippy::many_single_char_names,
-    reason = "standard polygon ear-clipping vertex and index naming"
-)]
 pub(crate) fn ear_clip_fill(
     poly: &[VertexId],
     pool: &VertexPool,
@@ -321,59 +387,18 @@ pub(crate) fn ear_clip_fill(
     let max_guard = n * n * 2;
 
     while indices.len() > 3 && guard < max_guard {
-        let m = indices.len();
-        let mut found_ear = false;
-
-        for i in 0..m {
-            let prev = if i == 0 { m - 1 } else { i - 1 };
-            let next = (i + 1) % m;
-
-            let a = indices[prev];
-            let b = indices[i];
-            let c = indices[next];
-
-            // Check convexity using exact orientation predicates.
-            let turn = orient_2d_arr(pts2d[a], pts2d[b], pts2d[c]);
-            let convex = if ccw {
-                turn == Orientation::Positive
-            } else {
-                turn == Orientation::Negative
-            };
-            if !convex {
-                guard += 1;
-                continue;
-            }
-
-            // Check no other polygon vertex lies inside this ear triangle.
-            let mut ear_ok = true;
-            for j in 0..m {
-                if j == prev || j == i || j == next {
-                    continue;
-                }
-                if point_in_triangle(&pts2d[indices[j]], &pts2d[a], &pts2d[b], &pts2d[c]) {
-                    ear_ok = false;
-                    break;
-                }
-            }
-
-            if ear_ok {
-                let (va, vb, vc) = (poly[a], poly[b], poly[c]);
-                let pa = pool.position(va);
-                let pb = pool.position(vb);
-                let pc = pool.position(vc);
-                if (pb - pa).cross(pc - pa).norm_squared() > 1e-30
-                    && !would_create_nm(va, vb, vc, valence)
-                {
-                    out.push(FaceData::untagged(va, vb, vc));
-                    record_triangle(va, vb, vc, valence);
-                    count += 1;
-                }
-                indices.remove(i);
-                found_ear = true;
-                break;
-            }
-            guard += 1;
-        }
+        let before = out.len();
+        let found_ear = find_and_clip_ear(
+            poly,
+            &pts2d,
+            ccw,
+            pool,
+            &mut indices,
+            out,
+            valence,
+            &mut guard,
+        );
+        count += usize::from(out.len() > before);
 
         if !found_ear {
             // No ear found — polygon may be self-intersecting in projection.

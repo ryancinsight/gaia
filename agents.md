@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 24 complete (forced-warn `too_many_lines` 30→18; `cargo clippy --lib` clean; `cargo test --lib` 1139/1139 passed).
+> **Rewrite status**: Phase 25 complete (forced-warn `too_many_lines` 30→8; `cargo clippy --lib` clean; `cargo test --lib` 1140/1140 passed).
 
 ---
 
@@ -718,6 +718,7 @@ proptest! {
 | **19** Eunomia/Aequitas Scalar Seam | ✅ DONE | `domain/core/scalar.rs`, `domain/core/constants.rs`, ~60 cast sites across 15 files | Added `Scalar::from_usize(n)` + `Scalar::from_index(k)` via eunomia's `FloatElement::from_f64` widening seam. Replaced 56+ `i as Real` index-to-float casts with the seam. Added aequitas-typed `length_m/mm`, `angle_rad/deg`, and default channel dimension accessors (`length_m`, `length_mm`, `angle_rad/deg`, `default_channel_diameter/substrate_height/wall_thickness`). Fixed themis→moirai-executor dependency break. `cast_precision_loss` 437→**331** (−106), `cast_possible_truncation` 160→**127** (−33), `cast_sign_loss` 53→**50** (−3). Ratchet: 508 numeric + 56 size = **564 total**. 1139 tests, 37 doctests pass. |
 | **20** GridCell SSOT + Cast Cleanup | ✅ DONE | `fragment_refinement.rs`, `multi_mesh_resolution.rs`, `merge.rs`, NURBS/primitive/quality/channel/scalar sites | `cast_precision_loss` 331→**255** (−76); `cast_sign_loss` **50→0** (removed); GridCell SSOT: 42+ inline `floor() as i64` spatial-hash casts replaced with `GridCell::from_point()` + `neighborhood_27()` across 3 CSG repair files (cleaner, 3-level loops → iterators). Ratchet: 255 precision + 127 truncation = **382 numeric** + 58 size = **440 total**. 1139 tests pass. |
 | **21** GridCell2d SSOT + Aequitas Channels + Cast Cuts | ✅ DONE | `welding/snap.rs`, `planar.rs`, `seam.rs`, `cdt.rs`, `venturi.rs`, `serpentine.rs`, lattice/histograms/ordering | `cast_precision_loss` 255→**142** (−113); `cast_possible_truncation` 127→**107** (−20). GridCell2d: 2-D floor-quantization SSOT added; applies to planar.rs, seam.rs, cdt.rs — eliminates 13+ casts, 3-level loops → `neighborhood_9()`. Aequitas: `VenturiMeshBuilder::from_quantities(Length<Real>…)` and `SerpentineMeshBuilder::from_quantities(Length<f64>…)` — prevent channel dimension unit mix-ups. Doctests: 37→**39** (2 new from_quantities). Ratchet: 249 numeric + 58 size = **307 total**. 1139 tests pass. |
+| **25** CSG Function Split Sweep | ✅ DONE | `Cargo.toml`, `arrangement.rs`, `boolean_csg.rs`, `fragment_classification.rs`, `fragment_refinement.rs`, `multi_mesh_resolution.rs`, `propagate/seam.rs`, `snap_round.rs`, `stitch.rs`, `coplanar/operations.rs`, `repair/merge.rs` | Split 10 complex CSG `too_many_lines` sites by extracting candidate-collection, seam-propagation, ear-clipping, component-classification, union/hash passes, and narrow-phase helpers across arrangement/coplanar/indexed-repair modules. Forced-warn `too_many_lines` ratchet reduced **18→8** (30→8 from Phase 24 baseline); `cargo clippy --lib` clean; `cargo test --lib` **1140/1140** passed. Full `cargo fmt --check` remained blocked by concurrently edited forbidden files outside this phase’s touch set. |
 
 ---
 

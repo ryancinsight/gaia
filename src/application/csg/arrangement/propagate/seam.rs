@@ -31,6 +31,101 @@ pub(super) fn min_axis_determinant(edge_len_sq: Real, seg_len_sq: Real) -> Real 
     1e-14 * edge_len * (edge_len + seg_len_sq.sqrt())
 }
 
+/// Collect split points induced by seam segments along a shared face edge.
+///
+/// Returns `true` when one or more interior parameters were found and `pts`
+/// was populated as `[pa, ..., pb]` in ascending edge order.
+fn collect_edge_split_points(
+    snap_segs: &[SnapSegment],
+    pa: Point3r,
+    pb: Point3r,
+    t_params: &mut Vec<Real>,
+    pts: &mut Vec<Point3r>,
+) -> bool {
+    let edge_vec = pb - pa;
+    let edge_len_sq = edge_vec.dot(edge_vec);
+    if edge_len_sq < DEGENERATE_LEN_SQ {
+        return false;
+    }
+
+    t_params.clear();
+    for seg in snap_segs {
+        for &p in &[seg.start, seg.end] {
+            if let Some(t_exact) = point_on_segment_exact(&pa, &pb, &p) {
+                if t_exact > PARAM_MARGIN && t_exact < 1.0 - PARAM_MARGIN {
+                    t_params.push(t_exact);
+                }
+                continue;
+            }
+
+            let sp: leto::geometry::Vector3<f64> = p - pa;
+            let sp_len_sq = sp.norm_squared();
+            if sp_len_sq < COINCIDENT_LEN_SQ {
+                continue;
+            }
+            let cross_v = edge_vec.cross(sp);
+            if cross_v.norm_squared() <= COLLINEAR_TOL_SQ * edge_len_sq * sp_len_sq {
+                let t = sp.dot(edge_vec) / edge_len_sq;
+                if t > PARAM_MARGIN && t < 1.0 - PARAM_MARGIN {
+                    t_params.push(t);
+                }
+            }
+        }
+
+        let sv = seg.end - seg.start;
+        let r_vec = seg.start - pa;
+        let pairs: [(usize, usize); 3] = [(0, 1), (0, 2), (1, 2)];
+        let mut best_det_abs = 0.0_f64;
+        let mut best_t = 0.0_f64;
+        let mut best_s = 0.0_f64;
+        for &(ax, ay) in &pairs {
+            let e0 = edge_vec[ax];
+            let e1 = edge_vec[ay];
+            let s0 = sv[ax];
+            let s1 = sv[ay];
+            let r0 = r_vec[ax];
+            let r1 = r_vec[ay];
+            let det = e0 * (-s1) - e1 * (-s0);
+            if det.abs() > best_det_abs {
+                best_det_abs = det.abs();
+                best_t = (r0 * (-s1) - r1 * (-s0)) / det;
+                best_s = (e0 * r1 - e1 * r0) / det;
+            }
+        }
+
+        let min_det = min_axis_determinant(edge_len_sq, sv.norm_squared());
+        if best_det_abs < min_det
+            || best_t <= PARAM_MARGIN
+            || best_t >= 1.0 - PARAM_MARGIN
+            || best_s <= PARAM_MARGIN
+            || best_s >= 1.0 - PARAM_MARGIN
+        {
+            continue;
+        }
+        let x_edge = pa + edge_vec * best_t;
+        let x_seg = seg.start + sv * best_s;
+        if x_edge.distance_squared(x_seg) > 1e-6 * edge_len_sq {
+            continue;
+        }
+        t_params.push(best_t);
+    }
+
+    if t_params.is_empty() {
+        return false;
+    }
+
+    t_params.sort_by(f64::total_cmp);
+    t_params.dedup_by(|a, b| (*a - *b).abs() < PARAM_DEDUP_TOL);
+
+    pts.clear();
+    pts.push(pa);
+    for &t in &*t_params {
+        pts.push(pa + edge_vec * t);
+    }
+    pts.push(pb);
+    true
+}
+
 /// Ensure that every seam vertex created by CDT co-refinement is injected into
 /// all faces that share the face edge on which the seam vertex lies.
 ///
@@ -132,12 +227,6 @@ fn propagate_seam_vertices_impl(
             let pa = *pool.position(va_id);
             let pb = *pool.position(vb_id);
 
-            let edge_vec = pb - pa;
-            let edge_len_sq = edge_vec.dot(edge_vec);
-            if edge_len_sq < DEGENERATE_LEN_SQ {
-                continue;
-            }
-
             let edge_key = if va_id < vb_id {
                 (va_id, vb_id)
             } else {
@@ -150,104 +239,9 @@ fn propagate_seam_vertices_impl(
                 continue;
             }
 
-            t_params.clear();
-
-            for seg in snap_segs {
-                for &p in &[seg.start, seg.end] {
-                    if let Some(t_exact) = point_on_segment_exact(&pa, &pb, &p) {
-                        if t_exact > PARAM_MARGIN && t_exact < 1.0 - PARAM_MARGIN {
-                            t_params.push(t_exact);
-                        }
-                        continue;
-                    }
-
-                    let sp: leto::geometry::Vector3<f64> = p - pa;
-                    let sp_len_sq = sp.norm_squared();
-                    if sp_len_sq < COINCIDENT_LEN_SQ {
-                        continue;
-                    }
-                    let cross_v = edge_vec.cross(sp);
-                    if cross_v.norm_squared() <= COLLINEAR_TOL_SQ * edge_len_sq * sp_len_sq {
-                        let t = sp.dot(edge_vec) / edge_len_sq;
-                        if t > PARAM_MARGIN && t < 1.0 - PARAM_MARGIN {
-                            t_params.push(t);
-                        }
-                    }
-                }
-
-                let sv = seg.end - seg.start;
-                let r_vec = seg.start - pa;
-                let pairs: [(usize, usize); 3] = [(0, 1), (0, 2), (1, 2)];
-                let mut best_det_abs = 0.0_f64;
-                let mut best_t = 0.0_f64;
-                let mut best_s = 0.0_f64;
-                for &(ax, ay) in &pairs {
-                    let e0 = edge_vec[ax];
-                    let e1 = edge_vec[ay];
-                    let s0 = sv[ax];
-                    let s1 = sv[ay];
-                    let r0 = r_vec[ax];
-                    let r1 = r_vec[ay];
-                    let det = e0 * (-s1) - e1 * (-s0);
-                    if det.abs() > best_det_abs {
-                        best_det_abs = det.abs();
-                        best_t = (r0 * (-s1) - r1 * (-s0)) / det;
-                        best_s = (e0 * r1 - e1 * r0) / det;
-                    }
-                }
-                // Reject a near-parallel axis pair: the 2x2 solve below divides
-                // by this determinant. `best_det_abs` is a 2-D determinant of
-                // two in-plane lengths, so the threshold must be a length² or
-                // the decision stops being scale-equivariant — see
-                // [`min_axis_determinant`].
-                let min_det = min_axis_determinant(edge_len_sq, sv.norm_squared());
-                if best_det_abs < min_det {
-                    continue;
-                }
-                if best_t <= PARAM_MARGIN || best_t >= 1.0 - PARAM_MARGIN {
-                    continue;
-                }
-                if best_s <= PARAM_MARGIN || best_s >= 1.0 - PARAM_MARGIN {
-                    continue;
-                }
-                let x_edge = pa + edge_vec * best_t;
-                let x_seg = seg.start + sv * best_s;
-                // The 3-D points the parameter pair reconstructs must coincide
-                // to within `1e-6` *relative in squared distance* — a relative
-                // length of 1e-3, since both sides scale as length².
-                if (x_edge).distance_squared(x_seg) > 1e-6 * edge_len_sq {
-                    // The parameter pair failed its own verification, so the
-                    // crossing is rejected.
-                    //
-                    // An exact-predicate fallback used to be attempted here,
-                    // with its result discarded into `_` — so it never decided
-                    // anything, and it computed a projection axis, four
-                    // `orient_2d_arr` calls and a 2x2 solve per rejected
-                    // candidate for nothing. It was removed rather than wired
-                    // up: instrumenting this branch and running the whole suite
-                    // shows it is never reached, and the predicate it called
-                    // returns `None` whenever any projected orientation is
-                    // degenerate — which is precisely the near-parallel
-                    // configuration that gets here. See the open item in
-                    // `backlog/atlas-gaia-mesh-renderer.md`.
-                    continue;
-                }
-                t_params.push(best_t);
-            }
-
-            if t_params.is_empty() {
+            if !collect_edge_split_points(snap_segs, pa, pb, t_params, pts) {
                 continue;
             }
-
-            t_params.sort_by(f64::total_cmp);
-            t_params.dedup_by(|a, b| (*a - *b).abs() < PARAM_DEDUP_TOL);
-
-            pts.clear();
-            pts.push(pa);
-            for &t in &*t_params {
-                pts.push(pa + edge_vec * t);
-            }
-            pts.push(pb);
 
             for &adj_fi in adj_faces {
                 if adj_fi == fi {

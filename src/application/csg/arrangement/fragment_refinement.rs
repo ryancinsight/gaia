@@ -10,7 +10,7 @@ use super::classify::FragRecord;
 use crate::application::welding::GridCell;
 use crate::domain::core::constants::COREFINE_WELD_TOL_SQ;
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Point3r, Real};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -138,53 +138,27 @@ fn build_cross_mesh_merge_map(
     };
 
     if grid_on_a {
-        // Grid on A, probe B.
-        for (b_idx, probe_p) in b_positions.iter().enumerate() {
-            let probe_cell = GridCell::from_point(probe_p, inv_cell);
-            for nb_cell in probe_cell.neighborhood_27() {
-                let Some(cands) = grid.get(&nb_cell) else {
-                    continue;
-                };
-                for &a_idx in cands {
-                    let pa = a_positions[a_idx];
-                    let ddx = probe_p.x - pa.x;
-                    let ddy = probe_p.y - pa.y;
-                    let ddz = probe_p.z - pa.z;
-                    if ddx * ddx + ddy * ddy + ddz * ddz < tol_sq {
-                        let ra = find_root(&mut parent, a_idx);
-                        let rb = find_root(&mut parent, na + b_idx);
-                        if ra != rb {
-                            parent[rb] = ra;
-                            debug_assert!(ra < na, "A-root invariant violated");
-                        }
-                    }
-                }
-            }
-        }
+        union_probes_into_a_roots(
+            &b_positions,
+            &a_positions,
+            na,
+            inv_cell,
+            tol_sq,
+            &grid,
+            &mut parent,
+            &find_root,
+        );
     } else {
-        // Grid on B, probe A.
-        for (a_idx, probe_p) in a_positions.iter().enumerate() {
-            let probe_cell = GridCell::from_point(probe_p, inv_cell);
-            for nb_cell in probe_cell.neighborhood_27() {
-                let Some(cands) = grid.get(&nb_cell) else {
-                    continue;
-                };
-                for &b_idx in cands {
-                    let pb = b_positions[b_idx];
-                    let ddx = pb.x - probe_p.x;
-                    let ddy = pb.y - probe_p.y;
-                    let ddz = pb.z - probe_p.z;
-                    if ddx * ddx + ddy * ddy + ddz * ddz < tol_sq {
-                        let ra = find_root(&mut parent, a_idx);
-                        let rb = find_root(&mut parent, na + b_idx);
-                        if ra != rb {
-                            parent[rb] = ra;
-                            debug_assert!(ra < na, "A-root invariant violated");
-                        }
-                    }
-                }
-            }
-        }
+        union_a_probes_into_b_grid(
+            &a_positions,
+            &b_positions,
+            na,
+            inv_cell,
+            tol_sq,
+            &grid,
+            &mut parent,
+            &find_root,
+        );
     }
 
     let mut merge_map: HashMap<VertexId, VertexId> =
@@ -202,6 +176,88 @@ fn build_cross_mesh_merge_map(
         }
     }
     merge_map
+}
+
+/// Probe B-side vertices against an A-side spatial grid and union close pairs.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "cross-mesh union helper needs both point sets, grid state, DSU state, and root lookup"
+)]
+fn union_probes_into_a_roots<F>(
+    b_positions: &[Point3r],
+    a_positions: &[Point3r],
+    a_len: usize,
+    inv_cell: Real,
+    tol_sq: Real,
+    grid: &HashMap<GridCell, Vec<usize>>,
+    parent: &mut [usize],
+    find_root: &F,
+) where
+    F: Fn(&mut [usize], usize) -> usize,
+{
+    for (b_idx, probe_p) in b_positions.iter().enumerate() {
+        let probe_cell = GridCell::from_point(probe_p, inv_cell);
+        for nb_cell in probe_cell.neighborhood_27() {
+            let Some(cands) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &a_idx in cands {
+                let pa = a_positions[a_idx];
+                let ddx = probe_p.x - pa.x;
+                let ddy = probe_p.y - pa.y;
+                let ddz = probe_p.z - pa.z;
+                if ddx * ddx + ddy * ddy + ddz * ddz < tol_sq {
+                    let ra = find_root(parent, a_idx);
+                    let rb = find_root(parent, a_len + b_idx);
+                    if ra != rb {
+                        parent[rb] = ra;
+                        debug_assert!(ra < a_len, "A-root invariant violated");
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Probe A-side vertices against a B-side spatial grid and union close pairs.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "cross-mesh union helper needs both point sets, grid state, DSU state, and root lookup"
+)]
+fn union_a_probes_into_b_grid<F>(
+    a_positions: &[Point3r],
+    b_positions: &[Point3r],
+    a_len: usize,
+    inv_cell: Real,
+    tol_sq: Real,
+    grid: &HashMap<GridCell, Vec<usize>>,
+    parent: &mut [usize],
+    find_root: &F,
+) where
+    F: Fn(&mut [usize], usize) -> usize,
+{
+    for (a_idx, probe_p) in a_positions.iter().enumerate() {
+        let probe_cell = GridCell::from_point(probe_p, inv_cell);
+        for nb_cell in probe_cell.neighborhood_27() {
+            let Some(cands) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &b_idx in cands {
+                let pb = b_positions[b_idx];
+                let ddx = pb.x - probe_p.x;
+                let ddy = pb.y - probe_p.y;
+                let ddz = pb.z - probe_p.z;
+                if ddx * ddx + ddy * ddy + ddz * ddz < tol_sq {
+                    let ra = find_root(parent, a_idx);
+                    let rb = find_root(parent, a_len + b_idx);
+                    if ra != rb {
+                        parent[rb] = ra;
+                        debug_assert!(ra < a_len, "A-root invariant violated");
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Consolidate near-duplicate corefined vertices across meshes A and B.

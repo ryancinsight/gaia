@@ -216,6 +216,12 @@ Progress (Phase 24, 2026-10-01):
 - Forced-warning `too_many_lines` baseline reduced 30→18; `Cargo.toml` ratchet comment remeasured to 18.
 - `cargo clippy --lib` is clean; `cargo test --lib` passed 1139/1139.
 
+Progress (Phase 25, 2026-10-01):
+- Split 10 remaining complex CSG `too_many_lines` violators across arrangement, coplanar, and indexed-repair code paths without touching the concurrently edited forbidden files.
+- Forced-warning `too_many_lines` baseline reduced 18→8; `Cargo.toml` ratchet comment remeasured to 8.
+- `cargo clippy --lib` is clean; `cargo test --lib` passed 1140/1140.
+- Full `cargo fmt --check` is still blocked by formatting diffs in the concurrently edited forbidden files (`boundary.rs`, `helix_sweep.rs`, `stadium_prism.rs`, `ply.rs`), so this phase only formatted the touched CSG files directly.
+
 Evidence: `cargo clippy --all-targets --all-features -- --force-warn
 clippy::too_many_lines` emits 58 diagnostics at this revision; `unwrap_production`
 ratchet baseline auto-tightened 2→0 on push.

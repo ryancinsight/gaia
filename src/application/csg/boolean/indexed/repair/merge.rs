@@ -28,6 +28,111 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
         crate::application::watertight::check::euler_chi_from_stores(&mesh.faces, &edge_store)
     }
 
+    /// Find the closest boundary-boundary candidate pair within `tol`.
+    fn find_best_boundary_pair(
+        bv: &[VertexId],
+        bv_pos: &[leto::geometry::Point3<f64>],
+        tol: f64,
+        skip_pairs: &hashbrown::HashSet<(VertexId, VertexId)>,
+    ) -> Option<(VertexId, VertexId, f64)> {
+        let inv_tol = 1.0 / tol;
+        let mut best: Option<(VertexId, VertexId, f64)> = None;
+        let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> =
+            hashbrown::HashMap::with_capacity(bv.len());
+        for (i, p) in bv_pos.iter().enumerate() {
+            grid.entry(GridCell::from_point(p, inv_tol))
+                .or_default()
+                .push(i);
+        }
+        for (i, pi) in bv_pos.iter().enumerate() {
+            let cell = GridCell::from_point(pi, inv_tol);
+            for nb_cell in cell.neighborhood_27() {
+                let Some(cell_verts) = grid.get(&nb_cell) else {
+                    continue;
+                };
+                for &j in cell_verts {
+                    if j <= i {
+                        continue;
+                    }
+                    let pair_key = if bv[i] < bv[j] {
+                        (bv[i], bv[j])
+                    } else {
+                        (bv[j], bv[i])
+                    };
+                    if skip_pairs.contains(&pair_key) {
+                        continue;
+                    }
+                    let pj = &bv_pos[j];
+                    let d = (pi - pj).norm();
+                    let is_better = match best {
+                        Some((_, _, best_dist)) => d < best_dist,
+                        None => true,
+                    };
+                    if d < tol && is_better {
+                        best = Some((bv[i], bv[j], d));
+                    }
+                }
+            }
+        }
+        best
+    }
+
+    /// Find the closest boundary-to-interior merge candidate within half-tolerance.
+    fn find_best_boundary_to_interior_pair(
+        mesh: &IndexedMesh,
+        boundary_verts: &hashbrown::HashSet<VertexId>,
+        bv: &[VertexId],
+        tol: f64,
+        skip_pairs: &hashbrown::HashSet<(VertexId, VertexId)>,
+        current_best: Option<(VertexId, VertexId, f64)>,
+    ) -> Option<(VertexId, VertexId, f64)> {
+        let per_vertex_tol = tol * 0.5;
+        let inv_pvt = 1.0 / per_vertex_tol;
+        let all_vids: Vec<VertexId> = mesh.vertices.iter().map(|(id, _)| id).collect();
+        let mut best = current_best;
+        let mut igrid: hashbrown::HashMap<GridCell, Vec<VertexId>> =
+            hashbrown::HashMap::with_capacity(all_vids.len().saturating_sub(boundary_verts.len()));
+        for &ivid in &all_vids {
+            if boundary_verts.contains(&ivid) {
+                continue;
+            }
+            let ip = mesh.vertices.position(ivid);
+            igrid
+                .entry(GridCell::from_point(ip, inv_pvt))
+                .or_default()
+                .push(ivid);
+        }
+        for &bvid in bv {
+            let bp = mesh.vertices.position(bvid);
+            let cell = GridCell::from_point(bp, inv_pvt);
+            for nb_cell in cell.neighborhood_27() {
+                let Some(cell_verts) = igrid.get(&nb_cell) else {
+                    continue;
+                };
+                for &ivid in cell_verts {
+                    let pair_key = if bvid < ivid {
+                        (bvid, ivid)
+                    } else {
+                        (ivid, bvid)
+                    };
+                    if skip_pairs.contains(&pair_key) {
+                        continue;
+                    }
+                    let ip = mesh.vertices.position(ivid);
+                    let d = (bp - ip).norm();
+                    let is_better = match best {
+                        Some((_, _, best_dist)) => d < best_dist,
+                        None => true,
+                    };
+                    if d < per_vertex_tol && is_better {
+                        best = Some((ivid, bvid, d));
+                    }
+                }
+            }
+        }
+        best
+    }
+
     // Adaptive tolerance: `merge_mult` fraction of the mean edge length,
     // clamped to [0.01, 0.2] mm.  The escalating repair pipeline calls this
     // with progressively wider multipliers (0.05 → 0.40).
@@ -85,6 +190,8 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
         // vertex order makes equal-distance choices independent of hash order.
         let mut bv: Vec<VertexId> = boundary_verts.iter().copied().collect();
         bv.sort_unstable();
+        let bv_pos: Vec<leto::geometry::Point3<f64>> =
+            bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
 
         // Phase 2: find closest boundary-boundary pair within tolerance,
         // skipping pairs that previously caused a χ decrease.
@@ -92,99 +199,19 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
         // Uses a spatial hash grid with cell size = tol so that only
         // vertices in the 27-cell neighbourhood are compared, reducing
         // worst-case O(B²) to O(B) expected.
-        let inv_tol = 1.0 / tol;
-        let mut best: Option<(VertexId, VertexId, f64)> = None;
-        {
-            let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> =
-                hashbrown::HashMap::with_capacity(bv.len());
-            let bv_pos: Vec<leto::geometry::Point3<f64>> =
-                bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
-            for (i, p) in bv_pos.iter().enumerate().take(bv.len()) {
-                grid.entry(GridCell::from_point(p, inv_tol))
-                    .or_default()
-                    .push(i);
-            }
-            for (i, pi) in bv_pos.iter().enumerate().take(bv.len()) {
-                let cell = GridCell::from_point(pi, inv_tol);
-                for nb_cell in cell.neighborhood_27() {
-                    let Some(cell_verts) = grid.get(&nb_cell) else {
-                        continue;
-                    };
-                    for &j in cell_verts {
-                        if j <= i {
-                            continue;
-                        }
-                        let pair_key = if bv[i] < bv[j] {
-                            (bv[i], bv[j])
-                        } else {
-                            (bv[j], bv[i])
-                        };
-                        if skip_pairs.contains(&pair_key) {
-                            continue;
-                        }
-                        let pj = &bv_pos[j];
-                        let d = (pi - pj).norm();
-                        let is_better = match best {
-                            Some((_, _, best_dist)) => d < best_dist,
-                            None => true,
-                        };
-                        if d < tol && is_better {
-                            best = Some((bv[i], bv[j], d));
-                        }
-                    }
-                }
-            }
-        }
+        let mut best = find_best_boundary_pair(&bv, &bv_pos, tol, &skip_pairs);
 
         // Phase 3: if no boundary-boundary pair found, try boundary-to-interior
         // using a spatial hash grid with cell size = per_vertex_tol.
         if best.is_none() {
-            let per_vertex_tol = tol * 0.5;
-            let inv_pvt = 1.0 / per_vertex_tol;
-            // Build grid over interior vertices only.
-            let all_vids: Vec<VertexId> = mesh.vertices.iter().map(|(id, _)| id).collect();
-            let mut igrid: hashbrown::HashMap<GridCell, Vec<VertexId>> =
-                hashbrown::HashMap::with_capacity(
-                    all_vids.len().saturating_sub(boundary_verts.len()),
-                );
-            for &ivid in &all_vids {
-                if boundary_verts.contains(&ivid) {
-                    continue;
-                }
-                let ip = mesh.vertices.position(ivid);
-                igrid
-                    .entry(GridCell::from_point(ip, inv_pvt))
-                    .or_default()
-                    .push(ivid);
-            }
-            for &bvid in &bv {
-                let bp = mesh.vertices.position(bvid);
-                let cell = GridCell::from_point(bp, inv_pvt);
-                for nb_cell in cell.neighborhood_27() {
-                    let Some(cell_verts) = igrid.get(&nb_cell) else {
-                        continue;
-                    };
-                    for &ivid in cell_verts {
-                        let pair_key = if bvid < ivid {
-                            (bvid, ivid)
-                        } else {
-                            (ivid, bvid)
-                        };
-                        if skip_pairs.contains(&pair_key) {
-                            continue;
-                        }
-                        let ip = mesh.vertices.position(ivid);
-                        let d = (bp - ip).norm();
-                        let is_better = match best {
-                            Some((_, _, best_dist)) => d < best_dist,
-                            None => true,
-                        };
-                        if d < per_vertex_tol && is_better {
-                            best = Some((ivid, bvid, d));
-                        }
-                    }
-                }
-            }
+            best = find_best_boundary_to_interior_pair(
+                mesh,
+                &boundary_verts,
+                &bv,
+                tol,
+                &skip_pairs,
+                best,
+            );
         }
 
         let Some((keep, remove, _dist)) = best else {
