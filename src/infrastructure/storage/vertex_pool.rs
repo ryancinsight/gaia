@@ -109,6 +109,10 @@ struct CellKey {
 }
 
 impl CellKey {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "floor() produces an exact integer; mesh cell coordinates are far from i64::MAX"
+    )]
     fn from_point<T: Scalar>(p: &Point3<T>, inv_cell_size: T) -> Self {
         let fx = (p.x * inv_cell_size).floor();
         let fy = (p.y * inv_cell_size).floor();

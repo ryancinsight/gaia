@@ -58,11 +58,11 @@ pub(super) fn build_recursive(
 
     // Leaf threshold.
     if count <= MAX_LEAF_PRIMITIVES {
-        let idx = out_aabbs.len() as u32;
+        let idx = u32::try_from(out_aabbs.len()).expect("BVH node count fits in u32");
         out_aabbs.push(node_aabb);
         out_kinds.push(BvhNodeKind::Leaf {
-            start: start as u32,
-            end: end as u32,
+            start: u32::try_from(start).expect("BVH primitive start fits in u32"),
+            end: u32::try_from(end).expect("BVH primitive end fits in u32"),
         });
         return idx;
     }
@@ -76,7 +76,7 @@ pub(super) fn build_recursive(
     }
 
     // Reserve parent slot; children are appended after this index.
-    let parent_idx = out_aabbs.len() as u32;
+    let parent_idx = u32::try_from(out_aabbs.len()).expect("BVH node count fits in u32");
     out_aabbs.push(node_aabb);
     out_kinds.push(BvhNodeKind::Inner { left: 0, right: 0 }); // patched below
 
@@ -85,10 +85,11 @@ pub(super) fn build_recursive(
 
     // Patch parent connectivity.  `parent_idx` is valid: it was pushed before
     // the recursive calls that only append beyond it.
-    out_kinds[parent_idx as usize] = BvhNodeKind::Inner {
-        left: left_idx,
-        right: right_idx,
-    };
+    out_kinds[usize::try_from(parent_idx).expect("BVH parent index fits in usize")] =
+        BvhNodeKind::Inner {
+            left: left_idx,
+            right: right_idx,
+        };
     parent_idx
 }
 

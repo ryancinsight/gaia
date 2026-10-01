@@ -1,4 +1,4 @@
-﻿//! Shared Marching Cubes extraction engine for implicit TPMS surfaces.
+//! Shared Marching Cubes extraction engine for implicit TPMS surfaces.
 //!
 //! ## Algorithm
 //!
@@ -569,7 +569,11 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(dx, dy, dz)) in CORNERS.iter().enumerate() {
-                    let v = field[idx(ix + corner_offset(dx), iy + corner_offset(dy), iz + corner_offset(dz))];
+                    let v = field[idx(
+                        ix + corner_offset(dx),
+                        iy + corner_offset(dy),
+                        iz + corner_offset(dz),
+                    )];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
