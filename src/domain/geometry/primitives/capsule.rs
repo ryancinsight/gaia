@@ -64,6 +64,107 @@ impl PrimitiveMesh for Capsule {
     }
 }
 
+/// Add one hemispherical cap to a capsule mesh.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the helper mirrors the capsule build parameters needed to place one hemisphere without introducing a one-off configuration type"
+)]
+fn add_hemisphere(
+    mesh: &mut IndexedMesh,
+    r: f64,
+    center_y: f64,
+    cx: f64,
+    cz: f64,
+    flip: bool,
+    ns: usize,
+    hs: usize,
+    region: RegionId,
+) {
+    let segments = f64::from_usize(ns);
+    let hemisphere_stacks = f64::from_usize(hs);
+
+    for i in 0..ns {
+        let t0 = f64::from_usize(i) / segments * TAU;
+        let t1 = f64::from_usize(i + 1) / segments * TAU;
+        for j in 0..hs {
+            let (phi0, phi1) = if flip {
+                (
+                    PI / 2.0 + f64::from_usize(j) / hemisphere_stacks * PI / 2.0,
+                    PI / 2.0 + f64::from_usize(j + 1) / hemisphere_stacks * PI / 2.0,
+                )
+            } else {
+                (
+                    f64::from_usize(j) / hemisphere_stacks * PI / 2.0,
+                    f64::from_usize(j + 1) / hemisphere_stacks * PI / 2.0,
+                )
+            };
+
+            let vertex_at = |theta: f64, phi: f64| -> (Point3r, Vector3r) {
+                let sp = phi.sin();
+                let cp = phi.cos();
+                let ct = theta.cos();
+                let st = theta.sin();
+                let normal = Vector3r::new(sp * ct, cp, sp * st);
+                let point = Point3r::new(cx + r * sp * ct, center_y + r * cp, cz + r * sp * st);
+                (point, normal)
+            };
+
+            let (p00, n00) = vertex_at(t0, phi0);
+            let (p10, n10) = vertex_at(t1, phi0);
+            let (p11, n11) = vertex_at(t1, phi1);
+            let (p01, n01) = vertex_at(t0, phi1);
+
+            let v00 = mesh.add_vertex(p00, n00);
+            let v10 = mesh.add_vertex(p10, n10);
+            let v11 = mesh.add_vertex(p11, n11);
+            let v01 = mesh.add_vertex(p01, n01);
+
+            if !flip && j == 0 {
+                mesh.add_face_with_region(v10, v11, v01, region);
+            } else if flip && j == hs - 1 {
+                mesh.add_face_with_region(v00, v10, v01, region);
+            } else {
+                mesh.add_face_with_region(v00, v10, v11, region);
+                mesh.add_face_with_region(v00, v11, v01, region);
+            }
+        }
+    }
+}
+
+/// Add the cylindrical mid-band shared by the two capsule hemispheres.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the helper needs radius, centers, tessellation, and region inputs to reuse the capsule cylinder band without obscuring the geometry"
+)]
+fn add_cylinder_band(
+    mesh: &mut IndexedMesh,
+    r: f64,
+    cx: f64,
+    cy_bot: f64,
+    cy_top: f64,
+    cz: f64,
+    ns: usize,
+    region: RegionId,
+) {
+    let segments = f64::from_usize(ns);
+    for i in 0..ns {
+        let t0 = f64::from_usize(i) / segments * TAU;
+        let t1 = f64::from_usize(i + 1) / segments * TAU;
+        let (c0, s0) = (t0.cos(), t0.sin());
+        let (c1, s1) = (t1.cos(), t1.sin());
+        let n0 = Vector3r::new(c0, 0.0, s0);
+        let n1 = Vector3r::new(c1, 0.0, s1);
+
+        let vb0 = mesh.add_vertex(Point3r::new(cx + r * c0, cy_bot, cz + r * s0), n0);
+        let vb1 = mesh.add_vertex(Point3r::new(cx + r * c1, cy_bot, cz + r * s1), n1);
+        let vt0 = mesh.add_vertex(Point3r::new(cx + r * c0, cy_top, cz + r * s0), n0);
+        let vt1 = mesh.add_vertex(Point3r::new(cx + r * c1, cy_top, cz + r * s1), n1);
+
+        mesh.add_face_with_region(vb0, vt0, vt1, region);
+        mesh.add_face_with_region(vb0, vt1, vb1, region);
+    }
+}
+
 fn build(cap: &Capsule) -> Result<IndexedMesh, PrimitiveError> {
     if cap.radius <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(
@@ -95,113 +196,19 @@ fn build(cap: &Capsule) -> Result<IndexedMesh, PrimitiveError> {
     let cz = cap.center.z;
     let ns = cap.segments;
     let hs = cap.hemisphere_stacks;
-    let segments = f64::from_usize(ns);
-    let hemisphere_stacks = f64::from_usize(hs);
 
     // Y-offsets for the two hemisphere centres (= cylinder cap positions).
     let top_cy = cy + hl / 2.0;
     let bot_cy = cy - hl / 2.0;
 
-    // ── Top hemisphere (φ: 0 → π/2, centre at y = top_cy) ───────────────────
-    // φ = 0 → north pole (y = top_cy + r)
-    // φ = π/2 → equator ring (y = top_cy, r_xy = r) → shared with cylinder top ring
-    for i in 0..ns {
-        let t0 = f64::from_usize(i) / segments * TAU;
-        let t1 = f64::from_usize(i + 1) / segments * TAU;
-        for j in 0..hs {
-            let phi0 = f64::from_usize(j) / hemisphere_stacks * PI / 2.0;
-            let phi1 = f64::from_usize(j + 1) / hemisphere_stacks * PI / 2.0;
-
-            let vat = |theta: f64, phi: f64| -> (Point3r, Vector3r) {
-                let sp = phi.sin();
-                let cp = phi.cos();
-                let ct = theta.cos();
-                let st = theta.sin();
-                let n = Vector3r::new(sp * ct, cp, sp * st);
-                let p = Point3r::new(cx + r * sp * ct, top_cy + r * cp, cz + r * sp * st);
-                (p, n)
-            };
-
-            let (p00, n00) = vat(t0, phi0);
-            let (p10, n10) = vat(t1, phi0);
-            let (p11, n11) = vat(t1, phi1);
-            let (p01, n01) = vat(t0, phi1);
-
-            let v00 = mesh.add_vertex(p00, n00);
-            let v10 = mesh.add_vertex(p10, n10);
-            let v11 = mesh.add_vertex(p11, n11);
-            let v01 = mesh.add_vertex(p01, n01);
-
-            if j == 0 {
-                // North-pole row: v00 == v10 (φ=0) → triangle
-                mesh.add_face_with_region(v10, v11, v01, region);
-            } else {
-                mesh.add_face_with_region(v00, v10, v11, region);
-                mesh.add_face_with_region(v00, v11, v01, region);
-            }
-        }
-    }
+    add_hemisphere(&mut mesh, r, top_cy, cx, cz, false, ns, hs, region);
 
     // ── Cylinder lateral (only when cylinder_height > 0) ────────────────────
     if hl > 0.0 {
-        for i in 0..ns {
-            let t0 = f64::from_usize(i) / segments * TAU;
-            let t1 = f64::from_usize(i + 1) / segments * TAU;
-
-            let (c0, s0) = (t0.cos(), t0.sin());
-            let (c1, s1) = (t1.cos(), t1.sin());
-            let n0 = Vector3r::new(c0, 0.0, s0);
-            let n1 = Vector3r::new(c1, 0.0, s1);
-
-            let vb0 = mesh.add_vertex(Point3r::new(cx + r * c0, bot_cy, cz + r * s0), n0);
-            let vb1 = mesh.add_vertex(Point3r::new(cx + r * c1, bot_cy, cz + r * s1), n1);
-            let vt0 = mesh.add_vertex(Point3r::new(cx + r * c0, top_cy, cz + r * s0), n0);
-            let vt1 = mesh.add_vertex(Point3r::new(cx + r * c1, top_cy, cz + r * s1), n1);
-
-            mesh.add_face_with_region(vb0, vt0, vt1, region);
-            mesh.add_face_with_region(vb0, vt1, vb1, region);
-        }
+        add_cylinder_band(&mut mesh, r, cx, bot_cy, top_cy, cz, ns, region);
     }
 
-    // ── Bottom hemisphere (φ: π/2 → π, centre at y = bot_cy) ────────────────
-    // φ = π/2 → equator ring (y = bot_cy) → shared with cylinder bottom ring
-    // φ = π  → south pole (y = bot_cy − r)
-    for i in 0..ns {
-        let t0 = f64::from_usize(i) / segments * TAU;
-        let t1 = f64::from_usize(i + 1) / segments * TAU;
-        for j in 0..hs {
-            let phi0 = PI / 2.0 + f64::from_usize(j) / hemisphere_stacks * PI / 2.0;
-            let phi1 = PI / 2.0 + f64::from_usize(j + 1) / hemisphere_stacks * PI / 2.0;
-
-            let vat = |theta: f64, phi: f64| -> (Point3r, Vector3r) {
-                let sp = phi.sin();
-                let cp = phi.cos();
-                let ct = theta.cos();
-                let st = theta.sin();
-                let n = Vector3r::new(sp * ct, cp, sp * st);
-                let p = Point3r::new(cx + r * sp * ct, bot_cy + r * cp, cz + r * sp * st);
-                (p, n)
-            };
-
-            let (p00, n00) = vat(t0, phi0);
-            let (p10, n10) = vat(t1, phi0);
-            let (p11, n11) = vat(t1, phi1);
-            let (p01, n01) = vat(t0, phi1);
-
-            let v00 = mesh.add_vertex(p00, n00);
-            let v10 = mesh.add_vertex(p10, n10);
-            let v11 = mesh.add_vertex(p11, n11);
-            let v01 = mesh.add_vertex(p01, n01);
-
-            if j == hs - 1 {
-                // South-pole row: v11 == v01 (φ=π) → triangle
-                mesh.add_face_with_region(v00, v10, v01, region);
-            } else {
-                mesh.add_face_with_region(v00, v10, v11, region);
-                mesh.add_face_with_region(v00, v11, v01, region);
-            }
-        }
-    }
+    add_hemisphere(&mut mesh, r, bot_cy, cx, cz, true, ns, hs, region);
 
     Ok(mesh)
 }

@@ -20,7 +20,70 @@ pub struct WeldResult {
     pub faces_updated: usize,
 }
 
-/// Topology-aware vertex welder for existing meshes.
+/// Build vertex-to-face adjacency and per-face vertex snapshot from a `FaceStore`.
+///
+/// Returns `(v_faces, cur_face_verts)` where `v_faces[i]` contains the raw
+/// face IDs incident to vertex `i`, and `cur_face_verts[f]` is the current
+/// (post-merge-update) triple of raw vertex IDs for face `f`.
+fn build_vertex_face_adjacency(n: usize, face_store: &FaceStore) -> (Vec<Vec<u32>>, Vec<[u32; 3]>) {
+    let mut v_faces: Vec<Vec<u32>> = vec![Vec::new(); n];
+    for (f_id, face) in face_store.iter_enumerated() {
+        for v in face.vertices {
+            push_unique_face(&mut v_faces[v.raw() as usize], f_id.0);
+        }
+    }
+    let mut cur_face_verts: Vec<[u32; 3]> = vec![[0; 3]; face_store.len()];
+    for (f_id, face) in face_store.iter_enumerated() {
+        cur_face_verts[f_id.0 as usize] = [
+            face.vertices[0].raw(),
+            face.vertices[1].raw(),
+            face.vertices[2].raw(),
+        ];
+    }
+    (v_faces, cur_face_verts)
+}
+
+/// Pack the canonical positions into a `WeldResult` and update face vertex IDs.
+fn pack_merged_vertices(
+    positions: &[Point3r],
+    remap: &[u32],
+    face_store: &mut FaceStore,
+    old_active_count: usize,
+) -> WeldResult {
+    let mut packed_positions = Vec::with_capacity(positions.len());
+    let mut pack_map: HashMap<u32, u32> = HashMap::with_capacity(positions.len());
+    let mut faces_updated = 0;
+
+    for (_f_id, face) in face_store.iter_mut_enumerated() {
+        let mut changed = false;
+        for v in &mut face.vertices {
+            let old_raw = v.raw();
+            let canonical_id = remap[usize::try_from(old_raw).expect("vertex index fits in usize")];
+            if canonical_id != old_raw {
+                changed = true;
+            }
+            let packed_id = *pack_map.entry(canonical_id).or_insert_with(|| {
+                let new_idx =
+                    u32::try_from(packed_positions.len()).expect("packed vertex count fits in u32");
+                packed_positions.push(
+                    positions[usize::try_from(canonical_id).expect("vertex index fits in usize")],
+                );
+                new_idx
+            });
+            *v = VertexId::new(packed_id);
+        }
+        if changed {
+            faces_updated += 1;
+        }
+    }
+
+    WeldResult {
+        positions: packed_positions,
+        vertices_merged: old_active_count - pack_map.len(),
+        faces_updated,
+    }
+}
+/// Topology-preserving vertex welder for coincident-position cleanup.
 pub struct MeshWelder {
     /// Tolerance for vertex welding.
     tolerance: Real,
@@ -63,42 +126,20 @@ impl MeshWelder {
             };
         }
 
-        // 1. Build initial vertex-to-face adjacency.
-        //
-        // Mesh vertex valence is normally small, so Vec-backed adjacency avoids
-        // one hash table per active vertex while keeping membership checks over
-        // cache-local face ids.
-        let mut v_faces: Vec<Vec<u32>> = vec![Vec::new(); n];
-        for (f_id, face) in face_store.iter_enumerated() {
-            for v in face.vertices {
-                push_unique_face(&mut v_faces[v.raw() as usize], f_id.0);
-            }
-        }
-
+        let (mut v_faces, mut cur_face_verts) = build_vertex_face_adjacency(n, face_store);
         let old_active_count = v_faces.iter().filter(|f| !f.is_empty()).count();
 
-        // Keep track of the current vertices for each face to dynamically check topologies.
-        let mut cur_face_verts: Vec<[u32; 3]> = vec![[0; 3]; face_store.len()];
-        for (f_id, face) in face_store.iter_enumerated() {
-            cur_face_verts[f_id.0 as usize] = [
-                face.vertices[0].raw(),
-                face.vertices[1].raw(),
-                face.vertices[2].raw(),
-            ];
-        }
-
-        // 2. Build a SpatialHashGrid containing all original positions
+        // Build a SpatialHashGrid containing all original positions.
         let mut grid = SpatialHashGrid::new(self.tolerance * 2.0);
         for (i, p) in positions.iter().enumerate() {
             grid.insert(p, u32::try_from(i).expect("vertex index fits in u32"));
         }
 
-        // Pre-allocate scratch buffers for is_safe_to_merge — reused each iteration
-        // instead of allocating two new HashMaps per merge candidate.
+        // Pre-allocate scratch buffers for is_safe_to_merge.
         let mut dst_scratch: Vec<(u32, u32)> = Vec::with_capacity(32);
         let mut src_scratch: Vec<(u32, u32)> = Vec::with_capacity(32);
 
-        // 3. Greedy topological clustering
+        // Greedy topological clustering.
         // remap[i] maps original vertex i to its canonical merged vertex head.
         let mut remap: Vec<u32> =
             (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
@@ -106,11 +147,10 @@ impl MeshWelder {
 
         for i in 0..u32::try_from(n).expect("vertex count fits in u32") {
             if remap[usize::try_from(i).expect("vertex index fits in usize")] != i {
-                continue; // Already merged into another vertex.
+                continue;
             }
-
             if v_faces[usize::try_from(i).expect("vertex index fits in usize")].is_empty() {
-                continue; // Unused vertex, ignore.
+                continue;
             }
 
             // Find all spatial neighbors
@@ -174,46 +214,7 @@ impl MeshWelder {
             }
         }
 
-        // 4. Pack vertices
-        let mut packed_positions = Vec::with_capacity(n);
-        let mut pack_map = HashMap::with_capacity(n);
-
-        let mut faces_updated = 0;
-
-        for (_f_id, face) in face_store.iter_mut_enumerated() {
-            let mut changed = false;
-            for v in &mut face.vertices {
-                let old_raw = v.raw();
-                let canonical_id =
-                    remap[usize::try_from(old_raw).expect("vertex index fits in usize")];
-
-                if canonical_id != old_raw {
-                    changed = true;
-                }
-
-                // Find or assign packed id
-                let packed_id = *pack_map.entry(canonical_id).or_insert_with(|| {
-                    let new_idx = u32::try_from(packed_positions.len())
-                        .expect("packed vertex count fits in u32");
-                    packed_positions.push(
-                        positions
-                            [usize::try_from(canonical_id).expect("vertex index fits in usize")],
-                    );
-                    new_idx
-                });
-
-                *v = VertexId::new(packed_id);
-            }
-            if changed {
-                faces_updated += 1;
-            }
-        }
-
-        WeldResult {
-            positions: packed_positions,
-            vertices_merged: old_active_count - pack_map.len(),
-            faces_updated,
-        }
+        pack_merged_vertices(positions, &remap, face_store, old_active_count)
     }
 
     /// Evaluates the topological safety of merging vertex `src` into `dst`.
@@ -291,55 +292,6 @@ impl MeshWelder {
 fn push_unique_face(faces: &mut Vec<u32>, face_id: u32) {
     if !faces.contains(&face_id) {
         faces.push(face_id);
-    }
-}
-
-/// Pack the vertex remap array into a `WeldResult`, updating the face store in-place.
-///
-/// Assigns each unique canonical vertex a new contiguous index, rewrites every
-/// face vertex reference, and counts how many face updates and merges occurred.
-#[expect(
-    dead_code,
-    reason = "local welding refactor extracted this helper before the call sites were switched over"
-)]
-fn pack_merged_vertices(
-    n: usize,
-    old_active_count: usize,
-    positions: &[Point3r],
-    remap: &[u32],
-    face_store: &mut FaceStore,
-) -> WeldResult {
-    let mut packed_positions: Vec<Point3r> = Vec::with_capacity(n);
-    let mut pack_map: HashMap<u32, u32> = HashMap::with_capacity(n);
-    let mut faces_updated = 0usize;
-
-    for (_f_id, face) in face_store.iter_mut_enumerated() {
-        let mut changed = false;
-        for v in &mut face.vertices {
-            let old_raw = v.raw();
-            let canonical_id = remap[usize::try_from(old_raw).expect("vertex index fits in usize")];
-            if canonical_id != old_raw {
-                changed = true;
-            }
-            let packed_id = *pack_map.entry(canonical_id).or_insert_with(|| {
-                let new_idx =
-                    u32::try_from(packed_positions.len()).expect("packed vertex count fits in u32");
-                packed_positions.push(
-                    positions[usize::try_from(canonical_id).expect("vertex index fits in usize")],
-                );
-                new_idx
-            });
-            *v = VertexId::new(packed_id);
-        }
-        if changed {
-            faces_updated += 1;
-        }
-    }
-
-    WeldResult {
-        positions: packed_positions,
-        vertices_merged: old_active_count - pack_map.len(),
-        faces_updated,
     }
 }
 

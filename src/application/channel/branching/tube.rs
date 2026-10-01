@@ -11,6 +11,24 @@ use crate::infrastructure::storage::vertex_pool::DEFAULT_MESH_CELL_SIZE;
 
 pub(super) const ANGULAR_SEGMENTS: usize = 32;
 
+/// Connect two successive tube rings with outward-oriented wall quads.
+fn add_tube_wall_band(
+    mesh: &mut IndexedMesh,
+    previous_ring: &[crate::domain::core::index::VertexId],
+    next_ring: &[crate::domain::core::index::VertexId],
+    region: RegionId,
+) {
+    for ia in 0..ANGULAR_SEGMENTS {
+        let ia1 = (ia + 1) % ANGULAR_SEGMENTS;
+        let v00 = previous_ring[ia];
+        let v01 = previous_ring[ia1];
+        let v10 = next_ring[ia];
+        let v11 = next_ring[ia1];
+        mesh.add_face_with_region(v00, v01, v10, region);
+        mesh.add_face_with_region(v01, v11, v10, region);
+    }
+}
+
 /// Build one closed, region-labelled tube operand for a branch composition.
 #[expect(
     clippy::too_many_arguments,
@@ -93,18 +111,7 @@ pub(super) fn build_closed_tube(
         if i == 0 {
             first_ring.clone_from(&ring);
         } else {
-            for ia in 0..ANGULAR_SEGMENTS {
-                let ia1 = (ia + 1) % ANGULAR_SEGMENTS;
-                let v00 = previous_ring[ia];
-                let v01 = previous_ring[ia1];
-                let v10 = ring[ia];
-                let v11 = ring[ia1];
-                // `ex`, `fx`, and the axial direction form a right-handed
-                // frame. The ring edge therefore precedes the axial edge
-                // for an outward lateral normal.
-                mesh.add_face_with_region(v00, v01, v10, wall_region);
-                mesh.add_face_with_region(v01, v11, v10, wall_region);
-            }
+            add_tube_wall_band(&mut mesh, &previous_ring, &ring, wall_region);
         }
         std::mem::swap(&mut previous_ring, &mut ring);
     }

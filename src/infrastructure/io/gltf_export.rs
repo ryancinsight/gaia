@@ -8,7 +8,59 @@ use hashbrown::HashMap;
 use std::io::Write;
 
 use crate::domain::core::error::{MeshError, MeshResult};
+use crate::domain::core::index::VertexId;
 use crate::domain::mesh::IndexedMesh;
+
+type EncodedVertexBuffers = (
+    Vec<[f32; 3]>,
+    Vec<[f32; 3]>,
+    HashMap<VertexId, u32>,
+    [f32; 3],
+    [f32; 3],
+);
+
+/// Encode mesh vertices into contiguous glTF position and normal buffers.
+fn encode_vertex_buffers(mesh: &IndexedMesh) -> EncodedVertexBuffers {
+    let vertex_count = mesh.vertex_count();
+    let mut id_to_idx: HashMap<VertexId, u32> = HashMap::with_capacity(vertex_count);
+    let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertex_count);
+    let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertex_count);
+    let mut min_pos = [f32::MAX; 3];
+    let mut max_pos = [f32::MIN; 3];
+
+    for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
+        id_to_idx.insert(vid, u32::try_from(idx).expect("vertex index fits in u32"));
+        let position = [
+            vdata.position.x as f32,
+            vdata.position.y as f32,
+            vdata.position.z as f32,
+        ];
+        let normal = [
+            vdata.normal.x as f32,
+            vdata.normal.y as f32,
+            vdata.normal.z as f32,
+        ];
+        for axis in 0..3 {
+            min_pos[axis] = min_pos[axis].min(position[axis]);
+            max_pos[axis] = max_pos[axis].max(position[axis]);
+        }
+        positions.push(position);
+        normals.push(normal);
+    }
+
+    (positions, normals, id_to_idx, min_pos, max_pos)
+}
+
+/// Encode mesh faces into a contiguous triangle index buffer.
+fn encode_index_buffer(mesh: &IndexedMesh, id_to_idx: &HashMap<VertexId, u32>) -> Vec<u32> {
+    let mut indices: Vec<u32> = Vec::with_capacity(mesh.face_count() * 3);
+    for (_fid, face) in mesh.faces.iter_enumerated() {
+        indices.push(id_to_idx[&face.vertices[0]]);
+        indices.push(id_to_idx[&face.vertices[1]]);
+        indices.push(id_to_idx[&face.vertices[2]]);
+    }
+    indices
+}
 
 /// Write an [`IndexedMesh`] as a glTF 2.0 Binary (`.glb`) file.
 ///
@@ -23,44 +75,8 @@ use crate::domain::mesh::IndexedMesh;
 /// field width.
 pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
     let vertex_count = mesh.vertex_count();
-    let face_count = mesh.face_count();
-
-    // Build contiguous vertex data (position f32x3 + normal f32x3 = 24 bytes/vertex).
-    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, u32> =
-        HashMap::with_capacity(vertex_count);
-    let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertex_count);
-    let mut normals: Vec<[f32; 3]> = Vec::with_capacity(vertex_count);
-    let mut min_pos = [f32::MAX; 3];
-    let mut max_pos = [f32::MIN; 3];
-
-    for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
-        id_to_idx.insert(vid, u32::try_from(idx).expect("vertex index fits in u32"));
-        // gLTF format uses f32; intentional narrowing from f64 mesh coordinates.
-        let p = [
-            vdata.position.x as f32,
-            vdata.position.y as f32,
-            vdata.position.z as f32,
-        ];
-        let n = [
-            vdata.normal.x as f32,
-            vdata.normal.y as f32,
-            vdata.normal.z as f32,
-        ];
-        for i in 0..3 {
-            min_pos[i] = min_pos[i].min(p[i]);
-            max_pos[i] = max_pos[i].max(p[i]);
-        }
-        positions.push(p);
-        normals.push(n);
-    }
-
-    // Build index buffer (u32).
-    let mut indices: Vec<u32> = Vec::with_capacity(face_count * 3);
-    for (_fid, face) in mesh.faces.iter_enumerated() {
-        indices.push(id_to_idx[&face.vertices[0]]);
-        indices.push(id_to_idx[&face.vertices[1]]);
-        indices.push(id_to_idx[&face.vertices[2]]);
-    }
+    let (positions, normals, id_to_idx, min_pos, max_pos) = encode_vertex_buffers(mesh);
+    let indices = encode_index_buffer(mesh, &id_to_idx);
 
     let index_count = indices.len();
 

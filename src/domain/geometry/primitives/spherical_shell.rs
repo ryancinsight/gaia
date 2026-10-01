@@ -4,7 +4,7 @@ use std::f64::consts::PI;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::index::RegionId;
+use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -67,6 +67,107 @@ impl PrimitiveMesh for SphericalShell {
     }
 }
 
+/// Build the latitude rings for one shell surface.
+fn build_shell_rings(
+    mesh: &mut IndexedMesh,
+    r: f64,
+    center: Point3r,
+    ns: usize,
+    nk: usize,
+    is_outer: bool,
+) -> Vec<Vec<VertexId>> {
+    let segments = f64::from_usize(ns);
+    let stacks = f64::from_usize(nk);
+
+    (0..nk - 1)
+        .map(|k| {
+            let phi = f64::from_usize(k + 1) / stacks * PI;
+            let sp = phi.sin();
+            let cp = phi.cos();
+            let y = center.y + r * cp;
+
+            (0..ns)
+                .map(|j| {
+                    let theta = f64::from_usize(j) / segments * TAU;
+                    let ct = theta.cos();
+                    let st = theta.sin();
+                    let position = Point3r::new(center.x + r * sp * ct, y, center.z + r * sp * st);
+                    let normal = if is_outer {
+                        Vector3r::new(sp * ct, cp, sp * st)
+                    } else {
+                        Vector3r::new(-sp * ct, -cp, -sp * st)
+                    };
+                    mesh.add_vertex(position, normal)
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// Add the outer and inner ring bands between adjacent shell latitudes.
+fn add_shell_bands(
+    mesh: &mut IndexedMesh,
+    outer_rings: &[Vec<VertexId>],
+    inner_rings: &[Vec<VertexId>],
+    ns: usize,
+    region: RegionId,
+) {
+    for k in 0..outer_rings.len() - 1 {
+        for j in 0..ns {
+            let j1 = (j + 1) % ns;
+            let vu0 = outer_rings[k][j];
+            let vu1 = outer_rings[k][j1];
+            let vl0 = outer_rings[k + 1][j];
+            let vl1 = outer_rings[k + 1][j1];
+            mesh.add_face_with_region(vu0, vl0, vl1, region);
+            mesh.add_face_with_region(vu0, vl1, vu1, region);
+        }
+    }
+
+    for k in 0..inner_rings.len() - 1 {
+        for j in 0..ns {
+            let j1 = (j + 1) % ns;
+            let vu0 = inner_rings[k][j];
+            let vu1 = inner_rings[k][j1];
+            let vl0 = inner_rings[k + 1][j];
+            let vl1 = inner_rings[k + 1][j1];
+            mesh.add_face_with_region(vu0, vu1, vl1, region);
+            mesh.add_face_with_region(vu0, vl1, vl0, region);
+        }
+    }
+}
+
+/// Add the annular polar caps that connect the shell surfaces.
+fn add_shell_caps(
+    mesh: &mut IndexedMesh,
+    outer_rings: &[Vec<VertexId>],
+    inner_rings: &[Vec<VertexId>],
+    ns: usize,
+    region: RegionId,
+) {
+    for j in 0..ns {
+        let j1 = (j + 1) % ns;
+        let oi = outer_rings[0][j];
+        let oi1 = outer_rings[0][j1];
+        let ii = inner_rings[0][j];
+        let ii1 = inner_rings[0][j1];
+        mesh.add_face_with_region(oi, ii1, ii, region);
+        mesh.add_face_with_region(oi, oi1, ii1, region);
+    }
+
+    let outer_last = outer_rings.len() - 1;
+    let inner_last = inner_rings.len() - 1;
+    for j in 0..ns {
+        let j1 = (j + 1) % ns;
+        let oi = outer_rings[outer_last][j];
+        let oi1 = outer_rings[outer_last][j1];
+        let ii = inner_rings[inner_last][j];
+        let ii1 = inner_rings[inner_last][j1];
+        mesh.add_face_with_region(ii, ii1, oi1, region);
+        mesh.add_face_with_region(ii, oi1, oi, region);
+    }
+}
+
 fn build(s: &SphericalShell) -> Result<IndexedMesh, PrimitiveError> {
     if s.inner_radius <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(
@@ -97,123 +198,11 @@ fn build(s: &SphericalShell) -> Result<IndexedMesh, PrimitiveError> {
     let cz = s.center.z;
     let ns = s.segments;
     let nk = s.stacks;
-    let segments = f64::from_usize(ns);
-    let stacks = f64::from_usize(nk);
-
-    // phi ranges over [phi1, pi - phi1] where phi1 = pi/nk (one step from each pole).
-    // This creates nk-1 latitudinal rings (indices 1 .. nk-1 inclusive).
-
-    // Build outer ring VertexId arrays (phi rings 1 to nk-1)
-    let mut outer_rings: Vec<Vec<crate::domain::core::index::VertexId>> =
-        Vec::with_capacity(nk - 1);
-    for k in 0..nk - 1 {
-        let phi = f64::from_usize(k + 1) / stacks * PI;
-        let sp = phi.sin();
-        let cp = phi.cos();
-        let y = cy + ro * cp;
-        let row: Vec<_> = (0..ns)
-            .map(|j| {
-                let theta = f64::from_usize(j) / segments * TAU;
-                let ct = theta.cos();
-                let st = theta.sin();
-                let pos = Point3r::new(cx + ro * sp * ct, y, cz + ro * sp * st);
-                let n = Vector3r::new(sp * ct, cp, sp * st);
-                mesh.add_vertex(pos, n)
-            })
-            .collect();
-        outer_rings.push(row);
-    }
-
-    // Build inner ring VertexId arrays
-    let mut inner_rings: Vec<Vec<crate::domain::core::index::VertexId>> =
-        Vec::with_capacity(nk - 1);
-    for k in 0..nk - 1 {
-        let phi = f64::from_usize(k + 1) / stacks * PI;
-        let sp = phi.sin();
-        let cp = phi.cos();
-        let y = cy + ri * cp;
-        let row: Vec<_> = (0..ns)
-            .map(|j| {
-                let theta = f64::from_usize(j) / segments * TAU;
-                let ct = theta.cos();
-                let st = theta.sin();
-                let pos = Point3r::new(cx + ri * sp * ct, y, cz + ri * sp * st);
-                let n = Vector3r::new(-sp * ct, -cp, -sp * st);
-                mesh.add_vertex(pos, n)
-            })
-            .collect();
-        inner_rings.push(row);
-    }
-
-    // Outer sphere lateral (outward normals)
-    for k in 0..outer_rings.len() - 1 {
-        for j in 0..ns {
-            let j1 = (j + 1) % ns;
-            let vu0 = outer_rings[k][j];
-            let vu1 = outer_rings[k][j1];
-            let vl0 = outer_rings[k + 1][j];
-            let vl1 = outer_rings[k + 1][j1];
-            // CCW from outside: upper[j]->lower[j]->lower[j+1], upper[j]->lower[j+1]->upper[j+1]
-            mesh.add_face_with_region(vu0, vl0, vl1, region);
-            mesh.add_face_with_region(vu0, vl1, vu1, region);
-        }
-    }
-
-    // Inner sphere lateral (reversed winding for inward surface normals)
-    for k in 0..inner_rings.len() - 1 {
-        for j in 0..ns {
-            let j1 = (j + 1) % ns;
-            let vu0 = inner_rings[k][j];
-            let vu1 = inner_rings[k][j1];
-            let vl0 = inner_rings[k + 1][j];
-            let vl1 = inner_rings[k + 1][j1];
-            // Reversed winding (normals point inward = toward cavity centre):
-            mesh.add_face_with_region(vu0, vu1, vl1, region);
-            mesh.add_face_with_region(vu0, vl1, vl0, region);
-        }
-    }
-
-    // North polar cap (connects outer_rings[0] and inner_rings[0])
-    // Outer lateral at north provides: outer[0][j1]->outer[0][j] (decreasing j direction)
-    // Inner lateral at north provides: inner[0][j]->inner[0][j1] (increasing j direction)
-    // Cap must provide the opposite directions for manifold topology.
-    {
-        for j in 0..ns {
-            let j1 = (j + 1) % ns;
-            let oi = outer_rings[0][j];
-            let oi1 = outer_rings[0][j1];
-            let ii = inner_rings[0][j];
-            let ii1 = inner_rings[0][j1];
-            // Face 1: (oi, oi1, ii1) provides outer[j]->outer[j1] (opposite of lateral)
-            //         and inner[j1]->inner[j] via face 2 below... wait let me recalculate
-            // Need: oi->oi1 (opposite of lateral oi1->oi) and ii1->ii (opposite of lateral ii->ii1)
-            // Face 1 (oi, ii1, ii): edges oi->ii1, ii1->ii (correct for inner), ii->oi
-            // Face 2 (oi, oi1, ii1): edges oi->oi1 (correct for outer), oi1->ii1, ii1->oi
-            mesh.add_face_with_region(oi, ii1, ii, region);
-            mesh.add_face_with_region(oi, oi1, ii1, region);
-        }
-    }
-
-    // South polar cap (connects outer_rings[last] and inner_rings[last])
-    // Outer lateral at south provides: outer[last][j]->outer[last][j1] (increasing j direction)
-    // Inner lateral at south provides: inner[last][j1]->inner[last][j] (decreasing j direction)
-    // Cap must provide opposite directions.
-    {
-        let outer_last_k = outer_rings.len() - 1;
-        let inner_last_k = inner_rings.len() - 1;
-        for j in 0..ns {
-            let j1 = (j + 1) % ns;
-            let oi = outer_rings[outer_last_k][j];
-            let oi1 = outer_rings[outer_last_k][j1];
-            let ii = inner_rings[inner_last_k][j];
-            let ii1 = inner_rings[inner_last_k][j1];
-            // Need: oi1->oi (opposite of lateral oi->oi1) and ii->ii1 (opposite of lateral ii1->ii)
-            // Face 1 (ii, ii1, oi1): edges ii->ii1 (correct), ii1->oi1, oi1->ii
-            // Face 2 (ii, oi1, oi): edges ii->oi1, oi1->oi (correct), oi->ii
-            mesh.add_face_with_region(ii, ii1, oi1, region);
-            mesh.add_face_with_region(ii, oi1, oi, region);
-        }
-    }
+    let center = Point3r::new(cx, cy, cz);
+    let outer_rings = build_shell_rings(&mut mesh, ro, center, ns, nk, true);
+    let inner_rings = build_shell_rings(&mut mesh, ri, center, ns, nk, false);
+    add_shell_bands(&mut mesh, &outer_rings, &inner_rings, ns, region);
+    add_shell_caps(&mut mesh, &outer_rings, &inner_rings, ns, region);
 
     // All sections (outer lateral, inner lateral, north/south polar caps) are built
     // with consistent inward winding. Flip all faces to obtain outward-pointing normals

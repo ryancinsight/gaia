@@ -261,6 +261,109 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
     }
 }
 
+/// Find union-find classes for coincident vertices using a spatial hash grid.
+fn find_coincident_vertex_classes(
+    positions: &[leto::geometry::Point3<f64>],
+    eps_sq: f64,
+    inv_eps: f64,
+) -> Vec<u32> {
+    let n = positions.len();
+    let mut parent: Vec<u32> = (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
+    let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> = hashbrown::HashMap::with_capacity(n);
+
+    for (i, position) in positions.iter().enumerate() {
+        grid.entry(GridCell::from_point(position, inv_eps))
+            .or_default()
+            .push(i);
+    }
+
+    for i in 0..n {
+        let pi = &positions[i];
+        let cell = GridCell::from_point(pi, inv_eps);
+        for nb_cell in cell.neighborhood_27() {
+            let Some(cell_vertices) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &j in cell_vertices {
+                if j <= i {
+                    continue;
+                }
+                let pj = &positions[j];
+                if (pi - pj).norm_squared() < eps_sq {
+                    let ci = uf_find(
+                        &mut parent,
+                        u32::try_from(i).expect("vertex index fits in u32"),
+                    );
+                    let cj = uf_find(
+                        &mut parent,
+                        u32::try_from(j).expect("vertex index fits in u32"),
+                    );
+                    if ci != cj {
+                        let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
+                        parent[usize::try_from(hi).expect("union-find index fits in usize")] = lo;
+                    }
+                }
+            }
+        }
+    }
+
+    (0..n)
+        .map(|i| {
+            uf_find(
+                &mut parent,
+                u32::try_from(i).expect("vertex index fits in u32"),
+            )
+        })
+        .collect()
+}
+
+/// Remap face references through the dedup classes and compact the vertex pool.
+fn assemble_merged_mesh(mesh: &mut IndexedMesh, dedup: &[u32]) {
+    let face_list: Vec<FaceData> = mesh.faces.iter().copied().collect();
+    let mut remapped_faces: Vec<FaceData> = Vec::with_capacity(face_list.len());
+    for mut face in face_list {
+        for v in &mut face.vertices {
+            *v = VertexId(dedup[v.as_usize()]);
+        }
+        if face.vertices[0] != face.vertices[1]
+            && face.vertices[1] != face.vertices[2]
+            && face.vertices[2] != face.vertices[0]
+        {
+            remapped_faces.push(face);
+        }
+    }
+
+    let mut referenced = hashbrown::HashSet::with_capacity(mesh.vertices.len());
+    for face in &remapped_faces {
+        for &vertex in &face.vertices {
+            referenced.insert(vertex.0);
+        }
+    }
+
+    let mut referenced_ids: Vec<u32> = referenced.into_iter().collect();
+    referenced_ids.sort_unstable();
+
+    let mut old_to_new = vec![u32::MAX; dedup.len()];
+    let mut new_pool = mesh.vertices.empty_clone();
+    for &old_id in &referenced_ids {
+        let vertex_id = VertexId(old_id);
+        let position = *mesh.vertices.position(vertex_id);
+        let normal = *mesh.vertices.normal(vertex_id);
+        let new_id = new_pool.insert_unique(position, normal);
+        old_to_new[usize::try_from(old_id).expect("vertex id fits in usize")] = new_id.0;
+    }
+
+    mesh.faces = crate::infrastructure::storage::face_store::FaceStore::new();
+    for mut face in remapped_faces {
+        for v in &mut face.vertices {
+            *v = VertexId(old_to_new[v.as_usize()]);
+        }
+        mesh.faces.push(face);
+    }
+    mesh.vertices = new_pool;
+    mesh.rebuild_edges();
+}
+
 /// Merge coincident vertices and compact the vertex pool.
 ///
 /// 1. **Dedup**: merge vertices with ‖`p_i` − `p_j`‖ < ε (union-find).
@@ -322,108 +425,11 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
     let eps = (mean_edge * 1e-4).max(1e-15);
     let eps_sq = eps * eps;
     let inv_eps = 1.0 / eps;
-    let mut parent: Vec<u32> = (0..u32::try_from(n).expect("vertex count fits in u32")).collect();
-
-    // Build spatial hash: cell → list of vertex indices.
-    let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> = hashbrown::HashMap::with_capacity(n);
     let positions: Vec<leto::geometry::Point3<f64>> = (0..n)
         .map(|i| *mesh.vertices.position(VertexId::from_usize(i)))
         .collect();
-    for (i, p) in positions.iter().enumerate().take(n) {
-        grid.entry(GridCell::from_point(p, inv_eps))
-            .or_default()
-            .push(i);
-    }
-
-    // For each vertex, check the 27-cell neighbourhood for coincident vertices.
-    for i in 0..n {
-        let pi = &positions[i];
-        let cell = GridCell::from_point(pi, inv_eps);
-        for nb_cell in cell.neighborhood_27() {
-            let Some(cell_verts) = grid.get(&nb_cell) else {
-                continue;
-            };
-            for &j in cell_verts {
-                if j <= i {
-                    continue;
-                }
-                let pj = &positions[j];
-                if (pi - pj).norm_squared() < eps_sq {
-                    let ci = uf_find(
-                        &mut parent,
-                        u32::try_from(i).expect("vertex index fits in u32"),
-                    );
-                    let cj = uf_find(
-                        &mut parent,
-                        u32::try_from(j).expect("vertex index fits in u32"),
-                    );
-                    if ci != cj {
-                        let (lo, hi) = if ci < cj { (ci, cj) } else { (cj, ci) };
-                        parent[usize::try_from(hi).expect("union-find index fits in usize")] = lo;
-                    }
-                }
-            }
-        }
-    }
-
-    // Flatten union-find: old_id → canonical_id.
-    let dedup: Vec<u32> = (0..n)
-        .map(|i| {
-            uf_find(
-                &mut parent,
-                u32::try_from(i).expect("vertex index fits in u32"),
-            )
-        })
-        .collect();
-
-    // Phase 2: remap face references through dedup mapping.
-    let face_list: Vec<FaceData> = mesh.faces.iter().copied().collect();
-    let mut remapped_faces: Vec<FaceData> = Vec::with_capacity(face_list.len());
-    for mut face in face_list {
-        for v in &mut face.vertices {
-            *v = VertexId(dedup[v.as_usize()]);
-        }
-        if face.vertices[0] != face.vertices[1]
-            && face.vertices[1] != face.vertices[2]
-            && face.vertices[2] != face.vertices[0]
-        {
-            remapped_faces.push(face);
-        }
-    }
-
-    // Phase 3: compact — collect referenced vertex IDs and build new pool.
-    let mut referenced = hashbrown::HashSet::with_capacity(mesh.vertices.len());
-    for face in &remapped_faces {
-        for &v in &face.vertices {
-            referenced.insert(v.0);
-        }
-    }
-
-    // Sort referenced IDs for deterministic new-index assignment.
-    let mut ref_ids: Vec<u32> = referenced.into_iter().collect();
-    ref_ids.sort_unstable();
-
-    // Build old → new index mapping.
-    let mut old_to_new = vec![u32::MAX; n];
-    let mut new_pool = mesh.vertices.empty_clone();
-    for &old_id in &ref_ids {
-        let vid = VertexId(old_id);
-        let pos = *mesh.vertices.position(vid);
-        let normal = *mesh.vertices.normal(vid);
-        let new_id = new_pool.insert_unique(pos, normal);
-        old_to_new[usize::try_from(old_id).expect("vertex id fits in usize")] = new_id.0;
-    }
-
-    // Re-index face references.
-    mesh.faces = crate::infrastructure::storage::face_store::FaceStore::new();
-    for mut face in remapped_faces {
-        for v in &mut face.vertices {
-            *v = VertexId(old_to_new[v.as_usize()]);
-        }
-        mesh.faces.push(face);
-    }
-    mesh.vertices = new_pool;
-    mesh.rebuild_edges();
+    let dedup = find_coincident_vertex_classes(&positions, eps_sq, inv_eps);
+    assemble_merged_mesh(mesh, &dedup);
 }
 
 // ── Non-manifold edge splitting ──────────────────────────────────────────────

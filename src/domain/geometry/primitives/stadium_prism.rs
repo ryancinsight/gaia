@@ -3,7 +3,7 @@
 use std::f64::consts::PI;
 
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::index::RegionId;
+use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -72,6 +72,44 @@ impl Default for StadiumPrism {
 impl PrimitiveMesh for StadiumPrism {
     fn build(&self) -> Result<IndexedMesh, PrimitiveError> {
         build(self)
+    }
+}
+
+/// Add the outward-oriented lateral side faces for the prism profile.
+fn add_stadium_side_faces(
+    mesh: &mut IndexedMesh,
+    bottom_ring: &[VertexId],
+    top_ring: &[VertexId],
+    region: RegionId,
+) {
+    for i in 0..bottom_ring.len() {
+        let j = (i + 1) % bottom_ring.len();
+        let vb0 = bottom_ring[i];
+        let vb1 = bottom_ring[j];
+        let vt0 = top_ring[i];
+        let vt1 = top_ring[j];
+        mesh.add_face_with_region(vb0, vt0, vt1, region);
+        mesh.add_face_with_region(vb0, vt1, vb1, region);
+    }
+}
+
+/// Add one triangulated end cap for the stadium prism.
+fn add_stadium_end_cap(
+    mesh: &mut IndexedMesh,
+    ring: &[VertexId],
+    center: Point3r,
+    normal: Vector3r,
+    is_top: bool,
+    region: RegionId,
+) {
+    let center_vertex = mesh.add_vertex(center, normal);
+    for i in 0..ring.len() {
+        let j = (i + 1) % ring.len();
+        if is_top {
+            mesh.add_face_with_region(center_vertex, ring[j], ring[i], region);
+        } else {
+            mesh.add_face_with_region(center_vertex, ring[i], ring[j], region);
+        }
     }
 }
 
@@ -203,53 +241,23 @@ fn build(sp: &StadiumPrism) -> Result<IndexedMesh, PrimitiveError> {
         top_vids.push(mesh.add_vertex(pt, n));
     }
 
-    // Lateral surface
-    for i in 0..np {
-        let j = (i + 1) % np;
-        let vb0 = bot_vids[i];
-        let vb1 = bot_vids[j];
-        let vt0 = top_vids[i];
-        let vt1 = top_vids[j];
-        // CCW from outside: bot0->top0->top1, bot0->top1->bot1
-        mesh.add_face_with_region(vb0, vt0, vt1, region);
-        mesh.add_face_with_region(vb0, vt1, vb1, region);
-    }
-
-    // Bottom cap (y = by, normal -Y)
-    // Lateral face 2 (vb0, vt1, vb1) creates bottom edge bj->bi.
-    // Cap must provide opposite direction bi->bj to complete the manifold edge.
-    // Winding (vc, bi, bj) = (vc, v0, v1) gives cross product with -Y component.
-    {
-        let n_down = -Vector3r::y();
-        let center_bottom = Point3r::new(bx, by, bz);
-        let vc = mesh.add_vertex(center_bottom, n_down);
-        for i in 0..np {
-            let j = (i + 1) % np;
-            let v0 = bot_vids[i];
-            let v1 = bot_vids[j];
-            // Edge at bottom from lateral: bj->bi; cap provides bi->bj.
-            // CCW from below (-Y): vc -> bi -> bj
-            mesh.add_face_with_region(vc, v0, v1, region);
-        }
-    }
-
-    // Top cap (y = by + h, normal +Y)
-    // Lateral face 1 (vb0, vt0, vt1) creates top edge ti->tj.
-    // Cap must provide opposite direction tj->ti to complete the manifold edge.
-    // Winding (vc, tj, ti) = (vc, v1, v0) gives cross product with +Y component.
-    {
-        let n_up = Vector3r::y();
-        let center_top = Point3r::new(bx, by + h, bz);
-        let vc = mesh.add_vertex(center_top, n_up);
-        for i in 0..np {
-            let j = (i + 1) % np;
-            let v0 = top_vids[i];
-            let v1 = top_vids[j];
-            // Edge at top from lateral: ti->tj; cap provides tj->ti.
-            // CCW from above (+Y): vc -> tj -> ti
-            mesh.add_face_with_region(vc, v1, v0, region);
-        }
-    }
+    add_stadium_side_faces(&mut mesh, &bot_vids, &top_vids, region);
+    add_stadium_end_cap(
+        &mut mesh,
+        &bot_vids,
+        Point3r::new(bx, by, bz),
+        -Vector3r::y(),
+        false,
+        region,
+    );
+    add_stadium_end_cap(
+        &mut mesh,
+        &top_vids,
+        Point3r::new(bx, by + h, bz),
+        Vector3r::y(),
+        true,
+        region,
+    );
 
     Ok(mesh)
 }

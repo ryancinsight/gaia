@@ -68,6 +68,119 @@ impl PrimitiveMesh for Pipe {
     }
 }
 
+/// Add one lateral band of the pipe wall.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the helper is parameterized directly by the annulus geometry and winding direction to keep the calling build function short"
+)]
+fn add_pipe_ring_band(
+    mesh: &mut IndexedMesh,
+    radius: f64,
+    bx: f64,
+    by: f64,
+    top_y: f64,
+    bz: f64,
+    segments: usize,
+    inward: bool,
+    region: RegionId,
+) {
+    let segment_count = f64::from_usize(segments);
+    for i in 0..segments {
+        let a0 = f64::from_usize(i) / segment_count * TAU;
+        let a1 = f64::from_usize(i + 1) / segment_count * TAU;
+        let (c0, s0) = (a0.cos(), a0.sin());
+        let (c1, s1) = (a1.cos(), a1.sin());
+        let n0 = if inward {
+            Vector3r::new(-c0, 0.0, -s0)
+        } else {
+            Vector3r::new(c0, 0.0, s0)
+        };
+        let n1 = if inward {
+            Vector3r::new(-c1, 0.0, -s1)
+        } else {
+            Vector3r::new(c1, 0.0, s1)
+        };
+        let vb0 = mesh.add_vertex(Point3r::new(bx + radius * c0, by, bz + radius * s0), n0);
+        let vb1 = mesh.add_vertex(Point3r::new(bx + radius * c1, by, bz + radius * s1), n1);
+        let vt0 = mesh.add_vertex(Point3r::new(bx + radius * c0, top_y, bz + radius * s0), n0);
+        let vt1 = mesh.add_vertex(Point3r::new(bx + radius * c1, top_y, bz + radius * s1), n1);
+        if inward {
+            mesh.add_face_with_region(vb0, vt1, vt0, region);
+            mesh.add_face_with_region(vb0, vb1, vt1, region);
+        } else {
+            mesh.add_face_with_region(vb0, vt0, vt1, region);
+            mesh.add_face_with_region(vb0, vt1, vb1, region);
+        }
+    }
+}
+
+/// Add one annular end cap of the pipe.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the helper needs both radii, placement, tessellation, and orientation inputs to build either annular cap without extra wrapper state"
+)]
+fn add_pipe_annular_cap(
+    mesh: &mut IndexedMesh,
+    inner_radius: f64,
+    outer_radius: f64,
+    bx: f64,
+    y: f64,
+    bz: f64,
+    segments: usize,
+    is_top: bool,
+    region: RegionId,
+) {
+    let normal = if is_top {
+        Vector3r::y()
+    } else {
+        -Vector3r::y()
+    };
+    let segment_count = f64::from_usize(segments);
+    for i in 0..segments {
+        let a0 = f64::from_usize(i) / segment_count * TAU;
+        let a1 = f64::from_usize(i + 1) / segment_count * TAU;
+        let oi = mesh.add_vertex(
+            Point3r::new(
+                bx + outer_radius * a0.cos(),
+                y,
+                bz + outer_radius * a0.sin(),
+            ),
+            normal,
+        );
+        let oi1 = mesh.add_vertex(
+            Point3r::new(
+                bx + outer_radius * a1.cos(),
+                y,
+                bz + outer_radius * a1.sin(),
+            ),
+            normal,
+        );
+        let ii = mesh.add_vertex(
+            Point3r::new(
+                bx + inner_radius * a0.cos(),
+                y,
+                bz + inner_radius * a0.sin(),
+            ),
+            normal,
+        );
+        let ii1 = mesh.add_vertex(
+            Point3r::new(
+                bx + inner_radius * a1.cos(),
+                y,
+                bz + inner_radius * a1.sin(),
+            ),
+            normal,
+        );
+        if is_top {
+            mesh.add_face_with_region(oi, ii, ii1, region);
+            mesh.add_face_with_region(oi, ii1, oi1, region);
+        } else {
+            mesh.add_face_with_region(ii1, ii, oi, region);
+            mesh.add_face_with_region(ii1, oi, oi1, region);
+        }
+    }
+}
+
 fn build(p: &Pipe) -> Result<IndexedMesh, PrimitiveError> {
     if p.inner_radius <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(
@@ -99,99 +212,18 @@ fn build(p: &Pipe) -> Result<IndexedMesh, PrimitiveError> {
     let bx = p.base_center.x;
     let by = p.base_center.y;
     let bz = p.base_center.z;
-    let segments = f64::from_usize(p.segments);
 
     // ── Outer lateral (normal = +radial) ─────────────────────────────────────
-    // Same winding as Cylinder: bot0 → top0 → top1, bot0 → top1 → bot1
-    for i in 0..p.segments {
-        let a0 = f64::from_usize(i) / segments * TAU;
-        let a1 = f64::from_usize(i + 1) / segments * TAU;
-        let (c0, s0) = (a0.cos(), a0.sin());
-        let (c1, s1) = (a1.cos(), a1.sin());
-        let n0 = Vector3r::new(c0, 0.0, s0);
-        let n1 = Vector3r::new(c1, 0.0, s1);
-        let vb0 = mesh.add_vertex(Point3r::new(bx + ro * c0, by, bz + ro * s0), n0);
-        let vb1 = mesh.add_vertex(Point3r::new(bx + ro * c1, by, bz + ro * s1), n1);
-        let vt0 = mesh.add_vertex(Point3r::new(bx + ro * c0, by + h, bz + ro * s0), n0);
-        let vt1 = mesh.add_vertex(Point3r::new(bx + ro * c1, by + h, bz + ro * s1), n1);
-        mesh.add_face_with_region(vb0, vt0, vt1, region);
-        mesh.add_face_with_region(vb0, vt1, vb1, region);
-    }
+    add_pipe_ring_band(&mut mesh, ro, bx, by, by + h, bz, p.segments, false, region);
 
     // ── Inner lateral (normal = −radial, pointing toward bore axis) ──────────
-    // Reversed winding so that the outward normal points into the bore.
-    for i in 0..p.segments {
-        let a0 = f64::from_usize(i) / segments * TAU;
-        let a1 = f64::from_usize(i + 1) / segments * TAU;
-        let (c0, s0) = (a0.cos(), a0.sin());
-        let (c1, s1) = (a1.cos(), a1.sin());
-        // Inward-facing normal (toward axis)
-        let n0 = Vector3r::new(-c0, 0.0, -s0);
-        let n1 = Vector3r::new(-c1, 0.0, -s1);
-        let vb0 = mesh.add_vertex(Point3r::new(bx + ri * c0, by, bz + ri * s0), n0);
-        let vb1 = mesh.add_vertex(Point3r::new(bx + ri * c1, by, bz + ri * s1), n1);
-        let vt0 = mesh.add_vertex(Point3r::new(bx + ri * c0, by + h, bz + ri * s0), n0);
-        let vt1 = mesh.add_vertex(Point3r::new(bx + ri * c1, by + h, bz + ri * s1), n1);
-        // Reversed winding compared to outer lateral
-        mesh.add_face_with_region(vb0, vt1, vt0, region);
-        mesh.add_face_with_region(vb0, vb1, vt1, region);
-    }
+    add_pipe_ring_band(&mut mesh, ri, bx, by, by + h, bz, p.segments, true, region);
 
     // ── Bottom annular cap (y = by, normal −Y) ───────────────────────────────
-    // CCW from below: inner_{i+1} → inner_i → outer_i, inner_{i+1} → outer_i → outer_{i+1}
-    {
-        let n_down = -Vector3r::y();
-        for i in 0..p.segments {
-            let a0 = f64::from_usize(i) / segments * TAU;
-            let a1 = f64::from_usize(i + 1) / segments * TAU;
-            let oi = mesh.add_vertex(
-                Point3r::new(bx + ro * a0.cos(), by, bz + ro * a0.sin()),
-                n_down,
-            );
-            let oi1 = mesh.add_vertex(
-                Point3r::new(bx + ro * a1.cos(), by, bz + ro * a1.sin()),
-                n_down,
-            );
-            let ii = mesh.add_vertex(
-                Point3r::new(bx + ri * a0.cos(), by, bz + ri * a0.sin()),
-                n_down,
-            );
-            let ii1 = mesh.add_vertex(
-                Point3r::new(bx + ri * a1.cos(), by, bz + ri * a1.sin()),
-                n_down,
-            );
-            mesh.add_face_with_region(ii1, ii, oi, region);
-            mesh.add_face_with_region(ii1, oi, oi1, region);
-        }
-    }
+    add_pipe_annular_cap(&mut mesh, ri, ro, bx, by, bz, p.segments, false, region);
 
     // ── Top annular cap (y = by + h, normal +Y) ──────────────────────────────
-    // CCW from above: outer_i → inner_i → inner_{i+1}, outer_i → inner_{i+1} → outer_{i+1}
-    {
-        let n_up = Vector3r::y();
-        for i in 0..p.segments {
-            let a0 = f64::from_usize(i) / segments * TAU;
-            let a1 = f64::from_usize(i + 1) / segments * TAU;
-            let oi = mesh.add_vertex(
-                Point3r::new(bx + ro * a0.cos(), by + h, bz + ro * a0.sin()),
-                n_up,
-            );
-            let oi1 = mesh.add_vertex(
-                Point3r::new(bx + ro * a1.cos(), by + h, bz + ro * a1.sin()),
-                n_up,
-            );
-            let ii = mesh.add_vertex(
-                Point3r::new(bx + ri * a0.cos(), by + h, bz + ri * a0.sin()),
-                n_up,
-            );
-            let ii1 = mesh.add_vertex(
-                Point3r::new(bx + ri * a1.cos(), by + h, bz + ri * a1.sin()),
-                n_up,
-            );
-            mesh.add_face_with_region(oi, ii, ii1, region);
-            mesh.add_face_with_region(oi, ii1, oi1, region);
-        }
-    }
+    add_pipe_annular_cap(&mut mesh, ri, ro, bx, by + h, bz, p.segments, true, region);
 
     Ok(mesh)
 }

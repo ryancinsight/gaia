@@ -211,6 +211,11 @@ type-checking, so no bench body has ever been executed by a gate.
 - **Risk / change class**: [arch] [patch] — L.
 - **Status**: todo. Incrementally delivered — Phase 13 (2026-09-29) removed four lint classes and discharged `unwrap_used`; remaining: cast-precision ratchet (blocked by GAIA-003), file-size splits, `too_many_lines` 58. **Owner**: root.
 
+Progress (Phase 24, 2026-10-01):
+- Split 13 `too_many_lines` violators across geometry primitives, GLTF/PLY export, branching tubes, arrangement patching, indexed orientation repair, and indexed-merge compaction.
+- Forced-warning `too_many_lines` baseline reduced 30→18; `Cargo.toml` ratchet comment remeasured to 18.
+- `cargo clippy --lib` is clean; `cargo test --lib` passed 1139/1139.
+
 Evidence: `cargo clippy --all-targets --all-features -- --force-warn
 clippy::too_many_lines` emits 58 diagnostics at this revision; `unwrap_production`
 ratchet baseline auto-tightened 2→0 on push.

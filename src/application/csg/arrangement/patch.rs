@@ -61,8 +61,277 @@ use crate::application::csg::predicates3d::triangle_is_degenerate_exact;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Real;
 use crate::domain::topology::boundary_loops;
+use crate::domain::topology::PackedRows;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
+
+const MAX_PATCH_LOOP: usize = 256;
+const BOUNDARY_MERGE_TOL_SQ: Real = 4e-6;
+const COLLINEAR_THRESH: Real = 1e-8;
+
+/// Compute the squared area proxy used by the patch cleanup passes.
+fn triangle_area_sq(face: &FaceData, pool: &VertexPool) -> Real {
+    let p0 = pool.position(face.vertices[0]);
+    let p1 = pool.position(face.vertices[1]);
+    let p2 = pool.position(face.vertices[2]);
+    (p1 - p0).cross(p2 - p0).norm_squared()
+}
+
+/// Remove duplicate directed half-edge owners by keeping the largest incident face.
+fn remove_non_manifold_edges(faces: &mut Vec<FaceData>, pool: &VertexPool) {
+    let mut he_faces: HashMap<(VertexId, VertexId), Vec<usize>> = HashMap::new();
+    for (fi, face) in faces.iter().enumerate() {
+        let v = face.vertices;
+        for i in 0..3 {
+            let j = (i + 1) % 3;
+            he_faces.entry((v[i], v[j])).or_default().push(fi);
+        }
+    }
+
+    let mut remove_set: HashSet<usize> = HashSet::new();
+    let mut nm_edges: Vec<(VertexId, VertexId)> = he_faces
+        .iter()
+        .filter(|(_, owners)| owners.len() > 1)
+        .map(|(&edge, _)| edge)
+        .collect();
+    nm_edges.sort();
+
+    for edge in &nm_edges {
+        let face_indices = &he_faces[edge];
+        let mut best_fi = face_indices[0];
+        let mut best_area = triangle_area_sq(&faces[best_fi], pool);
+        for &fi in &face_indices[1..] {
+            let area_sq = triangle_area_sq(&faces[fi], pool);
+            if area_sq > best_area {
+                remove_set.insert(best_fi);
+                best_fi = fi;
+                best_area = area_sq;
+            } else {
+                remove_set.insert(fi);
+            }
+        }
+    }
+
+    if !remove_set.is_empty() {
+        let mut idx = 0usize;
+        faces.retain(|_| {
+            let keep = !remove_set.contains(&idx);
+            idx += 1;
+            keep
+        });
+    }
+}
+
+/// Build the current sorted boundary half-edge set.
+fn build_boundary_edges(faces: &[FaceData]) -> Vec<(VertexId, VertexId)> {
+    let mut boundary = boundary_half_edges(faces);
+    boundary.sort_unstable();
+    boundary
+}
+
+/// Check whether a traced boundary loop is exactly or nearly collinear.
+fn is_collinear_loop(poly: &[VertexId], pool: &VertexPool) -> bool {
+    let n = poly.len();
+    if n < 3 {
+        return true;
+    }
+    let p0 = *pool.position(poly[0]);
+    let mut exact_collinear = true;
+    'exact: for i in 1..n {
+        let pi = *pool.position(poly[i]);
+        for &vj in poly.iter().take(n).skip(i + 1) {
+            let pj = *pool.position(vj);
+            if !triangle_is_degenerate_exact(&p0, &pi, &pj) {
+                exact_collinear = false;
+                break 'exact;
+            }
+        }
+    }
+    if exact_collinear {
+        return true;
+    }
+
+    let mut max_area_sq: Real = 0.0;
+    let mut diameter_sq: Real = 0.0;
+    for &vi in &poly[1..] {
+        let pi = pool.position(vi);
+        diameter_sq = diameter_sq.max((pi - p0).norm_squared());
+    }
+    for i in 1..n {
+        for j in (i + 1)..n {
+            let pi = pool.position(poly[i]);
+            let pj = pool.position(poly[j]);
+            max_area_sq = max_area_sq.max((pi - p0).cross(pj - p0).norm_squared());
+        }
+    }
+
+    max_area_sq < COLLINEAR_THRESH * diameter_sq * diameter_sq
+}
+
+/// Snap-round and merge unresolved boundary vertices before patch filling.
+fn repair_boundary_vertices(
+    faces: &mut Vec<FaceData>,
+    pool: &VertexPool,
+    boundary_edges: &[(VertexId, VertexId)],
+) {
+    let before_split = faces.len();
+    snap_round::snap_round_tjunctions(faces, pool);
+    if faces.len() != before_split {
+        return;
+    }
+
+    let mut boundary_vertices: Vec<VertexId> =
+        boundary_edges.iter().flat_map(|&(a, b)| [a, b]).collect();
+    boundary_vertices.sort();
+    boundary_vertices.dedup();
+
+    let mut merge_map: HashMap<VertexId, VertexId> = HashMap::new();
+    for i in 0..boundary_vertices.len() {
+        if merge_map.contains_key(&boundary_vertices[i]) {
+            continue;
+        }
+        let pi = pool.position(boundary_vertices[i]);
+        for j in (i + 1)..boundary_vertices.len() {
+            if merge_map.contains_key(&boundary_vertices[j]) {
+                continue;
+            }
+            let pj = pool.position(boundary_vertices[j]);
+            if (pj - pi).norm_squared() < BOUNDARY_MERGE_TOL_SQ {
+                merge_map.insert(boundary_vertices[j], boundary_vertices[i]);
+            }
+        }
+    }
+    apply_vertex_merge(faces, &merge_map, pool);
+}
+
+/// Collapse loops that are geometrically collinear into their farthest endpoints.
+fn collapse_collinear_loops(
+    faces: &mut Vec<FaceData>,
+    pool: &VertexPool,
+    loops: &PackedRows<VertexId>,
+) {
+    let mut all_face_vertices: Vec<VertexId> = faces
+        .iter()
+        .flat_map(|face| face.vertices.iter().copied())
+        .collect();
+    all_face_vertices.sort();
+    all_face_vertices.dedup();
+
+    let mut global_merge: HashMap<VertexId, VertexId> = HashMap::new();
+    for poly in loops {
+        if poly.len() < 3 || !is_collinear_loop(poly, pool) {
+            continue;
+        }
+
+        let mut best_dist_sq: Real = 0.0;
+        let mut endpoint_a = poly[0];
+        let mut endpoint_b = poly[1];
+        for i in 0..poly.len() {
+            let pi = pool.position(poly[i]);
+            for j in (i + 1)..poly.len() {
+                let pj = pool.position(poly[j]);
+                let distance_sq = (pj - pi).norm_squared();
+                if distance_sq > best_dist_sq {
+                    best_dist_sq = distance_sq;
+                    endpoint_a = poly[i];
+                    endpoint_b = poly[j];
+                }
+            }
+        }
+
+        let pa = pool.position(endpoint_a);
+        let pb = pool.position(endpoint_b);
+        for &vi in poly {
+            if vi == endpoint_a || vi == endpoint_b {
+                continue;
+            }
+            let pv = pool.position(vi);
+            let target = if (pv - pa).norm_squared() <= (pv - pb).norm_squared() {
+                endpoint_a
+            } else {
+                endpoint_b
+            };
+            let final_target = merge_root(&global_merge, target);
+            global_merge.entry(vi).or_insert(final_target);
+
+            let pvi = pool.position(vi);
+            for &vw in &all_face_vertices {
+                if vw == vi
+                    || vw == endpoint_a
+                    || vw == endpoint_b
+                    || global_merge.contains_key(&vw)
+                {
+                    continue;
+                }
+                let pw = pool.position(vw);
+                if (pw - pvi).norm_squared() < BOUNDARY_MERGE_TOL_SQ {
+                    global_merge.insert(vw, final_target);
+                }
+            }
+        }
+    }
+
+    apply_vertex_merge(faces, &global_merge, pool);
+}
+
+/// Fill every non-degenerate loop found in the current boundary set.
+fn fill_patch_loops(
+    faces: &mut Vec<FaceData>,
+    pool: &VertexPool,
+    loops: &PackedRows<VertexId>,
+) -> bool {
+    let mut valence = stitch::build_canonical_valence(faces);
+    let mut any_patch = false;
+    for poly in loops {
+        if poly.len() < 3 || is_collinear_loop(poly, pool) {
+            continue;
+        }
+        let added = {
+            let cdt_added = stitch::cdt_fill_loop(poly, pool, faces, &mut valence);
+            if cdt_added > 0 {
+                cdt_added
+            } else {
+                stitch::ear_clip_fill(poly, pool, faces, &mut valence)
+            }
+        };
+        any_patch |= added > 0;
+    }
+    any_patch
+}
+
+/// Reveal boundary seams, collapse degenerate loops, and patch remaining holes.
+fn stitch_and_patch_loops(faces: &mut Vec<FaceData>, pool: &VertexPool) {
+    stitch::fill_boundary_loops(faces, pool);
+    stitch_boundary_seams_conservative(faces, pool);
+    stitch::fill_boundary_loops(faces, pool);
+
+    for _iter in 0..16 {
+        let boundary_edges = build_boundary_edges(faces);
+        if boundary_edges.is_empty() {
+            break;
+        }
+
+        repair_boundary_vertices(faces, pool, &boundary_edges);
+        let boundary_edges = build_boundary_edges(faces);
+        if boundary_edges.is_empty() {
+            break;
+        }
+
+        let loops =
+            boundary_loops::trace_loops(&boundary_edges, MAX_PATCH_LOOP * 4, MAX_PATCH_LOOP);
+        collapse_collinear_loops(faces, pool, &loops);
+
+        let boundary_edges = build_boundary_edges(faces);
+        if boundary_edges.is_empty() {
+            break;
+        }
+        let loops =
+            boundary_loops::trace_loops(&boundary_edges, MAX_PATCH_LOOP * 4, MAX_PATCH_LOOP);
+        if !fill_patch_loops(faces, pool, &loops) {
+            break;
+        }
+    }
+}
 
 /// Detect small boundary loops (`<= MAX_PATCH_LOOP` edges) in `faces` and
 /// fill each with patch triangles.
@@ -72,26 +341,6 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 /// junction boundaries where an excluded face's grid edge is not shared by the
 /// other mesh's kept fragments.
 pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &VertexPool) {
-    const MAX_PATCH_LOOP: usize = 256;
-    // (2e-3)^2 -- spatial tolerance for near-duplicate boundary vertex merging.
-    //
-    // Widened from 4e-8 (=2e-4 mm) to 4e-6 (=2e-3 mm) so that arithmetic-drift
-    // Steiner vertices at shallow-angle elbow-cylinder junctions are welded
-    // during the patch pass rather than left as a boundary loop.
-    //
-    // This does *not* match `corefine`'s `WELD_TOL_SQ`, which is the SSOT
-    // `COREFINE_WELD_TOL_SQ` = 1e-12. An earlier comment here claimed it did;
-    // that claim was false by a factor of 1e6, and the widening it justified was
-    // empirically motivated rather than derived. The value is 2e-3 linear, 1000x
-    // the same-named consolidation tolerance in `multi_mesh_resolution` and 1000x
-    // `fragment_refinement`'s -- three passes merging cross-mesh near-duplicates
-    // at three different scales. Whether that spread is intended has not been
-    // established; see the tolerance-policy item in the Atlas backlog.
-    const BOUNDARY_MERGE_TOL_SQ: Real = 4e-6;
-
-    // Collinear loop threshold: area^2 / diameter^4 < this -> degenerate.
-    const COLLINEAR_THRESH: Real = 1e-8;
-
     // -- Step 1: Remove degenerate faces (zero-area or extreme slivers). ------
     faces.retain(|f| {
         let p0 = pool.position(f.vertices[0]);
@@ -112,289 +361,17 @@ pub(crate) fn patch_small_boundary_holes(faces: &mut Vec<FaceData>, pool: &Verte
     dedup_faces_unordered(faces);
 
     // -- Step 3: Non-manifold edge repair -- deterministic. -------------------
-    // For each directed half-edge shared by multiple faces, keep only the
-    // face with the largest area (smallest is likely a sliver from CDT).
-    {
-        let mut he_faces: HashMap<(VertexId, VertexId), Vec<usize>> = HashMap::new();
-        for (fi, face) in faces.iter().enumerate() {
-            let v = face.vertices;
-            for i in 0..3 {
-                let j = (i + 1) % 3;
-                he_faces.entry((v[i], v[j])).or_default().push(fi);
-            }
-        }
-
-        let mut remove_set: HashSet<usize> = HashSet::new();
-        let mut nm_edges: Vec<(VertexId, VertexId)> = he_faces
-            .iter()
-            .filter(|(_, v)| v.len() > 1)
-            .map(|(&k, _)| k)
-            .collect();
-        nm_edges.sort();
-
-        for he in &nm_edges {
-            let face_indices = &he_faces[he];
-            let mut best_fi = face_indices[0];
-            let mut best_area = {
-                let f = &faces[best_fi];
-                let p0 = pool.position(f.vertices[0]);
-                let p1 = pool.position(f.vertices[1]);
-                let p2 = pool.position(f.vertices[2]);
-                (p1 - p0).cross(p2 - p0).norm_squared()
-            };
-            for &fi in &face_indices[1..] {
-                let f = &faces[fi];
-                let p0 = pool.position(f.vertices[0]);
-                let p1 = pool.position(f.vertices[1]);
-                let p2 = pool.position(f.vertices[2]);
-                let area_sq = (p1 - p0).cross(p2 - p0).norm_squared();
-                if area_sq > best_area {
-                    remove_set.insert(best_fi);
-                    best_fi = fi;
-                    best_area = area_sq;
-                } else {
-                    remove_set.insert(fi);
-                }
-            }
-        }
-
-        if !remove_set.is_empty() {
-            let mut idx = 0;
-            faces.retain(|_| {
-                let keep = !remove_set.contains(&idx);
-                idx += 1;
-                keep
-            });
-        }
-    }
+    remove_non_manifold_edges(faces, pool);
 
     // -- Step 3.5: repair boundary edges exposed by cleanup. ------------------
-    // Steps 1-3 remove slivers, duplicates, and non-manifold faces that were
-    // masking boundary edges. Now the true boundary topology is visible.
-    //
-    // Two-pass repair:
-    //  (a) Fill closed boundary loops with ear-clipping triangulation.
-    //  (b) Conservative short-edge collapse for residual seam gaps.
-    //  (c) Another fill pass for loops created by the collapse.
-    stitch::fill_boundary_loops(faces, pool);
-    stitch_boundary_seams_conservative(faces, pool);
-    stitch::fill_boundary_loops(faces, pool);
-
-    // -- Helper: build sorted boundary-edge list from current face set. -------
-    let build_boundary = |faces: &[FaceData]| -> Vec<(VertexId, VertexId)> {
-        let mut bnd = boundary_half_edges(faces);
-        bnd.sort_unstable();
-        bnd
-    };
-
-    // -- Helper: check if a polygon (by vertex id list) is collinear. ---------
-    let is_collinear = |poly: &[VertexId]| -> bool {
-        let n = poly.len();
-        if n < 3 {
-            return true;
-        }
-        let p0 = *pool.position(poly[0]);
-        let mut exact_collinear = true;
-        'exact: for i in 1..n {
-            let pi = *pool.position(poly[i]);
-            for &vj in poly.iter().take(n).skip(i + 1) {
-                let pj = *pool.position(vj);
-                if !triangle_is_degenerate_exact(&p0, &pi, &pj) {
-                    exact_collinear = false;
-                    break 'exact;
-                }
-            }
-        }
-        if exact_collinear {
-            return true;
-        }
-
-        // Near-collinear fallback for small residual numerical drift.
-        let mut max_area_sq: Real = 0.0;
-        let mut diameter_sq: Real = 0.0;
-        for &vi in &poly[1..] {
-            let pi = pool.position(vi);
-            let d = (pi - p0).norm_squared();
-            if d > diameter_sq {
-                diameter_sq = d;
-            }
-        }
-        for i in 1..n {
-            for j in (i + 1)..n {
-                let pi = pool.position(poly[i]);
-                let pj = pool.position(poly[j]);
-                let a = (pi - p0).cross(pj - p0).norm_squared();
-                if a > max_area_sq {
-                    max_area_sq = a;
-                }
-            }
-        }
-        max_area_sq < COLLINEAR_THRESH * diameter_sq * diameter_sq
-    };
-
-    // -- Iterative patching loop. ---------------------------------------------
-    // Each iteration:
-    //   (a) Build boundary edges.
-    //   (b) Merge near-duplicate boundary vertices (Step 5).
-    //   (c) Rebuild boundary, trace loops.
-    //   (d) Collapse collinear degenerate loops (Step 6).
-    //   (e) Fill remaining non-degenerate loops (Step 7).
-    let max_iters = 16;
-    for _iter in 0..max_iters {
-        let boundary_edges = build_boundary(faces);
-        if boundary_edges.is_empty() {
-            break;
-        }
-
-        // -- (b) Step 5: exact constrained insertion first, tolerance fallback.
-        let before_split = faces.len();
-        snap_round::snap_round_tjunctions(faces, pool);
-        if faces.len() == before_split {
-            let mut bnd_verts: Vec<VertexId> =
-                boundary_edges.iter().flat_map(|&(a, b)| [a, b]).collect();
-            bnd_verts.sort();
-            bnd_verts.dedup();
-
-            let mut merge_map: HashMap<VertexId, VertexId> = HashMap::new();
-            for i in 0..bnd_verts.len() {
-                if merge_map.contains_key(&bnd_verts[i]) {
-                    continue;
-                }
-                let pi = pool.position(bnd_verts[i]);
-                for j in (i + 1)..bnd_verts.len() {
-                    if merge_map.contains_key(&bnd_verts[j]) {
-                        continue;
-                    }
-                    let pj = pool.position(bnd_verts[j]);
-                    if (pj - pi).norm_squared() < BOUNDARY_MERGE_TOL_SQ {
-                        merge_map.insert(bnd_verts[j], bnd_verts[i]);
-                    }
-                }
-            }
-            apply_vertex_merge(faces, &merge_map, pool);
-        }
-
-        // -- (c) Rebuild boundary, trace loops. -------------------------------
-        let boundary_edges = build_boundary(faces);
-        if boundary_edges.is_empty() {
-            break;
-        }
-
-        let loops =
-            boundary_loops::trace_loops(&boundary_edges, MAX_PATCH_LOOP * 4, MAX_PATCH_LOOP);
-
-        // -- (d) Step 6: collapse collinear degenerate loops. -----------------
-        {
-            let mut all_face_verts: Vec<VertexId> = faces
-                .iter()
-                .flat_map(|f| f.vertices.iter().copied())
-                .collect();
-            all_face_verts.sort();
-            all_face_verts.dedup();
-
-            let mut global_merge: HashMap<VertexId, VertexId> = HashMap::new();
-
-            for poly in &loops {
-                let n = poly.len();
-                if n < 3 {
-                    continue;
-                }
-                if !is_collinear(poly) {
-                    continue;
-                }
-
-                let mut best_dist_sq: Real = 0.0;
-                let mut endpoint_a = poly[0];
-                let mut endpoint_b = poly[1];
-                for i in 0..n {
-                    let pi = pool.position(poly[i]);
-                    for j in (i + 1)..n {
-                        let pj = pool.position(poly[j]);
-                        let d = (pj - pi).norm_squared();
-                        if d > best_dist_sq {
-                            best_dist_sq = d;
-                            endpoint_a = poly[i];
-                            endpoint_b = poly[j];
-                        }
-                    }
-                }
-                let pa = pool.position(endpoint_a);
-                let pb = pool.position(endpoint_b);
-
-                for &vi in poly {
-                    if vi == endpoint_a || vi == endpoint_b {
-                        continue;
-                    }
-                    let pv = pool.position(vi);
-                    let da = (pv - pa).norm_squared();
-                    let db = (pv - pb).norm_squared();
-                    let target = if da <= db { endpoint_a } else { endpoint_b };
-                    let final_target = merge_root(&global_merge, target);
-                    global_merge.entry(vi).or_insert(final_target);
-
-                    let pvi = pool.position(vi);
-                    for &vw in &all_face_verts {
-                        if vw == vi || vw == endpoint_a || vw == endpoint_b {
-                            continue;
-                        }
-                        if global_merge.contains_key(&vw) {
-                            continue;
-                        }
-                        let pw = pool.position(vw);
-                        if (pw - pvi).norm_squared() < BOUNDARY_MERGE_TOL_SQ {
-                            global_merge.insert(vw, final_target);
-                        }
-                    }
-                }
-            }
-            apply_vertex_merge(faces, &global_merge, pool);
-        }
-
-        // -- (e) Step 7: fill non-degenerate loops. ---------------------------
-        let boundary_edges_after_collapse = build_boundary(faces);
-        if boundary_edges_after_collapse.is_empty() {
-            break;
-        }
-        let loops_after = boundary_loops::trace_loops(
-            &boundary_edges_after_collapse,
-            MAX_PATCH_LOOP * 4,
-            MAX_PATCH_LOOP,
-        );
-
-        let mut valence = stitch::build_canonical_valence(faces);
-        let mut any_patch = false;
-        for poly in &loops_after {
-            if poly.len() < 3 {
-                continue;
-            }
-            if is_collinear(poly) {
-                continue;
-            }
-            // Prefer CDT loop fill (exact predicates) and fall back to ear clip.
-            let added = {
-                let cdt_added = stitch::cdt_fill_loop(poly, pool, faces, &mut valence);
-                if cdt_added > 0 {
-                    cdt_added
-                } else {
-                    stitch::ear_clip_fill(poly, pool, faces, &mut valence)
-                }
-            };
-            if added > 0 {
-                any_patch = true;
-            }
-        }
-
-        if !any_patch {
-            break;
-        }
-    }
+    stitch_and_patch_loops(faces, pool);
 
     // -- Final cleanup: duplicate removal. ------------------------------------
     dedup_faces_unordered(faces);
 
     #[cfg(test)]
     {
-        let remain = build_boundary(faces);
+        let remain = build_boundary_edges(faces);
         if trace_enabled() {
             for (a, b) in &remain {
                 let pa = pool.position(*a);

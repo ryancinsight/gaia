@@ -12,21 +12,12 @@ use crate::domain::mesh::IndexedMesh;
 
 use super::parse;
 
-// =============================================================================
-//  Export
-// =============================================================================
-
-/// Write an [`IndexedMesh`] as ASCII PLY.
-///
-/// # Errors
-///
-/// Returns [`MeshError::Io`] if writing the PLY header, vertex records, or
-/// face records fails.
-pub fn write_ply<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
-    let vertex_count = mesh.vertex_count();
-    let face_count = mesh.face_count();
-
-    // Header
+/// Write the ASCII PLY header for an indexed mesh.
+fn write_ply_header<W: Write>(
+    writer: &mut W,
+    vertex_count: usize,
+    face_count: usize,
+) -> MeshResult<()> {
     writeln!(writer, "ply").map_err(MeshError::Io)?;
     writeln!(writer, "format ascii 1.0").map_err(MeshError::Io)?;
     writeln!(writer, "comment exported by gaia").map_err(MeshError::Io)?;
@@ -40,12 +31,15 @@ pub fn write_ply<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
     writeln!(writer, "element face {face_count}").map_err(MeshError::Io)?;
     writeln!(writer, "property list uchar int vertex_indices").map_err(MeshError::Io)?;
     writeln!(writer, "end_header").map_err(MeshError::Io)?;
+    Ok(())
+}
 
-    // Build contiguous index map.
-    let mut id_to_idx: HashMap<crate::domain::core::index::VertexId, usize> =
-        HashMap::with_capacity(vertex_count);
-
-    // Vertex data
+/// Write the vertex section and return the contiguous vertex index map.
+fn write_ply_vertices<W: Write>(
+    writer: &mut W,
+    mesh: &IndexedMesh,
+) -> MeshResult<HashMap<crate::domain::core::index::VertexId, usize>> {
+    let mut id_to_idx = HashMap::with_capacity(mesh.vertex_count());
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
         id_to_idx.insert(vid, idx);
         let p = &vdata.position;
@@ -53,14 +47,40 @@ pub fn write_ply<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
         writeln!(writer, "{} {} {} {} {} {}", p.x, p.y, p.z, n.x, n.y, n.z)
             .map_err(MeshError::Io)?;
     }
+    Ok(id_to_idx)
+}
 
-    // Face data
+/// Write the face section using the previously emitted vertex index map.
+fn write_ply_faces<W: Write>(
+    writer: &mut W,
+    mesh: &IndexedMesh,
+    id_to_idx: &HashMap<crate::domain::core::index::VertexId, usize>,
+) -> MeshResult<()> {
     for (_fid, face) in mesh.faces.iter_enumerated() {
         let i0 = id_to_idx[&face.vertices[0]];
         let i1 = id_to_idx[&face.vertices[1]];
         let i2 = id_to_idx[&face.vertices[2]];
         writeln!(writer, "3 {i0} {i1} {i2}").map_err(MeshError::Io)?;
     }
+    Ok(())
+}
+
+// =============================================================================
+//  Export
+// =============================================================================
+
+/// Write an [`IndexedMesh`] as ASCII PLY.
+///
+/// # Errors
+///
+/// Returns [`MeshError::Io`] if writing the PLY header, vertex records, or
+/// face records fails.
+pub fn write_ply<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
+    let vertex_count = mesh.vertex_count();
+    let face_count = mesh.face_count();
+    write_ply_header(writer, vertex_count, face_count)?;
+    let id_to_idx = write_ply_vertices(writer, mesh)?;
+    write_ply_faces(writer, mesh, &id_to_idx)?;
 
     Ok(())
 }

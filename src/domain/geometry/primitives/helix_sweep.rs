@@ -3,7 +3,7 @@
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::index::RegionId;
+use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -75,6 +75,26 @@ impl Default for HelixSweep {
 impl PrimitiveMesh for HelixSweep {
     fn build(&self) -> Result<IndexedMesh, PrimitiveError> {
         build(self)
+    }
+}
+
+/// Connect adjacent helix rings with outward-oriented wall quads.
+fn add_helix_ring_quads(
+    mesh: &mut IndexedMesh,
+    rings: &[Vec<VertexId>],
+    ns: usize,
+    region: RegionId,
+) {
+    for ia in 0..rings.len() - 1 {
+        for ib in 0..ns {
+            let ib1 = (ib + 1) % ns;
+            let v00 = rings[ia][ib];
+            let v10 = rings[ia + 1][ib];
+            let v11 = rings[ia + 1][ib1];
+            let v01 = rings[ia][ib1];
+            mesh.add_face_with_region(v00, v01, v11, region);
+            mesh.add_face_with_region(v00, v11, v10, region);
+        }
     }
 }
 
@@ -179,18 +199,7 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
         rings.push(row);
     }
 
-    // Lateral tube wall
-    for ia in 0..na {
-        for ib in 0..ns {
-            let ib1 = (ib + 1) % ns;
-            let v00 = rings[ia][ib];
-            let v10 = rings[ia + 1][ib];
-            let v11 = rings[ia + 1][ib1];
-            let v01 = rings[ia][ib1];
-            mesh.add_face_with_region(v00, v01, v11, wall_region);
-            mesh.add_face_with_region(v00, v11, v10, wall_region);
-        }
-    }
+    add_helix_ring_quads(&mut mesh, &rings, ns, wall_region);
 
     // Inlet cap (theta = 0, outward normal = -T(0))
     {

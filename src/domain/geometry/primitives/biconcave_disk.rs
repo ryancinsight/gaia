@@ -3,7 +3,7 @@
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::index::RegionId;
+use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -89,6 +89,152 @@ impl PrimitiveMesh for BiconcaveDisk {
     }
 }
 
+/// Evaluate the Evans-Fung half-thickness profile at normalized radius `rho`.
+fn evans_fung_height(r: f64, rho: f64, c0: f64, c1: f64, c2: f64) -> f64 {
+    let rho2 = rho * rho;
+    let under = (1.0 - rho2).max(0.0);
+    r * under.sqrt() * (c0 + c1 * rho2 + c2 * rho2 * rho2)
+}
+
+/// Build one Evans-Fung ring of positions and outward normals.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the Evans-Fung ring is fully determined by the center, resolution, radius, coefficients, and surface side"
+)]
+fn disk_ring_vertices(
+    center: Point3r,
+    ns: usize,
+    r: f64,
+    c0: f64,
+    c1: f64,
+    c2: f64,
+    rho: f64,
+    is_upper: bool,
+) -> Vec<(Point3r, Vector3r)> {
+    let sign = if is_upper { 1.0 } else { -1.0 };
+    let rho2 = rho * rho;
+    let y_val = sign * evans_fung_height(r, rho, c0, c1, c2);
+    let dy_drho = {
+        let under = (1.0 - rho2).max(0.0);
+        let sqrt_under = under.sqrt();
+        let f_val = c0 + c1 * rho2 + c2 * rho2 * rho2;
+        let f_prime = 2.0 * c1 * rho + 4.0 * c2 * rho2 * rho;
+        if sqrt_under < 1e-14 {
+            0.0
+        } else {
+            sign * r * (-rho / sqrt_under * f_val + sqrt_under * f_prime)
+        }
+    };
+
+    (0..ns)
+        .map(|i| {
+            let theta = f64::from_usize(i) / f64::from_usize(ns) * TAU;
+            let (ct, st) = (theta.cos(), theta.sin());
+            let position = Point3r::new(
+                center.x + r * rho * ct,
+                center.y + y_val,
+                center.z + r * rho * st,
+            );
+            let dt = Vector3r::new(-r * rho * st, 0.0, r * rho * ct);
+            let dr = Vector3r::new(r * ct, dy_drho, r * st);
+            let raw_normal = if is_upper { dt.cross(dr) } else { dr.cross(dt) };
+            let normal = if raw_normal.norm() < 1e-14 {
+                Vector3r::new(0.0, sign, 0.0)
+            } else {
+                raw_normal.normalize()
+            };
+            (position, normal)
+        })
+        .collect()
+}
+
+/// Add one biconcave-disk surface from apex to the shared rim ring.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the surface helper is the build split point and needs the rim, profile coefficients, resolution, and side selection in one place"
+)]
+fn add_disk_surface(
+    mesh: &mut IndexedMesh,
+    center: Point3r,
+    rim_ids: &[VertexId],
+    ns: usize,
+    nr: usize,
+    r: f64,
+    c0: f64,
+    c1: f64,
+    c2: f64,
+    is_upper: bool,
+    region: RegionId,
+) {
+    let apex_y = if is_upper {
+        center.y + evans_fung_height(r, 0.0, c0, c1, c2)
+    } else {
+        center.y - evans_fung_height(r, 0.0, c0, c1, c2).abs()
+    };
+    let apex_normal = if is_upper {
+        Vector3r::new(0.0, 1.0, 0.0)
+    } else {
+        Vector3r::new(0.0, -1.0, 0.0)
+    };
+    let apex = mesh.add_vertex(Point3r::new(center.x, apex_y, center.z), apex_normal);
+
+    let mut ring_ids: Vec<Vec<VertexId>> = Vec::with_capacity(nr);
+    for k in 1..=nr {
+        let rho = f64::from_usize(k) / f64::from_usize(nr);
+        let ids = if k == nr {
+            rim_ids.to_vec()
+        } else {
+            disk_ring_vertices(center, ns, r, c0, c1, c2, rho, is_upper)
+                .iter()
+                .map(|(position, normal)| mesh.add_vertex(*position, *normal))
+                .collect()
+        };
+        ring_ids.push(ids);
+    }
+
+    for i in 0..ns {
+        let j = (i + 1) % ns;
+        if is_upper {
+            mesh.add_face_with_region(apex, ring_ids[0][j], ring_ids[0][i], region);
+        } else {
+            mesh.add_face_with_region(apex, ring_ids[0][i], ring_ids[0][j], region);
+        }
+    }
+
+    for k in 0..nr - 1 {
+        for i in 0..ns {
+            let j = (i + 1) % ns;
+            if is_upper {
+                mesh.add_face_with_region(
+                    ring_ids[k][i],
+                    ring_ids[k][j],
+                    ring_ids[k + 1][j],
+                    region,
+                );
+                mesh.add_face_with_region(
+                    ring_ids[k][i],
+                    ring_ids[k + 1][j],
+                    ring_ids[k + 1][i],
+                    region,
+                );
+            } else {
+                mesh.add_face_with_region(
+                    ring_ids[k][j],
+                    ring_ids[k][i],
+                    ring_ids[k + 1][i],
+                    region,
+                );
+                mesh.add_face_with_region(
+                    ring_ids[k][j],
+                    ring_ids[k + 1][i],
+                    ring_ids[k + 1][j],
+                    region,
+                );
+            }
+        }
+    }
+}
+
 fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
     if bd.diameter <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(
@@ -133,76 +279,9 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
     let c1 = bd.c1;
     let c2 = bd.c2;
 
-    // Evans-Fung height at normalised radius rho in `[0,1]`.
-    // Returns 0 at the rim (rho=1) by construction.
-    let ef_height = |rho: f64| -> f64 {
-        let rho2 = rho * rho;
-        let under = (1.0 - rho2).max(0.0);
-        r * under.sqrt() * (c0 + c1 * rho2 + c2 * rho2 * rho2)
-    };
-
-    // Build a ring of (position, outward_normal) at a given rho and +/- side.
-    // sign = +1 for upper lobe, sign = -1 for lower lobe (mirror in Y).
-    // Outward normal: for the upper lobe it's the surface gradient pointing
-    // away from the enclosed volume (roughly +Y at centre, tilted outward).
-    // We use analytic cross-product from the partial derivatives dP/drho and
-    // dP/dtheta evaluated at this ring.
-    let ring_vertices = |rho: f64, sign: f64| -> Vec<(Point3r, Vector3r)> {
-        let rho2 = rho * rho;
-        let y_val = sign * ef_height(rho);
-
-        // dP/dtheta (tangent in theta direction, no y component): (-r*rho*sin, 0, r*rho*cos)
-        // dP/drho: partial of (r*rho*cos, y(rho), r*rho*sin) w.r.t. rho
-        // = (r*cos, dy/drho, r*sin)
-        // dy/drho = sign * d/drho [ r * sqrt(1-rho²) * f(rho) ]
-        let dy_drho = {
-            let under = (1.0 - rho2).max(0.0);
-            let sqrt_under = under.sqrt();
-            // d/drho [sqrt(1-rho²) * f] = -rho/sqrt * f + sqrt * f'
-            // f  = c0 + c1*rho² + c2*rho⁴
-            // f' = 2*c1*rho + 4*c2*rho³
-            let f_val = c0 + c1 * rho2 + c2 * rho2 * rho2;
-            let f_prime = 2.0 * c1 * rho + 4.0 * c2 * rho2 * rho;
-            if sqrt_under < 1e-14 {
-                0.0
-            } else {
-                sign * r * (-rho / sqrt_under * f_val + sqrt_under * f_prime)
-            }
-        };
-
-        (0..ns)
-            .map(|i| {
-                let theta = f64::from_usize(i) / f64::from_usize(ns) * TAU;
-                let (ct, st) = (theta.cos(), theta.sin());
-                let pos = Point3r::new(cx + r * rho * ct, cy + y_val, cz + r * rho * st);
-
-                // dP/dtheta = (-r*rho*sin, 0, r*rho*cos)
-                let dt = Vector3r::new(-r * rho * st, 0.0, r * rho * ct);
-                // dP/drho = (r*cos, dy_drho, r*sin)
-                let dr = Vector3r::new(r * ct, dy_drho, r * st);
-
-                // For upper lobe: outward = dP/dtheta × dP/drho (gives +Y bias at centre)
-                // For lower lobe: we need outward = dP/drho × dP/dtheta (gives -Y bias at centre)
-                let raw_n = if sign > 0.0 {
-                    dt.cross(dr)
-                } else {
-                    dr.cross(dt)
-                };
-                let len = raw_n.norm();
-                let n = if len < 1e-14 {
-                    Vector3r::new(0.0, sign, 0.0)
-                } else {
-                    raw_n / len
-                };
-
-                (pos, n)
-            })
-            .collect()
-    };
-
     // Shared rim ring (rho = 1, y = 0)
     // Both upper and lower lobes end at the rim. Build it once for shared topology.
-    let rim_ids: Vec<crate::domain::core::index::VertexId> = (0..ns)
+    let rim_ids: Vec<VertexId> = (0..ns)
         .map(|i| {
             let theta = f64::from_usize(i) / f64::from_usize(ns) * TAU;
             let (ct, st) = (theta.cos(), theta.sin());
@@ -213,113 +292,32 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
         })
         .collect();
 
-    // Upper lobe (+Y, outward normals generally pointing +Y)
-    {
-        let apex_y = cy + ef_height(0.0);
-        let apex_n = Vector3r::new(0.0, 1.0, 0.0);
-        let apex_pos = Point3r::new(cx, apex_y, cz);
-        let v_apex = mesh.add_vertex(apex_pos, apex_n);
-
-        // Build all upper ring IDs, using rim_ids for the outermost ring
-        let mut upper_ring_ids: Vec<Vec<crate::domain::core::index::VertexId>> =
-            Vec::with_capacity(nr);
-        for k in 1..=nr {
-            let rho = f64::from_usize(k) / f64::from_usize(nr);
-            let ids: Vec<_> = if k == nr {
-                rim_ids.clone()
-            } else {
-                let curr = ring_vertices(rho, 1.0);
-                curr.iter().map(|(p, n)| mesh.add_vertex(*p, *n)).collect()
-            };
-            upper_ring_ids.push(ids);
-        }
-
-        // Fan from apex to first ring.
-        // Reversed angular order so that the apex-to-ring0 edge direction pairs
-        // correctly (opposite) with the k=0 concentric ring's ring0 edges.
-        for i in 0..ns {
-            let j = (i + 1) % ns;
-            mesh.add_face_with_region(
-                v_apex,
-                upper_ring_ids[0][j],
-                upper_ring_ids[0][i],
-                upper_region,
-            );
-        }
-
-        // Concentric rings
-        for k in 0..nr - 1 {
-            for i in 0..ns {
-                let j = (i + 1) % ns;
-                mesh.add_face_with_region(
-                    upper_ring_ids[k][i],
-                    upper_ring_ids[k][j],
-                    upper_ring_ids[k + 1][j],
-                    upper_region,
-                );
-                mesh.add_face_with_region(
-                    upper_ring_ids[k][i],
-                    upper_ring_ids[k + 1][j],
-                    upper_ring_ids[k + 1][i],
-                    upper_region,
-                );
-            }
-        }
-    }
-
-    // Lower lobe (-Y, outward normals generally pointing -Y)
-    {
-        let apex_y = cy - ef_height(0.0).abs();
-        let apex_n = Vector3r::new(0.0, -1.0, 0.0);
-        let apex_pos = Point3r::new(cx, apex_y, cz);
-        let v_apex = mesh.add_vertex(apex_pos, apex_n);
-
-        // Build all lower ring IDs, using rim_ids for the outermost ring
-        let mut lower_ring_ids: Vec<Vec<crate::domain::core::index::VertexId>> =
-            Vec::with_capacity(nr);
-        for k in 1..=nr {
-            let rho = f64::from_usize(k) / f64::from_usize(nr);
-            let ids: Vec<_> = if k == nr {
-                rim_ids.clone()
-            } else {
-                let curr = ring_vertices(rho, -1.0);
-                curr.iter().map(|(p, n)| mesh.add_vertex(*p, *n)).collect()
-            };
-            lower_ring_ids.push(ids);
-        }
-
-        // Fan from apex to first ring -- normal angular order (same topology as upper lobe).
-        // The concentric ring faces already use reversed order for the lower lobe,
-        // so the apex fan must use normal order to produce opposite ring0 edge direction.
-        for i in 0..ns {
-            let j = (i + 1) % ns;
-            mesh.add_face_with_region(
-                v_apex,
-                lower_ring_ids[0][i],
-                lower_ring_ids[0][j],
-                lower_region,
-            );
-        }
-
-        // Concentric rings -- reversed angular order
-        for k in 0..nr - 1 {
-            for i in 0..ns {
-                let j = (i + 1) % ns;
-                mesh.add_face_with_region(
-                    lower_ring_ids[k][j],
-                    lower_ring_ids[k][i],
-                    lower_ring_ids[k + 1][i],
-                    lower_region,
-                );
-                mesh.add_face_with_region(
-                    lower_ring_ids[k][j],
-                    lower_ring_ids[k + 1][i],
-                    lower_ring_ids[k + 1][j],
-                    lower_region,
-                );
-            }
-        }
-    }
+    add_disk_surface(
+        &mut mesh,
+        bd.center,
+        &rim_ids,
+        ns,
+        nr,
+        r,
+        c0,
+        c1,
+        c2,
+        true,
+        upper_region,
+    );
+    add_disk_surface(
+        &mut mesh,
+        bd.center,
+        &rim_ids,
+        ns,
+        nr,
+        r,
+        c0,
+        c1,
+        c2,
+        false,
+        lower_region,
+    );
 
     Ok(mesh)
 }
