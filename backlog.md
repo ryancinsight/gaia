@@ -209,11 +209,12 @@ type-checking, so no bench body has ever been executed by a gate.
 - **Dependencies**: GAIA-003 retires the largest class (1268 cast lints).
 - **ADR**: 0003 — Align CSG repair module ownership with directory paths.
 - **Risk / change class**: [arch] [patch] — L.
-- **Status**: todo. Incrementally delivered — Phase 13 (2026-09-29) removed four lint classes and discharged `unwrap_used`; remaining: cast-precision ratchet (blocked by GAIA-003), file-size splits, `too_many_lines` 58. **Owner**: root.
+- **Status**: todo. Incrementally delivered — Phase 13 (2026-09-29) removed four lint classes and discharged `unwrap_used`; Phase 23 (2026-10-01) split `rounded_cube`, `lattice`, `box_clip`, `serpentine_tube`, `revolution_sweep`, `truncated_icosahedron`, and PSLG crossing resolution to lower `too_many_lines` 39→31 while keeping `cargo clippy --lib` and `cargo test --lib` green. Remaining: cast-precision ratchet (blocked by GAIA-003), larger file-size splits, `too_many_lines` 31. **Owner**: root.
 
-Evidence: `cargo clippy --all-targets --all-features -- --force-warn
-clippy::too_many_lines` emits 58 diagnostics at this revision; `unwrap_production`
-ratchet baseline auto-tightened 2→0 on push.
+Evidence: Phase 13 established the ratchet backlog and Phase 23 remeasured
+`cargo clippy --lib` with `RUSTFLAGS=--force-warn clippy::too_many_lines`,
+which now emits 31 `too_many_lines` diagnostics. `unwrap_production` baseline
+auto-tightened 2→0 on push.
 
 ---
 
@@ -361,4 +362,3 @@ never in an optimization pass. The audit's finding still holds.
   delete `CHECKLIST.md`; leave no references to it.
 - basis: `e43c3e6` (current main).
 - next: compare each unchecked entry with the current tree, backlog, and PRs.
-

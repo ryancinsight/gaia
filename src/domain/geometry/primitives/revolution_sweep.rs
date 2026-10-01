@@ -107,6 +107,54 @@ impl PrimitiveMesh for RevolutionSweep {
     }
 }
 
+/// Return the exclusive upper bound for cap-fan triangles, skipping closed-profile degeneracy.
+fn cap_fan_end(profile: &[(f64, f64)]) -> usize {
+    let np = profile.len();
+    let (r_last, y_last) = profile[np - 1];
+    let (r_first, y_first) = profile[0];
+    let profile_is_closed = (r_last - r_first).abs() < 1e-10 && (y_last - y_first).abs() < 1e-10;
+    if profile_is_closed {
+        np - 2
+    } else {
+        np - 1
+    }
+}
+
+/// Add the two flat seam caps required for a partial revolution.
+fn add_partial_caps(mesh: &mut IndexedMesh, profile: &[(f64, f64)], angle: f64, region: RegionId) {
+    let cap_fan_end = cap_fan_end(profile);
+    let n_start = -Vector3r::z();
+    let (r0, y0) = profile[0];
+    let start_center = mesh.add_vertex(Point3r::new(r0, y0, 0.0), n_start);
+    for i in 1..cap_fan_end {
+        let (ri, yi) = profile[i];
+        let (ri1, yi1) = profile[i + 1];
+        let vi = mesh.add_vertex(Point3r::new(ri, yi, 0.0), n_start);
+        let vi1 = mesh.add_vertex(Point3r::new(ri1, yi1, 0.0), n_start);
+        mesh.add_face_with_region(start_center, vi1, vi, region);
+    }
+
+    let end_normal = Vector3r::new(-angle.sin(), 0.0, angle.cos());
+    let end_normal = {
+        let length = end_normal.norm();
+        if length > 1e-14 {
+            end_normal / length
+        } else {
+            end_normal
+        }
+    };
+    let cos_end = angle.cos();
+    let sin_end = angle.sin();
+    let end_center = mesh.add_vertex(Point3r::new(r0 * cos_end, y0, r0 * sin_end), end_normal);
+    for i in 1..cap_fan_end {
+        let (ri, yi) = profile[i];
+        let (ri1, yi1) = profile[i + 1];
+        let vi = mesh.add_vertex(Point3r::new(ri * cos_end, yi, ri * sin_end), end_normal);
+        let vi1 = mesh.add_vertex(Point3r::new(ri1 * cos_end, yi1, ri1 * sin_end), end_normal);
+        mesh.add_face_with_region(end_center, vi, vi1, region);
+    }
+}
+
 fn build(s: &RevolutionSweep) -> Result<IndexedMesh, PrimitiveError> {
     let np = s.profile.len();
     if np < 2 {
@@ -270,75 +318,7 @@ fn build(s: &RevolutionSweep) -> Result<IndexedMesh, PrimitiveError> {
     //   points in the +Z direction for a CCW profile.  We want −Z, so we
     //   reverse: (p0, p_{i+1}, p_i).
     if !is_full {
-        // Detect if the profile closes on itself (profile[last] ≈ profile[0]).
-        // When closed, the last cap triangle is degenerate (fan center == vi1),
-        // so we stop the fan one step earlier: for i in 1..(cap_fan_end).
-        let (r_last, y_last) = s.profile[np - 1];
-        let (r_first, y_first) = s.profile[0];
-        let profile_is_closed =
-            (r_last - r_first).abs() < 1e-10 && (y_last - y_first).abs() < 1e-10;
-        // For an open profile, fan covers i=1..np-2 (np-1 exclusive).
-        // For a closed profile, fan covers i=1..np-3 (np-2 exclusive),
-        // because the last lateral segment closes back to profile[0] which
-        // is already the fan center, so that seam edge is covered by
-        // the second-to-last triangle's spoke.
-        let cap_fan_end = if profile_is_closed { np - 2 } else { np - 1 };
-
-        // Start cap at φ = 0 (column 0), outward normal = −Z.
-        //
-        // Lateral face at j=0, segment i, left seam edge: grid[0][i]→grid[0][i+1].
-        // Cap must reverse: grid[0][i+1]→grid[0][i].
-        // Fan: (center, vi1, vi) traverses vi1→vi ✓
-        let n_start = -Vector3r::z();
-        {
-            let (r0, y0) = s.profile[0];
-            let v_fan_center = mesh.add_vertex(Point3r::new(r0, y0, 0.0), n_start);
-
-            for i in 1..cap_fan_end {
-                let (ri, yi) = s.profile[i];
-                let (ri1, yi1) = s.profile[i + 1];
-                let vi = mesh.add_vertex(Point3r::new(ri, yi, 0.0), n_start);
-                let vi1 = mesh.add_vertex(Point3r::new(ri1, yi1, 0.0), n_start);
-                mesh.add_face_with_region(v_fan_center, vi1, vi, region);
-            }
-        }
-
-        // End cap at φ = angle (column nm).
-        //
-        // At φ_end, the angular tangent direction is (-sin(φ_end), 0, cos(φ_end)).
-        // Outward normal for end cap = that tangent direction (past the end).
-        //
-        // Lateral face at j=nm-1, segment i, right seam edge: grid[nm][i]→grid[nm][i+1].
-        // Cap must reverse: grid[nm][i+1]→grid[nm][i].
-        // Fan: (center, vi1, vi) traverses vi1→vi ✓
-        let phi_end = s.angle;
-        let n_end = Vector3r::new(-phi_end.sin(), 0.0, phi_end.cos());
-        let n_end = {
-            let l = n_end.norm();
-            if l > 1e-14 {
-                n_end / l
-            } else {
-                n_end
-            }
-        };
-
-        {
-            let (r0, y0) = s.profile[0];
-            let cp_end = phi_end.cos();
-            let sp_end = phi_end.sin();
-            let v_fan_center = mesh.add_vertex(Point3r::new(r0 * cp_end, y0, r0 * sp_end), n_end);
-
-            for i in 1..cap_fan_end {
-                let (ri, yi) = s.profile[i];
-                let (ri1, yi1) = s.profile[i + 1];
-                let vi = mesh.add_vertex(Point3r::new(ri * cp_end, yi, ri * sp_end), n_end);
-                let vi1 = mesh.add_vertex(Point3r::new(ri1 * cp_end, yi1, ri1 * sp_end), n_end);
-                // Lateral right seam at col nm: edge goes v11→v10 (descending).
-                // Cap must reverse: ascending = vi→vi1.
-                // Fan: (center, vi, vi1) traverses vi→vi1 ✓, normal = -X at π/2 ✓
-                mesh.add_face_with_region(v_fan_center, vi, vi1, region);
-            }
-        }
+        add_partial_caps(&mut mesh, &s.profile, s.angle, region);
     }
 
     Ok(mesh)

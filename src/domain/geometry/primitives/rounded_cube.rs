@@ -71,10 +71,290 @@ impl PrimitiveMesh for RoundedCube {
     }
 }
 
-#[expect(
-    clippy::many_single_char_names,
-    reason = "standard width/height/depth/radius shorthand and corner-normal coordinates"
-)]
+/// Inner-box bounds shared by the flat panels, edge fillets, and corner octants.
+type InnerBoxBounds = (f64, f64, f64, f64, f64, f64);
+
+/// Add one rectangular face panel with a uniform normal and region tag.
+fn add_region_quad(
+    mesh: &mut IndexedMesh,
+    p00: Point3r,
+    p10: Point3r,
+    p11: Point3r,
+    p01: Point3r,
+    n: Vector3r,
+    region: RegionId,
+) {
+    let v00 = mesh.add_vertex(p00, n);
+    let v10 = mesh.add_vertex(p10, n);
+    let v11 = mesh.add_vertex(p11, n);
+    let v01 = mesh.add_vertex(p01, n);
+    mesh.add_face_with_region(v00, v10, v11, region);
+    mesh.add_face_with_region(v00, v11, v01, region);
+}
+
+/// Add the six rectangular face panels spanning the flat portions of the box.
+fn add_flat_face_panels(mesh: &mut IndexedMesh, bounds: InnerBoxBounds, r: f64, region: RegionId) {
+    let (x0, x1, y0, y1, z0, z1) = bounds;
+
+    add_region_quad(
+        mesh,
+        Point3r::new(x0 - r, y0, z0),
+        Point3r::new(x0 - r, y1, z0),
+        Point3r::new(x0 - r, y1, z1),
+        Point3r::new(x0 - r, y0, z1),
+        -Vector3r::x(),
+        region,
+    );
+    add_region_quad(
+        mesh,
+        Point3r::new(x1 + r, y0, z1),
+        Point3r::new(x1 + r, y1, z1),
+        Point3r::new(x1 + r, y1, z0),
+        Point3r::new(x1 + r, y0, z0),
+        Vector3r::x(),
+        region,
+    );
+    add_region_quad(
+        mesh,
+        Point3r::new(x0, y0 - r, z1),
+        Point3r::new(x1, y0 - r, z1),
+        Point3r::new(x1, y0 - r, z0),
+        Point3r::new(x0, y0 - r, z0),
+        -Vector3r::y(),
+        region,
+    );
+    add_region_quad(
+        mesh,
+        Point3r::new(x0, y1 + r, z0),
+        Point3r::new(x1, y1 + r, z0),
+        Point3r::new(x1, y1 + r, z1),
+        Point3r::new(x0, y1 + r, z1),
+        Vector3r::y(),
+        region,
+    );
+    add_region_quad(
+        mesh,
+        Point3r::new(x0, y0, z0 - r),
+        Point3r::new(x1, y0, z0 - r),
+        Point3r::new(x1, y1, z0 - r),
+        Point3r::new(x0, y1, z0 - r),
+        -Vector3r::z(),
+        region,
+    );
+    add_region_quad(
+        mesh,
+        Point3r::new(x1, y0, z1 + r),
+        Point3r::new(x0, y0, z1 + r),
+        Point3r::new(x0, y1, z1 + r),
+        Point3r::new(x1, y1, z1 + r),
+        Vector3r::z(),
+        region,
+    );
+}
+
+/// Add one quarter-cylinder strip swept between two endpoints along a box edge.
+fn add_edge_strip(
+    mesh: &mut IndexedMesh,
+    cs: usize,
+    a_start: f64,
+    a_end: f64,
+    mut sample: impl FnMut(f64) -> (Point3r, Point3r, Vector3r),
+    reverse_winding: bool,
+    region: RegionId,
+) {
+    for k in 0..cs {
+        let a0 = a_start + f64::from_usize(k) / f64::from_usize(cs) * (a_end - a_start);
+        let a1 = a_start + f64::from_usize(k + 1) / f64::from_usize(cs) * (a_end - a_start);
+        let (pb0, pt0, n0) = sample(a0);
+        let (pb1, pt1, n1) = sample(a1);
+        let vb0 = mesh.add_vertex(pb0, n0);
+        let vt0 = mesh.add_vertex(pt0, n0);
+        let vb1 = mesh.add_vertex(pb1, n1);
+        let vt1 = mesh.add_vertex(pt1, n1);
+
+        if reverse_winding {
+            mesh.add_face_with_region(vb0, vt1, vt0, region);
+            mesh.add_face_with_region(vb0, vb1, vt1, region);
+        } else {
+            mesh.add_face_with_region(vb0, vt0, vt1, region);
+            mesh.add_face_with_region(vb0, vt1, vb1, region);
+        }
+    }
+}
+
+/// Add the twelve quarter-cylinder fillet strips along the box edges.
+fn add_edge_cylinder_strips(
+    mesh: &mut IndexedMesh,
+    bounds: InnerBoxBounds,
+    r: f64,
+    cs: usize,
+    region: RegionId,
+) {
+    let (x0, x1, y0, y1, z0, z1) = bounds;
+
+    let z_edges = [
+        (x0, y0, PI, 3.0 * PI / 2.0),
+        (x1, y0, 3.0 * PI / 2.0, TAU),
+        (x1, y1, 0.0, PI / 2.0),
+        (x0, y1, PI / 2.0, PI),
+    ];
+    for (cx, cy, a_start, a_end) in z_edges {
+        add_edge_strip(
+            mesh,
+            cs,
+            a_start,
+            a_end,
+            |angle| {
+                let normal = Vector3r::new(angle.cos(), angle.sin(), 0.0);
+                (
+                    Point3r::new(cx + r * angle.cos(), cy + r * angle.sin(), z0),
+                    Point3r::new(cx + r * angle.cos(), cy + r * angle.sin(), z1),
+                    normal,
+                )
+            },
+            false,
+            region,
+        );
+    }
+
+    let x_edges = [
+        (y0, z0, PI, 3.0 * PI / 2.0),
+        (y0, z1, 3.0 * PI / 2.0, TAU),
+        (y1, z1, 0.0, PI / 2.0),
+        (y1, z0, PI / 2.0, PI),
+    ];
+    for (cy, cz, a_start, a_end) in x_edges {
+        add_edge_strip(
+            mesh,
+            cs,
+            a_start,
+            a_end,
+            |angle| {
+                let normal = Vector3r::new(0.0, angle.sin(), angle.cos());
+                (
+                    Point3r::new(x0, cy + r * angle.sin(), cz + r * angle.cos()),
+                    Point3r::new(x1, cy + r * angle.sin(), cz + r * angle.cos()),
+                    normal,
+                )
+            },
+            true,
+            region,
+        );
+    }
+
+    let y_edges = [
+        (x0, z0, PI, 3.0 * PI / 2.0),
+        (x1, z0, 3.0 * PI / 2.0, TAU),
+        (x1, z1, 0.0, PI / 2.0),
+        (x0, z1, PI / 2.0, PI),
+    ];
+    for (cx, cz, a_start, a_end) in y_edges {
+        add_edge_strip(
+            mesh,
+            cs,
+            a_start,
+            a_end,
+            |angle| {
+                let normal = Vector3r::new(angle.cos(), 0.0, angle.sin());
+                (
+                    Point3r::new(cx + r * angle.cos(), y0, cz + r * angle.sin()),
+                    Point3r::new(cx + r * angle.cos(), y1, cz + r * angle.sin()),
+                    normal,
+                )
+            },
+            true,
+            region,
+        );
+    }
+}
+
+/// Evaluate one position-normal sample on a spherical corner octant.
+fn corner_octant_sample(
+    center: Point3r,
+    signs: (f64, f64, f64),
+    r: f64,
+    u: f64,
+    v: f64,
+) -> (Point3r, Vector3r) {
+    let (sx, sy, sz) = signs;
+    let nx = sx * u.cos();
+    let ny = sy * u.sin() * v.cos();
+    let nz = sz * u.sin() * v.sin();
+    let normal = Vector3r::new(nx, ny, nz);
+    let position = Point3r::new(center.x + r * nx, center.y + r * ny, center.z + r * nz);
+    (position, normal)
+}
+
+/// Add one sphere-octant fillet patch at a single rounded cube corner.
+fn add_corner_octant(
+    mesh: &mut IndexedMesh,
+    center: Point3r,
+    signs: (f64, f64, f64),
+    r: f64,
+    cs: usize,
+    region: RegionId,
+) {
+    let (sx, sy, sz) = signs;
+    let parity_positive = (sx * sy * sz) > 0.0;
+
+    for iu in 0..cs {
+        for iv in 0..cs {
+            let u0 = f64::from_usize(iu) / f64::from_usize(cs) * PI / 2.0;
+            let u1 = f64::from_usize(iu + 1) / f64::from_usize(cs) * PI / 2.0;
+            let v0 = f64::from_usize(iv) / f64::from_usize(cs) * PI / 2.0;
+            let v1 = f64::from_usize(iv + 1) / f64::from_usize(cs) * PI / 2.0;
+
+            let (p00, n00) = corner_octant_sample(center, signs, r, u0, v0);
+            let (p10, n10) = corner_octant_sample(center, signs, r, u1, v0);
+            let (p11, n11) = corner_octant_sample(center, signs, r, u1, v1);
+            let (p01, n01) = corner_octant_sample(center, signs, r, u0, v1);
+
+            let v00 = mesh.add_vertex(p00, n00);
+            let v10 = mesh.add_vertex(p10, n10);
+            let v11 = mesh.add_vertex(p11, n11);
+            let v01 = mesh.add_vertex(p01, n01);
+
+            if iu == 0 {
+                if parity_positive {
+                    mesh.add_face_with_region(v10, v01, v11, region);
+                } else {
+                    mesh.add_face_with_region(v10, v11, v01, region);
+                }
+            } else if parity_positive {
+                mesh.add_face_with_region(v00, v01, v11, region);
+                mesh.add_face_with_region(v00, v11, v10, region);
+            } else {
+                mesh.add_face_with_region(v00, v10, v11, region);
+                mesh.add_face_with_region(v00, v11, v01, region);
+            }
+        }
+    }
+}
+
+/// Add the eight spherical corner-octant fillets that connect the edge strips.
+fn add_sphere_corner_octants(
+    mesh: &mut IndexedMesh,
+    bounds: InnerBoxBounds,
+    r: f64,
+    cs: usize,
+    region: RegionId,
+) {
+    let (x0, x1, y0, y1, z0, z1) = bounds;
+
+    for sx in [-1.0_f64, 1.0] {
+        for sy in [-1.0_f64, 1.0] {
+            for sz in [-1.0_f64, 1.0] {
+                let center = Point3r::new(
+                    if sx > 0.0 { x1 } else { x0 },
+                    if sy > 0.0 { y1 } else { y0 },
+                    if sz > 0.0 { z1 } else { z0 },
+                );
+                add_corner_octant(mesh, center, (sx, sy, sz), r, cs, region);
+            }
+        }
+    }
+}
+
 fn build(rc: &RoundedCube) -> Result<IndexedMesh, PrimitiveError> {
     let (w, h, d) = (rc.width, rc.height, rc.depth);
     let r = rc.corner_radius;
@@ -117,266 +397,10 @@ fn build(rc: &RoundedCube) -> Result<IndexedMesh, PrimitiveError> {
     let y1 = rc.origin.y + h - r;
     let z0 = rc.origin.z + r;
     let z1 = rc.origin.z + d - r;
-
-    // ── Six flat face panels ──────────────────────────────────────────────────
-    // Each face is a rectangle in the inner box's face plane, pushed outward by r.
-
-    // Helper: add a quad (two triangles) with a given flat normal.
-    let add_quad = |mesh: &mut IndexedMesh,
-                    p00: Point3r,
-                    p10: Point3r,
-                    p11: Point3r,
-                    p01: Point3r,
-                    n: Vector3r| {
-        let v00 = mesh.add_vertex(p00, n);
-        let v10 = mesh.add_vertex(p10, n);
-        let v11 = mesh.add_vertex(p11, n);
-        let v01 = mesh.add_vertex(p01, n);
-        mesh.add_face_with_region(v00, v10, v11, region);
-        mesh.add_face_with_region(v00, v11, v01, region);
-    };
-
-    // −X face (normal = −X), x = x0 − r = origin.x
-    let fx = rc.origin.x;
-    add_quad(
-        &mut mesh,
-        Point3r::new(fx, y0, z0),
-        Point3r::new(fx, y1, z0),
-        Point3r::new(fx, y1, z1),
-        Point3r::new(fx, y0, z1),
-        -Vector3r::x(),
-    );
-    // +X face (normal = +X), x = x1 + r = origin.x + w
-    let fx = rc.origin.x + w;
-    add_quad(
-        &mut mesh,
-        Point3r::new(fx, y0, z1),
-        Point3r::new(fx, y1, z1),
-        Point3r::new(fx, y1, z0),
-        Point3r::new(fx, y0, z0),
-        Vector3r::x(),
-    );
-    // −Y face (normal = −Y)
-    let fy = rc.origin.y;
-    add_quad(
-        &mut mesh,
-        Point3r::new(x0, fy, z1),
-        Point3r::new(x1, fy, z1),
-        Point3r::new(x1, fy, z0),
-        Point3r::new(x0, fy, z0),
-        -Vector3r::y(),
-    );
-    // +Y face (normal = +Y)
-    let fy = rc.origin.y + h;
-    add_quad(
-        &mut mesh,
-        Point3r::new(x0, fy, z0),
-        Point3r::new(x1, fy, z0),
-        Point3r::new(x1, fy, z1),
-        Point3r::new(x0, fy, z1),
-        Vector3r::y(),
-    );
-    // −Z face (normal = −Z)
-    let fz = rc.origin.z;
-    add_quad(
-        &mut mesh,
-        Point3r::new(x0, y0, fz),
-        Point3r::new(x1, y0, fz),
-        Point3r::new(x1, y1, fz),
-        Point3r::new(x0, y1, fz),
-        -Vector3r::z(),
-    );
-    // +Z face (normal = +Z)
-    let fz = rc.origin.z + d;
-    add_quad(
-        &mut mesh,
-        Point3r::new(x1, y0, fz),
-        Point3r::new(x0, y0, fz),
-        Point3r::new(x0, y1, fz),
-        Point3r::new(x1, y1, fz),
-        Vector3r::z(),
-    );
-
-    // ── Quarter-cylinder edge strips ──────────────────────────────────────────
-    // Each of the 12 edges of a box has a quarter-cylinder of radius r.
-    // Edge enumeration: 4 edges parallel to X, 4 to Y, 4 to Z.
-    //
-    // Helper: quarter-cylinder strip along axis `axis` (0=X,1=Y,2=Z),
-    // centred at inner_corner with sweep angle from `angle_start` to `angle_end`
-    // in the plane perpendicular to `axis`.  The strip has `edge_len` (the
-    // "flat" extent along the axis) driven by cs quads around the arc.
-
-    // We enumerate all 12 edges manually with their arc parameters:
-    // For the 4 Z-parallel edges (varying z from z0 to z1):
-    let z_edges: [([f64; 3], f64, f64, i8, i8); 4] = [
-        // [corner_x, corner_y, _], angle_start, angle_end, nx_sign, ny_sign
-        ([x0, y0, 0.0], PI, 3.0 * PI / 2.0, -1, -1), // −X, −Y corner → arc in 3rd quadrant
-        ([x1, y0, 0.0], 3.0 * PI / 2.0, TAU, 1, -1), // +X, −Y corner
-        ([x1, y1, 0.0], 0.0, PI / 2.0, 1, 1),        // +X, +Y corner
-        ([x0, y1, 0.0], PI / 2.0, PI, -1, 1),        // −X, +Y corner
-    ];
-    for ([cx_, cy_, _], a_start, a_end, _snx, _sny) in z_edges {
-        for k in 0..cs {
-            let a0 = a_start + f64::from_usize(k) / f64::from_usize(cs) * (a_end - a_start);
-            let a1 = a_start + f64::from_usize(k + 1) / f64::from_usize(cs) * (a_end - a_start);
-            let (c0, s0) = (a0.cos(), a0.sin());
-            let (c1, s1) = (a1.cos(), a1.sin());
-            let n0 = Vector3r::new(c0, s0, 0.0);
-            let n1 = Vector3r::new(c1, s1, 0.0);
-            let pb0 = Point3r::new(cx_ + r * c0, cy_ + r * s0, z0);
-            let pt0 = Point3r::new(cx_ + r * c0, cy_ + r * s0, z1);
-            let pb1 = Point3r::new(cx_ + r * c1, cy_ + r * s1, z0);
-            let pt1 = Point3r::new(cx_ + r * c1, cy_ + r * s1, z1);
-            let vb0 = mesh.add_vertex(pb0, n0);
-            let vt0 = mesh.add_vertex(pt0, n0);
-            let vb1 = mesh.add_vertex(pb1, n1);
-            let vt1 = mesh.add_vertex(pt1, n1);
-            mesh.add_face_with_region(vb0, vt0, vt1, region);
-            mesh.add_face_with_region(vb0, vt1, vb1, region);
-        }
-    }
-
-    // 4 X-parallel edges
-    // Sweep is along X (pb=x0, pt=x1); arc varies in YZ plane.
-    // (vb0,vt0,vt1): cross = (x1-x0,0,0)×(x1-x0,dy,dz) = (0*dz-0*dy, 0*(x1-x0)-dx*dz, dx*dy-0*(x1-x0))
-    // = (0, -dx*dz, dx*dy) — points in -Z,+Y for +X sweep going in +Z,+Y arc direction → outward.
-    // To make inward (consistent with flat panels), reverse: (vb0, vb1, vt1) and (vb0, vt1, vt0).
-    let x_edges: [([f64; 3], f64, f64); 4] = [
-        ([0.0, y0, z0], PI, 3.0 * PI / 2.0),
-        ([0.0, y0, z1], 3.0 * PI / 2.0, TAU),
-        ([0.0, y1, z1], 0.0, PI / 2.0),
-        ([0.0, y1, z0], PI / 2.0, PI),
-    ];
-    for ([_, cy_, cz_], a_start, a_end) in x_edges {
-        for k in 0..cs {
-            let a0 = a_start + f64::from_usize(k) / f64::from_usize(cs) * (a_end - a_start);
-            let a1 = a_start + f64::from_usize(k + 1) / f64::from_usize(cs) * (a_end - a_start);
-            let (c0, s0) = (a0.cos(), a0.sin());
-            let (c1, s1) = (a1.cos(), a1.sin());
-            let n0 = Vector3r::new(0.0, s0, c0);
-            let n1 = Vector3r::new(0.0, s1, c1);
-            let pb0 = Point3r::new(x0, cy_ + r * s0, cz_ + r * c0);
-            let pt0 = Point3r::new(x1, cy_ + r * s0, cz_ + r * c0);
-            let pb1 = Point3r::new(x0, cy_ + r * s1, cz_ + r * c1);
-            let pt1 = Point3r::new(x1, cy_ + r * s1, cz_ + r * c1);
-            let vb0 = mesh.add_vertex(pb0, n0);
-            let vt0 = mesh.add_vertex(pt0, n0);
-            let vb1 = mesh.add_vertex(pb1, n1);
-            let vt1 = mesh.add_vertex(pt1, n1);
-            // Reversed from Z-edge pattern to produce inward winding (matching flat panels).
-            mesh.add_face_with_region(vb0, vt1, vt0, region);
-            mesh.add_face_with_region(vb0, vb1, vt1, region);
-        }
-    }
-
-    // 4 Y-parallel edges
-    // Sweep is along Y (pb=y0, pt=y1); arc varies in XZ plane.
-    // Same analysis as X-edges — sweep-along-axis produces outward winding; reverse it.
-    let y_edges: [([f64; 3], f64, f64); 4] = [
-        ([x0, 0.0, z0], PI, 3.0 * PI / 2.0),
-        ([x1, 0.0, z0], 3.0 * PI / 2.0, TAU),
-        ([x1, 0.0, z1], 0.0, PI / 2.0),
-        ([x0, 0.0, z1], PI / 2.0, PI),
-    ];
-    for ([cx_, _, cz_], a_start, a_end) in y_edges {
-        for k in 0..cs {
-            let a0 = a_start + f64::from_usize(k) / f64::from_usize(cs) * (a_end - a_start);
-            let a1 = a_start + f64::from_usize(k + 1) / f64::from_usize(cs) * (a_end - a_start);
-            let (c0, s0) = (a0.cos(), a0.sin());
-            let (c1, s1) = (a1.cos(), a1.sin());
-            let n0 = Vector3r::new(c0, 0.0, s0);
-            let n1 = Vector3r::new(c1, 0.0, s1);
-            let pb0 = Point3r::new(cx_ + r * c0, y0, cz_ + r * s0);
-            let pt0 = Point3r::new(cx_ + r * c0, y1, cz_ + r * s0);
-            let pb1 = Point3r::new(cx_ + r * c1, y0, cz_ + r * s1);
-            let pt1 = Point3r::new(cx_ + r * c1, y1, cz_ + r * s1);
-            let vb0 = mesh.add_vertex(pb0, n0);
-            let vt0 = mesh.add_vertex(pt0, n0);
-            let vb1 = mesh.add_vertex(pb1, n1);
-            let vt1 = mesh.add_vertex(pt1, n1);
-            // Reversed from Z-edge pattern to produce inward winding (matching flat panels).
-            mesh.add_face_with_region(vb0, vt1, vt0, region);
-            mesh.add_face_with_region(vb0, vb1, vt1, region);
-        }
-    }
-
-    // ── Sphere octant corners ─────────────────────────────────────────────────
-    // 8 corners of the inner box; each gets a sphere octant patch.
-    // An octant covers φ ∈ [0, π/2] (from apex to equator) and θ ∈ [0, π/2].
-    // The apex is the vertex furthest from the box centre; the equator connects
-    // to the three adjacent edge strips.
-    //
-    // Corner enumeration: (sx, sy, sz) = signs (±1).
-    for sx in [-1.0_f64, 1.0_f64] {
-        for sy in [-1.0_f64, 1.0_f64] {
-            for sz in [-1.0_f64, 1.0_f64] {
-                // Centre of the corner sphere octant (inner box corner).
-                let ccx = if sx > 0.0 { x1 } else { x0 };
-                let ccy = if sy > 0.0 { y1 } else { y0 };
-                let ccz = if sz > 0.0 { z1 } else { z0 };
-
-                // The octant spans φ from 0 (at axis +sx·X) to π/2 (at axis ±Y/±Z boundary).
-                // We parametrize: u ∈ `[0,1]` along X-arc, v ∈ `[0,1]` along YZ-arc.
-                // Point on octant: n = (sx·cos(u·π/2), sy·sin(u·π/2)·cos(v·π/2), sz·sin(u·π/2)·sin(v·π/2))
-                // but the triple (cos u, sin u cos v, sin u sin v) is a sphere octant in the +++ octant,
-                // remapped by (sx, sy, sz).
-
-                for iu in 0..cs {
-                    for iv in 0..cs {
-                        let u0 = f64::from_usize(iu) / f64::from_usize(cs) * PI / 2.0;
-                        let u1 = f64::from_usize(iu + 1) / f64::from_usize(cs) * PI / 2.0;
-                        let v0 = f64::from_usize(iv) / f64::from_usize(cs) * PI / 2.0;
-                        let v1 = f64::from_usize(iv + 1) / f64::from_usize(cs) * PI / 2.0;
-
-                        let corner_pt = |u: f64, v: f64| -> (Point3r, Vector3r) {
-                            let nx = sx * u.cos();
-                            let ny = sy * u.sin() * v.cos();
-                            let nz = sz * u.sin() * v.sin();
-                            let n = Vector3r::new(nx, ny, nz);
-                            let pos = Point3r::new(ccx + r * nx, ccy + r * ny, ccz + r * nz);
-                            (pos, n)
-                        };
-
-                        let (p00, n00) = corner_pt(u0, v0);
-                        let (p10, n10) = corner_pt(u1, v0);
-                        let (p11, n11) = corner_pt(u1, v1);
-                        let (p01, n01) = corner_pt(u0, v1);
-
-                        let v00 = mesh.add_vertex(p00, n00);
-                        let v10 = mesh.add_vertex(p10, n10);
-                        let v11 = mesh.add_vertex(p11, n11);
-                        let v01 = mesh.add_vertex(p01, n01);
-
-                        // sign_parity: reflections in an odd number of axes reverse
-                        // the surface orientation so the Jacobian determinant flips sign.
-                        // Even parity (sx*sy*sz > 0): (u,v) natural winding gives outward.
-                        // Odd parity  (sx*sy*sz < 0): (u,v) natural winding gives inward.
-                        // We want all faces inward here (flip_faces() corrects at the end).
-                        let parity_positive = (sx * sy * sz) > 0.0;
-
-                        if iu == 0 {
-                            // Apex row (u=0): v00 == v01 (degenerate) → triangle.
-                            if parity_positive {
-                                // Natural (u,v) winding is outward → reverse for inward.
-                                mesh.add_face_with_region(v10, v01, v11, region);
-                            } else {
-                                // Natural winding is inward → keep as-is.
-                                mesh.add_face_with_region(v10, v11, v01, region);
-                            }
-                        } else if parity_positive {
-                            // Natural outward → reverse for inward.
-                            mesh.add_face_with_region(v00, v01, v11, region);
-                            mesh.add_face_with_region(v00, v11, v10, region);
-                        } else {
-                            // Natural inward → keep.
-                            mesh.add_face_with_region(v00, v10, v11, region);
-                            mesh.add_face_with_region(v00, v11, v01, region);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    let bounds = (x0, x1, y0, y1, z0, z1);
+    add_flat_face_panels(&mut mesh, bounds, r, region);
+    add_edge_cylinder_strips(&mut mesh, bounds, r, cs, region);
+    add_sphere_corner_octants(&mut mesh, bounds, r, cs, region);
 
     // All sections (flat panels, Z-edge strips, X/Y-edge strips reversed, octant corners)
     // are constructed with inward winding. Flip all faces to obtain outward normals.

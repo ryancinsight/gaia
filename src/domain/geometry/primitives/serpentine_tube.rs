@@ -156,6 +156,85 @@ fn frame_normal(t: Vector3r) -> Vector3r {
     Vector3r::new(t.z, 0.0, -t.x)
 }
 
+/// Sample the straight legs and U-turn bends into one ordered centreline station list.
+fn build_serpentine_stations(st: &SerpentineTube) -> Vec<Station> {
+    let mut stations = Vec::new();
+    let pitch = 2.0 * st.bend_radius;
+
+    for pass in 0..st.n_passes {
+        let x_col = f64::from_usize(pass) * pitch;
+        let going_up = pass % 2 == 0;
+        let tangent = if going_up {
+            Vector3r::new(0.0, 0.0, 1.0)
+        } else {
+            Vector3r::new(0.0, 0.0, -1.0)
+        };
+        let z_start = if going_up { 0.0 } else { st.straight_length };
+        let z_end = if going_up { st.straight_length } else { 0.0 };
+
+        for k in usize::from(pass != 0)..=st.straight_segments {
+            let t = f64::from_usize(k) / f64::from_usize(st.straight_segments);
+            stations.push(Station {
+                centre: Point3r::new(x_col, 0.0, z_start + t * (z_end - z_start)),
+                tangent,
+            });
+        }
+
+        if pass + 1 < st.n_passes {
+            for k in 1..=st.bend_segments {
+                let psi = PI * f64::from_usize(k) / f64::from_usize(st.bend_segments);
+                let (cp, sp) = (psi.cos(), psi.sin());
+                let (centre, tangent) = if going_up {
+                    (
+                        Point3r::new(
+                            x_col + st.bend_radius - st.bend_radius * cp,
+                            0.0,
+                            st.straight_length + st.bend_radius * sp,
+                        ),
+                        Vector3r::new(sp, 0.0, cp),
+                    )
+                } else {
+                    (
+                        Point3r::new(
+                            x_col + st.bend_radius - st.bend_radius * cp,
+                            0.0,
+                            -st.bend_radius * sp,
+                        ),
+                        Vector3r::new(sp, 0.0, -cp),
+                    )
+                };
+                stations.push(Station { centre, tangent });
+            }
+        }
+    }
+
+    stations
+}
+
+/// Add one circular end cap at the current start or end station.
+fn add_tube_cap(
+    mesh: &mut IndexedMesh,
+    station: &Station,
+    ring: &[VertexId],
+    region: RegionId,
+    invert_normal: bool,
+) {
+    let cap_normal = if invert_normal {
+        -station.tangent
+    } else {
+        station.tangent
+    };
+    let center = mesh.add_vertex(station.centre, cap_normal);
+    for ib in 0..ring.len() {
+        let ib1 = (ib + 1) % ring.len();
+        if invert_normal {
+            mesh.add_face_with_region(center, ring[ib1], ring[ib], region);
+        } else {
+            mesh.add_face_with_region(center, ring[ib], ring[ib1], region);
+        }
+    }
+}
+
 fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
     // ── Parameter validation ──────────────────────────────────────────────────
     if st.tube_radius <= 0.0 {
@@ -202,66 +281,8 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
 
     let mut mesh = IndexedMesh::new();
     let r = st.tube_radius;
-    let big_r = st.bend_radius;
-    let sl = st.straight_length;
     let ns = st.tube_segments;
-    let n_passes = st.n_passes;
-    let n_straight = st.straight_segments;
-    let n_bend = st.bend_segments;
-    let pitch = 2.0 * big_r;
-
-    // ── Build ordered centreline stations ────────────────────────────────────
-    //
-    // Layout:  [straight_0][bend_0][straight_1][bend_1]…[straight_{n-1}]
-    //
-    // Each section starts where the previous ended (shared station),
-    // so we skip station k=0 of each non-first section.
-    let mut all_stations: Vec<Station> = Vec::new();
-
-    for pass in 0..n_passes {
-        let x_col = f64::from_usize(pass) * pitch;
-        let going_up = pass % 2 == 0;
-
-        // Straight leg
-        let tang_s = if going_up {
-            Vector3r::new(0.0, 0.0, 1.0)
-        } else {
-            Vector3r::new(0.0, 0.0, -1.0)
-        };
-        let z_start = if going_up { 0.0 } else { sl };
-        let z_end = if going_up { sl } else { 0.0 };
-
-        let k_start = usize::from(pass != 0);
-        for k in k_start..=n_straight {
-            let t = f64::from_usize(k) / f64::from_usize(n_straight);
-            all_stations.push(Station {
-                centre: Point3r::new(x_col, 0.0, z_start + t * (z_end - z_start)),
-                tangent: tang_s,
-            });
-        }
-
-        // U-turn bend (not after last leg)
-        if pass + 1 < n_passes {
-            for k in 1..=n_bend {
-                let psi = PI * f64::from_usize(k) / f64::from_usize(n_bend);
-                let (cp, sp) = (psi.cos(), psi.sin());
-                let (centre, tangent) = if going_up {
-                    // CW top bend: arc extends above z = sl
-                    (
-                        Point3r::new(x_col + big_r - big_r * cp, 0.0, sl + big_r * sp),
-                        Vector3r::new(sp, 0.0, cp),
-                    )
-                } else {
-                    // CCW bottom bend: arc extends below z = 0
-                    (
-                        Point3r::new(x_col + big_r - big_r * cp, 0.0, -big_r * sp),
-                        Vector3r::new(sp, 0.0, -cp),
-                    )
-                };
-                all_stations.push(Station { centre, tangent });
-            }
-        }
-    }
+    let all_stations = build_serpentine_stations(st);
 
     // ── Build vertex rings ────────────────────────────────────────────────────
     // B = (0,1,0) fixed.  N = frame_normal(T).
@@ -297,31 +318,16 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
     }
 
     // ── Inlet cap (station 0, outward normal = −T₀) ───────────────────────────
-    {
-        let n_cap = -all_stations[0].tangent;
-        let vc = mesh.add_vertex(all_stations[0].centre, n_cap);
-        for ib in 0..ns {
-            let ib1 = (ib + 1) % ns;
-            // CCW from outside (−T direction): centre → r_{i+1} → r_i
-            mesh.add_face_with_region(vc, rings[0][ib1], rings[0][ib], inlet_region);
-        }
-    }
+    add_tube_cap(&mut mesh, &all_stations[0], &rings[0], inlet_region, true);
 
     // ── Outlet cap (last station, outward normal = +T_last) ───────────────────
-    {
-        let n_cap = all_stations[n_stations - 1].tangent;
-        let vc = mesh.add_vertex(all_stations[n_stations - 1].centre, n_cap);
-        for ib in 0..ns {
-            let ib1 = (ib + 1) % ns;
-            // CCW from outside (+T direction): centre → r_i → r_{i+1}
-            mesh.add_face_with_region(
-                vc,
-                rings[n_stations - 1][ib],
-                rings[n_stations - 1][ib1],
-                outlet_region,
-            );
-        }
-    }
+    add_tube_cap(
+        &mut mesh,
+        &all_stations[n_stations - 1],
+        &rings[n_stations - 1],
+        outlet_region,
+        false,
+    );
 
     Ok(mesh)
 }

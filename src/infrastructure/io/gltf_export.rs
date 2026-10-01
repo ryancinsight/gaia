@@ -35,6 +35,7 @@ pub fn write_glb<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
 
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
         id_to_idx.insert(vid, u32::try_from(idx).expect("vertex index fits in u32"));
+        // gLTF format uses f32; intentional narrowing from f64 mesh coordinates.
         let p = [
             vdata.position.x as f32,
             vdata.position.y as f32,

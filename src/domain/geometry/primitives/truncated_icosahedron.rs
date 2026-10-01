@@ -98,33 +98,22 @@ fn raw_vertices() -> Vec<[f64; 3]> {
     verts
 }
 
-fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
-    if ti.radius <= 0.0 {
-        return Err(PrimitiveError::InvalidParam(format!(
-            "radius must be > 0, got {}",
-            ti.radius
-        )));
-    }
-
-    let region = RegionId::new(1);
-    let mut mesh = IndexedMesh::new();
-
+/// Scale and translate the canonical truncated-icosahedron vertex set into world space.
+fn scaled_vertices(ti: &TruncatedIcosahedron) -> Vec<Point3r> {
     let raw = raw_vertices();
-    // Compute circumradius of raw vertices (should all be equal).
     let circ = raw[0].iter().map(|&x| x * x).sum::<f64>().sqrt();
     let scale = ti.radius / circ;
     let cx = ti.center.x;
     let cy = ti.center.y;
     let cz = ti.center.z;
 
-    let verts: Vec<Point3r> = raw
-        .iter()
+    raw.iter()
         .map(|v| Point3r::new(cx + v[0] * scale, cy + v[1] * scale, cz + v[2] * scale))
-        .collect();
+        .collect()
+}
 
-    // Find the faces by adjacency: two vertices are adjacent if their distance
-    // equals the edge length (which is approximately the minimum inter-vertex distance).
-    // The edge length = |v[0] - nearest neighbor|.
+/// Recover the pentagon and hexagon cycles from the scaled truncated-icosahedron graph.
+fn discover_faces(verts: &[Point3r]) -> Vec<Vec<usize>> {
     let edge_len_sq = {
         let p0 = verts[0];
         let mut min_sq = f64::INFINITY;
@@ -136,9 +125,8 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
         }
         min_sq
     };
-    let tol = edge_len_sq * 0.01; // 1% tolerance
+    let tol = edge_len_sq * 0.01;
 
-    // Build adjacency list.
     let mut adj: Vec<Vec<usize>> = vec![Vec::new(); 60];
     for i in 0..60 {
         for j in i + 1..60 {
@@ -150,38 +138,6 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
         }
     }
 
-    // Each vertex has exactly 3 neighbours in the truncated icosahedron.
-    // Find faces by walking: a face is a minimal cycle of length 5 (pentagon) or 6 (hexagon).
-    // We use a face-finding algorithm: for each directed edge (i→j), find the
-    // face to the left by turning maximally left at each step.
-    let face_normal_at = |face_verts: &[usize]| -> Vector3r {
-        let n = face_verts.len();
-        let centroid: Vector3r = face_verts
-            .iter()
-            .map(|&i| verts[i].coords)
-            .fold(Vector3r::zeros(), |a, v| a + v)
-            / f64::from_usize(n);
-        // Average cross-products for a polygon.
-        let p0 = verts[face_verts[0]];
-        let mut n_sum = Vector3r::zeros();
-        for k in 1..n - 1 {
-            let p1 = verts[face_verts[k]];
-            let p2 = verts[face_verts[k + 1]];
-            if let Some(n) = triangle_normal(&p0, &p1, &p2) {
-                n_sum += n;
-            }
-        }
-        let len = n_sum.norm();
-        if len < 1e-14 {
-            centroid.normalize()
-        } else {
-            n_sum / len
-        }
-    };
-
-    // Find all faces using the "next CCW edge" traversal.
-    // For each vertex i and neighbour j, find the face (i→j→k→...).
-    // At each step, turn "left" = pick the neighbour that is most CCW.
     let mut visited_edges: hashbrown::HashSet<(usize, usize)> = hashbrown::HashSet::new();
     let mut faces: Vec<Vec<usize>> = Vec::new();
 
@@ -232,8 +188,41 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
         }
     }
 
-    // Add all faces to mesh (fan-triangulated).
-    for face_indices in &faces {
+    faces
+}
+
+/// Fan-triangulate the recovered pentagons and hexagons into the indexed mesh.
+fn add_faces_to_mesh(
+    mesh: &mut IndexedMesh,
+    verts: &[Point3r],
+    faces: &[Vec<usize>],
+    region: RegionId,
+) {
+    let face_normal_at = |face_verts: &[usize]| -> Vector3r {
+        let n = face_verts.len();
+        let centroid: Vector3r = face_verts
+            .iter()
+            .map(|&i| verts[i].coords)
+            .fold(Vector3r::zeros(), |a, v| a + v)
+            / f64::from_usize(n);
+        let p0 = verts[face_verts[0]];
+        let mut n_sum = Vector3r::zeros();
+        for k in 1..n - 1 {
+            let p1 = verts[face_verts[k]];
+            let p2 = verts[face_verts[k + 1]];
+            if let Some(n) = triangle_normal(&p0, &p1, &p2) {
+                n_sum += n;
+            }
+        }
+        let len = n_sum.norm();
+        if len < 1e-14 {
+            centroid.normalize()
+        } else {
+            n_sum / len
+        }
+    };
+
+    for face_indices in faces {
         let n_outward = face_normal_at(face_indices);
         let p0 = &verts[face_indices[0]];
         for k in 1..face_indices.len() - 1 {
@@ -255,6 +244,21 @@ fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
             mesh.add_face_with_region(vi0, vi1, vi2, region);
         }
     }
+}
+
+fn build(ti: &TruncatedIcosahedron) -> Result<IndexedMesh, PrimitiveError> {
+    if ti.radius <= 0.0 {
+        return Err(PrimitiveError::InvalidParam(format!(
+            "radius must be > 0, got {}",
+            ti.radius
+        )));
+    }
+
+    let region = RegionId::new(1);
+    let mut mesh = IndexedMesh::new();
+    let verts = scaled_vertices(ti);
+    let faces = discover_faces(&verts);
+    add_faces_to_mesh(&mut mesh, &verts, &faces, region);
 
     // The face-traversal algorithm finds faces in CCW-from-inside order.
     // Flip all faces to obtain outward normals.

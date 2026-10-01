@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 21 complete (GridCell2d SSOT; cast_precision_loss 437→142; cast_possible_truncation 127→107; aequitas typed channel builders; ratchet 307 total).
+> **Rewrite status**: Phase 23 complete (too_many_lines 39→31; cast_precision_loss 437→141; cast_possible_truncation 127→98; ratchet 297→289 total).
 
 ---
 

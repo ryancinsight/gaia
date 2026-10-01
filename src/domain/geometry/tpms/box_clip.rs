@@ -34,6 +34,114 @@ fn triangle_edge_index(edge: i8) -> usize {
     )
 }
 
+/// Evaluate the signed-distance field of the clipping box at one world-space sample point.
+fn box_sdf(wx: f64, wy: f64, wz: f64, bounds: [f64; 6]) -> f64 {
+    let [x0, y0, z0, x1, y1, z1] = bounds;
+    let cx = (x0 + x1) * 0.5;
+    let cy = (y0 + y1) * 0.5;
+    let cz = (z0 + z1) * 0.5;
+    let hx = (x1 - x0) * 0.5;
+    let hy = (y1 - y0) * 0.5;
+    let hz = (z1 - z0) * 0.5;
+    let qx = (wx - cx).abs() - hx;
+    let qy = (wy - cy).abs() - hy;
+    let qz = (wz - cz).abs() - hz;
+    qx.max(0.0).hypot(qy.max(0.0)).hypot(qz.max(0.0)) + qx.max(qy).max(qz).min(0.0)
+}
+
+/// Pre-sample the clipped TPMS field on the padded marching-cubes lattice.
+fn sample_box_field<S: Tpms>(
+    surface: &S,
+    params: &TpmsBoxParams,
+    k: f64,
+    gs: usize,
+    dx: f64,
+    dy: f64,
+    dz: f64,
+) -> Vec<f64> {
+    let [x0, y0, z0, ..] = params.bounds;
+    let mut field = vec![0.0_f64; gs * gs * gs];
+    let idx = |ix: usize, iy: usize, iz: usize| iz * gs * gs + iy * gs + ix;
+
+    for iz in 0..gs {
+        for iy in 0..gs {
+            for ix in 0..gs {
+                let wx = x0 + (f64::from_usize(ix) - 1.0) * dx;
+                let wy = y0 + (f64::from_usize(iy) - 1.0) * dy;
+                let wz = z0 + (f64::from_usize(iz) - 1.0) * dz;
+                let tpms_val = surface.field(wx, wy, wz, k) - params.iso_value;
+                field[idx(ix, iy, iz)] = tpms_val.max(box_sdf(wx, wy, wz, params.bounds));
+            }
+        }
+    }
+
+    field
+}
+
+/// Choose an inward-pointing box-wall normal when the interpolated vertex lies on the box boundary.
+fn box_boundary_normal(
+    wx: f64,
+    wy: f64,
+    wz: f64,
+    bounds: [f64; 6],
+    fallback_normal: Vector3r,
+) -> Vector3r {
+    let [x0, y0, z0, x1, y1, z1] = bounds;
+    if box_sdf(wx, wy, wz, bounds).abs() >= 1e-5 {
+        return fallback_normal;
+    }
+
+    let mut nx = 0.0;
+    let mut ny = 0.0;
+    let mut nz = 0.0;
+    if (wx - x0).abs() < 1e-5 {
+        nx = -1.0;
+    } else if (wx - x1).abs() < 1e-5 {
+        nx = 1.0;
+    }
+    if (wy - y0).abs() < 1e-5 {
+        ny = -1.0;
+    } else if (wy - y1).abs() < 1e-5 {
+        ny = 1.0;
+    }
+    if (wz - z0).abs() < 1e-5 {
+        nz = -1.0;
+    } else if (wz - z1).abs() < 1e-5 {
+        nz = 1.0;
+    }
+    let boundary_normal = Vector3r::new(nx, ny, nz);
+    if boundary_normal.norm_squared() > 1e-6 {
+        boundary_normal.normalize()
+    } else {
+        fallback_normal
+    }
+}
+
+/// Interpolate one marching-cubes edge crossing and add the resulting vertex to the mesh.
+fn interpolate_box_vertex(
+    mesh: &mut IndexedMesh,
+    a: (usize, usize, usize),
+    b: (usize, usize, usize),
+    edge_values: (f64, f64),
+    spacing: (f64, f64, f64),
+    bounds: [f64; 6],
+    gradient_at: impl Fn(f64, f64, f64) -> Vector3r,
+) -> VertexId {
+    let [x0, y0, z0, ..] = bounds;
+    let (va, vb) = edge_values;
+    let (dx, dy, dz) = spacing;
+    let t = if (vb - va).abs() > 1e-15 {
+        (-va / (vb - va)).clamp(0.0, 1.0)
+    } else {
+        0.5
+    };
+    let wx = x0 + (f64::from_usize(a.0) * (1.0 - t) + f64::from_usize(b.0) * t - 1.0) * dx;
+    let wy = y0 + (f64::from_usize(a.1) * (1.0 - t) + f64::from_usize(b.1) * t - 1.0) * dy;
+    let wz = z0 + (f64::from_usize(a.2) * (1.0 - t) + f64::from_usize(b.2) * t - 1.0) * dz;
+    let normal = box_boundary_normal(wx, wy, wz, bounds, gradient_at(wx, wy, wz));
+    mesh.add_vertex(Point3r::new(wx, wy, wz), normal)
+}
+
 // ── Parameters ────────────────────────────────────────────────────────────────
 
 /// Parameters for AABB-clipped TPMS extraction.
@@ -111,50 +219,20 @@ pub fn build_tpms_box<S: Tpms>(
 ) -> Result<IndexedMesh, PrimitiveError> {
     params.validate()?;
 
-    let [x0, y0, z0, x1, y1, z1] = params.bounds;
+    let [x0, y0, z0, ..] = params.bounds;
     let k = std::f64::consts::TAU / params.period;
     let n = params.resolution;
-    let iso = params.iso_value;
 
     let resolution = f64::from_usize(n);
-    let dx = (x1 - x0) / resolution;
-    let dy = (y1 - y0) / resolution;
-    let dz = (z1 - z0) / resolution;
+    let dx = (params.bounds[3] - x0) / resolution;
+    let dy = (params.bounds[4] - y0) / resolution;
+    let dz = (params.bounds[5] - z0) / resolution;
     // Pad by 1 voxel on each side so the marching cubes bounds enclose the box
     let gs = n + 3;
 
-    let cx = (x0 + x1) * 0.5;
-    let cy = (y0 + y1) * 0.5;
-    let cz = (z0 + z1) * 0.5;
-    let hx = (x1 - x0) * 0.5;
-    let hy = (y1 - y0) * 0.5;
-    let hz = (z1 - z0) * 0.5;
-
     // Pre-sample field on padded grid.
-    let mut field = vec![0.0_f64; gs * gs * gs];
+    let field = sample_box_field(surface, params, k, gs, dx, dy, dz);
     let idx = |ix: usize, iy: usize, iz: usize| iz * gs * gs + iy * gs + ix;
-    for iz in 0..gs {
-        for iy in 0..gs {
-            for ix in 0..gs {
-                let wx = x0 + (f64::from_usize(ix) - 1.0) * dx;
-                let wy = y0 + (f64::from_usize(iy) - 1.0) * dy;
-                let wz = z0 + (f64::from_usize(iz) - 1.0) * dz;
-
-                let tpms_val = surface.field(wx, wy, wz, k) - iso;
-
-                // Box SDF
-                let qx = (wx - cx).abs() - hx;
-                let qy = (wy - cy).abs() - hy;
-                let qz = (wz - cz).abs() - hz;
-                let box_sdf =
-                    qx.max(0.0).hypot(qy.max(0.0)).hypot(qz.max(0.0)) + qx.max(qy).max(qz).min(0.0);
-
-                // Solid intersection: max(tpms, box_sdf).
-                // Negative = inside fluid, Positive = outside (wall or blocked).
-                field[idx(ix, iy, iz)] = tpms_val.max(box_sdf);
-            }
-        }
-    }
 
     let mut mesh = IndexedMesh::new();
     let mut cache: HashMap<(usize, usize, usize, usize), VertexId> =
@@ -190,75 +268,25 @@ pub fn build_tpms_box<S: Tpms>(
                         continue;
                     }
                     let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
-                        let (ax, ay, az) = (
+                        let a = (
                             ix + corner_offset(marching_cubes::CORNERS[ca].0),
                             iy + corner_offset(marching_cubes::CORNERS[ca].1),
                             iz + corner_offset(marching_cubes::CORNERS[ca].2),
                         );
-                        let (bx, by, bz) = (
+                        let b = (
                             ix + corner_offset(marching_cubes::CORNERS[cb].0),
                             iy + corner_offset(marching_cubes::CORNERS[cb].1),
                             iz + corner_offset(marching_cubes::CORNERS[cb].2),
                         );
-                        let va = cube_vals[ca];
-                        let vb = cube_vals[cb];
-                        let t = if (vb - va).abs() > 1e-15 {
-                            (-va / (vb - va)).clamp(0.0, 1.0)
-                        } else {
-                            0.5
-                        };
-
-                        let wx = x0
-                            + (f64::from_usize(ax) * (1.0 - t) + f64::from_usize(bx) * t - 1.0)
-                                * dx;
-                        let wy = y0
-                            + (f64::from_usize(ay) * (1.0 - t) + f64::from_usize(by) * t - 1.0)
-                                * dy;
-                        let wz = z0
-                            + (f64::from_usize(az) * (1.0 - t) + f64::from_usize(bz) * t - 1.0)
-                                * dz;
-
-                        // Because the boundary is defined by the Box SDF max intersection,
-                        // surface normals at the exact box boundary should point inwards (from wall).
-                        // If it's a TPMS body surface, use TPMS gradient.
-                        // We use a simple numeric SDF check:
-                        let qx = (wx - cx).abs() - hx;
-                        let qy = (wy - cy).abs() - hy;
-                        let qz = (wz - cz).abs() - hz;
-                        let box_sdf = qx.max(0.0).hypot(qy.max(0.0)).hypot(qz.max(0.0))
-                            + qx.max(qy).max(qz).min(0.0);
-
-                        let normal = if box_sdf.abs() < 1e-5 {
-                            // On box boundary, normal points outward of the fluid (into the box wall)
-                            // We construct the normal by seeing which face we're on
-                            let mut nx = 0.0;
-                            let mut ny = 0.0;
-                            let mut nz = 0.0;
-                            if (wx - x0).abs() < 1e-5 {
-                                nx = -1.0;
-                            } else if (wx - x1).abs() < 1e-5 {
-                                nx = 1.0;
-                            }
-                            if (wy - y0).abs() < 1e-5 {
-                                ny = -1.0;
-                            } else if (wy - y1).abs() < 1e-5 {
-                                ny = 1.0;
-                            }
-                            if (wz - z0).abs() < 1e-5 {
-                                nz = -1.0;
-                            } else if (wz - z1).abs() < 1e-5 {
-                                nz = 1.0;
-                            }
-                            let v = Vector3r::new(nx, ny, nz);
-                            if v.norm_squared() > 1e-6 {
-                                v.normalize()
-                            } else {
-                                surface.gradient(wx, wy, wz, k)
-                            }
-                        } else {
-                            surface.gradient(wx, wy, wz, k)
-                        };
-                        mesh.add_vertex(Point3r::new(wx, wy, wz), normal)
+                        interpolate_box_vertex(
+                            &mut mesh,
+                            a,
+                            b,
+                            (cube_vals[ca], cube_vals[cb]),
+                            (dx, dy, dz),
+                            params.bounds,
+                            |wx, wy, wz| surface.gradient(wx, wy, wz, k),
+                        )
                     });
                     edge_vids[ei] = Some(vid);
                 }
@@ -346,22 +374,15 @@ pub fn build_tpms_box_graded<S: Tpms>(
 ) -> Result<IndexedMesh, PrimitiveError> {
     validate_box_bounds(&bounds, resolution)?;
 
-    let [x0, y0, z0, x1, y1, z1] = bounds;
+    let [x0, y0, z0, ..] = bounds;
     let n = resolution;
     let iso = iso_value;
 
     let resolution = f64::from_usize(n);
-    let dx = (x1 - x0) / resolution;
-    let dy = (y1 - y0) / resolution;
-    let dz = (z1 - z0) / resolution;
+    let dx = (bounds[3] - x0) / resolution;
+    let dy = (bounds[4] - y0) / resolution;
+    let dz = (bounds[5] - z0) / resolution;
     let gs = n + 3;
-
-    let cx = (x0 + x1) * 0.5;
-    let cy = (y0 + y1) * 0.5;
-    let cz = (z0 + z1) * 0.5;
-    let hx = (x1 - x0) * 0.5;
-    let hy = (y1 - y0) * 0.5;
-    let hz = (z1 - z0) * 0.5;
 
     // Pre-sample field on (n+1)³ grid with spatially-varying k.
     let mut field = vec![0.0_f64; gs * gs * gs];
@@ -375,14 +396,7 @@ pub fn build_tpms_box_graded<S: Tpms>(
                 let local_period = period_fn(wx, wy, wz).max(1e-12);
                 let local_k = std::f64::consts::TAU / local_period;
                 let tpms_val = surface.field(wx, wy, wz, local_k) - iso;
-
-                let qx = (wx - cx).abs() - hx;
-                let qy = (wy - cy).abs() - hy;
-                let qz = (wz - cz).abs() - hz;
-                let box_sdf =
-                    qx.max(0.0).hypot(qy.max(0.0)).hypot(qz.max(0.0)) + qx.max(qy).max(qz).min(0.0);
-
-                field[idx(ix, iy, iz)] = tpms_val.max(box_sdf);
+                field[idx(ix, iy, iz)] = tpms_val.max(box_sdf(wx, wy, wz, bounds));
             }
         }
     }
@@ -419,73 +433,29 @@ pub fn build_tpms_box_graded<S: Tpms>(
                         continue;
                     }
                     let vid = *cache.entry((ix, iy, iz, ei)).or_insert_with(|| {
-                        let (ax, ay, az) = (
+                        let a = (
                             ix + corner_offset(marching_cubes::CORNERS[ca].0),
                             iy + corner_offset(marching_cubes::CORNERS[ca].1),
                             iz + corner_offset(marching_cubes::CORNERS[ca].2),
                         );
-                        let (bx, by, bz) = (
+                        let b = (
                             ix + corner_offset(marching_cubes::CORNERS[cb].0),
                             iy + corner_offset(marching_cubes::CORNERS[cb].1),
                             iz + corner_offset(marching_cubes::CORNERS[cb].2),
                         );
-                        let va = cube_vals[ca];
-                        let vb = cube_vals[cb];
-                        let t = if (vb - va).abs() > 1e-15 {
-                            (-va / (vb - va)).clamp(0.0, 1.0)
-                        } else {
-                            0.5
-                        };
-                        let wx = x0
-                            + (f64::from_usize(ax) * (1.0 - t) + f64::from_usize(bx) * t - 1.0)
-                                * dx;
-                        let wy = y0
-                            + (f64::from_usize(ay) * (1.0 - t) + f64::from_usize(by) * t - 1.0)
-                                * dy;
-                        let wz = z0
-                            + (f64::from_usize(az) * (1.0 - t) + f64::from_usize(bz) * t - 1.0)
-                                * dz;
-
-                        let qx = (wx - cx).abs() - hx;
-                        let qy = (wy - cy).abs() - hy;
-                        let qz = (wz - cz).abs() - hz;
-                        let box_sdf = qx.max(0.0).hypot(qy.max(0.0)).hypot(qz.max(0.0))
-                            + qx.max(qy).max(qz).min(0.0);
-
-                        let normal = if box_sdf.abs() < 1e-5 {
-                            let mut nx = 0.0;
-                            let mut ny = 0.0;
-                            let mut nz = 0.0;
-                            if (wx - x0).abs() < 1e-5 {
-                                nx = -1.0;
-                            } else if (wx - x1).abs() < 1e-5 {
-                                nx = 1.0;
-                            }
-                            if (wy - y0).abs() < 1e-5 {
-                                ny = -1.0;
-                            } else if (wy - y1).abs() < 1e-5 {
-                                ny = 1.0;
-                            }
-                            if (wz - z0).abs() < 1e-5 {
-                                nz = -1.0;
-                            } else if (wz - z1).abs() < 1e-5 {
-                                nz = 1.0;
-                            }
-                            let v = Vector3r::new(nx, ny, nz);
-                            if v.norm_squared() > 1e-6 {
-                                v.normalize()
-                            } else {
+                        interpolate_box_vertex(
+                            &mut mesh,
+                            a,
+                            b,
+                            (cube_vals[ca], cube_vals[cb]),
+                            (dx, dy, dz),
+                            bounds,
+                            |wx, wy, wz| {
                                 let local_period = period_fn(wx, wy, wz).max(1e-12);
                                 let local_k = std::f64::consts::TAU / local_period;
                                 surface.gradient(wx, wy, wz, local_k)
-                            }
-                        } else {
-                            // Gradient uses local k at the interpolated position.
-                            let local_period = period_fn(wx, wy, wz).max(1e-12);
-                            let local_k = std::f64::consts::TAU / local_period;
-                            surface.gradient(wx, wy, wz, local_k)
-                        };
-                        mesh.add_vertex(Point3r::new(wx, wy, wz), normal)
+                            },
+                        )
                     });
                     edge_vids[ei] = Some(vid);
                 }
