@@ -375,3 +375,20 @@ never in an optimization pass. The audit's finding still holds.
 - basis: `eb98a58` (current main).
 - evidence (2026-09-30, measured): `main` flip-flopped green 15:31 -> red 15:36 on fresh `Diff in` lines (`multi_mesh_resolution.rs:377`, `merge.rs:100/150/320/328/353`) from code landed in between; an earlier round (tube/collapse/merge/welder/constants) was fixed the same way and superseded within the hour. A file-level fmt PR cannot converge while landings outpace it — closed gaia#130 unmerged for exactly this reason after verifying its content was correct but stale. The hook carries a documented `SKIP_LOCAL_GATE=1` escape and installs opt-in per checkout (`install-hooks`), so either path lets unformatted code through.
 - next: decide the enforcement (mandatory hook install via the setup path, removing or gating the skip, or a required fmt status check that blocks merge rather than reporting after it) and implement that decision; do not open another file-level fmt PR.
+
+<a id="GAIA-RESCUE-QUEUE"></a>
+## GAIA-RESCUE-QUEUE — Complete or close the open rescue PRs
+
+- status: todo
+- outcome: each listed rescue PR is completed onto current main (ported, verified, merged) or closed once its diff resolves empty against main.
+- priority: correctness
+- needs: none
+- scope: the rescue head refs below; the board of this repository.
+- acceptance: no open `rescue/` PR in `ryancinsight/gaia` remains unaccounted for.
+- basis: `07611f2` (current main).
+- queue (draft parking records, none a claim):
+  - `ryancinsight/gaia#134` (`rescue/audit-gaia-20260928`): one commit splitting oversized modules and extracting test bodies; 98 files, +13284/-13215, code (csg, delaunay, geometry, quality, storage); fails `cargo fmt --check`.
+  - `ryancinsight/gaia#120` (`rescue/gaia-audit-20260929`): tracked and untracked work from a detached audit tree plus the rescue-only pre-push exception; 97 files, +13287/-13204, near-identical file set to #134; resolve against #134 first.
+  - `ryancinsight/gaia#121` (`rescue/gaia-arch008-20260929`): ARCH008 branch tip plus dirty backlog and repair hunks; 3 files, +12/-16 (`.githooks/pre-push`, `backlog.md`, `csg/boolean/indexed/repair/vertices.rs`).
+  - `ryancinsight/gaia#123` (`rescue/gaia-manifest-parallel-20260929`): `moirai-runtime` dependency enables `parallel`; 2 files, +1/-1 (`Cargo.toml`, `csg/arrangement.rs`); verification blocked by a Moirai/Mnemosyne API mismatch.
+- next: classify #123 and #121 first (small), then diff #134 against #120 and port the surviving union onto main.
