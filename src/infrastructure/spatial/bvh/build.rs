@@ -25,16 +25,6 @@ pub(super) fn range_aabb(aabbs: &[Aabb], indices: &[usize], start: usize, end: u
     a
 }
 
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "bucket coordinates are clamped to the finite bin range before flooring and checked conversion"
-)]
-fn bucket_index(value: f64, n_bins: usize) -> usize {
-    let max_bin = n_bins.saturating_sub(1);
-    let clamped = value.clamp(0.0, f64::from_usize(max_bin));
-    usize::try_from(clamped.floor() as i64).expect("BVH bucket index fits in usize")
-}
-
 /// Recursively build SAH-BVH into parallel plain `Vec`s.
 ///
 /// Appends to `out_aabbs` and `out_kinds` in sync and returns the index of the
@@ -58,11 +48,11 @@ pub(super) fn build_recursive(
 
     // Leaf threshold.
     if count <= MAX_LEAF_PRIMITIVES {
-        let idx = u32::try_from(out_aabbs.len()).expect("BVH node count fits in u32");
+        let idx = out_aabbs.len() as u32;
         out_aabbs.push(node_aabb);
         out_kinds.push(BvhNodeKind::Leaf {
-            start: u32::try_from(start).expect("BVH primitive start fits in u32"),
-            end: u32::try_from(end).expect("BVH primitive end fits in u32"),
+            start: start as u32,
+            end: end as u32,
         });
         return idx;
     }
@@ -76,7 +66,7 @@ pub(super) fn build_recursive(
     }
 
     // Reserve parent slot; children are appended after this index.
-    let parent_idx = u32::try_from(out_aabbs.len()).expect("BVH node count fits in u32");
+    let parent_idx = out_aabbs.len() as u32;
     out_aabbs.push(node_aabb);
     out_kinds.push(BvhNodeKind::Inner { left: 0, right: 0 }); // patched below
 
@@ -85,11 +75,10 @@ pub(super) fn build_recursive(
 
     // Patch parent connectivity.  `parent_idx` is valid: it was pushed before
     // the recursive calls that only append beyond it.
-    out_kinds[usize::try_from(parent_idx).expect("BVH parent index fits in usize")] =
-        BvhNodeKind::Inner {
-            left: left_idx,
-            right: right_idx,
-        };
+    out_kinds[parent_idx as usize] = BvhNodeKind::Inner {
+        left: left_idx,
+        right: right_idx,
+    };
     parent_idx
 }
 
@@ -139,7 +128,17 @@ fn sah_split(
 
         for &idx in &indices[start..end] {
             let c = axis_value(&centroids[idx], axis);
-            let b = bucket_index((c - min_c) * inv_extent * n_bins, N_BINS);
+            // Clamp the value, not the cast result. A centroid a hair below the
+            // computed axis minimum makes the product negative, and `f64 as usize`
+            // wraps that to a huge value which the following `min` then sends to
+            // the LAST bin; a point below the range belongs in the first.
+            let scaled = ((c - min_c) * inv_extent).max(0.0) * N_BINS as f64;
+            #[expect(
+                clippy::cast_sign_loss,
+                reason = "the `.max(0.0)` above is the proof: a bin index below the axis
+                minimum clamps to zero, so the cast cannot lose a sign"
+            )]
+            let b = (scaled as usize).min(N_BINS - 1);
             bin_aabb[b] = bin_aabb[b].union(&aabbs[idx]);
             bin_count[b] += 1;
         }

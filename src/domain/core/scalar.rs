@@ -170,9 +170,9 @@ impl Scalar for f32 {
     }
     #[inline]
     fn from_f64(v: f64) -> Self {
-        // Intentional precision loss: f32 is the lower-precision scalar type.
-        // This is the single production `cast_precision_loss` site in library code;
-        // covered by workspace ratchet (GAIA-003).
+        // The crate's lint table already permits this cast, so an `#[expect]`
+        // here could never be fulfilled and `unfulfilled_lint_expectations`
+        // fails the build under `-D warnings`.
         v as f32
     }
     #[inline]

@@ -40,7 +40,8 @@ impl SerpentineMeshBuilder {
         }
     }
 
-    /// Create a serpentine builder from typed [`aequitas`] [`aequitas::systems::si::quantities::Length`] quantities.
+    /// Create a serpentine builder from typed
+    /// [`aequitas`](aequitas::systems::si::quantities) `Length` quantities.
     ///
     /// All values are stored in SI metres internally.
     ///

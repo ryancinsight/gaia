@@ -23,25 +23,6 @@
 //! Hausdorff distance (Lorensen & Cline 1987).
 
 use crate::domain::core::index::VertexId;
-
-/// Convert a marching-cubes corner offset (always 0 or 1) to a `usize` index.
-///
-/// `CORNERS` stores offsets as `i32` for historical compatibility with the
-/// Lorensen & Cline table format, but the values are always in {0, 1} by
-/// construction.  This helper makes the non-negativity invariant explicit.
-#[inline]
-fn corner_offset(offset: i32) -> usize {
-    usize::from(u8::try_from(offset).expect("marching-cubes corner offset is 0 or 1"))
-}
-
-/// Convert a `TRI_TABLE` edge index (0–11, or −1 as terminator) to `usize`.
-///
-/// `TRI_TABLE` uses `i8` with −1 as end-of-row sentinel. Callers must check
-/// `value >= 0` before calling this; values 0–11 are always representable.
-#[inline]
-fn tri_edge_index(value: i8) -> usize {
-    usize::from(u8::try_from(value).expect("TRI_TABLE edge index is 0-11"))
-}
 use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -354,7 +335,7 @@ pub const TRI_TABLE: [[i8; 16]; 256] = [
 
 /// Cube corner offsets: `CORNERS[i]` = `(dx, dy, dz)` for corner `i` of a
 /// unit voxel cube.  Corners are numbered 0-7 in the Lorensen & Cline sense.
-pub const CORNERS: [(i32, i32, i32); 8] = [
+pub const CORNERS: [(usize, usize, usize); 8] = [
     (0, 0, 0),
     (1, 0, 0),
     (1, 1, 0),
@@ -533,6 +514,12 @@ pub(crate) fn extract_surface<S: super::Tpms>(
     extract_impl(mesh, params, surface);
 }
 
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "the `tri_row[ti] >= 0` loop guard is the proof: TRI_TABLE stores -1 as
+        the no-triangle sentinel, so every entry reached here is an edge index in
+        [0, 16) and the cast cannot lose a sign"
+)]
 fn extract_impl<E: SurfaceEvaluator + ?Sized>(
     mesh: &mut IndexedMesh,
     params: &McParams,
@@ -569,11 +556,7 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
                 let mut cube_vals = [0.0_f64; 8];
                 let mut cube_cfg: usize = 0;
                 for (ci, &(dx, dy, dz)) in CORNERS.iter().enumerate() {
-                    let v = field[idx(
-                        ix + corner_offset(dx),
-                        iy + corner_offset(dy),
-                        iz + corner_offset(dz),
-                    )];
+                    let v = field[idx(ix + dx, iy + dy, iz + dz)];
                     cube_vals[ci] = v;
                     if v < 0.0 {
                         cube_cfg |= 1 << ci;
@@ -594,16 +577,10 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
                     let slot = cache.slot(ix, iy, iz, ei);
                     let vid = match *slot {
                         EdgeVertexCache::UNMAPPED => {
-                            let (ax, ay, az) = (
-                                ix + corner_offset(CORNERS[ca].0),
-                                iy + corner_offset(CORNERS[ca].1),
-                                iz + corner_offset(CORNERS[ca].2),
-                            );
-                            let (bx, by, bz) = (
-                                ix + corner_offset(CORNERS[cb].0),
-                                iy + corner_offset(CORNERS[cb].1),
-                                iz + corner_offset(CORNERS[cb].2),
-                            );
+                            let (ax, ay, az) =
+                                (ix + CORNERS[ca].0, iy + CORNERS[ca].1, iz + CORNERS[ca].2);
+                            let (bx, by, bz) =
+                                (ix + CORNERS[cb].0, iy + CORNERS[cb].1, iz + CORNERS[cb].2);
                             let va = cube_vals[ca];
                             let vb = cube_vals[cb];
                             let t = if (vb - va).abs() > 1e-15 {
@@ -635,9 +612,9 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
                 let tri_row = &TRI_TABLE[cube_cfg];
                 let mut ti = 0;
                 while ti + 2 < 16 && tri_row[ti] >= 0 {
-                    let e0 = tri_edge_index(tri_row[ti]);
-                    let e1 = tri_edge_index(tri_row[ti + 1]);
-                    let e2 = tri_edge_index(tri_row[ti + 2]);
+                    let e0 = tri_row[ti] as usize;
+                    let e1 = tri_row[ti + 1] as usize;
+                    let e2 = tri_row[ti + 2] as usize;
                     if let (Some(v0), Some(v1), Some(v2)) =
                         (edge_vids[e0], edge_vids[e1], edge_vids[e2])
                     {
