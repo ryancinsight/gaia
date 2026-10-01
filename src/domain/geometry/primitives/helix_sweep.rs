@@ -98,6 +98,30 @@ fn add_helix_ring_quads(
     }
 }
 
+/// Add a fan-cap (flat disc) closing one end of the tube.
+///
+/// `ring` is the ring of boundary `VertexId`s at the open end, and `normal`
+/// is the outward-facing unit vector for the cap face.
+fn add_tube_endcap(
+    mesh: &mut IndexedMesh,
+    ring: &[VertexId],
+    center: Point3r,
+    normal: Vector3r,
+    region: RegionId,
+    inward: bool,
+) {
+    let vc = mesh.add_vertex(center, normal);
+    let ns = ring.len();
+    for ib in 0..ns {
+        let ib1 = (ib + 1) % ns;
+        if inward {
+            mesh.add_face_with_region(vc, ring[ib1], ring[ib], region);
+        } else {
+            mesh.add_face_with_region(vc, ring[ib], ring[ib1], region);
+        }
+    }
+}
+
 fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
     if hs.coil_radius <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(
@@ -201,31 +225,20 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
 
     add_helix_ring_quads(&mut mesh, &rings, ns, wall_region);
 
-    // Inlet cap (theta = 0, outward normal = -T(0))
-    {
-        let (t0, _, _, centre0) = helix_frame(0.0);
-        let n_cap = -t0;
-        let vc = mesh.add_vertex(centre0, n_cap);
-        for ib in 0..ns {
-            let ib1 = (ib + 1) % ns;
-            let vr0 = rings[0][ib];
-            let vr1 = rings[0][ib1];
-            mesh.add_face_with_region(vc, vr1, vr0, inlet_region);
-        }
-    }
+    // Inlet cap (theta = 0): inward fan, normal = -T(0)
+    let (t0, _, _, centre0) = helix_frame(0.0);
+    add_tube_endcap(&mut mesh, &rings[0], centre0, -t0, inlet_region, true);
 
-    // Outlet cap (theta = theta_max, outward normal = +T(theta_max))
-    {
-        let (t_end, _, _, centre_end) = helix_frame(theta_max);
-        let n_cap = t_end;
-        let vc = mesh.add_vertex(centre_end, n_cap);
-        for ib in 0..ns {
-            let ib1 = (ib + 1) % ns;
-            let vr0 = rings[na][ib];
-            let vr1 = rings[na][ib1];
-            mesh.add_face_with_region(vc, vr0, vr1, outlet_region);
-        }
-    }
+    // Outlet cap (theta = theta_max): outward fan, normal = +T(theta_max)
+    let (t_end, _, _, centre_end) = helix_frame(theta_max);
+    add_tube_endcap(
+        &mut mesh,
+        &rings[na],
+        centre_end,
+        t_end,
+        outlet_region,
+        false,
+    );
 
     Ok(mesh)
 }

@@ -99,42 +99,26 @@ pub fn write_ply<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
 /// normally.
 const SPECULATIVE_RESERVE_CAP: usize = 1 << 16;
 
-/// Read an ASCII PLY file into a new [`IndexedMesh`].
+/// Parse the ASCII PLY header and return `(vertex_count, face_count, has_normals)`.
 ///
-/// # Strictness
-///
-/// The header's `element` counts bound the loops that read the body, and a
-/// body line that cannot supply the record it belongs to is an error rather
-/// than a silent omission: a face declaring fewer than three vertices, a face
-/// naming a vertex the file never declared, and a blank line where a face was
-/// expected all fail the read.
-///
-/// # Errors
-/// Returns [`MeshError::Other`] for a malformed header or record, and
-/// [`MeshError::InvalidCoordinate`] if a position is NaN or infinite.
-pub fn read_ply<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
-    let buf = BufReader::new(reader);
-    let mut lines = buf.lines();
-
-    // Parse header.
+/// Advances `lines` past the `end_header` sentinel.  Detects vertex-position
+/// and optional per-vertex normal properties; ignores all other header fields.
+fn parse_ply_header(
+    lines: &mut std::io::Lines<BufReader<impl Read>>,
+) -> MeshResult<(usize, usize, bool)> {
     let mut vertex_count = 0usize;
     let mut face_count = 0usize;
     let mut in_vertex_props = false;
-    // `usize`, not `u8`: this is incremented once per matching header line, so a
-    // header long enough to overflow a byte would panic in a debug build. Only
-    // `>= 3` is ever asked of the value.
     let mut normal_prop_count = 0usize;
 
-    // Read the "ply" magic.
-    let magic = next_line(&mut lines)?;
+    let magic = next_line(lines)?;
     if magic.trim() != "ply" {
         return Err(MeshError::Other("not a PLY file".to_owned()));
     }
 
     loop {
-        let line = next_line(&mut lines)?;
+        let line = next_line(lines)?;
         let trimmed = line.trim();
-
         if trimmed == "end_header" {
             break;
         }
@@ -157,10 +141,6 @@ pub fn read_ply<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
         } else if trimmed.starts_with("element") {
             in_vertex_props = false;
         }
-
-        // Only a `property` line declares a property. A `comment` that happens
-        // to contain " nx" does not, and counting it would claim normals that
-        // the body never carries.
         if in_vertex_props
             && trimmed.starts_with("property")
             && (trimmed.contains(" nx") || trimmed.contains(" ny") || trimmed.contains(" nz"))
@@ -169,9 +149,28 @@ pub fn read_ply<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
         }
     }
 
-    let has_normals = normal_prop_count >= 3;
+    Ok((vertex_count, face_count, normal_prop_count >= 3))
+}
 
-    // Read vertex data.
+/// Read an ASCII PLY file into a new [`IndexedMesh`].
+///
+/// # Strictness
+///
+/// The header's `element` counts bound the loops that read the body, and a
+/// body line that cannot supply the record it belongs to is an error rather
+/// than a silent omission: a face declaring fewer than three vertices, a face
+/// naming a vertex the file never declared, and a blank line where a face was
+/// expected all fail the read.
+///
+/// # Errors
+/// Returns [`MeshError::Other`] for a malformed header or record, and
+/// [`MeshError::InvalidCoordinate`] if a position is NaN or infinite.
+pub fn read_ply<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
+    let buf = BufReader::new(reader);
+    let mut lines = buf.lines();
+
+    let (vertex_count, face_count, has_normals) = parse_ply_header(&mut lines)?;
+
     let mut positions: Vec<Point3r> = Vec::with_capacity(vertex_count.min(SPECULATIVE_RESERVE_CAP));
     let mut normals_vec = Vec::with_capacity(if has_normals {
         vertex_count.min(SPECULATIVE_RESERVE_CAP)

@@ -113,6 +113,45 @@ fn add_stadium_end_cap(
     }
 }
 
+/// Build the closed 2-D stadium profile in the XZ plane (CCW from above).
+///
+/// Returns `[x, z]` sample points describing the outline: a right semicircle
+/// followed by a left semicircle, with duplicates removed at the seam.
+fn build_stadium_profile(flat: f64, r: f64, cs: usize) -> Vec<[f64; 2]> {
+    let mut profile: Vec<[f64; 2]> = Vec::with_capacity((cs + 1) * 2);
+    // Right semicircle: centre (+flat/2, 0), angles -π/2 → +π/2.
+    for i in 0..=cs {
+        let angle = -PI / 2.0 + f64::from_usize(i) / f64::from_usize(cs) * PI;
+        profile.push([flat / 2.0 + r * angle.cos(), r * angle.sin()]);
+    }
+    // Left semicircle: centre (-flat/2, 0), angles +π/2 → 3π/2.
+    for i in 0..=cs {
+        let angle = PI / 2.0 + f64::from_usize(i) / f64::from_usize(cs) * PI;
+        profile.push([-flat / 2.0 + r * angle.cos(), r * angle.sin()]);
+    }
+    // Deduplicate consecutive near-coincident points (handles flat==0 seam).
+    let tol_sq = 1e-8_f64;
+    let mut dedup: Vec<[f64; 2]> = Vec::with_capacity(profile.len());
+    for p in &profile {
+        if let Some(last) = dedup.last() {
+            let (dx, dz) = (p[0] - last[0], p[1] - last[1]);
+            if dx * dx + dz * dz < tol_sq {
+                continue;
+            }
+        }
+        dedup.push(*p);
+    }
+    if dedup.len() > 1 {
+        let first = dedup[0];
+        let last = *dedup.last().expect("dedup len > 1");
+        let (dx, dz) = (last[0] - first[0], last[1] - first[1]);
+        if dx * dx + dz * dz < tol_sq {
+            dedup.pop();
+        }
+    }
+    dedup
+}
+
 fn build(sp: &StadiumPrism) -> Result<IndexedMesh, PrimitiveError> {
     if sp.width <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(
@@ -151,72 +190,7 @@ fn build(sp: &StadiumPrism) -> Result<IndexedMesh, PrimitiveError> {
 
     // flat_length along X between the two semicircle centres
     let flat = sp.width - 2.0 * r;
-
-    // Build the closed 2D profile points in the XZ plane (CCW when viewed from
-    // +Y — this gives outward normals for lateral faces with +Y convention).
-    //
-    // Profile traversal (CCW from above):
-    //   Right semicircle (centred at +X=flat/2, Z=0), angle -π/2 → +π/2
-    //   Left  semicircle (centred at  X=-flat/2, Z=0), angle +π/2 → 3π/2
-    //
-    // Each semicircle has cs+1 sample points (cs arcs).
-    // The two straight edges connecting the semicircles are implicit in the
-    // endpoint sharing between the two arcs.
-
-    let mut profile: Vec<[f64; 2]> = Vec::new(); // [x, z]
-
-    // Right semicircle: centre (+flat/2, 0), angles -π/2 → +π/2 (CW = CCW in XZ)
-    // Going from bottom-right (+flat/2, -r) around the right end to top-right (+flat/2, +r)
-    // in CCW direction from above:
-    for i in 0..=cs {
-        let angle = -PI / 2.0 + f64::from_usize(i) / f64::from_usize(cs) * PI;
-        let x = flat / 2.0 + r * angle.cos();
-        let z = r * angle.sin();
-        profile.push([x, z]);
-    }
-    // Left semicircle: centre (-flat/2, 0), angles +π/2 → 3π/2
-    // Going from top-left (-flat/2, +r) around the left end to bottom-left (-flat/2, -r)
-    for i in 0..=cs {
-        let angle = PI / 2.0 + f64::from_usize(i) / f64::from_usize(cs) * PI;
-        let x = -flat / 2.0 + r * angle.cos();
-        let z = r * angle.sin();
-        profile.push([x, z]);
-    }
-    // When flat > 0, the seam points (at z=±r, x=±flat/2) differ between the two
-    // semicircles (right ends at +flat/2, left starts at -flat/2), so the straight
-    // edges are encoded implicitly between consecutive points.
-    // When flat = 0, the seam points coincide (both semicircles end/start at x=0).
-    // In that case we must remove the duplicates to avoid degenerate zero-length edges
-    // and non-manifold topology in the mesh.
-    // Deduplicate consecutive near-coincident profile points (tolerance matches VertexPool).
-    let profile: Vec<[f64; 2]> = {
-        let mut dedup: Vec<[f64; 2]> = Vec::with_capacity(profile.len());
-        let tol_sq = 1e-8_f64;
-        for p in &profile {
-            if let Some(last) = dedup.last() {
-                let dx = p[0] - last[0];
-                let dz = p[1] - last[1];
-                if dx * dx + dz * dz < tol_sq {
-                    continue; // skip duplicate
-                }
-            }
-            dedup.push(*p);
-        }
-        // Also check wrap-around: last point must not equal first
-        if dedup.len() > 1 {
-            let first = dedup[0];
-            let last = *dedup
-                .last()
-                .expect("invariant: dedup.len() > 1 checked by the enclosing branch");
-            let dx = last[0] - first[0];
-            let dz = last[1] - first[1];
-            if dx * dx + dz * dz < tol_sq {
-                dedup.pop();
-            }
-        }
-        dedup
-    };
-
+    let profile = build_stadium_profile(flat, r, cs);
     let np = profile.len();
 
     // Pre-build bottom and top ring vertex ID arrays for shared topology.

@@ -415,31 +415,8 @@ pub(crate) fn assess_boundary_cells<T: Scalar>(
     }
 
     let boundary_cell_count = boundary_cells.len();
-    let mut accepted_boundary_cell_count = 0;
-    let mut rejected_boundary_cell_count = 0;
-    let mut invalid_boundary_cell_count = 0;
-    for (cell_id, state) in boundary_cells {
-        let quality = mesh
-            .cells
-            .get(cell_id)
-            .and_then(|cell| cell_tetrahedron_quality(mesh, cell));
-        if state.invalid {
-            invalid_boundary_cell_count += 1;
-            rejected_boundary_cell_count += 1;
-            continue;
-        }
-        let Some(quality) = quality else {
-            invalid_boundary_cell_count += 1;
-            rejected_boundary_cell_count += 1;
-            continue;
-        };
-        let cell_class = cell_criteria.classify(quality);
-        if cell_class == TetrahedronQualityClass::Accepted && !state.rejected_facet {
-            accepted_boundary_cell_count += 1;
-        } else {
-            rejected_boundary_cell_count += 1;
-        }
-    }
+    let (accepted_boundary_cell_count, rejected_boundary_cell_count, invalid_boundary_cell_count) =
+        count_boundary_cell_quality(boundary_cells, mesh, cell_criteria);
 
     Some(BoundaryTetrahedralQualityAcceptance {
         boundary_cell_count,
@@ -448,6 +425,44 @@ pub(crate) fn assess_boundary_cells<T: Scalar>(
         invalid_boundary_cell_count,
         boundary_facet_acceptance,
     })
+}
+
+/// Tally the quality classification of each boundary cell.
+///
+/// Returns `(accepted, rejected, invalid)` counts after querying per-cell
+/// tetrahedral quality against `cell_criteria` and folding the
+/// `BoundaryCellState` flags (validity, facet rejection) into the totals.
+fn count_boundary_cell_quality<T: Scalar>(
+    boundary_cells: HashMap<usize, BoundaryCellState>,
+    mesh: &IndexedMesh<T>,
+    cell_criteria: &TetrahedralQualityCriteria<T>,
+) -> (usize, usize, usize) {
+    let mut accepted = 0;
+    let mut rejected = 0;
+    let mut invalid = 0;
+    for (cell_id, state) in boundary_cells {
+        let quality = mesh
+            .cells
+            .get(cell_id)
+            .and_then(|cell| cell_tetrahedron_quality(mesh, cell));
+        if state.invalid {
+            invalid += 1;
+            rejected += 1;
+            continue;
+        }
+        let Some(quality) = quality else {
+            invalid += 1;
+            rejected += 1;
+            continue;
+        };
+        let cell_class = cell_criteria.classify(quality);
+        if cell_class == TetrahedronQualityClass::Accepted && !state.rejected_facet {
+            accepted += 1;
+        } else {
+            rejected += 1;
+        }
+    }
+    (accepted, rejected, invalid)
 }
 
 fn face_quality<T: Scalar>(
