@@ -41,6 +41,22 @@ pub(super) fn build_recursive(
     out_aabbs: &mut Vec<Aabb>,
     out_kinds: &mut Vec<BvhNodeKind>,
 ) -> u32 {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "BVH node indices are stored as u32 everywhere, so any build that succeeds already has fewer than u32::MAX nodes"
+    )]
+    fn node_index(len: usize) -> u32 {
+        len as u32
+    }
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "leaf start/end bounds index the same primitive slice as the BVH and therefore stay within the u32-backed node-range domain"
+    )]
+    fn leaf_bound(bound: usize) -> u32 {
+        bound as u32
+    }
+
     debug_assert!(start < end, "empty range in build_recursive");
 
     let node_aabb = range_aabb(aabbs, indices, start, end);
@@ -48,11 +64,11 @@ pub(super) fn build_recursive(
 
     // Leaf threshold.
     if count <= MAX_LEAF_PRIMITIVES {
-        let idx = out_aabbs.len() as u32;
+        let idx = node_index(out_aabbs.len());
         out_aabbs.push(node_aabb);
         out_kinds.push(BvhNodeKind::Leaf {
-            start: start as u32,
-            end: end as u32,
+            start: leaf_bound(start),
+            end: leaf_bound(end),
         });
         return idx;
     }
@@ -66,7 +82,7 @@ pub(super) fn build_recursive(
     }
 
     // Reserve parent slot; children are appended after this index.
-    let parent_idx = out_aabbs.len() as u32;
+    let parent_idx = node_index(out_aabbs.len());
     out_aabbs.push(node_aabb);
     out_kinds.push(BvhNodeKind::Inner { left: 0, right: 0 }); // patched below
 
@@ -98,6 +114,26 @@ fn sah_split(
     parent_aabb: &Aabb,
 ) -> (usize, f64) {
     const N_BINS: usize = SAH_N_BINS;
+
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "SAH_N_BINS is the fixed constant 32, which is represented exactly in f64"
+    )]
+    fn bin_count_f64() -> f64 {
+        N_BINS as f64
+    }
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the scaled centroid coordinate is non-negative and only needs its integer bin floor before clamping to the last bin"
+    )]
+    #[expect(
+        clippy::cast_sign_loss,
+        reason = "scaled is clamped to be non-negative before this helper is called, so flooring it into a usize cannot lose a sign"
+    )]
+    fn bin_index_from_scaled(scaled: f64) -> usize {
+        (scaled as usize).min(N_BINS - 1)
+    }
 
     let parent_sa = surface_area(parent_aabb);
     let count = f64::from_count(end - start);
@@ -132,13 +168,8 @@ fn sah_split(
             // computed axis minimum makes the product negative, and `f64 as usize`
             // wraps that to a huge value which the following `min` then sends to
             // the LAST bin; a point below the range belongs in the first.
-            let scaled = ((c - min_c) * inv_extent).max(0.0) * N_BINS as f64;
-            #[expect(
-                clippy::cast_sign_loss,
-                reason = "the `.max(0.0)` above is the proof: a bin index below the axis
-                minimum clamps to zero, so the cast cannot lose a sign"
-            )]
-            let b = (scaled as usize).min(N_BINS - 1);
+            let scaled = ((c - min_c) * inv_extent).max(0.0) * bin_count_f64();
+            let b = bin_index_from_scaled(scaled);
             bin_aabb[b] = bin_aabb[b].union(&aabbs[idx]);
             bin_count[b] += 1;
         }

@@ -21,6 +21,14 @@ type EncodedVertexBuffers = (
 
 /// Encode mesh vertices into contiguous glTF position and normal buffers.
 fn encode_vertex_buffers(mesh: &IndexedMesh) -> EncodedVertexBuffers {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "glTF vertex attributes are serialized as f32, so exporting the mesh intentionally narrows each f64 component to the format's storage width"
+    )]
+    fn gltf_vec3(x: f64, y: f64, z: f64) -> [f32; 3] {
+        [x as f32, y as f32, z as f32]
+    }
+
     let vertex_count = mesh.vertex_count();
     let mut id_to_idx: HashMap<VertexId, u32> = HashMap::with_capacity(vertex_count);
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(vertex_count);
@@ -30,16 +38,8 @@ fn encode_vertex_buffers(mesh: &IndexedMesh) -> EncodedVertexBuffers {
 
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
         id_to_idx.insert(vid, u32::try_from(idx).expect("vertex index fits in u32"));
-        let position = [
-            vdata.position.x as f32,
-            vdata.position.y as f32,
-            vdata.position.z as f32,
-        ];
-        let normal = [
-            vdata.normal.x as f32,
-            vdata.normal.y as f32,
-            vdata.normal.z as f32,
-        ];
+        let position = gltf_vec3(vdata.position.x, vdata.position.y, vdata.position.z);
+        let normal = gltf_vec3(vdata.normal.x, vdata.normal.y, vdata.normal.z);
         for axis in 0..3 {
             min_pos[axis] = min_pos[axis].min(position[axis]);
             max_pos[axis] = max_pos[axis].max(position[axis]);

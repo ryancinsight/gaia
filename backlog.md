@@ -233,6 +233,11 @@ Progress (Phase 27, 2026-10-02):
 - Forced-warning `too_many_lines` measurement reduced 5→1 via the Phase 27 command; the sole residual warning is `src/application/csg/arrangement.rs`, one of the parent-owned files this phase was instructed not to touch.
 - `cargo clippy --lib` is clean, `cargo test --lib` passed 1139/1139, and `cargo fmt --check` passes on the current worktree.
 
+Progress (Phase 28, 2026-10-02):
+- Retired the workspace `cast_precision_loss` / `cast_possible_truncation` allowances after annotating every remaining production cast site with per-site `#[expect(..., reason = "...")]` proofs in the scalar seam, indexed-component retention threshold, glTF/VTK export paths, BVH builder, and SSVDAG node interner.
+- Updated the `Cargo.toml` numeric-conversion ratchet comment to mark the debt fully discharged: any new bare production cast is now a hard error in library code, while test-only sites stay covered by the crate-root `cfg_attr(test, expect(...))` block.
+- `cargo clippy --lib` is clean with zero production cast-lint errors; `cargo test --lib` passed 1139/1139; `cargo fmt --check` passed.
+
 Evidence: `cargo clippy --all-targets --all-features -- --force-warn
 clippy::too_many_lines` emits 58 diagnostics at this revision; `unwrap_production`
 ratchet baseline auto-tightened 2→0 on push.

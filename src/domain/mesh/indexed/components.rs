@@ -60,6 +60,14 @@ impl<T: Scalar> IndexedMesh<T> {
             reason = "5% of an element count, rounded up: non-negative and at most
         largest_size, so the float-to-usize cast cannot lose a sign or overflow"
         )]
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "connected-component face counts stay far below the 2^53 exact-in-f64 bound, so multiplying by 5% preserves the integer magnitude exactly"
+        )]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "ceil() intentionally rounds the 5% threshold up to the next whole-face count before converting back to usize"
+        )]
         let min_keep = ((largest_size as f64 * 0.05).ceil() as usize).max(4);
 
         let mut discarded = 0;

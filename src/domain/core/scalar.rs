@@ -139,11 +139,12 @@ impl Scalar for f32 {
     fn tolerance() -> Self {
         1e-5_f32
     }
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the f32 Scalar implementation is the crate's explicit f64-to-f32 narrowing seam for callers that choose reduced precision"
+    )]
     #[inline]
     fn from_f64(v: f64) -> Self {
-        // The crate's lint table already permits this cast, so an `#[expect]`
-        // here could never be fulfilled and `unfulfilled_lint_expectations`
-        // fails the build under `-D warnings`.
         v as f32
     }
     #[inline]

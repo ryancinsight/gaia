@@ -171,10 +171,18 @@ impl<const B: usize, S: Subdivision<B>> SparseVoxelDag<B, S> {
 
     /// Recursively insert or lookup a node, ensuring DAG deduplication.
     pub(crate) fn intern_node(&mut self, node: DagNode<B>) -> DagIndex {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "DagIndex is a u32-backed handle, so successful DAG construction never exceeds u32::MAX nodes"
+        )]
+        fn next_dag_index(len: usize) -> u32 {
+            len as u32
+        }
+
         if let Some(&idx) = self.node_map.get(&node) {
             return idx;
         }
-        let max_idx = self.nodes.len() as u32;
+        let max_idx = next_dag_index(self.nodes.len());
         let idx = DagIndex(max_idx);
         self.nodes.push(node);
         self.node_map.insert(node, idx);

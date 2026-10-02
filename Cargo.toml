@@ -142,16 +142,13 @@ dbg_macro = "deny"
 # permanent per-file suppressions on targets whose whole job is printing, which
 # is noise, not a ratchet. The library-code guarantee is the measured zero.
 
-# ── Ratchet: numeric-conversion debt (239) ──────────────────────────────────
-# The real fix is a `Scalar`-parameterized conversion boundary, not blanket
-# `as` casts from index to coordinate space.
-cast_precision_loss = "allow"        # 141 (test sites covered by lib.rs carve-out)
-cast_possible_truncation = "allow"   # 98 (GridCell/GridCell2d carry #[expect];
-                                     #     test sites covered by lib.rs carve-out)
-# float_cmp: 5 production sites carry per-function #[expect] with reasons;
-# test-code sites covered by crate-root #![cfg_attr(test, expect(...))].
+# ── Ratchet: numeric-conversion debt (fully discharged) ──────────────────────
+# All production cast sites now carry per-site #[expect(…, reason = "…")] with
+# documented safety proofs. The workspace-level allow has been removed so that
+# any new bare cast is a hard error in library code.
+# Test-code sites are covered by lib.rs cfg_attr(test, expect(…)) block.
 
-# ── Ratchet: size and shape debt (58) ────────────────────────────────────────
+# ── Ratchet: size and shape debt ─────────────────────────────────────────────
 # Source files over the 500-line target are the split backlog.
 too_many_lines = "allow"             # 0 — fully retired in Phase 27
 # too_many_arguments: all 7 sites carry per-site #[expect] with stated reasons.

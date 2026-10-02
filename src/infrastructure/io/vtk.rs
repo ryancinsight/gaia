@@ -11,6 +11,14 @@ use crate::infrastructure::permission::GhostToken;
 use crate::infrastructure::storage::face_store::FaceStore;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "VertexPool indices are allocated in the same u32-backed VertexId domain, so iterating 0..len only materializes valid vertex ids"
+)]
+fn vtk_vertex_id(index: usize) -> crate::domain::core::index::VertexId {
+    crate::domain::core::index::VertexId::new(index as u32)
+}
+
 /// Write an indexed mesh as a VTK legacy ASCII unstructured grid.
 ///
 /// # Errors
@@ -33,7 +41,7 @@ pub fn write_vtk<W: Write>(
     // Points
     writeln!(writer, "POINTS {n_verts} double").map_err(MeshError::Io)?;
     for i in 0..n_verts {
-        let vid = crate::domain::core::index::VertexId::new(i as u32);
+        let vid = vtk_vertex_id(i);
         let p = vertex_pool.position(vid);
         writeln!(writer, "{} {} {}", p.x, p.y, p.z).map_err(MeshError::Io)?;
     }
