@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Sphere–Cylinder: union, intersection, and difference
 //!
 //! A unit sphere (r = 1 mm) and a tall cylinder (r = 0.4 mm, h = 3 mm)

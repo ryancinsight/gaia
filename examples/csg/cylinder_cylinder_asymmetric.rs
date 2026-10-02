@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cylinder–Cylinder (Asymmetric): union, intersection, and difference
 //!
 //! Two Y-axis cylinders with the **same radius** but **different heights** so

@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! Delaunay triangulation demonstration.
 //!
 //! Demonstrates the core `gaia` Delaunay / CDT / Ruppert refinement pipeline:

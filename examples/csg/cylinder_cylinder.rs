@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cylinder–Cylinder (alias for symmetric variant).
 //!
 //! This example mirrors the canonical cylinder-cylinder CSG workflow. Prefer running

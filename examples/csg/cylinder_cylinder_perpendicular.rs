@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cylinder–Cylinder (Perpendicular / Cross): union, intersection, and difference
 //!
 //! Two **equal-radius** cylinders whose axes are **perpendicular** and cross at

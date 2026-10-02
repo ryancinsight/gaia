@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cube–Sphere: union, intersection, and difference
 //!
 //! A 2×2×2 mm axis-aligned cube and a unit sphere (r = 1 mm) whose centre

@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG N-Way Cylinder Pentafurcation
 //!
 //! One **trunk** cylinder along +X ends at a junction from which five

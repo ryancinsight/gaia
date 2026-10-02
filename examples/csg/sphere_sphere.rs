@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Sphere-Sphere: union, intersection (lens), and difference
 //!
 //! Demonstrates the **Mesh Arrangement CSG pipeline** for curved surfaces.

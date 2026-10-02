@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG / Primitive Cylinder–Cylinder (L-shape): sharp corner vs rounded corner
 //!
 //! Two equal-radius cylinders arranged as an **L**: one runs along +Y (the

@@ -1,4 +1,3 @@
-#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cylinder–Cylinder (Trifurcation): union and trunk difference
 //!
 //! One **trunk** cylinder along +X ends at a junction from which three
