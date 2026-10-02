@@ -374,7 +374,7 @@ mod tests {
     /// vertex welds straight back to `v` and the split is a no-op on a
     /// freshly built mesh (pre-existing behavior, unrelated to the
     /// PackedRows conversion this pins: `git blame` shows this call
-    /// predates it). Tracked as GAIA-023.
+    /// predates it). Filed as ATLAS-VERTICES-WELD-BACK.
     #[test]
     fn two_isolated_faces_at_one_vertex_detected_but_welded_back() {
         let mut mesh = IndexedMesh::new();
