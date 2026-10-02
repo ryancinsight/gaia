@@ -130,12 +130,6 @@ pub fn vertex_mean_curvature<T: Scalar>(mesh: &IndexedMesh<T>) -> Vec<T> {
         .collect()
 }
 
-/// Backwards-compatible `f64` curvature helper for reporting and legacy call-sites.
-#[must_use]
-pub fn vertex_mean_curvature_f64(mesh: &IndexedMesh) -> Vec<f64> {
-    vertex_mean_curvature::<f64>(mesh)
-}
-
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -226,7 +220,7 @@ mod tests {
         .expect("cube build");
 
         assert_eq!(
-            vertex_mean_curvature_f64(&mesh),
+            vertex_mean_curvature::<f64>(&mesh),
             vertex_mean_curvature::<f64>(&mesh)
         );
     }
