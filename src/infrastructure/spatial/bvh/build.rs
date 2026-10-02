@@ -116,14 +116,6 @@ fn sah_split(
     const N_BINS: usize = SAH_N_BINS;
 
     #[expect(
-        clippy::cast_precision_loss,
-        reason = "SAH_N_BINS is the fixed constant 32, which is represented exactly in f64"
-    )]
-    fn bin_count_f64() -> f64 {
-        N_BINS as f64
-    }
-
-    #[expect(
         clippy::cast_possible_truncation,
         reason = "the scaled centroid coordinate is non-negative and only needs its integer bin floor before clamping to the last bin"
     )]
@@ -168,7 +160,7 @@ fn sah_split(
             // computed axis minimum makes the product negative, and `f64 as usize`
             // wraps that to a huge value which the following `min` then sends to
             // the LAST bin; a point below the range belongs in the first.
-            let scaled = ((c - min_c) * inv_extent).max(0.0) * bin_count_f64();
+            let scaled = ((c - min_c) * inv_extent).max(0.0) * n_bins;
             let b = bin_index_from_scaled(scaled);
             bin_aabb[b] = bin_aabb[b].union(&aabbs[idx]);
             bin_count[b] += 1;
