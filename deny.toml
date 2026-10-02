@@ -16,8 +16,6 @@ allow = [
     "Unicode-DFS-2016",
     "Zlib",
 ]
-copyleft = "warn"
-private = { ignore = true }
 
 [bans]
 multiple-versions = "warn"
