@@ -1,21 +1,20 @@
 //! Private CDT co-refinement helpers, extracted from `face.rs` to keep it under 500 lines.
 //! Called exclusively by `corefine_face`; all items are `pub(super)`.
 
-use super::super::geom::{dominant_normal_axes, inside_triangle, midpoint_subdivide, project_2d};
+use super::super::geom::{inside_triangle, midpoint_subdivide, project_2d};
 use super::super::keys::{canonical_edge_key, canonical_segment_key};
 use super::super::{SeamVertexMap, SegBounds, EDGE_EPS, WELD_TOL_SQ};
 use super::{
-    EdgeSteiner, EdgeSteinerBuffers, EdgeSteinerLists, FaceProjection, InteriorVertexBuffers,
-    PslgBuffers,
+    EdgeSteinerBuffers, EdgeSteinerLists, FaceProjection, InteriorVertexBuffers, PslgBuffers,
 };
 use crate::application::csg::intersect::SnapSegment;
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
 use crate::application::delaunay::{Cdt, Pslg};
 use crate::domain::core::constants::{
-    DEGENERATE_NORMAL_REL_SQ, DEGENERATE_SEGMENT_REL_SQ, MAX_STEINER_PER_FACE, SLIVER_AREA2D_REL,
+    DEGENERATE_NORMAL_REL_SQ, MAX_STEINER_PER_FACE, SLIVER_AREA2D_REL,
 };
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::{Point3r, Real, Vector3r};
+use crate::domain::core::scalar::{Real, Vector3r};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 use hashbrown::{HashMap, HashSet};
