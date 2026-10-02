@@ -3,8 +3,9 @@
 use super::icosahedron::{icosahedron_vertices, ICOSAHEDRON_FACES};
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
+use eunomia::FloatElement;
 
 /// Builds a geodesic sphere by subdividing each icosahedron face `frequency`
 /// times and projecting vertices onto a sphere of the given `radius`.
@@ -99,10 +100,10 @@ fn build(g: &GeodesicSphere) -> Result<IndexedMesh, PrimitiveError> {
         // Barycentric coordinates: (u, v, w) = ((f-i-j)/f, i/f, j/f)
         // Position = u*A + v*B + w*C (then projected onto sphere).
         let sub_pt = |si: usize, sj: usize| -> (Point3r, Vector3r) {
-            let frequency = f64::from_usize(f);
-            let u = f64::from_usize(f - si - sj) / frequency;
-            let v = f64::from_usize(si) / frequency;
-            let w = f64::from_usize(sj) / frequency;
+            let frequency = f64::from_count(f);
+            let u = f64::from_count(f - si - sj) / frequency;
+            let v = f64::from_count(si) / frequency;
+            let w = f64::from_count(sj) / frequency;
             let x = u * ax + v * bx + w * cx_;
             let y = u * ay + v * by + w * cy_;
             let z = u * az + v * bz + w * cz_;

@@ -11,9 +11,10 @@
 //! before computation; parametrising T adds no numerical benefit.
 
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Real, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 use crate::domain::topology::PackedRows;
+use eunomia::FloatElement;
 
 /// Error type for Venturi mesh building.
 #[derive(Debug)]
@@ -203,10 +204,10 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> IndexedMesh {
     let mut ring_offsets: Vec<usize> = Vec::with_capacity(nx + 1);
     ring_offsets.push(0);
     for i in 0..nx {
-        let z = total_l * Real::from_usize(i) / Real::from_usize(nx - 1);
+        let z = total_l * Real::from_count(i) / Real::from_count(nx - 1);
         let r = radius_at(z);
         for ia in 0..n_ang {
-            let theta = std::f64::consts::TAU * Real::from_usize(ia) / Real::from_usize(n_ang);
+            let theta = std::f64::consts::TAU * Real::from_count(ia) / Real::from_count(n_ang);
             let (sin_t, cos_t) = theta.sin_cos();
             ring_values.push(mesh.add_vertex(
                 Point3r::new(r * cos_t, r * sin_t, z),

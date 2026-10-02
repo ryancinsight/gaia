@@ -5,9 +5,10 @@
 //! topology and Boolean composition of those operands.
 
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Real, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 use crate::infrastructure::storage::vertex_pool::DEFAULT_MESH_CELL_SIZE;
+use eunomia::FloatElement;
 
 pub(super) const ANGULAR_SEGMENTS: usize = 32;
 
@@ -48,7 +49,7 @@ pub(super) fn build_closed_tube(
     // circumferential edge is smaller than that cell, shrink only this
     // operand's cell so adjacent ring vertices remain distinct.
     let angular_edge =
-        2.0 * radius * (std::f64::consts::PI / Real::from_usize(ANGULAR_SEGMENTS)).sin();
+        2.0 * radius * (std::f64::consts::PI / Real::from_count(ANGULAR_SEGMENTS)).sin();
     let cell_size = if angular_edge < DEFAULT_MESH_CELL_SIZE {
         angular_edge * 0.25
     } else {
@@ -86,14 +87,14 @@ pub(super) fn build_closed_tube(
     let mut ring = Vec::with_capacity(ANGULAR_SEGMENTS);
     let wall_region = RegionId::from_usize(0);
     for i in 0..n_steps {
-        let t = Real::from_usize(i) / Real::from_usize(n_steps - 1);
+        let t = Real::from_count(i) / Real::from_count(n_steps - 1);
         let cx = ox + dx * t;
         let cy = oy + dy * t;
         let cz = oz + dz * t;
         ring.clear();
         for ia in 0..ANGULAR_SEGMENTS {
             let theta =
-                std::f64::consts::TAU * Real::from_usize(ia) / Real::from_usize(ANGULAR_SEGMENTS);
+                std::f64::consts::TAU * Real::from_count(ia) / Real::from_count(ANGULAR_SEGMENTS);
             let (sin_t, cos_t) = theta.sin_cos();
             let normal_x = cos_t * ex + sin_t * fx;
             let normal_y = cos_t * ey + sin_t * fy;

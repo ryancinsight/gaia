@@ -5,9 +5,9 @@ use super::edges::split_non_manifold_edges;
 use super::uf_find;
 use crate::application::welding::GridCell;
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
 use crate::infrastructure::storage::face_store::FaceData;
+use eunomia::FloatElement;
 
 /// Merge nearby boundary vertices to close sliver gaps at intersection curves.
 ///
@@ -152,7 +152,7 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
         if count == 0 {
             return;
         }
-        sum / f64::from_usize(count)
+        sum / f64::from_count(count)
     };
     // Scale-relative tolerance: `merge_mult` fraction of mean edge length,
     // clamped to [1% .. 20%] of mean edge length.  Using a relative clamp
@@ -447,7 +447,7 @@ pub(super) fn merge_coincident_vertices(mesh: &mut IndexedMesh) {
         if cnt == 0 {
             return;
         }
-        sum / f64::from_usize(cnt)
+        sum / f64::from_count(cnt)
     };
     let eps = (mean_edge * 1e-4).max(1e-15);
     let eps_sq = eps * eps;

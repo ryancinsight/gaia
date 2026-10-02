@@ -198,7 +198,7 @@ pub fn eval_basis_and_deriv_to_slice<T: Scalar>(
     };
     eval_basis_to_slice(span, t, p - 1, knots, lower);
 
-    let pp = <T as Scalar>::from_usize(p);
+    let pp = T::from_count(p);
     for j in 0..=p {
         let i = span - p + j;
         let left = if j == 0 {

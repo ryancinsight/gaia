@@ -5,10 +5,10 @@
 //! the generalized arrangement orchestration prevents the special-case volume
 //! and topology contract from becoming a hidden branch in the indexed API.
 
-use crate::domain::core::scalar::Scalar;
 use crate::domain::geometry::aabb::Aabb;
 use crate::domain::geometry::primitives::{Cube, PrimitiveMesh};
 use crate::domain::mesh::IndexedMesh;
+use eunomia::FloatElement;
 
 /// Reconstruct the exact union when both inputs combine into one rectangular
 /// prism.
@@ -118,7 +118,7 @@ fn is_rectangular_prism(mesh: &IndexedMesh, bounds: &Aabb) -> bool {
     });
     let expected_volume = bounding_box_volume(bounds);
     let volume_tolerance =
-        64.0 * f64::from_usize(mesh.faces.len()) * f64::EPSILON * expected_volume.max(1.0);
+        64.0 * f64::from_count(mesh.faces.len()) * f64::EPSILON * expected_volume.max(1.0);
     (signed_volume.abs() - expected_volume).abs() <= volume_tolerance
 }
 

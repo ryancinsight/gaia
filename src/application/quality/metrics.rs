@@ -2,6 +2,7 @@
 
 use crate::domain::core::scalar::Real;
 use crate::domain::core::scalar::Scalar;
+use eunomia::FloatElement;
 use eunomia::NumericElement;
 
 /// A quality metric measurement.
@@ -37,7 +38,7 @@ impl QualityMetric {
         Some(Self {
             min,
             max,
-            mean: sum / Real::from_usize(values.len()),
+            mean: sum / Real::from_count(values.len()),
             count: values.len(),
         })
     }
@@ -75,7 +76,7 @@ impl QualityMetric {
             .iter()
             .copied()
             .fold(<T as NumericElement>::ZERO, |sum, value| sum + value);
-        let count = <T as Scalar>::from_usize(values.len());
+        let count = T::from_count(values.len());
         Some(Self {
             min: min.to_f64(),
             max: max.to_f64(),

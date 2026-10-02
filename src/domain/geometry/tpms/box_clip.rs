@@ -16,9 +16,10 @@ use crate::domain::geometry::tpms::marching_cubes;
 use crate::domain::geometry::tpms::Tpms;
 use crate::domain::geometry::tpms::Vector3r;
 use crate::domain::mesh::IndexedMesh;
+use eunomia::FloatElement;
 
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::{Point3r, Scalar};
+use crate::domain::core::scalar::Point3r;
 use hashbrown::HashMap;
 
 #[inline]
@@ -61,9 +62,9 @@ fn sample_box_field<S: Tpms>(
     for iz in 0..gs {
         for iy in 0..gs {
             for ix in 0..gs {
-                let wx = x0 + (f64::from_usize(ix) - 1.0) * dx;
-                let wy = y0 + (f64::from_usize(iy) - 1.0) * dy;
-                let wz = z0 + (f64::from_usize(iz) - 1.0) * dz;
+                let wx = x0 + (f64::from_count(ix) - 1.0) * dx;
+                let wy = y0 + (f64::from_count(iy) - 1.0) * dy;
+                let wz = z0 + (f64::from_count(iz) - 1.0) * dz;
                 let tpms_val = surface.field(wx, wy, wz, k) - params.iso_value;
                 field[idx(ix, iy, iz)] = tpms_val.max(box_sdf(wx, wy, wz, params.bounds));
             }
@@ -130,9 +131,9 @@ fn interpolate_box_vertex(
     } else {
         0.5
     };
-    let wx = x0 + (f64::from_usize(a.0) * (1.0 - t) + f64::from_usize(b.0) * t - 1.0) * dx;
-    let wy = y0 + (f64::from_usize(a.1) * (1.0 - t) + f64::from_usize(b.1) * t - 1.0) * dy;
-    let wz = z0 + (f64::from_usize(a.2) * (1.0 - t) + f64::from_usize(b.2) * t - 1.0) * dz;
+    let wx = x0 + (f64::from_count(a.0) * (1.0 - t) + f64::from_count(b.0) * t - 1.0) * dx;
+    let wy = y0 + (f64::from_count(a.1) * (1.0 - t) + f64::from_count(b.1) * t - 1.0) * dy;
+    let wz = z0 + (f64::from_count(a.2) * (1.0 - t) + f64::from_count(b.2) * t - 1.0) * dz;
     let normal = box_boundary_normal(wx, wy, wz, bounds, gradient_at(wx, wy, wz));
     mesh.add_vertex(Point3r::new(wx, wy, wz), normal)
 }
@@ -218,7 +219,7 @@ pub fn build_tpms_box<S: Tpms>(
     let k = std::f64::consts::TAU / params.period;
     let n = params.resolution;
 
-    let resolution = f64::from_usize(n);
+    let resolution = f64::from_count(n);
     let dx = (params.bounds[3] - x0) / resolution;
     let dy = (params.bounds[4] - y0) / resolution;
     let dz = (params.bounds[5] - z0) / resolution;
@@ -369,7 +370,7 @@ pub fn build_tpms_box_graded<S: Tpms>(
     let n = resolution;
     let iso = iso_value;
 
-    let resolution = f64::from_usize(n);
+    let resolution = f64::from_count(n);
     let dx = (bounds[3] - x0) / resolution;
     let dy = (bounds[4] - y0) / resolution;
     let dz = (bounds[5] - z0) / resolution;
@@ -381,9 +382,9 @@ pub fn build_tpms_box_graded<S: Tpms>(
     for iz in 0..gs {
         for iy in 0..gs {
             for ix in 0..gs {
-                let wx = x0 + (f64::from_usize(ix) - 1.0) * dx;
-                let wy = y0 + (f64::from_usize(iy) - 1.0) * dy;
-                let wz = z0 + (f64::from_usize(iz) - 1.0) * dz;
+                let wx = x0 + (f64::from_count(ix) - 1.0) * dx;
+                let wy = y0 + (f64::from_count(iy) - 1.0) * dy;
+                let wz = z0 + (f64::from_count(iz) - 1.0) * dz;
                 let local_period = period_fn(wx, wy, wz).max(1e-12);
                 let local_k = std::f64::consts::TAU / local_period;
                 let tpms_val = surface.field(wx, wy, wz, local_k) - iso;
@@ -522,7 +523,7 @@ mod tests {
             iso_value: 0.0,
         };
         let mesh = build_tpms_box(&Gyroid, &params).expect("should succeed");
-        let eps = params.period / f64::from_usize(params.resolution); // one voxel tolerance
+        let eps = params.period / f64::from_count(params.resolution); // one voxel tolerance
         for vid in 0..mesh.vertex_count() {
             let p = mesh.vertices.position(VertexId(vid as u32));
             assert!(

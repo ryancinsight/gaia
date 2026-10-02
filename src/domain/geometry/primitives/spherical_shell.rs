@@ -1,11 +1,12 @@
 //! Hollow sphere (spherical shell) primitive.
 
+use eunomia::FloatElement;
 use std::f64::consts::PI;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::{RegionId, VertexId};
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a hollow sphere — two concentric sphere surfaces connected by
@@ -76,19 +77,19 @@ fn build_shell_rings(
     nk: usize,
     is_outer: bool,
 ) -> Vec<Vec<VertexId>> {
-    let segments = f64::from_usize(ns);
-    let stacks = f64::from_usize(nk);
+    let segments = f64::from_count(ns);
+    let stacks = f64::from_count(nk);
 
     (0..nk - 1)
         .map(|k| {
-            let phi = f64::from_usize(k + 1) / stacks * PI;
+            let phi = f64::from_count(k + 1) / stacks * PI;
             let sp = phi.sin();
             let cp = phi.cos();
             let y = center.y + r * cp;
 
             (0..ns)
                 .map(|j| {
-                    let theta = f64::from_usize(j) / segments * TAU;
+                    let theta = f64::from_count(j) / segments * TAU;
                     let ct = theta.cos();
                     let st = theta.sin();
                     let position = Point3r::new(center.x + r * sp * ct, y, center.z + r * sp * st);

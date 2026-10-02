@@ -1,10 +1,11 @@
 //! Biconcave disk primitive — Evans-Fung red blood cell (RBC) shape.
 
+use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::{RegionId, VertexId};
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a biconcave disk matching the Evans-Fung parametrization of a
@@ -128,7 +129,7 @@ fn disk_ring_vertices(
 
     (0..ns)
         .map(|i| {
-            let theta = f64::from_usize(i) / f64::from_usize(ns) * TAU;
+            let theta = f64::from_count(i) / f64::from_count(ns) * TAU;
             let (ct, st) = (theta.cos(), theta.sin());
             let position = Point3r::new(
                 center.x + r * rho * ct,
@@ -180,7 +181,7 @@ fn add_disk_surface(
 
     let mut ring_ids: Vec<Vec<VertexId>> = Vec::with_capacity(nr);
     for k in 1..=nr {
-        let rho = f64::from_usize(k) / f64::from_usize(nr);
+        let rho = f64::from_count(k) / f64::from_count(nr);
         let ids = if k == nr {
             rim_ids.to_vec()
         } else {
@@ -267,7 +268,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
     // tolerance ≈ 4.9 × 10⁻⁵ mm — finer than the fixed 1 × 10⁻⁴ mm that
     // caused incorrect welding of innermost-ring vertices at that scale.
     let min_ring_spacing =
-        std::f64::consts::TAU * r / (f64::from_usize(bd.rings) * f64::from_usize(bd.segments));
+        std::f64::consts::TAU * r / (f64::from_count(bd.rings) * f64::from_count(bd.segments));
     let tol = (min_ring_spacing / 10.0).max(1e-10); // never go below 1 pm
     let mut mesh = IndexedMesh::with_cell_size(tol);
     let cx = bd.center.x;
@@ -283,7 +284,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
     // Both upper and lower lobes end at the rim. Build it once for shared topology.
     let rim_ids: Vec<VertexId> = (0..ns)
         .map(|i| {
-            let theta = f64::from_usize(i) / f64::from_usize(ns) * TAU;
+            let theta = f64::from_count(i) / f64::from_count(ns) * TAU;
             let (ct, st) = (theta.cos(), theta.sin());
             let pos = Point3r::new(cx + r * ct, cy, cz + r * st);
             // Normal at rim points radially outward in XZ plane

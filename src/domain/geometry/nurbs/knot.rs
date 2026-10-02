@@ -82,7 +82,7 @@ impl<T: Scalar> KnotVector<T> {
         }
         // interior knots
         for j in 1..interior {
-            knots.push(<T as Scalar>::from_usize(j) / <T as Scalar>::from_usize(interior));
+            knots.push(T::from_count(j) / T::from_count(interior));
         }
         // p+1 ones
         for _ in 0..=p {

@@ -3,7 +3,7 @@ use crate::domain::core::scalar::Scalar;
 /// Interpolate a uniform sample after converting the division to the scalar type.
 #[inline]
 pub(super) fn uniform_parameter<T: Scalar>(low: T, high: T, index: usize, segments: usize) -> T {
-    let fraction = <T as Scalar>::from_usize(index) / <T as Scalar>::from_usize(segments);
+    let fraction = T::from_count(index) / T::from_count(segments);
     low + (high - low) * fraction
 }
 

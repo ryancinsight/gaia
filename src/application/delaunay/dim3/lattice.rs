@@ -176,9 +176,9 @@ fn generate_bcc_points<T: Scalar, S: Sdf3D<T>>(
                 let ix = compress_axis_coord(i);
                 let jy = compress_axis_coord(j);
                 let kz = compress_axis_coord(k);
-                let i_scalar = <T as Scalar>::from_index(i64::try_from(i).expect("i fits in i64"));
-                let j_scalar = <T as Scalar>::from_index(i64::try_from(j).expect("j fits in i64"));
-                let k_scalar = <T as Scalar>::from_index(i64::try_from(k).expect("k fits in i64"));
+                let i_scalar = T::from_integer(i64::try_from(i).expect("i fits in i64"));
+                let j_scalar = T::from_integer(i64::try_from(j).expect("j fits in i64"));
+                let k_scalar = T::from_integer(i64::try_from(k).expect("k fits in i64"));
 
                 let p_a = min
                     + Vector3::new(
@@ -446,7 +446,7 @@ fn orient_boundary_faces<T: Scalar>(mesh: &mut IndexedMesh<T>, b_faces: &[FaceId
             for &vid in &cell.vertex_ids {
                 cell_sum += mesh.vertices.position(VertexId::from_usize(vid)).coords;
             }
-            let cell_centroid = cell_sum / <T as Scalar>::from_usize(cell.vertex_ids.len());
+            let cell_centroid = cell_sum / T::from_count(cell.vertex_ids.len());
             if (face_centroid - cell_centroid).dot(unorm) < <T as eunomia::NumericElement>::ZERO {
                 mesh.faces.get_mut(fid).flip();
             }
@@ -498,7 +498,7 @@ fn relax_boundary_vertices<T: Scalar, S: Sdf3D<T>>(
                 sum += mesh.vertices.position(n_vid).coords;
             }
 
-            let weight = <T as Scalar>::from_usize(neighbors.len());
+            let weight = T::from_count(neighbors.len());
             let mut p = Point3::from(sum / weight);
             let mut dist = sdf.eval(&p);
             for _ in 0..5 {

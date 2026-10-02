@@ -1,10 +1,11 @@
 //! UV-parametric sphere primitive.
 
+use eunomia::FloatElement;
 use std::f64::consts::{PI, TAU};
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a UV-parametric sphere.
@@ -78,8 +79,8 @@ fn build(s: &UvSphere) -> Result<IndexedMesh, PrimitiveError> {
     let cx = s.center.x;
     let cy = s.center.y;
     let cz = s.center.z;
-    let segments = f64::from_usize(s.segments);
-    let stacks = f64::from_usize(s.stacks);
+    let segments = f64::from_count(s.segments);
+    let stacks = f64::from_count(s.stacks);
 
     // Sample a (position, outward_normal) pair at (θ, φ).
     let vertex_at = |theta: f64, phi: f64| -> (Point3r, Vector3r) {
@@ -93,12 +94,12 @@ fn build(s: &UvSphere) -> Result<IndexedMesh, PrimitiveError> {
     };
 
     for i in 0..s.segments {
-        let theta0 = f64::from_usize(i) / segments * TAU;
-        let theta1 = f64::from_usize(i + 1) / segments * TAU;
+        let theta0 = f64::from_count(i) / segments * TAU;
+        let theta1 = f64::from_count(i + 1) / segments * TAU;
 
         for j in 0..s.stacks {
-            let phi0 = f64::from_usize(j) / stacks * PI;
-            let phi1 = f64::from_usize(j + 1) / stacks * PI;
+            let phi0 = f64::from_count(j) / stacks * PI;
+            let phi1 = f64::from_count(j + 1) / stacks * PI;
 
             let (pos00, n00) = vertex_at(theta0, phi0);
             let (pos10, n10) = vertex_at(theta1, phi0);

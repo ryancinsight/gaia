@@ -39,9 +39,10 @@
 //! computed face normals (good for smooth-shaded rendering and CFD post-processing).
 
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::{Real, Scalar, Vector3r};
+use crate::domain::core::scalar::{Real, Vector3r};
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::mesh::IndexedMesh;
+use eunomia::FloatElement;
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -86,9 +87,9 @@ impl NormalAnalysis {
     #[inline]
     #[must_use]
     pub fn inward_fraction(&self) -> Real {
-        let n = Real::from_usize(self.outward_faces + self.inward_faces);
+        let n = Real::from_count(self.outward_faces + self.inward_faces);
         if n > 0.0 {
-            Real::from_usize(self.inward_faces) / n
+            Real::from_count(self.inward_faces) / n
         } else {
             0.0
         }
@@ -246,7 +247,7 @@ pub fn analyze_normals(mesh: &IndexedMesh) -> NormalAnalysis {
         inward_faces: inward,
         degenerate_faces: degen,
         face_vertex_alignment_mean: if acnt > 0 {
-            asum / Real::from_usize(acnt)
+            asum / Real::from_count(acnt)
         } else {
             0.0
         },

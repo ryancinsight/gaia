@@ -1,10 +1,11 @@
 //! Capsule primitive (cylinder + hemispherical end caps).
 
+use eunomia::FloatElement;
 use std::f64::consts::{PI, TAU};
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a capsule: a closed right cylinder capped with two hemispheres.
@@ -80,22 +81,22 @@ fn add_hemisphere(
     hs: usize,
     region: RegionId,
 ) {
-    let segments = f64::from_usize(ns);
-    let hemisphere_stacks = f64::from_usize(hs);
+    let segments = f64::from_count(ns);
+    let hemisphere_stacks = f64::from_count(hs);
 
     for i in 0..ns {
-        let t0 = f64::from_usize(i) / segments * TAU;
-        let t1 = f64::from_usize(i + 1) / segments * TAU;
+        let t0 = f64::from_count(i) / segments * TAU;
+        let t1 = f64::from_count(i + 1) / segments * TAU;
         for j in 0..hs {
             let (phi0, phi1) = if flip {
                 (
-                    PI / 2.0 + f64::from_usize(j) / hemisphere_stacks * PI / 2.0,
-                    PI / 2.0 + f64::from_usize(j + 1) / hemisphere_stacks * PI / 2.0,
+                    PI / 2.0 + f64::from_count(j) / hemisphere_stacks * PI / 2.0,
+                    PI / 2.0 + f64::from_count(j + 1) / hemisphere_stacks * PI / 2.0,
                 )
             } else {
                 (
-                    f64::from_usize(j) / hemisphere_stacks * PI / 2.0,
-                    f64::from_usize(j + 1) / hemisphere_stacks * PI / 2.0,
+                    f64::from_count(j) / hemisphere_stacks * PI / 2.0,
+                    f64::from_count(j + 1) / hemisphere_stacks * PI / 2.0,
                 )
             };
 
@@ -146,10 +147,10 @@ fn add_cylinder_band(
     ns: usize,
     region: RegionId,
 ) {
-    let segments = f64::from_usize(ns);
+    let segments = f64::from_count(ns);
     for i in 0..ns {
-        let t0 = f64::from_usize(i) / segments * TAU;
-        let t1 = f64::from_usize(i + 1) / segments * TAU;
+        let t0 = f64::from_count(i) / segments * TAU;
+        let t1 = f64::from_count(i + 1) / segments * TAU;
         let (c0, s0) = (t0.cos(), t0.sin());
         let (c1, s1) = (t1.cos(), t1.sin());
         let n0 = Vector3r::new(c0, 0.0, s0);

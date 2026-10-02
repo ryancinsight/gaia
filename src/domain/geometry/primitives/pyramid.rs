@@ -1,10 +1,11 @@
 //! Right pyramid primitive (n-gon base).
 
+use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::mesh::IndexedMesh;
 
@@ -84,14 +85,14 @@ fn build(p: &Pyramid) -> Result<IndexedMesh, PrimitiveError> {
     let by = p.base_center.y;
     let bz = p.base_center.z;
     let ns = p.sides;
-    let sides = f64::from_usize(ns);
+    let sides = f64::from_count(ns);
 
     // Apex
     let apex = Point3r::new(bx, by + p.height, bz);
     // Base polygon vertices (CCW from above = CW from below = correct for outward normals)
     let base: Vec<Point3r> = (0..ns)
         .map(|i| {
-            let angle = f64::from_usize(i) / sides * TAU;
+            let angle = f64::from_count(i) / sides * TAU;
             Point3r::new(bx + r * angle.cos(), by, bz + r * angle.sin())
         })
         .collect();

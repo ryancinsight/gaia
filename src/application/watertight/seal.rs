@@ -1,11 +1,12 @@
 //! Boundary sealing: close holes in an otherwise-manifold mesh.
 
 use crate::domain::core::index::{RegionId, VertexId};
-use crate::domain::core::scalar::{Point3r, Real, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 use crate::domain::topology::boundary_loops;
 use crate::infrastructure::storage::edge_store::EdgeStore;
 use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
 use crate::infrastructure::storage::vertex_pool::VertexPool;
+use eunomia::FloatElement;
 
 /// Bound on the vertices visited while walking a *single* boundary loop.
 ///
@@ -76,7 +77,7 @@ pub fn seal_boundary_loops(
         for &vid in boundary_loop {
             centroid.coords += vertex_pool.position(vid).coords;
         }
-        centroid.coords /= Real::from_usize(boundary_loop.len());
+        centroid.coords /= Real::from_count(boundary_loop.len());
 
         let centroid_id = vertex_pool.insert_or_weld(centroid, Vector3r::zeros());
 

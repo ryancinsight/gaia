@@ -38,10 +38,11 @@
 //! `A_N = (N/2) r² sin(2π/N)`.  As N → ∞:
 //! `lim A_N = (N/2) r² · (2π/N) = π r²`  (Taylor expansion of sin).
 
+use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Flat circular disk in the plane `y = base_center.y`.
@@ -102,7 +103,7 @@ impl PrimitiveMesh for Disk {
         // (right-hand rule: n = (rim[i]−c) × (rim[i+1]−c) points in +Y direction).
         let rim: Vec<_> = (0..self.segments)
             .map(|i| {
-                let theta = TAU * f64::from_usize(i) / f64::from_usize(self.segments);
+                let theta = TAU * f64::from_count(i) / f64::from_count(self.segments);
                 let pos = Point3r::new(
                     cx + self.radius * theta.cos(),
                     cy,

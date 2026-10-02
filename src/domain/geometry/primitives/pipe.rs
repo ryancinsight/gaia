@@ -1,10 +1,11 @@
 //! Hollow cylinder (pipe) primitive.
 
+use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a hollow right circular cylinder (pipe / annular tube).
@@ -84,10 +85,10 @@ fn add_pipe_ring_band(
     inward: bool,
     region: RegionId,
 ) {
-    let segment_count = f64::from_usize(segments);
+    let segment_count = f64::from_count(segments);
     for i in 0..segments {
-        let a0 = f64::from_usize(i) / segment_count * TAU;
-        let a1 = f64::from_usize(i + 1) / segment_count * TAU;
+        let a0 = f64::from_count(i) / segment_count * TAU;
+        let a1 = f64::from_count(i + 1) / segment_count * TAU;
         let (c0, s0) = (a0.cos(), a0.sin());
         let (c1, s1) = (a1.cos(), a1.sin());
         let n0 = if inward {
@@ -135,10 +136,10 @@ fn add_pipe_annular_cap(
     } else {
         -Vector3r::y()
     };
-    let segment_count = f64::from_usize(segments);
+    let segment_count = f64::from_count(segments);
     for i in 0..segments {
-        let a0 = f64::from_usize(i) / segment_count * TAU;
-        let a1 = f64::from_usize(i + 1) / segment_count * TAU;
+        let a0 = f64::from_count(i) / segment_count * TAU;
+        let a1 = f64::from_count(i + 1) / segment_count * TAU;
         let oi = mesh.add_vertex(
             Point3r::new(
                 bx + outer_radius * a0.cos(),

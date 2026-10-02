@@ -14,8 +14,9 @@
 
 use crate::application::channel::venturi::BuildError;
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Real, Scalar};
+use crate::domain::core::scalar::Real;
 use crate::domain::mesh::IndexedMesh;
+use eunomia::FloatElement;
 
 mod tube;
 
@@ -149,12 +150,12 @@ fn build_branching_union(b: &BranchingMeshBuilder) -> Result<IndexedMesh, BuildE
     meshes.push(mesh_parent);
 
     // 2. Daughter tubes
-    let half_daughters = Real::from_usize(b.n_daughters - 1) / 2.0_f64;
+    let half_daughters = Real::from_count(b.n_daughters - 1) / 2.0_f64;
     for d in 0..b.n_daughters {
         let angle_step = if b.n_daughters == 1 {
             0.0_f64
         } else {
-            branching_angle * (Real::from_usize(d) - half_daughters)
+            branching_angle * (Real::from_count(d) - half_daughters)
         };
         let sin_a = angle_step.sin();
         let cos_a = angle_step.cos();
@@ -236,9 +237,9 @@ fn validate_branching_result(
     b: &BranchingMeshBuilder,
 ) -> Result<(), BuildError> {
     let r_daughter = b.d_daughter / 2.0;
-    let half_daughters = Real::from_usize(b.n_daughters - 1) / 2.0;
+    let half_daughters = Real::from_count(b.n_daughters - 1) / 2.0;
     for daughter in 0..b.n_daughters {
-        let angle = b.branching_angle * (Real::from_usize(daughter) - half_daughters);
+        let angle = b.branching_angle * (Real::from_count(daughter) - half_daughters);
         let expected_x = b.l_daughter * angle.sin();
         let expected_z = b.l_parent + b.l_daughter * angle.cos();
         let has_outlet_neighborhood = mesh.vertices.positions().any(|point| {

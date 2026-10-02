@@ -57,9 +57,10 @@
 //! [`SnappingGrid`] is **mesh-agnostic**: it stores positions and returns
 //! opaque `u32` indices. Callers map those indices into their own mesh storage.
 
+use eunomia::FloatElement;
 use hashbrown::HashMap;
 
-use crate::domain::core::scalar::{Point3r, Real, Scalar};
+use crate::domain::core::scalar::{Point3r, Real};
 use crate::infrastructure::storage::CellIndices;
 
 // ── GridCell ─────────────────────────────────────────────────────────────────
@@ -129,9 +130,9 @@ impl GridCell {
     #[must_use]
     pub fn to_point(self, eps: Real) -> Point3r {
         Point3r::new(
-            Real::from_index(self.x) * eps,
-            Real::from_index(self.y) * eps,
-            Real::from_index(self.z) * eps,
+            Real::from_integer(self.x) * eps,
+            Real::from_integer(self.y) * eps,
+            Real::from_integer(self.z) * eps,
         )
     }
 

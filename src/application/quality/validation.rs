@@ -8,6 +8,7 @@ use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::scalar::{Real, Scalar};
 use crate::infrastructure::storage::face_store::FaceStore;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
+use eunomia::FloatElement;
 use eunomia::NumericElement;
 
 /// Quality thresholds for mesh validation.
@@ -167,8 +168,8 @@ impl MeshValidator {
         if !report.passed {
             return Err(MeshError::QualityBelowThreshold {
                 score: 1.0
-                    - (Real::from_usize(report.failing_faces)
-                        / Real::from_usize(report.total_faces)),
+                    - (Real::from_count(report.failing_faces)
+                        / Real::from_count(report.total_faces)),
                 threshold: 1.0,
             });
         }

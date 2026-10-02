@@ -7,9 +7,9 @@
 //! hexahedral cell topology and is exempt from the surface-mesh deprecation.
 
 use crate::domain::core::index::{FaceId, VertexId};
-use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::{IndexedMesh, TetrahedralMeshBuilder};
 use crate::domain::topology::{Cell, ElementType};
+use eunomia::FloatElement;
 use leto::geometry::Point3;
 
 /// Error type for grid building.
@@ -86,9 +86,9 @@ fn build_structured_hex_grid(nx: usize, ny: usize, nz: usize) -> IndexedMesh<f64
         for iy in 0..=ny {
             for ix in 0..=nx {
                 vertex_ids.push(mesh.add_vertex_pos(Point3::new(
-                    f64::from_usize(ix) / f64::from_usize(nx),
-                    f64::from_usize(iy) / f64::from_usize(ny),
-                    f64::from_usize(iz) / f64::from_usize(nz),
+                    f64::from_count(ix) / f64::from_count(nx),
+                    f64::from_count(iy) / f64::from_count(ny),
+                    f64::from_count(iz) / f64::from_count(nz),
                 )));
             }
         }
@@ -154,9 +154,9 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     for iz in 0..vnz {
         for iy in 0..vny {
             for ix in 0..vnx {
-                let x = f64::from_usize(ix) / f64::from_usize(nx);
-                let y = f64::from_usize(iy) / f64::from_usize(ny);
-                let z = f64::from_usize(iz) / f64::from_usize(nz);
+                let x = f64::from_count(ix) / f64::from_count(nx);
+                let y = f64::from_count(iy) / f64::from_count(ny);
+                let z = f64::from_count(iz) / f64::from_count(nz);
                 v_ids.push(builder.vertex_array([x, y, z]));
             }
         }

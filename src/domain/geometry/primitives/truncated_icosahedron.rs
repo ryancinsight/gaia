@@ -2,9 +2,10 @@
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::mesh::IndexedMesh;
+use eunomia::FloatElement;
 
 /// Builds a truncated icosahedron inscribed in a sphere of the given `radius`.
 ///
@@ -204,7 +205,7 @@ fn add_faces_to_mesh(
             .iter()
             .map(|&i| verts[i].coords)
             .fold(Vector3r::zeros(), |a, v| a + v)
-            / f64::from_usize(n);
+            / f64::from_count(n);
         let p0 = verts[face_verts[0]];
         let mut n_sum = Vector3r::zeros();
         for k in 1..n - 1 {
