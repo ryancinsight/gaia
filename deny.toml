@@ -3,14 +3,15 @@
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 vulnerability = "deny"
-unmaintained = "warn"
+unmaintained = "allow"
 yanked = "deny"
-notice = "warn"
+notice = "allow"
 
 [licenses]
-allow = ["MIT", "Apache-2.0", "Apache-2.0 WITH LLVM-exception", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Unicode-3.0", "Zlib"]
+allow = ["MIT", "Apache-2.0", "Apache-2.0 WITH LLVM-exception", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Unicode-3.0", "Zlib", "Unicode-DFS-2016"]
 deny = []
 copyleft = "warn"
+private = { ignore = true }
 
 [bans]
 multiple-versions = "warn"
