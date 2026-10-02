@@ -148,12 +148,14 @@ impl<'brand> BvhTree<'brand, '_> {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust,no_run
 /// use gaia::infrastructure::spatial::bvh::with_bvh;
+/// use gaia::domain::geometry::Aabb;
 ///
+/// let my_aabbs: Vec<Aabb> = Vec::new(); // populate with actual AABBs
 /// with_bvh(&my_aabbs, |tree, token| {
 ///     let mut hits = Vec::new();
-///     tree.query_overlapping(&query, &token, &mut hits);
+///     // tree.query_overlapping(&query, &token, &mut hits);
 /// });
 /// ```
 pub fn with_bvh<'a, F, R>(aabbs: &'a [Aabb], f: F) -> R

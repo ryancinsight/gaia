@@ -117,7 +117,77 @@ fn classify_component_roots(
     })
 }
 
-/// Classify co-refined fragments and return kept (optionally flipped) faces.
+/// Apply pre-computed classification results to build the final kept-face list.
+///
+/// For each valid fragment, looks up its component-root classification, applies
+/// the Boolean operation's keep/flip rule, and emits the resulting `FaceData`.
+fn collect_boolean_kept_faces(
+    valid_frags: &[ValidFrag],
+    class_cache: &[Option<FragmentClass>],
+    frags: &[FragRecord],
+    faces_a: &[FaceData],
+    faces_b: &[FaceData],
+    op: BooleanOp,
+) -> Vec<FaceData> {
+    let mut kept_faces = Vec::with_capacity(valid_frags.len());
+    for vf in valid_frags {
+        let class_val = class_cache[vf.comp_root].unwrap_or(FragmentClass::Outside);
+        let frag = &frags[vf.frag_idx];
+
+        let (keep, flip) = if frag.from_a {
+            match op {
+                BooleanOp::Union => (
+                    class_val == FragmentClass::Outside || class_val == FragmentClass::CoplanarSame,
+                    false,
+                ),
+                BooleanOp::Intersection => (
+                    class_val == FragmentClass::Inside || class_val == FragmentClass::CoplanarSame,
+                    false,
+                ),
+                BooleanOp::Difference => (class_val == FragmentClass::Outside, false),
+            }
+        } else {
+            match op {
+                BooleanOp::Union => (class_val == FragmentClass::Outside, false),
+                BooleanOp::Intersection => (
+                    class_val == FragmentClass::Inside || class_val == FragmentClass::CoplanarSame,
+                    false,
+                ),
+                BooleanOp::Difference => (
+                    class_val == FragmentClass::Inside
+                        || class_val == FragmentClass::CoplanarOpposite,
+                    true,
+                ),
+            }
+        };
+
+        if !keep {
+            continue;
+        }
+        let parent_face = if frag.from_a {
+            faces_a[frag.parent_idx]
+        } else {
+            faces_b[frag.parent_idx]
+        };
+        if flip {
+            kept_faces.push(FaceData::new(
+                frag.face.vertices[0],
+                frag.face.vertices[2],
+                frag.face.vertices[1],
+                parent_face.region,
+            ));
+        } else {
+            kept_faces.push(FaceData::new(
+                frag.face.vertices[0],
+                frag.face.vertices[1],
+                frag.face.vertices[2],
+                parent_face.region,
+            ));
+        }
+    }
+    kept_faces
+}
+
 pub(crate) fn classify_kept_fragments(
     op: BooleanOp,
     frags: &[FragRecord],
@@ -193,66 +263,7 @@ pub(crate) fn classify_kept_fragments(
     }
 
     // Phase 4: Construct the final list of kept/flipped faces based on cached classifications.
-    let mut kept_faces = Vec::with_capacity(valid_frags.len());
-    for vf in &valid_frags {
-        let class_val = class_cache[vf.comp_root].unwrap_or(FragmentClass::Outside);
-        let frag = &frags[vf.frag_idx];
-
-        let (keep, flip) = if frag.from_a {
-            match op {
-                BooleanOp::Union => (
-                    class_val == FragmentClass::Outside || class_val == FragmentClass::CoplanarSame,
-                    false,
-                ),
-                BooleanOp::Intersection => (
-                    class_val == FragmentClass::Inside || class_val == FragmentClass::CoplanarSame,
-                    false,
-                ),
-                BooleanOp::Difference => (class_val == FragmentClass::Outside, false),
-            }
-        } else {
-            match op {
-                BooleanOp::Union => (class_val == FragmentClass::Outside, false),
-                BooleanOp::Intersection => (
-                    class_val == FragmentClass::Inside || class_val == FragmentClass::CoplanarSame,
-                    false,
-                ),
-                BooleanOp::Difference => (
-                    class_val == FragmentClass::Inside
-                        || class_val == FragmentClass::CoplanarOpposite,
-                    true,
-                ),
-            }
-        };
-
-        if !keep {
-            continue;
-        }
-
-        let parent_face = if frag.from_a {
-            faces_a[frag.parent_idx]
-        } else {
-            faces_b[frag.parent_idx]
-        };
-
-        if flip {
-            kept_faces.push(FaceData::new(
-                frag.face.vertices[0],
-                frag.face.vertices[2],
-                frag.face.vertices[1],
-                parent_face.region,
-            ));
-        } else {
-            kept_faces.push(FaceData::new(
-                frag.face.vertices[0],
-                frag.face.vertices[1],
-                frag.face.vertices[2],
-                parent_face.region,
-            ));
-        }
-    }
-
-    kept_faces
+    collect_boolean_kept_faces(&valid_frags, &class_cache, frags, faces_a, faces_b, op)
 }
 
 #[cfg(test)]

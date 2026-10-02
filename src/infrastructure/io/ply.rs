@@ -274,11 +274,11 @@ pub fn read_ply<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
 /// inner body of a `cargo-fuzz` target.
 ///
 /// # Example (in a fuzz target)
-/// ```rust,ignore
+/// ```rust,no_run
 /// #![no_main]
-/// libfuzzer_sys::fuzz_target!(|data: &[u8]| {
-///     let _ = gaia::infrastructure::io::ply::fuzz_read_ply(data);
-/// });
+/// // libfuzzer_sys::fuzz_target!(|data: &[u8]| {
+/// //     let _ = gaia::infrastructure::io::ply::fuzz_read_ply(data);
+/// // });
 /// ```
 ///
 /// # Errors

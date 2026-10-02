@@ -153,12 +153,57 @@ pub(crate) mod wnnc;
 #[cfg(test)]
 pub mod wnnc_tests;
 
+use super::corefine::SeamVertexMap;
 use classify::FragRecord;
 use coplanar_groups::{build_coplanar_group_index, process_coplanar_groups};
 use fragment_classification::classify_kept_fragments;
 use fragment_refinement::{append_corefined_fragments, consolidate_cross_mesh_vertices};
 use propagate::propagate_seam_vertices_until_stable;
 use result_finalization::finalize_boolean_faces;
+
+/// Corefine all faces of one mesh operand and append the results to `frags`.
+///
+/// Wraps `append_corefined_fragments` with the `from_a` tag baked into the
+/// fragment constructor, keeping the calling function free of repeated lambda
+/// boilerplate for the two-operand arrangement pipeline.
+fn corefine_mesh_faces(
+    frags: &mut Vec<FragRecord>,
+    faces: &[FaceData],
+    used: &hashbrown::HashSet<usize>,
+    segs: &[Vec<SnapSegment>],
+    pool: &mut VertexPool,
+    seam_map: &SeamVertexMap,
+    from_a: bool,
+) {
+    append_corefined_fragments(
+        frags,
+        faces,
+        used,
+        segs,
+        pool,
+        seam_map,
+        |face, parent_idx| FragRecord {
+            face,
+            parent_idx,
+            from_a,
+        },
+    );
+}
+
+/// Sort coplanar-cap groups by id and extend the result buffer with their faces.
+///
+/// Deterministic ordering (sort by `group_id`) ensures the Boolean cap emission
+/// order is independent of hash-map iteration order.
+fn extend_with_sorted_coplanar_caps(
+    coplanar_results: hashbrown::HashMap<usize, Vec<FaceData>>,
+    result_faces: &mut Vec<FaceData>,
+) {
+    let mut ordered: Vec<_> = coplanar_results.into_iter().collect();
+    ordered.sort_unstable_by_key(|(gid, _)| *gid);
+    for (_, cop_faces) in ordered {
+        result_faces.extend_from_slice(&cop_faces);
+    }
+}
 
 /// Intersect broad-phase candidates and collect seam segments plus coplanar pairs.
 fn collect_binary_pair_intersections(
@@ -295,38 +340,26 @@ pub fn boolean_intersecting_arrangement(
     let seam_map_a = super::corefine::build_seam_vertex_map(faces_a, &segs_a, pool);
     let seam_map_b = super::corefine::build_seam_vertex_map(faces_b, &segs_b, pool);
 
-    // Phase 3: subdivide intersecting faces via CDT co-refinement.
+    // Phase 3: CDT co-refinement — sub-triangulate each intersected face.
     let t_fragment_refinement = std::time::Instant::now();
-    // For each face that has intersection segments, run corefine_face to produce
-    // CDT-based sub-triangles with pool-registered vertices.
-    // Coplanar faces already handled above are skipped.
-
     let mut frags: Vec<FragRecord> = Vec::new();
-    append_corefined_fragments(
+    corefine_mesh_faces(
         &mut frags,
         faces_a,
         &used_plane_a_faces,
         &segs_a,
         pool,
         &seam_map_a,
-        |face, parent_idx| FragRecord {
-            face,
-            parent_idx,
-            from_a: true,
-        },
+        true,
     );
-    append_corefined_fragments(
+    corefine_mesh_faces(
         &mut frags,
         faces_b,
         &used_plane_b_faces,
         &segs_b,
         pool,
         &seam_map_b,
-        |face, parent_idx| FragRecord {
-            face,
-            parent_idx,
-            from_a: false,
-        },
+        false,
     );
     if trace_enabled() {
         tracing::info!(
@@ -362,15 +395,8 @@ pub fn boolean_intersecting_arrangement(
         );
     }
 
-    // Phase 4b: emit 2-D coplanar boolean caps directly.
-    // inject_cap_seam_into_barrels (Phase 2d) guarantees seam vertex IDs in cop_faces
-    // match the barrel CDT rim -- no T-junctions.
-    // Preserve the same deterministic order for coplanar cap emission.
-    let mut coplanar_results: Vec<_> = coplanar_results.into_iter().collect();
-    coplanar_results.sort_unstable_by_key(|&(group_id, _)| group_id);
-    for (_, cop_faces) in coplanar_results {
-        result_faces.extend_from_slice(&cop_faces);
-    }
+    // Phase 4b: emit 2-D coplanar boolean caps in deterministic order.
+    extend_with_sorted_coplanar_caps(coplanar_results, &mut result_faces);
 
     // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 5: push kept barrel/sphere frags to result Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     result_faces.extend(kept_faces);

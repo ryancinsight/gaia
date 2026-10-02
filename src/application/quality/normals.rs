@@ -123,9 +123,8 @@ impl NormalAnalysis {
 ///
 /// # Examples
 ///
-/// ```rust,ignore
-/// use gaia::{UvSphere, geometry::primitives::PrimitiveMesh};
-/// use gaia::application::quality::normals::analyze_normals;
+/// ```rust
+/// use gaia::{UvSphere, primitives::PrimitiveMesh, analyze_normals};
 ///
 /// let sphere = UvSphere { radius: 1.0, segments: 32, stacks: 16, ..Default::default() }
 ///     .build().unwrap();

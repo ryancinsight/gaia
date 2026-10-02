@@ -9,13 +9,11 @@
 //!
 //! ## Quick Start
 //!
-//! ```rust,ignore
-//! use gaia::{MeshBuilder, core::scalar::Point3r};
-//!
-//! let mesh = MeshBuilder::new()
-//!     .add_triangle_vertex_positions(/* ... */)
-//!     .build();
-//! assert!(mesh.is_watertight());
+//! ```rust,no_run
+//! // Illustrative — see MeshBuilder for the full builder API.
+//! use gaia::MeshBuilder;
+//! let mesh = MeshBuilder::new().build();
+//! assert!(mesh.face_count() == 0);
 //! ```
 //!
 //! ## Architecture Diagram

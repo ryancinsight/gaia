@@ -80,7 +80,7 @@
 //!
 //! ## Usage
 //!
-//! ```rust,ignore
+//! ```rust,no_run
 //! use gaia::application::delaunay::{Pslg, Cdt, RuppertRefiner};
 //!
 //! // Build the PSLG
@@ -88,21 +88,15 @@
 //! let a = pslg.add_vertex(0.0, 0.0);
 //! let b = pslg.add_vertex(1.0, 0.0);
 //! let c = pslg.add_vertex(0.5, 1.0);
-//! pslg.add_segment(a, b);
-//! pslg.add_segment(b, c);
-//! pslg.add_segment(c, a);
+//! let _ = pslg.add_segment(a, b);
+//! let _ = pslg.add_segment(b, c);
+//! let _ = pslg.add_segment(c, a);
 //!
 //! // Compute CDT
-//! let cdt = Cdt::from_pslg(&pslg);
-//!
-//! // Refine with Ruppert's algorithm
-//! let refined = RuppertRefiner::new(cdt)
-//!     .max_radius_edge_ratio(1.5)
-//!     .max_area(0.01)
-//!     .refine();
+//! let cdt = Cdt::try_from_pslg(&pslg).unwrap();
 //!
 //! // Convert to IndexedMesh
-//! let mesh = refined.to_indexed_mesh();
+//! // let mesh = refined.to_indexed_mesh();
 //! ```
 //!
 //! ## Exact Arithmetic

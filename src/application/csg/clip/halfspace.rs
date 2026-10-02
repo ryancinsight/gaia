@@ -39,7 +39,7 @@
 //! Sutherland & Hodgman (1974), "Reentrant polygon clipping",
 //! *Communications of the ACM*, 17(1), 32–42.
 
-use crate::domain::core::scalar::Point3r;
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::geometry::predicates::{orient_3d, Orientation};
 
 // ── Polygon clipping ──────────────────────────────────────────────────────────
@@ -177,7 +177,23 @@ fn dedup_polygon_vertices(polygon: &[Point3r]) -> Vec<Point3r> {
     out
 }
 
-/// Fan-triangulate a convex polygon represented as an ordered vertex list.
+/// Select the two projection axes that drop the dominant normal component.
+///
+/// Returns `(axis_u, axis_v)` where the axis indices are into a `Point3r`
+/// coordinate array `[x, y, z]` (0, 1, 2). Dropping the dominant axis gives
+/// the least-distorted 2D projection of a triangle with normal `n`.
+#[inline]
+fn drop_dominant_normal_axis(n: Vector3r) -> (usize, usize) {
+    let (ax, ay, az) = (n.x.abs(), n.y.abs(), n.z.abs());
+    if ax >= ay && ax >= az {
+        (1, 2) // drop X → project YZ
+    } else if ay >= ax && ay >= az {
+        (0, 2) // drop Y → project XZ
+    } else {
+        (0, 1) // drop Z → project XY
+    }
+}
+
 ///
 /// Returns `n − 2` triangles for an n-gon (n ≥ 3).
 /// Returns an empty `Vec` when the polygon has fewer than 3 vertices.
@@ -220,16 +236,7 @@ pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {
         return Vec::new();
     }
 
-    let ax = normal.x.abs();
-    let ay = normal.y.abs();
-    let az = normal.z.abs();
-    let (axis_u, axis_v) = if ax >= ay && ax >= az {
-        (1, 2)
-    } else if ay >= ax && ay >= az {
-        (0, 2)
-    } else {
-        (0, 1)
-    };
+    let (axis_u, axis_v) = drop_dominant_normal_axis(normal);
 
     let mut pslg = crate::application::delaunay::Pslg::new();
     let mut pslg_vids = Vec::with_capacity(deduplicated.len());
