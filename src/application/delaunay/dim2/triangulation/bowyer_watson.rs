@@ -43,6 +43,7 @@ use crate::domain::geometry::predicates::{incircle, orient_2d, Orientation};
 /// ```rust,no_run
 /// // DelaunayTriangulation is an internal type used by the CDT pipeline.
 /// // Access it through the public Cdt and Pslg APIs in gaia::application::delaunay.
+/// let _ = ();
 /// ```
 pub struct DelaunayTriangulation {
     /// Vertex pool (includes 3 super-triangle vertices at the end).

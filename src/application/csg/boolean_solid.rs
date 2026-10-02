@@ -31,9 +31,7 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// ```rust,no_run
 /// // Illustrative — implement BooleanSolid on your mesh type.
-/// // let union = cube.union(&sphere)?;
-/// // let diff  = cube.difference(&sphere)?;
-/// // let inter = cube.intersection(&sphere)?;
+/// let _ = ();  // union/difference/intersection via trait methods
 /// ```
 pub trait BooleanSolid: Sized {
     /// Compute `self ∪ other`.
