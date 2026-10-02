@@ -155,6 +155,28 @@ pub fn clip_triangle_to_halfplane(
 
 // ── Fan triangulation ─────────────────────────────────────────────────────────
 
+/// Remove adjacent near-duplicate vertices and the wrap-around duplicate in
+/// a polygon vertex list, returning a deduplicated `Vec<Point3r>`.
+fn dedup_polygon_vertices(polygon: &[Point3r]) -> Vec<Point3r> {
+    let mut out: Vec<Point3r> = Vec::with_capacity(polygon.len());
+    for &p in polygon {
+        if let Some(&last) = out.last() {
+            if (p - last).norm_squared() > 1e-20 {
+                out.push(p);
+            }
+        } else {
+            out.push(p);
+        }
+    }
+    if out.len() > 1
+        && (out[0] - *out.last().expect("dedup_polygon_vertices: len > 1 checked")).norm_squared()
+            < 1e-20
+    {
+        out.pop();
+    }
+    out
+}
+
 /// Fan-triangulate a convex polygon represented as an ordered vertex list.
 ///
 /// Returns `n − 2` triangles for an n-gon (n ≥ 3).
@@ -181,27 +203,8 @@ pub fn fan_triangulate(polygon: &[Point3r]) -> Vec<[Point3r; 3]> {
         return vec![[polygon[0], polygon[1], polygon[2]]];
     }
 
-    // Deduplicate adjacent identical vertices
-    let mut deduplicated: Vec<Point3r> = Vec::with_capacity(polygon.len());
-    for &p in polygon {
-        if let Some(&last) = deduplicated.last() {
-            if (p - last).norm_squared() > 1e-20 {
-                deduplicated.push(p);
-            }
-        } else {
-            deduplicated.push(p);
-        }
-    }
-    if deduplicated.len() > 1
-        && (deduplicated[0]
-            - deduplicated
-                .last()
-                .expect("invariant: deduplicated.len() > 1 checked in this condition"))
-        .norm_squared()
-            < 1e-20
-    {
-        deduplicated.pop();
-    }
+    // Deduplicate adjacent identical vertices (including wrap-around).
+    let deduplicated = dedup_polygon_vertices(polygon);
     if deduplicated.len() < 3 {
         return Vec::new();
     }

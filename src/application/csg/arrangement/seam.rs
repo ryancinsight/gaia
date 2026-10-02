@@ -180,6 +180,55 @@ fn build_greedy_nearest_merge_map(
 // zigzag seam boundaries. This helper now runs exact/constrained repair first
 // (T-junction split + CDT loop fill), then falls back to bounded tolerance
 // merges only when exact passes make no progress.
+/// Build a bimodal-threshold vertex merge map from short boundary edges.
+///
+/// Identifies a bimodal distribution in boundary edge lengths (2x spread),
+/// takes the geometric mean as the cut threshold, and returns a merge map
+/// unifying all vertices connected by edges below that threshold.
+/// Returns `None` if the distribution is not sufficiently bimodal.
+fn build_bimodal_collapse_map(
+    boundary_edges: &[(VertexId, VertexId)],
+    pool: &VertexPool,
+) -> Option<HashMap<VertexId, VertexId>> {
+    let mut edge_info: Vec<(Real, VertexId, VertexId)> = boundary_edges
+        .iter()
+        .map(|&(vi, vj)| {
+            let d = (pool.position(vj) - pool.position(vi)).norm_squared();
+            (d, vi, vj)
+        })
+        .collect();
+    edge_info.sort_by(|a, b| a.0.total_cmp(&b.0));
+
+    let min_len_sq = edge_info.first().map_or(0.0, |e| e.0);
+    let max_len_sq = edge_info.last().map_or(0.0, |e| e.0);
+    if min_len_sq <= 0.0 || max_len_sq < 2.0 * min_len_sq {
+        return None;
+    }
+    let threshold_sq = (min_len_sq * max_len_sq).sqrt();
+
+    let mut merge_map: HashMap<VertexId, VertexId> = HashMap::new();
+    for &(len_sq, vi, vj) in &edge_info {
+        if len_sq >= threshold_sq {
+            break;
+        }
+        let root_i = merge_root(&merge_map, vi);
+        let root_j = merge_root(&merge_map, vj);
+        if root_i != root_j {
+            let (keep, discard) = if root_i < root_j {
+                (root_i, root_j)
+            } else {
+                (root_j, root_i)
+            };
+            merge_map.insert(discard, keep);
+        }
+    }
+    if merge_map.is_empty() {
+        None
+    } else {
+        Some(merge_map)
+    }
+}
+
 pub(crate) fn stitch_boundary_seams(faces: &mut Vec<FaceData>, pool: &VertexPool) {
     // Exact-first prepass before any tolerance merge.
     if !boundary_half_edges(faces).is_empty() {
@@ -206,61 +255,17 @@ pub(crate) fn stitch_boundary_seams(faces: &mut Vec<FaceData>, pool: &VertexPool
             continue;
         }
 
-        // Compute edge lengths.
-        let mut edge_info: Vec<(Real, VertexId, VertexId)> = boundary_edges
-            .iter()
-            .map(|&(vi, vj)| {
-                let d = (pool.position(vj) - pool.position(vi)).norm_squared();
-                (d, vi, vj)
-            })
-            .collect();
-        edge_info.sort_by(|a, b| a.0.total_cmp(&b.0));
-
-        let min_len_sq = edge_info.first().map_or(0.0, |e| e.0);
-        let max_len_sq = edge_info.last().map_or(0.0, |e| e.0);
-
-        // Need at least 2x spread to identify a bimodal distribution.
-        if min_len_sq <= 0.0 || max_len_sq < 2.0 * min_len_sq {
+        // Build bimodal-threshold merge map; break if distribution not bimodal.
+        let Some(merge_map) = build_bimodal_collapse_map(&boundary_edges, pool) else {
             break;
-        }
-
-        // Threshold: geometric mean of min and max.
-        //
-        // An additional hard cap here proved too aggressive for shallow-angle
-        // elbow and branch seams, leaving open zipper gaps that the exact split
-        // pass had already localized to a narrow bimodal edge-length band.
-        let threshold_sq = (min_len_sq * max_len_sq).sqrt();
-
-        let mut merge_map: HashMap<VertexId, VertexId> = HashMap::new();
-        for &(len_sq, vi, vj) in &edge_info {
-            if len_sq >= threshold_sq {
-                break;
-            }
-            let root_i = merge_root(&merge_map, vi);
-            let root_j = merge_root(&merge_map, vj);
-            if root_i == root_j {
-                continue;
-            }
-            let (keep, discard) = if root_i < root_j {
-                (root_i, root_j)
-            } else {
-                (root_j, root_i)
-            };
-            merge_map.insert(discard, keep);
-        }
-
-        if merge_map.is_empty() {
-            break;
-        }
+        };
 
         #[cfg(test)]
         if trace_enabled() {
             tracing::info!(
-                "[stitch-p1 {}] {} bnd, {} short (< {:.6}), {} merges",
+                "[stitch-p1 {}] {} bnd, {} merges",
                 iter_idx,
                 boundary_edges.len(),
-                edge_info.iter().filter(|e| e.0 < threshold_sq).count(),
-                threshold_sq.sqrt(),
                 merge_map.len(),
             );
         }

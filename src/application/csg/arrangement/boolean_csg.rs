@@ -269,6 +269,26 @@ fn collect_pair_intersections(
     }
 }
 
+/// Compute a bounding box per mesh, expanded by a scale-relative margin to
+/// defeat floating-point precision misses on snapped vertices.
+fn build_expanded_mesh_aabbs(meshes: &[Vec<FaceData>], pool: &VertexPool) -> Vec<Aabb> {
+    let mut mesh_aabbs: Vec<Aabb> = Vec::with_capacity(meshes.len());
+    for m in meshes {
+        let mut bb = Aabb::empty();
+        for f in m {
+            bb.expand(pool.position(f.vertices[0]));
+            bb.expand(pool.position(f.vertices[1]));
+            bb.expand(pool.position(f.vertices[2]));
+        }
+        let diag = (bb.max - bb.min).norm().max(1e-30);
+        let eps = crate::domain::core::constants::AABB_RELATIVE_EXPANSION * diag;
+        bb.min -= crate::domain::core::scalar::Vector3r::new(eps, eps, eps);
+        bb.max += crate::domain::core::scalar::Vector3r::new(eps, eps, eps);
+        mesh_aabbs.push(bb);
+    }
+    mesh_aabbs
+}
+
 fn execute_arrangement_pass(
     op: BooleanOp,
     meshes: &[Vec<FaceData>],
@@ -276,29 +296,7 @@ fn execute_arrangement_pass(
     finalize_faces: bool,
 ) -> Vec<FaceData> {
     let n_meshes = meshes.len();
-
-    // ── Pre-compute global Mesh AABBs in a single pass ───────────────────────────
-    let mut mesh_aabbs: Vec<Aabb> = Vec::with_capacity(n_meshes);
-    for m in meshes {
-        let mut bb = Aabb::empty();
-        for f in m {
-            let a = pool.position(f.vertices[0]);
-            let b = pool.position(f.vertices[1]);
-            let c = pool.position(f.vertices[2]);
-
-            bb.expand(a);
-            bb.expand(b);
-            bb.expand(c);
-        }
-        // Expand AABB relative to its diagonal to defeat floating-point
-        // precision misses on snapped vertices.  Scale-correct: see
-        // AABB_RELATIVE_EXPANSION theorem in constants.rs.
-        let diag = (bb.max - bb.min).norm().max(1e-30);
-        let eps = crate::domain::core::constants::AABB_RELATIVE_EXPANSION * diag;
-        bb.min -= crate::domain::core::scalar::Vector3r::new(eps, eps, eps);
-        bb.max += crate::domain::core::scalar::Vector3r::new(eps, eps, eps);
-        mesh_aabbs.push(bb);
-    }
+    let mesh_aabbs = build_expanded_mesh_aabbs(meshes, pool);
 
     let total_face_count: usize = meshes.iter().map(Vec::len).sum();
     let mut pairs = Vec::with_capacity(estimate_candidate_pair_capacity(meshes));
