@@ -12,7 +12,7 @@
 //! ```rust,no_run
 //! // Illustrative — see MeshBuilder for the full builder API.
 //! use gaia::MeshBuilder;
-//! let mesh = MeshBuilder::new().build();
+//! let mesh: gaia::IndexedMesh = MeshBuilder::new().build();
 //! assert!(mesh.face_count() == 0);
 //! ```
 //!

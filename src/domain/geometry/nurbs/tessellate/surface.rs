@@ -81,13 +81,12 @@ fn subdivide_quad<T: Scalar>(
 /// the `VertexPool` inside `IndexedMesh`.
 ///
 /// # Example
-/// ```rust,ignore
-/// use gaia::domain::geometry::nurbs::surface::NurbsSurface;
+/// ```rust,no_run
 /// use gaia::domain::geometry::nurbs::tessellate::{TessellationOptions, tessellate_surface};
 ///
-/// let opts = TessellationOptions::new().with_max_angle(2.0).with_min_segments(8);
-/// let mesh = tessellate_surface(&my_surf, &opts);
-/// assert!(mesh.face_count() > 0);
+/// // let opts = TessellationOptions::new().with_max_angle(2.0).with_min_segments(8);
+/// // let mesh = tessellate_surface(&my_surf, &opts);
+/// // assert!(mesh.face_count() > 0);
 /// ```
 #[must_use]
 pub fn tessellate_surface<T: Scalar>(

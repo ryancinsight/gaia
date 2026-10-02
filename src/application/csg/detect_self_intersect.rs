@@ -93,11 +93,13 @@ use crate::infrastructure::storage::vertex_pool::VertexPool;
 ///
 /// # Example
 ///
-/// ```ignore
-/// let pairs = detect_self_intersections(
-///     &mesh.faces.iter().cloned().collect::<Vec<_>>(),
-///     &mesh.vertices,
-/// );
+/// ```rust,no_run
+/// # use gaia::domain::mesh::IndexedMesh;
+/// # use gaia::infrastructure::storage::face_store::FaceData;
+/// # let mesh = IndexedMesh::new();
+/// # let faces: Vec<FaceData> = mesh.faces.iter().copied().collect();
+/// use gaia::application::csg::detect_self_intersections;
+/// let pairs = detect_self_intersections(&faces, &mesh.vertices);
 /// assert!(pairs.is_empty(), "mesh should be self-intersection-free before CSG");
 /// ```
 #[must_use]

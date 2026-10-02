@@ -57,12 +57,11 @@ use crate::domain::topology::PackedRows;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust,no_run
 /// // trace_loops is pub(crate) — used internally; example shown for illustration.
-/// let rim = [(v0, v1), (v1, v2), (v2, v0)];
-/// let loops = trace_loops(&rim, 4096, usize::MAX);
-/// assert_eq!(loops.len(), 1);
-/// assert_eq!(loops[0].len(), 3);
+/// // let rim = [(v0, v1), (v1, v2), (v2, v0)];
+/// // let loops = trace_loops(&rim, 4096, usize::MAX);
+/// // assert_eq!(loops.len(), 1);
 /// ```
 #[must_use]
 pub(crate) fn trace_loops(

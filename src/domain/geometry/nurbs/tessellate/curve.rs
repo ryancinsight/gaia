@@ -11,11 +11,11 @@ use leto::geometry::UnitVector3;
 /// recursive subdivision of that segment.
 ///
 /// # Example
-/// ```rust,ignore
+/// ```rust,no_run
 /// use gaia::domain::geometry::nurbs::tessellate::{TessellationOptions, tessellate_curve};
 ///
-/// let pts = tessellate_curve(&my_curve, &TessellationOptions::default());
-/// assert!(pts.len() >= 2);
+/// // let pts = tessellate_curve(&my_curve, &TessellationOptions::default());
+/// // assert!(pts.len() >= 2);
 /// ```
 #[must_use]
 pub fn tessellate_curve<T: Scalar>(

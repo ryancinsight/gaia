@@ -89,22 +89,23 @@ impl Ord for BadTriangle {
 ///
 /// # Example — Isotropic
 ///
-/// ```rust,ignore
+/// ```rust,no_run
 /// use gaia::application::delaunay::{Pslg, Cdt, RuppertRefiner};
 ///
-/// let cdt = Cdt::from_pslg(&pslg);
+/// let pslg = Pslg::new(); // populate with vertices and segments
+/// let cdt = Cdt::try_from_pslg(&pslg).unwrap();
 /// let mut refiner = RuppertRefiner::new(cdt);
 /// refiner.set_max_ratio(1.414);
 /// refiner.refine();
-/// let result = refiner.into_cdt();
 /// ```
 ///
 /// # Example — Anisotropic (10:1 elongation along x)
 ///
-/// ```rust,ignore
+/// ```rust,no_run
 /// use gaia::application::delaunay::{Pslg, Cdt, RuppertRefiner, MetricTensor};
 ///
-/// let cdt = Cdt::from_pslg(&pslg);
+/// let pslg = Pslg::new();
+/// let cdt = Cdt::try_from_pslg(&pslg).unwrap();
 /// let metric = MetricTensor::anisotropic(0.0, 10.0);
 /// let mut refiner = RuppertRefiner::new(cdt).with_metric(metric);
 /// refiner.set_max_ratio(1.414);

@@ -191,25 +191,16 @@ impl<K: Key, V> std::ops::IndexMut<K> for SlotPool<K, V> {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust,no_run
 /// use gaia::{
-///     mesh::with_mesh,
-///     storage::slotmap_pool::GhostSlotPool,
-///     core::index::VertexKey,
-///     topology::halfedge::VertexData,
+///     with_mesh,
+///     domain::mesh::HalfEdgeMesh,
 /// };
 ///
-/// with_mesh(|_mesh, mut token| {
-///     let mut pool: GhostSlotPool<VertexKey, VertexData> = GhostSlotPool::new();
-///     let data = VertexData::new(leto::geometry::Point3::origin());
-///     let key = pool.insert(gaia::infrastructure::permission::GhostCell::new(data));
-///
-///     // Read requires shared token reference
-///     let _pos = pool[key].borrow(&token).position;
-///
-///     // Write requires mutable token reference
-///     pool[key].borrow_mut(&mut token).position = leto::geometry::Point3::new(1.0, 0.0, 0.0);
-/// });
+/// // GhostSlotPool is used internally with branded tokens.
+/// // with_mesh(|_mesh, mut token| {
+/// //     // pool operations within a ghost-permissioned scope
+/// // });
 /// ```
 pub type GhostSlotPool<'id, K, V> = SlotPool<K, GhostCell<'id, V>>;
 

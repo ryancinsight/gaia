@@ -29,12 +29,11 @@ use crate::domain::mesh::IndexedMesh;
 ///
 /// # Example
 ///
-/// ```ignore
-/// use gaia::application::csg::BooleanSolid;
-///
-/// let union = cube.union(&sphere)?;
-/// let diff  = cube.difference(&sphere)?;
-/// let inter = cube.intersection(&sphere)?;
+/// ```rust,no_run
+/// // Illustrative — implement BooleanSolid on your mesh type.
+/// // let union = cube.union(&sphere)?;
+/// // let diff  = cube.difference(&sphere)?;
+/// // let inter = cube.intersection(&sphere)?;
 /// ```
 pub trait BooleanSolid: Sized {
     /// Compute `self ∪ other`.

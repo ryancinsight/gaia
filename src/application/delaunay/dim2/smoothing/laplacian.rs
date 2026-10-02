@@ -58,10 +58,10 @@ use eunomia::FloatElement;
 ///
 /// # Example
 ///
-/// ```ignore
-/// use gaia::application::delaunay::smoothing::LaplacianSmoother;
+/// ```rust,no_run
+/// use gaia::application::delaunay::LaplacianSmoother;
 /// let smoother = LaplacianSmoother { max_iter: 10, lambda: 0.3, preserve_boundary: true };
-/// smoother.smooth(&mut cdt);
+/// // smoother.smooth(&mut cdt); // apply to a mutable CDT
 /// ```
 #[derive(Clone, Debug)]
 pub struct LaplacianSmoother {

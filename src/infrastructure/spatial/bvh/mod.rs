@@ -152,9 +152,8 @@ impl<'brand> BvhTree<'brand, '_> {
 /// use gaia::infrastructure::spatial::bvh::with_bvh;
 /// use gaia::domain::geometry::Aabb;
 ///
-/// let my_aabbs: Vec<Aabb> = Vec::new(); // populate with actual AABBs
-/// with_bvh(&my_aabbs, |tree, token| {
-///     let mut hits = Vec::new();
+/// let my_aabbs: Vec<Aabb> = Vec::new();
+/// with_bvh(&my_aabbs, |_tree, _token| {
 ///     // tree.query_overlapping(&query, &token, &mut hits);
 /// });
 /// ```
