@@ -55,11 +55,12 @@
 //! assert!(mesh.face_count() > 0);
 //! ```
 
+use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 // Re-use the 2-D point via f64 scalars.
@@ -114,7 +115,7 @@ impl LinearSweep {
     pub fn regular_polygon(n: usize, radius: f64) -> Vec<Point2> {
         (0..n)
             .map(|i| {
-                let a = f64::from_usize(i) / f64::from_usize(n) * TAU;
+                let a = f64::from_count(i) / f64::from_count(n) * TAU;
                 Point2::new(radius * a.cos(), radius * a.sin())
             })
             .collect()

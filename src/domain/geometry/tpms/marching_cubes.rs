@@ -23,8 +23,9 @@
 //! Hausdorff distance (Lorensen & Cline 1987).
 
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
+use eunomia::FloatElement;
 
 // ── Lookup tables — single authoritative copy ─────────────────────────────────
 
@@ -530,7 +531,7 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
     let k = params.k;
     let iso = params.iso_value;
     let r_sq = r * r;
-    let step = 2.0 * r / f64::from_usize(n);
+    let step = 2.0 * r / f64::from_count(n);
     let gs = n + 1;
 
     // Pre-sample field on (n+1)³ grid.
@@ -539,9 +540,9 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
     for iz in 0..=n {
         for iy in 0..=n {
             for ix in 0..=n {
-                let wx = -r + f64::from_usize(ix) * step;
-                let wy = -r + f64::from_usize(iy) * step;
-                let wz = -r + f64::from_usize(iz) * step;
+                let wx = -r + f64::from_count(ix) * step;
+                let wy = -r + f64::from_count(iy) * step;
+                let wz = -r + f64::from_count(iz) * step;
                 field[idx(ix, iy, iz)] = evaluator.field(wx, wy, wz, k) - iso;
             }
         }
@@ -589,13 +590,13 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
                                 0.5
                             };
                             let wx = -r
-                                + (f64::from_usize(ax) * (1.0 - t) + f64::from_usize(bx) * t)
+                                + (f64::from_count(ax) * (1.0 - t) + f64::from_count(bx) * t)
                                     * step;
                             let wy = -r
-                                + (f64::from_usize(ay) * (1.0 - t) + f64::from_usize(by) * t)
+                                + (f64::from_count(ay) * (1.0 - t) + f64::from_count(by) * t)
                                     * step;
                             let wz = -r
-                                + (f64::from_usize(az) * (1.0 - t) + f64::from_usize(bz) * t)
+                                + (f64::from_count(az) * (1.0 - t) + f64::from_count(bz) * t)
                                     * step;
                             let normal = evaluator.gradient(wx, wy, wz, k);
                             let vid = mesh.add_vertex(Point3r::new(wx, wy, wz), normal);

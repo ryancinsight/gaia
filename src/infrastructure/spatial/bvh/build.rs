@@ -10,8 +10,8 @@
 
 use super::geo::{axis_extent, axis_min, axis_value, longest_axis, surface_area};
 use super::node::{BvhNodeKind, MAX_LEAF_PRIMITIVES, SAH_N_BINS, SAH_TRAVERSAL_COST};
-use crate::domain::core::scalar::Scalar;
 use crate::domain::geometry::aabb::Aabb;
+use eunomia::FloatElement;
 use leto::geometry::Point3;
 
 // ── Public build entry ────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ fn sah_split(
     const N_BINS: usize = SAH_N_BINS;
 
     let parent_sa = surface_area(parent_aabb);
-    let count = f64::from_usize(end - start);
+    let count = f64::from_count(end - start);
 
     // Centroid AABB determines bin placement.
     let mut centroid_aabb = Aabb::empty();
@@ -121,7 +121,7 @@ fn sah_split(
 
         let inv_extent = 1.0 / extent;
         let min_c = axis_min(&centroid_aabb, axis);
-        let n_bins = f64::from_usize(N_BINS);
+        let n_bins = f64::from_count(N_BINS);
 
         let mut bin_aabb = [Aabb::empty(); N_BINS];
         let mut bin_count = [0u32; N_BINS];
@@ -179,7 +179,7 @@ fn sah_split(
             if cost < best_cost {
                 best_cost = cost;
                 best_axis = axis;
-                best_split = min_c + (f64::from_usize(split_k) + 1.0) / n_bins * extent;
+                best_split = min_c + (f64::from_count(split_k) + 1.0) / n_bins * extent;
             }
         }
     }

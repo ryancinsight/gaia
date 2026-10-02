@@ -1,10 +1,11 @@
 //! Stadium prism (rounded-rectangle cross-section) primitive.
 
+use eunomia::FloatElement;
 use std::f64::consts::PI;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::{RegionId, VertexId};
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a prism with a stadium (rounded-rectangle) cross-section.
@@ -121,12 +122,12 @@ fn build_stadium_profile(flat: f64, r: f64, cs: usize) -> Vec<[f64; 2]> {
     let mut profile: Vec<[f64; 2]> = Vec::with_capacity((cs + 1) * 2);
     // Right semicircle: centre (+flat/2, 0), angles -π/2 → +π/2.
     for i in 0..=cs {
-        let angle = -PI / 2.0 + f64::from_usize(i) / f64::from_usize(cs) * PI;
+        let angle = -PI / 2.0 + f64::from_count(i) / f64::from_count(cs) * PI;
         profile.push([flat / 2.0 + r * angle.cos(), r * angle.sin()]);
     }
     // Left semicircle: centre (-flat/2, 0), angles +π/2 → 3π/2.
     for i in 0..=cs {
-        let angle = PI / 2.0 + f64::from_usize(i) / f64::from_usize(cs) * PI;
+        let angle = PI / 2.0 + f64::from_count(i) / f64::from_count(cs) * PI;
         profile.push([-flat / 2.0 + r * angle.cos(), r * angle.sin()]);
     }
     // Deduplicate consecutive near-coincident points (handles flat==0 seam).

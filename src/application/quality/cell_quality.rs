@@ -10,11 +10,12 @@
 //! where **d** is the owner→neighbour centroid vector, **fc** is the face
 //! centre, and **Pi** is the point where **d** intersects the face plane.
 
+use eunomia::FloatElement;
 use leto::geometry::Point3;
 
 use crate::application::quality::metrics::QualityMetric;
 use crate::domain::core::index::{FaceId, VertexId};
-use crate::domain::core::scalar::{Real, Scalar};
+use crate::domain::core::scalar::Real;
 use crate::domain::mesh::IndexedMesh;
 
 // ── Per-face computations ─────────────────────────────────────────────────────
@@ -200,7 +201,7 @@ pub fn cell_centroid(cell_id: usize, mesh: &IndexedMesh) -> Option<Point3<Real>>
             .fold(leto::geometry::Vector3::zeros(), |sum, position| {
                 sum + position
             });
-        return Some(Point3::from(sum / Real::from_usize(cell.vertex_ids.len())));
+        return Some(Point3::from(sum / Real::from_count(cell.vertex_ids.len())));
     }
 
     let mut sum = leto::geometry::Vector3::<Real>::zeros();
@@ -218,7 +219,7 @@ pub fn cell_centroid(cell_id: usize, mesh: &IndexedMesh) -> Option<Point3<Real>>
     if count == 0 {
         None
     } else {
-        Some(Point3::from(sum / Real::from_usize(count)))
+        Some(Point3::from(sum / Real::from_count(count)))
     }
 }
 

@@ -1,10 +1,11 @@
 //! Antiprism primitive — n-gon top and bottom rotated by π/n, connected by triangles.
 
+use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::geometry::normal::triangle_normal;
 use crate::domain::mesh::IndexedMesh;
 
@@ -82,12 +83,12 @@ fn build(ap: &Antiprism) -> Result<IndexedMesh, PrimitiveError> {
     let by = ap.base_center.y;
     let bz = ap.base_center.z;
     let ns = ap.sides;
-    let inv_ns = 1.0 / f64::from_usize(ns);
+    let inv_ns = 1.0 / f64::from_count(ns);
 
     // Bottom polygon vertices (y = by)
     let bot: Vec<Point3r> = (0..ns)
         .map(|i| {
-            let angle = f64::from_usize(i) * inv_ns * TAU;
+            let angle = f64::from_count(i) * inv_ns * TAU;
             Point3r::new(bx + r * angle.cos(), by, bz + r * angle.sin())
         })
         .collect();
@@ -95,7 +96,7 @@ fn build(ap: &Antiprism) -> Result<IndexedMesh, PrimitiveError> {
     // Top polygon vertices (y = by + height, rotated by π/n)
     let top: Vec<Point3r> = (0..ns)
         .map(|i| {
-            let angle = (f64::from_usize(i) + 0.5) * inv_ns * TAU;
+            let angle = (f64::from_count(i) + 0.5) * inv_ns * TAU;
             Point3r::new(bx + r * angle.cos(), by + ap.height, bz + r * angle.sin())
         })
         .collect();

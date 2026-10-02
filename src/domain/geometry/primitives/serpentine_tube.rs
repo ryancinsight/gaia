@@ -83,11 +83,12 @@
 //! Millifluidic mixing channels, Dean-vortex enhancers, lab-on-chip reactors,
 //! heat-exchanger microchannels.
 
+use eunomia::FloatElement;
 use std::f64::consts::{PI, TAU};
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::{RegionId, VertexId};
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a planar serpentine tube (multi-pass channel with U-turn bends).
@@ -162,7 +163,7 @@ fn build_serpentine_stations(st: &SerpentineTube) -> Vec<Station> {
     let pitch = 2.0 * st.bend_radius;
 
     for pass in 0..st.n_passes {
-        let x_col = f64::from_usize(pass) * pitch;
+        let x_col = f64::from_count(pass) * pitch;
         let going_up = pass % 2 == 0;
         let tangent = if going_up {
             Vector3r::new(0.0, 0.0, 1.0)
@@ -173,7 +174,7 @@ fn build_serpentine_stations(st: &SerpentineTube) -> Vec<Station> {
         let z_end = if going_up { st.straight_length } else { 0.0 };
 
         for k in usize::from(pass != 0)..=st.straight_segments {
-            let t = f64::from_usize(k) / f64::from_usize(st.straight_segments);
+            let t = f64::from_count(k) / f64::from_count(st.straight_segments);
             stations.push(Station {
                 centre: Point3r::new(x_col, 0.0, z_start + t * (z_end - z_start)),
                 tangent,
@@ -182,7 +183,7 @@ fn build_serpentine_stations(st: &SerpentineTube) -> Vec<Station> {
 
         if pass + 1 < st.n_passes {
             for k in 1..=st.bend_segments {
-                let psi = PI * f64::from_usize(k) / f64::from_usize(st.bend_segments);
+                let psi = PI * f64::from_count(k) / f64::from_count(st.bend_segments);
                 let (cp, sp) = (psi.cos(), psi.sin());
                 let (centre, tangent) = if going_up {
                     (
@@ -295,7 +296,7 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
         let n_frame = frame_normal(station.tangent);
         let row: Vec<VertexId> = (0..ns)
             .map(|ib| {
-                let beta = f64::from_usize(ib) / f64::from_usize(ns) * TAU;
+                let beta = f64::from_count(ib) / f64::from_count(ns) * TAU;
                 let n_out = n_frame * beta.cos() + b_fixed * beta.sin();
                 let pos = station.centre + n_out * r;
                 mesh.add_vertex(pos, n_out)

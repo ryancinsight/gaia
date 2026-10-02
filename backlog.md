@@ -33,15 +33,14 @@ Triage order: correctness → architecture → verification → tightening → f
 - next: make the CSG arrangement generic over the PSLG scalar.
 
 Progress (Phase 19, 2026-09-30):
-- Added `Scalar::from_usize(n: usize)` and `Scalar::from_index(k: i64)` to
-  the `Scalar` trait — eunomia-backed replacement for `i as Real` index casts.
-  Implemented via `<Self as Scalar>::from_f64(n as f64)` following eunomia's
-  `FloatElement` widening-seam contract. Documented with IEEE-754 exactness
-  bound; 37 doctests pass.
+- Index-to-float conversion goes through eunomia's `FloatElement::from_count`
+  and `from_integer` (round to nearest, ties to even; exact below 2^24 for
+  `f32` and 2^53 for `f64`), replacing `i as Real` casts. `Scalar` carries no
+  conversion methods of its own (GAIA-COUNT-CONV-001).
 - Added aequitas-typed physical-quantity constructors to `constants.rs`:
   `length_m()`, `length_mm()`, `angle_rad()`, `angle_deg()`, and default
   channel dimension accessors using `aequitas::systems::si::quantities`.
-- Phase 19 subagent replacing 56+ `as Real` index casts with `from_usize()`.
+- Phase 19 replaced 56+ `as Real` index casts with the eunomia conversions.
 
 ---
 

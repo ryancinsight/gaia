@@ -42,7 +42,8 @@ use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
 use crate::application::delaunay::dim2::smoothing::laplacian::{
     build_frozen_set, one_ring_neighbors,
 };
-use crate::domain::core::scalar::{Real, Scalar};
+use crate::domain::core::scalar::Real;
+use eunomia::FloatElement;
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,7 @@ impl AngleBasedSmoother {
                 }
 
                 // Compute centroid of 1-ring neighbours.
-                let n = Real::from_usize(neighbors.len());
+                let n = Real::from_count(neighbors.len());
                 let (sx, sy) = neighbors.iter().fold((0.0, 0.0), |(ax, ay), &id| {
                     let u = dt.vertex(id);
                     (ax + u.x, ay + u.y)

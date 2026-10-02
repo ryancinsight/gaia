@@ -1,10 +1,11 @@
 //! Circular-arc pipe bend (elbow) primitive.
 
+use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::{RegionId, VertexId};
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a closed circular-arc tube sweep (pipe bend / elbow).
@@ -169,10 +170,10 @@ fn build(el: &Elbow) -> Result<IndexedMesh, PrimitiveError> {
     // Caps reuse rings[0] and rings[na] so wall/cap edges are topologically shared.
     let mut rings: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(na + 1);
     for ia in 0..=na {
-        let alpha = f64::from_usize(ia) / f64::from_usize(na) * ba;
+        let alpha = f64::from_count(ia) / f64::from_count(na) * ba;
         let row: Vec<_> = (0..ns)
             .map(|ib| {
-                let beta = f64::from_usize(ib) / f64::from_usize(ns) * TAU;
+                let beta = f64::from_count(ib) / f64::from_count(ns) * TAU;
                 let (p, n) = tube_vertex(alpha, beta);
                 mesh.add_vertex(p, n)
             })

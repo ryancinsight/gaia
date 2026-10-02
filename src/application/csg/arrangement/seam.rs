@@ -3,6 +3,7 @@
 //! Keeps exact/constrained fixes first and only falls back to bounded
 //! tolerance-based vertex merges when topology-preserving passes stall.
 
+use eunomia::FloatElement;
 use hashbrown::HashMap;
 
 use super::mesh_ops::{apply_vertex_merge, boundary_half_edges, merge_root};
@@ -11,7 +12,7 @@ use super::snap_round;
 use crate::application::csg::diagnostics::trace_enabled;
 use crate::application::welding::GridCell;
 use crate::domain::core::index::VertexId;
-use crate::domain::core::scalar::{Real, Scalar};
+use crate::domain::core::scalar::Real;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
@@ -304,7 +305,7 @@ pub(crate) fn stitch_boundary_seams(faces: &mut Vec<FaceData>, pool: &VertexPool
             .iter()
             .map(|&(vi, vj)| (pool.position(vj) - pool.position(vi)).norm_squared())
             .sum::<Real>()
-            / Real::from_usize(boundary_edges.len().max(1));
+            / Real::from_count(boundary_edges.len().max(1));
         let wide_tol_sq = (avg_len_sq * 0.25).min(0.01); // (0.5 * avg_len)^2, capped at 0.1
 
         let mut merge_map = build_mutual_nearest_merge_map(&bnd_verts, wide_tol_sq, pool);

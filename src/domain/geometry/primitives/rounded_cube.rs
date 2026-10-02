@@ -1,10 +1,11 @@
 //! Rounded cube (filleted box) primitive.
 
+use eunomia::FloatElement;
 use std::f64::consts::{PI, TAU};
 
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
+use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 /// Builds a box with cylindrical edge fillets and spherical corner octants.
@@ -163,8 +164,8 @@ fn add_edge_strip(
     region: RegionId,
 ) {
     for k in 0..cs {
-        let a0 = a_start + f64::from_usize(k) / f64::from_usize(cs) * (a_end - a_start);
-        let a1 = a_start + f64::from_usize(k + 1) / f64::from_usize(cs) * (a_end - a_start);
+        let a0 = a_start + f64::from_count(k) / f64::from_count(cs) * (a_end - a_start);
+        let a1 = a_start + f64::from_count(k + 1) / f64::from_count(cs) * (a_end - a_start);
         let (pb0, pt0, n0) = sample(a0);
         let (pb1, pt1, n1) = sample(a1);
         let vb0 = mesh.add_vertex(pb0, n0);
@@ -299,10 +300,10 @@ fn add_corner_octant(
 
     for iu in 0..cs {
         for iv in 0..cs {
-            let u0 = f64::from_usize(iu) / f64::from_usize(cs) * PI / 2.0;
-            let u1 = f64::from_usize(iu + 1) / f64::from_usize(cs) * PI / 2.0;
-            let v0 = f64::from_usize(iv) / f64::from_usize(cs) * PI / 2.0;
-            let v1 = f64::from_usize(iv + 1) / f64::from_usize(cs) * PI / 2.0;
+            let u0 = f64::from_count(iu) / f64::from_count(cs) * PI / 2.0;
+            let u1 = f64::from_count(iu + 1) / f64::from_count(cs) * PI / 2.0;
+            let v0 = f64::from_count(iv) / f64::from_count(cs) * PI / 2.0;
+            let v1 = f64::from_count(iv + 1) / f64::from_count(cs) * PI / 2.0;
 
             let (p00, n00) = corner_octant_sample(center, signs, r, u0, v0);
             let (p10, n10) = corner_octant_sample(center, signs, r, u1, v0);

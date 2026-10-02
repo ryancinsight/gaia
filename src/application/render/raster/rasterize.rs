@@ -1,6 +1,7 @@
 //! Scanline fill of a screen-space triangle, testing a depth buffer.
 
-use crate::domain::core::scalar::{Real, Scalar};
+use crate::domain::core::scalar::Real;
+use eunomia::FloatElement;
 
 use super::super::transform::Vec4;
 
@@ -125,9 +126,9 @@ pub(super) fn rasterize(
 
     let mut written = 0;
     for y in y0..=y1 {
-        let py = Real::from_index(y) + 0.5;
+        let py = Real::from_integer(y) + 0.5;
         for x in x0..=x1 {
-            let px = Real::from_index(x) + 0.5;
+            let px = Real::from_integer(x) + 0.5;
             let w0 = edge(&v[1], &v[2], px, py);
             let w1 = edge(&v[2], &v[0], px, py);
             let w2 = edge(&v[0], &v[1], px, py);
