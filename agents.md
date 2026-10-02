@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 25 complete (forced-warn `too_many_lines` 30→8; `cargo clippy --lib` clean; `cargo test --lib` 1140/1140 passed).
+> **Rewrite status**: Phase 26 complete (forced-warn `too_many_lines` measurement 9→5; `cargo clippy --lib` clean; `cargo test --lib` 1139/1139 passed; `cargo fmt --check` remains blocked by parent-owned formatting diffs in `src/application/csg/arrangement/seam.rs`).
 
 ---
 

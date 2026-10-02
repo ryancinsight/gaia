@@ -222,6 +222,12 @@ Progress (Phase 25, 2026-10-01):
 - `cargo clippy --lib` is clean; `cargo test --lib` passed 1140/1140.
 - Full `cargo fmt --check` is still blocked by formatting diffs in the concurrently edited forbidden files (`boundary.rs`, `helix_sweep.rs`, `stadium_prism.rs`, `ply.rs`), so this phase only formatted the touched CSG files directly.
 
+Progress (Phase 26, 2026-10-02):
+- Split `src/application/csg/corefine/face.rs` into documented helpers for snap-segment dedup, edge/interior Steiner collection, boundary fallback preparation, PSLG construction, and CDT face assembly; `corefine_face` is now below the `too_many_lines` threshold and no longer emits a forced-warning diagnostic.
+- Forced-warning `too_many_lines` measurement reduced 9→5 via the Phase 26 command; `Cargo.toml` ratchet comment remeasured to 5.
+- `cargo clippy --lib` is clean and `cargo test --lib` passed 1139/1139. `cargo fmt --check` is still blocked by parent-owned formatting diffs in `src/application/csg/arrangement/seam.rs`.
+- `src/application/csg/boolean/indexed/repair/merge.rs` remains on the residual list, but this pass left it untouched because that file is concurrently owned by the parent process.
+
 Evidence: `cargo clippy --all-targets --all-features -- --force-warn
 clippy::too_many_lines` emits 58 diagnostics at this revision; `unwrap_production`
 ratchet baseline auto-tightened 2→0 on push.
