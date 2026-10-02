@@ -40,28 +40,35 @@
 //!
 //! O(F) where F = face count; each face contributes 3 cotangent weights.
 
-use crate::domain::core::scalar::{Real, Vector3r};
+use crate::domain::core::scalar::Scalar;
 use crate::domain::mesh::IndexedMesh;
+use eunomia::NumericElement;
+use leto::geometry::Vector3;
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /// Compute discrete mean curvature at each vertex via the cotangent Laplacian.
 ///
-/// Returns a `Vec<Real>` with length equal to `mesh.vertices.len()`.
+/// Returns a `Vec<T>` with length equal to `mesh.vertices.len()`.
 /// Index `i` holds the mean curvature at the vertex with `VertexId(i as u32)`.
 ///
 /// Non-finite values indicate degenerate local geometry (zero-area faces in
 /// the 1-ring); callers should treat these as masked / invalid.
 #[must_use]
-pub fn vertex_mean_curvature(mesh: &IndexedMesh) -> Vec<Real> {
+pub fn vertex_mean_curvature<T: Scalar>(mesh: &IndexedMesh<T>) -> Vec<T> {
     let n = mesh.vertices.len();
     if n == 0 {
         return Vec::new();
     }
 
     // Accumulate cotangent-weighted Laplacian vectors and barycentric areas.
-    let mut laplacian: Vec<Vector3r> = vec![Vector3r::zeros(); n];
-    let mut area: Vec<Real> = vec![0.0; n];
+    let zero = <T as NumericElement>::ZERO;
+    let half = <T as Scalar>::from_f64(0.5);
+    let three = <T as Scalar>::from_f64(3.0);
+    let four = <T as Scalar>::from_f64(4.0);
+    let min_positive = <T as Scalar>::from_f64(f64::MIN_POSITIVE);
+    let mut laplacian: Vec<Vector3<T>> = vec![Vector3::zeros(); n];
+    let mut area: Vec<T> = vec![zero; n];
 
     for face in mesh.faces.iter() {
         let [ia, ib, ic] = [
@@ -82,20 +89,20 @@ pub fn vertex_mean_curvature(mesh: &IndexedMesh) -> Vec<Real> {
         let cross_b = (va - vb).cross(vc - vb);
         let cross_c = (va - vc).cross(vb - vc);
 
-        let denom_a = cross_a.norm().max(Real::MIN_POSITIVE);
-        let denom_b = cross_b.norm().max(Real::MIN_POSITIVE);
-        let denom_c = cross_c.norm().max(Real::MIN_POSITIVE);
+        let denom_a = cross_a.norm().max_scalar(min_positive);
+        let denom_b = cross_b.norm().max_scalar(min_positive);
+        let denom_c = cross_c.norm().max_scalar(min_positive);
 
         let cot_a = (vb - va).dot(vc - va) / denom_a;
         let cot_b = (va - vb).dot(vc - vb) / denom_b;
         let cot_c = (va - vc).dot(vb - vc) / denom_c;
 
-        let face_area = 0.5 * denom_a; // area of triangle from cross at vertex a
+        let face_area = half * denom_a; // area of triangle from cross at vertex a
 
         // Accumulate barycentric (one-third) area at each vertex.
-        area[ia] += face_area / 3.0;
-        area[ib] += face_area / 3.0;
-        area[ic] += face_area / 3.0;
+        area[ia] += face_area / three;
+        area[ib] += face_area / three;
+        area[ic] += face_area / three;
 
         // Edge (b, c) — opposite vertex a contributes cot_a.
         laplacian[ib] += (vc - vb) * cot_a;
@@ -114,13 +121,19 @@ pub fn vertex_mean_curvature(mesh: &IndexedMesh) -> Vec<Real> {
     (0..n)
         .map(|i| {
             let a = area[i];
-            if a < Real::MIN_POSITIVE {
-                return Real::NAN;
+            if a < min_positive {
+                return <T as NumericElement>::NAN;
             }
             // K(v_i) = (1/A_i) * laplacian_sum; H = |K|/2
-            laplacian[i].norm() / (4.0 * a)
+            laplacian[i].norm() / (four * a)
         })
         .collect()
+}
+
+/// Backwards-compatible `f64` curvature helper for reporting and legacy call-sites.
+#[must_use]
+pub fn vertex_mean_curvature_f64(mesh: &IndexedMesh) -> Vec<f64> {
+    vertex_mean_curvature::<f64>(mesh)
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -128,7 +141,7 @@ pub fn vertex_mean_curvature(mesh: &IndexedMesh) -> Vec<Real> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::core::scalar::Point3r;
+    use crate::domain::core::scalar::{Point3r, Real};
     use crate::domain::geometry::primitives::{Cube, PrimitiveMesh, UvSphere};
 
     /// A flat mesh (all vertices coplanar) should have near-zero mean curvature.
@@ -201,10 +214,27 @@ mod tests {
         assert_eq!(h.len(), mesh.vertices.len());
     }
 
+    #[test]
+    fn f64_wrapper_matches_generic_entrypoint() {
+        let mesh = Cube {
+            origin: Point3r::new(0.0, 0.0, 0.0),
+            width: 1.0,
+            height: 1.0,
+            depth: 1.0,
+        }
+        .build()
+        .expect("cube build");
+
+        assert_eq!(
+            vertex_mean_curvature_f64(&mesh),
+            vertex_mean_curvature::<f64>(&mesh)
+        );
+    }
+
     /// Empty mesh returns empty vec.
     #[test]
     fn empty_mesh_returns_empty() {
-        let mesh = IndexedMesh::new();
+        let mesh = IndexedMesh::<f64>::new();
         let h = vertex_mean_curvature(&mesh);
         assert!(h.is_empty());
     }

@@ -21,6 +21,7 @@ use eunomia::FloatElement;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::Point3r;
 use hashbrown::HashMap;
+use moirai::ParallelSlice;
 
 #[inline]
 fn triangle_edge_index(edge: i8) -> usize {
@@ -46,7 +47,14 @@ fn box_sdf(wx: f64, wy: f64, wz: f64, bounds: [f64; 6]) -> f64 {
 }
 
 /// Pre-sample the clipped TPMS field on the padded marching-cubes lattice.
-fn sample_box_field<S: Tpms>(
+///
+/// # Parallelism
+///
+/// Each z-slice of the field is independent and computed in parallel via moirai.
+/// The outer `iz` loop is the moirai work unit; inner `iy × ix` loops run
+/// sequentially within each worker because `gs × gs` elements per slice fit in
+/// L1 cache on modern hardware.
+fn sample_box_field<S: Tpms + Send + Sync>(
     surface: &S,
     params: &TpmsBoxParams,
     k: f64,
@@ -56,21 +64,30 @@ fn sample_box_field<S: Tpms>(
     dz: f64,
 ) -> Vec<f64> {
     let [x0, y0, z0, ..] = params.bounds;
-    let mut field = vec![0.0_f64; gs * gs * gs];
-    let idx = |ix: usize, iy: usize, iz: usize| iz * gs * gs + iy * gs + ix;
+    let iso = params.iso_value;
+    let bounds = params.bounds;
 
-    for iz in 0..gs {
+    // Each iz-slice is independent: write to field[iz*gs*gs .. (iz+1)*gs*gs].
+    let iz_indices: Vec<usize> = (0..gs).collect();
+    let slices: Vec<Vec<f64>> = iz_indices.par().map_collect(|&iz| {
+        let wz = z0 + (f64::from_count(iz) - 1.0) * dz;
+        let mut slice = vec![0.0_f64; gs * gs];
         for iy in 0..gs {
+            let wy = y0 + (f64::from_count(iy) - 1.0) * dy;
             for ix in 0..gs {
                 let wx = x0 + (f64::from_count(ix) - 1.0) * dx;
-                let wy = y0 + (f64::from_count(iy) - 1.0) * dy;
-                let wz = z0 + (f64::from_count(iz) - 1.0) * dz;
-                let tpms_val = surface.field(wx, wy, wz, k) - params.iso_value;
-                field[idx(ix, iy, iz)] = tpms_val.max(box_sdf(wx, wy, wz, params.bounds));
+                let tpms_val = surface.field(wx, wy, wz, k) - iso;
+                slice[iy * gs + ix] = tpms_val.max(box_sdf(wx, wy, wz, bounds));
             }
         }
-    }
+        slice
+    });
 
+    // Concatenate slices in iz order into the full field buffer.
+    let mut field = Vec::with_capacity(gs * gs * gs);
+    for slice in slices {
+        field.extend(slice);
+    }
     field
 }
 

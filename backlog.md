@@ -42,6 +42,11 @@ Progress (Phase 19, 2026-09-30):
   channel dimension accessors using `aequitas::systems::si::quantities`.
 - Phase 19 replaced 56+ `as Real` index casts with the eunomia conversions.
 
+Progress (Phase 29, 2026-10-02):
+- `src/application/quality/curvature.rs` now keeps cotangent-weighted mean-curvature accumulation in native `T: Scalar` precision, with a compatibility `vertex_mean_curvature_f64()` wrapper for explicit `f64` consumers.
+- `src/application/quality/metrics.rs` now exposes `from_scalar_values_direct<T: Scalar>()` and reduces sums/counts in the input scalar before converting only the final report fields to `f64`.
+- `src/application/csg/arrangement/seam.rs` keeps its tolerance math on `Real` intentionally and now documents that default-precision CSG-kernel boundary.
+
 ---
 
 ## GAIA-005 — Retire the 39 ignored doctests
@@ -107,6 +112,10 @@ Evidence: `.github/workflows/ci.yml` job `gate` has exactly five steps (fmt,
 clippy, nextest, doctests, doc). `CHECKLIST.md` records semver comparisons run
 by hand ("196 checks passed, 57 skipped") — a manual sequence performed more
 than twice is a mechanization defect.
+
+Progress (Phase 29, 2026-10-02):
+- Added root `deny.toml` with RustSec advisories, license policy, crate-ban, and source-policy defaults for Gaia's dependency surface.
+- Wired `cargo deny check` and `cargo machete` into `.github/workflows/ci.yml` so the main verification job now enforces supply-chain and unused-dependency gates alongside fmt/clippy/tests/docs.
 
 ---
 

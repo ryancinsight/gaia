@@ -16,6 +16,9 @@ use crate::domain::core::scalar::Real;
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
 
+// Arrangement seam repair currently runs inside Gaia's default-precision CSG
+// kernel, so these helpers intentionally stay on `Real`/`VertexPool` rather
+// than introducing a second scalar seam for tolerance-based repair passes.
 fn cell_key(p: &leto::geometry::Point3<Real>, inv_cell: Real) -> GridCell {
     GridCell::from_point_round(p, inv_cell)
 }
@@ -191,7 +194,7 @@ fn build_bimodal_collapse_map(
     boundary_edges: &[(VertexId, VertexId)],
     pool: &VertexPool,
 ) -> Option<HashMap<VertexId, VertexId>> {
-    let mut edge_info: Vec<(Real, VertexId, VertexId)> = boundary_edges
+    let mut edge_info: Vec<_> = boundary_edges
         .iter()
         .map(|&(vi, vj)| {
             let d = (pool.position(vj) - pool.position(vi)).norm_squared();
@@ -301,7 +304,7 @@ pub(crate) fn stitch_boundary_seams(faces: &mut Vec<FaceData>, pool: &VertexPool
 
         // Adaptive tolerance: 50% of average boundary edge length,
         // capped to prevent merging vertices across tube cross-sections.
-        let avg_len_sq: Real = boundary_edges
+        let avg_len_sq = boundary_edges
             .iter()
             .map(|&(vi, vj)| (pool.position(vj) - pool.position(vi)).norm_squared())
             .sum::<Real>()
@@ -362,7 +365,7 @@ pub(crate) fn stitch_boundary_seams_conservative(faces: &mut Vec<FaceData>, pool
             continue;
         }
 
-        let mut edge_info: Vec<(Real, VertexId, VertexId)> = boundary_edges
+        let mut edge_info: Vec<_> = boundary_edges
             .iter()
             .map(|&(vi, vj)| {
                 let d = (pool.position(vj) - pool.position(vi)).norm_squared();

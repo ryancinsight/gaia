@@ -68,7 +68,7 @@ mod private {
 /// use gaia::domain::core::scalar::Scalar;
 ///
 /// fn mean<T: Scalar>(sum: T, count: usize) -> T {
-///     sum / T::from_count(count)
+///     sum / T::from_usize(count)
 /// }
 ///
 /// assert_eq!(mean(6.0_f64, 3), 2.0);
@@ -76,7 +76,8 @@ mod private {
 /// assert_eq!(f64::from_integer(-7), -7.0);
 /// ```
 pub trait Scalar:
-    eunomia::RealField
+    eunomia::FloatElement
+    + eunomia::RealField
     + Copy
     + Default
     + std::fmt::Debug
@@ -97,6 +98,14 @@ pub trait Scalar:
     /// Zero-cost identity for `f64`; one `as` cast for `f32`.
     /// Enables generic code to write `T::from_f64(0.5)` instead of `0.5_T`.
     fn from_f64(v: f64) -> Self;
+
+    /// Convert a collection length/count into this scalar via Eunomia's
+    /// exact count-conversion seam.
+    #[inline]
+    #[must_use]
+    fn from_usize(v: usize) -> Self {
+        <Self as eunomia::FloatElement>::from_count(v)
+    }
 
     /// Compare values using the IEEE 754 total order, including signed zero and NaN.
     ///

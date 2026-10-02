@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 28 complete (workspace `cast_precision_loss` / `cast_possible_truncation` allows retired; all remaining production cast sites now carry per-site `#[expect(..., reason = "...")]`; `cargo clippy --lib` clean, 1139/1139 tests, `cargo fmt --check` passes, GAIA-005 doctests progressed: 7 `rust,ignore` → `rust`/`no_run`).
+> **Rewrite status**: Phase 29 complete (quality curvature/metrics now keep GAIA-003 arithmetic on the `T: Scalar` seam until `f64` report boundaries; GAIA-008 adds `cargo deny` + `cargo machete` CI gates via the new root `deny.toml`; `cargo clippy --lib`, `cargo test --lib`, `cargo fmt --check`, and `cargo doc --lib --no-deps` pass).
 
 ---
 

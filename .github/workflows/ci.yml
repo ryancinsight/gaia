@@ -72,7 +72,7 @@ jobs:
       contents: read
 
   gate:
-    name: fmt + clippy + nextest + doctests + doc
+    name: fmt + clippy + supply-chain + nextest + doctests + doc
     runs-on: ubuntu-latest
     # A cold build of the CSG stack plus the full suite runs in roughly ten
     # minutes; 45 leaves margin for a cache miss while still refusing an
@@ -97,6 +97,11 @@ jobs:
         with:
           tool: nextest@${{ env.NEXTEST_VERSION }}
 
+      - name: Install supply-chain audit tools
+        uses: taiki-e/install-action@a6b2e2dcd845ddd7f509ce4f3ed3d922b80cc5d9 # v2.84.0
+        with:
+          tool: cargo-deny cargo-machete
+
       - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
 
       - name: Format check
@@ -108,6 +113,12 @@ jobs:
       # ratchet) — a class absent from that list is a hard error here.
       - name: Clippy (lint floor, denied)
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Supply-chain audit (cargo deny)
+        run: cargo deny check
+
+      - name: Dependency hygiene (cargo machete)
+        run: cargo machete
 
       # nextest applies the committed .config/nextest.toml budget (30 s slow /
       # 60 s terminate). Bare `cargo test` bypasses that instrument, so a hang

@@ -26,6 +26,7 @@ use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 use eunomia::FloatElement;
+use moirai::ParallelSlice;
 
 // ── Lookup tables — single authoritative copy ─────────────────────────────────
 
@@ -439,7 +440,7 @@ impl EdgeVertexCache {
 
 // ── Extraction engine ─────────────────────────────────────────────────────────
 
-trait SurfaceEvaluator {
+trait SurfaceEvaluator: Sync {
     fn field(&self, x: f64, y: f64, z: f64, k: f64) -> f64;
 
     fn gradient(&self, x: f64, y: f64, z: f64, k: f64) -> Vector3r;
@@ -452,8 +453,8 @@ struct ClosureEvaluator<F, G> {
 
 impl<F, G> SurfaceEvaluator for ClosureEvaluator<F, G>
 where
-    F: Fn(f64, f64, f64, f64) -> f64,
-    G: Fn(f64, f64, f64, f64) -> Vector3r,
+    F: Fn(f64, f64, f64, f64) -> f64 + Sync,
+    G: Fn(f64, f64, f64, f64) -> Vector3r + Sync,
 {
     #[inline]
     fn field(&self, x: f64, y: f64, z: f64, k: f64) -> f64 {
@@ -497,8 +498,8 @@ pub struct McParams {
 pub fn extract(
     mesh: &mut IndexedMesh,
     params: &McParams,
-    field_fn: impl Fn(f64, f64, f64, f64) -> f64,
-    gradient_fn: impl Fn(f64, f64, f64, f64) -> Vector3r,
+    field_fn: impl Fn(f64, f64, f64, f64) -> f64 + Sync,
+    gradient_fn: impl Fn(f64, f64, f64, f64) -> Vector3r + Sync,
 ) {
     let evaluator = ClosureEvaluator {
         field: field_fn,
@@ -534,19 +535,25 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
     let step = 2.0 * r / f64::from_count(n);
     let gs = n + 1;
 
-    // Pre-sample field on (n+1)³ grid.
-    let mut field = vec![0.0_f64; gs * gs * gs];
-    let idx = |ix: usize, iy: usize, iz: usize| iz * gs * gs + iy * gs + ix;
-    for iz in 0..=n {
+    // Pre-sample field on (n+1)³ grid — each iz-slice is independent.
+    let iz_all: Vec<usize> = (0..=n).collect();
+    let field_slices: Vec<Vec<f64>> = iz_all.par().map_collect(|&iz| {
+        let wz = -r + f64::from_count(iz) * step;
+        let mut slice = vec![0.0_f64; gs * gs];
         for iy in 0..=n {
+            let wy = -r + f64::from_count(iy) * step;
             for ix in 0..=n {
                 let wx = -r + f64::from_count(ix) * step;
-                let wy = -r + f64::from_count(iy) * step;
-                let wz = -r + f64::from_count(iz) * step;
-                field[idx(ix, iy, iz)] = evaluator.field(wx, wy, wz, k) - iso;
+                slice[iy * gs + ix] = evaluator.field(wx, wy, wz, k) - iso;
             }
         }
+        slice
+    });
+    let mut field = Vec::with_capacity(gs * gs * gs);
+    for slice in field_slices {
+        field.extend(slice);
     }
+    let idx = |ix: usize, iy: usize, iz: usize| iz * gs * gs + iy * gs + ix;
 
     let mut cache = EdgeVertexCache::new(n);
 

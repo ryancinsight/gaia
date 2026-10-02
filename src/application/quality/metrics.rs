@@ -2,7 +2,6 @@
 
 use crate::domain::core::scalar::Real;
 use crate::domain::core::scalar::Scalar;
-use eunomia::FloatElement;
 use eunomia::NumericElement;
 
 /// A quality metric measurement.
@@ -34,11 +33,15 @@ impl QualityMetric {
         }
         let min = values.iter().copied().fold(Real::INFINITY, Real::min);
         let max = values.iter().copied().fold(Real::NEG_INFINITY, Real::max);
-        let sum: Real = values.iter().sum();
+        let sum = values
+            .iter()
+            .copied()
+            .fold(<Real as NumericElement>::ZERO, |acc, value| acc + value);
+        let count = <Real as Scalar>::from_usize(values.len());
         Some(Self {
             min,
             max,
-            mean: sum / Real::from_count(values.len()),
+            mean: sum / count,
             count: values.len(),
         })
     }
@@ -48,7 +51,7 @@ impl QualityMetric {
     /// The extrema and sum are reduced in `T` and converted to `f64` only at
     /// the reporting boundary. This keeps validation arithmetic in the mesh's
     /// scalar precision instead of silently widening `f32` geometry.
-    pub fn from_scalar_values<T: Scalar>(values: &[T]) -> Option<Self> {
+    pub fn from_scalar_values_direct<T: Scalar>(values: &[T]) -> Option<Self> {
         if values.is_empty() {
             return None;
         }
@@ -76,13 +79,20 @@ impl QualityMetric {
             .iter()
             .copied()
             .fold(<T as NumericElement>::ZERO, |sum, value| sum + value);
-        let count = T::from_count(values.len());
+        let count = <T as Scalar>::from_usize(values.len());
         Some(Self {
             min: min.to_f64(),
             max: max.to_f64(),
             mean: (sum / count).to_f64(),
             count: values.len(),
         })
+    }
+
+    /// Create a report metric from native-precision values.
+    ///
+    /// Compatibility wrapper around [`Self::from_scalar_values_direct`].
+    pub fn from_scalar_values<T: Scalar>(values: &[T]) -> Option<Self> {
+        Self::from_scalar_values_direct(values)
     }
 
     /// Number of elements below a threshold.
