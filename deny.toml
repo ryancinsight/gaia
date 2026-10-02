@@ -1,17 +1,18 @@
+# cargo-deny configuration for gaia-mesh.
+# Follows the atlas stack convention (see helios/deny.toml, mnemosyne/deny.toml).
+
 [advisories]
-db-path = "~/.cargo/advisory-db"
-db-urls = ["https://github.com/rustsec/advisory-db"]
-vulnerability = "deny"
 yanked = "deny"
 
 [licenses]
+confidence-threshold = 0.8
 allow = [
-    "MIT",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
-    "ISC",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "ISC",
+    "MIT",
     "Unicode-3.0",
     "Unicode-DFS-2016",
     "Zlib",
@@ -23,8 +24,9 @@ wildcards = "allow"
 highlight = "all"
 
 [sources]
-unknown-registry = "warn"
-unknown-git = "allow"
-allow-git = [
-    "https://github.com/ryancinsight/",
-]
+unknown-git = "deny"
+unknown-registry = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+
+[sources.allow-org]
+github = ["ryancinsight"]
