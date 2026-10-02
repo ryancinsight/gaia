@@ -227,6 +227,12 @@ Progress (Phase 26, 2026-10-02):
 - `cargo clippy --lib` is clean and `cargo test --lib` passed 1139/1139. `cargo fmt --check` is still blocked by parent-owned formatting diffs in `src/application/csg/arrangement/seam.rs`.
 - `src/application/csg/boolean/indexed/repair/merge.rs` remains on the residual list, but this pass left it untouched because that file is concurrently owned by the parent process.
 
+Progress (Phase 27, 2026-10-02):
+- Split `src/application/csg/arrangement/propagate/barrels.rs` by extracting documented `find_rim_faces()` and `build_seam_position_hash()` helpers; the seam lookup now uses `SpatialHashGrid` rather than an ad-hoc `GridCell` bucket map.
+- Split `src/application/csg/boolean/indexed/repair/merge.rs` by extracting documented helpers for boundary-vertex collection, candidate selection, merge application/reversion, and post-merge sealing; `merge_nearby_boundary_vertices_with_mult()` is now below the threshold.
+- Forced-warning `too_many_lines` measurement reduced 5→1 via the Phase 27 command; the sole residual warning is `src/application/csg/arrangement.rs`, one of the parent-owned files this phase was instructed not to touch.
+- `cargo clippy --lib` is clean, `cargo test --lib` passed 1139/1139, and `cargo fmt --check` passes on the current worktree.
+
 Evidence: `cargo clippy --all-targets --all-features -- --force-warn
 clippy::too_many_lines` emits 58 diagnostics at this revision; `unwrap_production`
 ratchet baseline auto-tightened 2→0 on push.

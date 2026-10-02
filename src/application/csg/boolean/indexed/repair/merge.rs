@@ -9,6 +9,249 @@ use crate::domain::mesh::IndexedMesh;
 use crate::infrastructure::storage::face_store::FaceData;
 use eunomia::FloatElement;
 
+/// Boundary-merge attempt outcome for the current candidate pair.
+enum BoundaryMergeOutcome {
+    /// The candidate merge preserved topology and was applied.
+    Applied,
+    /// The candidate merge would reduce Euler characteristic and was rejected.
+    Rejected,
+    /// The candidate did not change any face references, so no further work remains.
+    NoChange,
+}
+
+/// Compute the Euler characteristic from the current face store.
+#[inline]
+fn quick_euler_referenced(mesh: &IndexedMesh) -> i64 {
+    let edge_store =
+        crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
+    crate::application::watertight::check::euler_chi_from_stores(&mesh.faces, &edge_store)
+}
+
+/// Find the closest boundary-boundary candidate pair within `tol`.
+fn find_best_boundary_pair(
+    bv: &[VertexId],
+    bv_pos: &[leto::geometry::Point3<f64>],
+    tol: f64,
+    skip_pairs: &hashbrown::HashSet<(VertexId, VertexId)>,
+) -> Option<(VertexId, VertexId, f64)> {
+    let inv_tol = 1.0 / tol;
+    let mut best: Option<(VertexId, VertexId, f64)> = None;
+    let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> =
+        hashbrown::HashMap::with_capacity(bv.len());
+    for (i, p) in bv_pos.iter().enumerate() {
+        grid.entry(GridCell::from_point(p, inv_tol))
+            .or_default()
+            .push(i);
+    }
+    for (i, pi) in bv_pos.iter().enumerate() {
+        let cell = GridCell::from_point(pi, inv_tol);
+        for nb_cell in cell.neighborhood_27() {
+            let Some(cell_verts) = grid.get(&nb_cell) else {
+                continue;
+            };
+            for &j in cell_verts {
+                if j <= i {
+                    continue;
+                }
+                let pair_key = if bv[i] < bv[j] {
+                    (bv[i], bv[j])
+                } else {
+                    (bv[j], bv[i])
+                };
+                if skip_pairs.contains(&pair_key) {
+                    continue;
+                }
+                let pj = &bv_pos[j];
+                let d = (pi - pj).norm();
+                let is_better = match best {
+                    Some((_, _, best_dist)) => d < best_dist,
+                    None => true,
+                };
+                if d < tol && is_better {
+                    best = Some((bv[i], bv[j], d));
+                }
+            }
+        }
+    }
+    best
+}
+
+/// Find the closest boundary-to-interior merge candidate within half-tolerance.
+fn find_best_boundary_to_interior_pair(
+    mesh: &IndexedMesh,
+    boundary_verts: &hashbrown::HashSet<VertexId>,
+    bv: &[VertexId],
+    tol: f64,
+    skip_pairs: &hashbrown::HashSet<(VertexId, VertexId)>,
+    current_best: Option<(VertexId, VertexId, f64)>,
+) -> Option<(VertexId, VertexId, f64)> {
+    let per_vertex_tol = tol * 0.5;
+    let inv_pvt = 1.0 / per_vertex_tol;
+    let all_vids: Vec<VertexId> = mesh.vertices.iter().map(|(id, _)| id).collect();
+    let mut best = current_best;
+    let mut igrid: hashbrown::HashMap<GridCell, Vec<VertexId>> =
+        hashbrown::HashMap::with_capacity(all_vids.len().saturating_sub(boundary_verts.len()));
+    for &ivid in &all_vids {
+        if boundary_verts.contains(&ivid) {
+            continue;
+        }
+        let ip = mesh.vertices.position(ivid);
+        igrid
+            .entry(GridCell::from_point(ip, inv_pvt))
+            .or_default()
+            .push(ivid);
+    }
+    for &bvid in bv {
+        let bp = mesh.vertices.position(bvid);
+        let cell = GridCell::from_point(bp, inv_pvt);
+        for nb_cell in cell.neighborhood_27() {
+            let Some(cell_verts) = igrid.get(&nb_cell) else {
+                continue;
+            };
+            for &ivid in cell_verts {
+                let pair_key = if bvid < ivid {
+                    (bvid, ivid)
+                } else {
+                    (ivid, bvid)
+                };
+                if skip_pairs.contains(&pair_key) {
+                    continue;
+                }
+                let ip = mesh.vertices.position(ivid);
+                let d = (bp - ip).norm();
+                let is_better = match best {
+                    Some((_, _, best_dist)) => d < best_dist,
+                    None => true,
+                };
+                if d < per_vertex_tol && is_better {
+                    best = Some((ivid, bvid, d));
+                }
+            }
+        }
+    }
+    best
+}
+
+/// Collect the current boundary vertex IDs from the rebuilt edge store.
+fn collect_boundary_vertices(mesh: &IndexedMesh) -> hashbrown::HashSet<VertexId> {
+    let Some(edges_ref) = mesh.edges_ref() else {
+        return hashbrown::HashSet::new();
+    };
+
+    let mut boundary_verts: hashbrown::HashSet<VertexId> =
+        hashbrown::HashSet::with_capacity(edges_ref.len().saturating_mul(2));
+    for edge in edges_ref.iter() {
+        if edge.is_boundary() {
+            boundary_verts.insert(edge.vertices.0);
+            boundary_verts.insert(edge.vertices.1);
+        }
+    }
+    boundary_verts
+}
+
+/// Choose the next boundary merge candidate from the current topology state.
+fn select_best_boundary_merge_candidate(
+    mesh: &IndexedMesh,
+    boundary_verts: &hashbrown::HashSet<VertexId>,
+    tol: f64,
+    skip_pairs: &hashbrown::HashSet<(VertexId, VertexId)>,
+) -> Option<(VertexId, VertexId, f64)> {
+    let mut bv: Vec<VertexId> = boundary_verts.iter().copied().collect();
+    bv.sort_unstable();
+    let bv_pos: Vec<leto::geometry::Point3<f64>> =
+        bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
+
+    let mut best = find_best_boundary_pair(&bv, &bv_pos, tol, skip_pairs);
+    if best.is_none() {
+        best =
+            find_best_boundary_to_interior_pair(mesh, boundary_verts, &bv, tol, skip_pairs, best);
+    }
+    best
+}
+
+/// Replace every face reference to `remove` with `keep`.
+fn replace_vertex_references(mesh: &mut IndexedMesh, keep: VertexId, remove: VertexId) -> bool {
+    let mut changed = false;
+    for face in mesh.faces.iter_mut() {
+        for v in &mut face.vertices {
+            if *v == remove {
+                *v = keep;
+                changed = true;
+            }
+        }
+    }
+    changed
+}
+
+/// Restore the face store after a rejected topological merge.
+fn restore_faces(mesh: &mut IndexedMesh, faces_snapshot: Vec<FaceData>) {
+    mesh.faces.clear();
+    for face_data in faces_snapshot {
+        mesh.faces.push(face_data);
+    }
+    mesh.rebuild_edges();
+}
+
+/// Record a rejected merge pair in canonical order so later iterations skip it.
+fn mark_skipped_pair(
+    skip_pairs: &mut hashbrown::HashSet<(VertexId, VertexId)>,
+    keep: VertexId,
+    remove: VertexId,
+) {
+    let pair_key = if keep < remove {
+        (keep, remove)
+    } else {
+        (remove, keep)
+    };
+    skip_pairs.insert(pair_key);
+}
+
+/// Apply a boundary merge candidate and reject it if Euler characteristic decreases.
+fn attempt_boundary_merge(
+    mesh: &mut IndexedMesh,
+    keep: VertexId,
+    remove: VertexId,
+    skip_pairs: &mut hashbrown::HashSet<(VertexId, VertexId)>,
+) -> BoundaryMergeOutcome {
+    let faces_snapshot: Vec<FaceData> = mesh.faces.iter().copied().collect();
+    let chi_before = quick_euler_referenced(mesh);
+
+    if !replace_vertex_references(mesh, keep, remove) {
+        return BoundaryMergeOutcome::NoChange;
+    }
+
+    collapse_degenerate_faces(mesh);
+    mesh.rebuild_edges();
+
+    if quick_euler_referenced(mesh) < chi_before {
+        restore_faces(mesh, faces_snapshot);
+        mark_skipped_pair(skip_pairs, keep, remove);
+        return BoundaryMergeOutcome::Rejected;
+    }
+
+    BoundaryMergeOutcome::Applied
+}
+
+/// Normalize topology after an accepted boundary merge and opportunistically reseal.
+fn finalize_boundary_merge(mesh: &mut IndexedMesh) {
+    split_non_manifold_edges(mesh);
+    collapse_degenerate_faces(mesh);
+    mesh.rebuild_edges();
+
+    if !mesh.is_watertight() {
+        let es =
+            crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
+        let _ = crate::application::watertight::seal::seal_boundary_loops(
+            &mut mesh.vertices,
+            &mut mesh.faces,
+            &es,
+            crate::domain::core::index::RegionId::INVALID,
+        );
+        collapse_degenerate_faces(mesh);
+        mesh.rebuild_edges();
+    }
+}
+
 /// Merge nearby boundary vertices to close sliver gaps at intersection curves.
 ///
 /// Identifies boundary vertices (those on boundary edges) and merges pairs
@@ -21,118 +264,6 @@ use eunomia::FloatElement;
 /// incident to the merged vertex pair become interior).  The process terminates
 /// when no further merges are possible (fixed-point).  ∎
 pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, merge_mult: f64) {
-    #[inline]
-    fn quick_euler_referenced(mesh: &IndexedMesh) -> i64 {
-        let edge_store =
-            crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
-        crate::application::watertight::check::euler_chi_from_stores(&mesh.faces, &edge_store)
-    }
-
-    /// Find the closest boundary-boundary candidate pair within `tol`.
-    fn find_best_boundary_pair(
-        bv: &[VertexId],
-        bv_pos: &[leto::geometry::Point3<f64>],
-        tol: f64,
-        skip_pairs: &hashbrown::HashSet<(VertexId, VertexId)>,
-    ) -> Option<(VertexId, VertexId, f64)> {
-        let inv_tol = 1.0 / tol;
-        let mut best: Option<(VertexId, VertexId, f64)> = None;
-        let mut grid: hashbrown::HashMap<GridCell, Vec<usize>> =
-            hashbrown::HashMap::with_capacity(bv.len());
-        for (i, p) in bv_pos.iter().enumerate() {
-            grid.entry(GridCell::from_point(p, inv_tol))
-                .or_default()
-                .push(i);
-        }
-        for (i, pi) in bv_pos.iter().enumerate() {
-            let cell = GridCell::from_point(pi, inv_tol);
-            for nb_cell in cell.neighborhood_27() {
-                let Some(cell_verts) = grid.get(&nb_cell) else {
-                    continue;
-                };
-                for &j in cell_verts {
-                    if j <= i {
-                        continue;
-                    }
-                    let pair_key = if bv[i] < bv[j] {
-                        (bv[i], bv[j])
-                    } else {
-                        (bv[j], bv[i])
-                    };
-                    if skip_pairs.contains(&pair_key) {
-                        continue;
-                    }
-                    let pj = &bv_pos[j];
-                    let d = (pi - pj).norm();
-                    let is_better = match best {
-                        Some((_, _, best_dist)) => d < best_dist,
-                        None => true,
-                    };
-                    if d < tol && is_better {
-                        best = Some((bv[i], bv[j], d));
-                    }
-                }
-            }
-        }
-        best
-    }
-
-    /// Find the closest boundary-to-interior merge candidate within half-tolerance.
-    fn find_best_boundary_to_interior_pair(
-        mesh: &IndexedMesh,
-        boundary_verts: &hashbrown::HashSet<VertexId>,
-        bv: &[VertexId],
-        tol: f64,
-        skip_pairs: &hashbrown::HashSet<(VertexId, VertexId)>,
-        current_best: Option<(VertexId, VertexId, f64)>,
-    ) -> Option<(VertexId, VertexId, f64)> {
-        let per_vertex_tol = tol * 0.5;
-        let inv_pvt = 1.0 / per_vertex_tol;
-        let all_vids: Vec<VertexId> = mesh.vertices.iter().map(|(id, _)| id).collect();
-        let mut best = current_best;
-        let mut igrid: hashbrown::HashMap<GridCell, Vec<VertexId>> =
-            hashbrown::HashMap::with_capacity(all_vids.len().saturating_sub(boundary_verts.len()));
-        for &ivid in &all_vids {
-            if boundary_verts.contains(&ivid) {
-                continue;
-            }
-            let ip = mesh.vertices.position(ivid);
-            igrid
-                .entry(GridCell::from_point(ip, inv_pvt))
-                .or_default()
-                .push(ivid);
-        }
-        for &bvid in bv {
-            let bp = mesh.vertices.position(bvid);
-            let cell = GridCell::from_point(bp, inv_pvt);
-            for nb_cell in cell.neighborhood_27() {
-                let Some(cell_verts) = igrid.get(&nb_cell) else {
-                    continue;
-                };
-                for &ivid in cell_verts {
-                    let pair_key = if bvid < ivid {
-                        (bvid, ivid)
-                    } else {
-                        (ivid, bvid)
-                    };
-                    if skip_pairs.contains(&pair_key) {
-                        continue;
-                    }
-                    let ip = mesh.vertices.position(ivid);
-                    let d = (bp - ip).norm();
-                    let is_better = match best {
-                        Some((_, _, best_dist)) => d < best_dist,
-                        None => true,
-                    };
-                    if d < per_vertex_tol && is_better {
-                        best = Some((ivid, bvid, d));
-                    }
-                }
-            }
-        }
-        best
-    }
-
     // Adaptive tolerance: `merge_mult` fraction of the mean edge length,
     // clamped to [0.01, 0.2] mm.  The escalating repair pipeline calls this
     // with progressively wider multipliers (0.05 → 0.40).
@@ -168,30 +299,10 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
 
     for _iter in 0..max_iter {
         mesh.rebuild_edges();
-        let Some(edges_ref) = mesh.edges_ref() else {
-            break;
-        };
-
-        // Phase 1: collect boundary vertex IDs.
-        let mut boundary_verts: hashbrown::HashSet<VertexId> =
-            hashbrown::HashSet::with_capacity(edges_ref.len().saturating_mul(2));
-        for edge in edges_ref.iter() {
-            if edge.is_boundary() {
-                boundary_verts.insert(edge.vertices.0);
-                boundary_verts.insert(edge.vertices.1);
-            }
-        }
-
+        let boundary_verts = collect_boundary_vertices(mesh);
         if boundary_verts.is_empty() {
             break;
         }
-
-        // Candidate selection uses strict distance comparisons. Canonical
-        // vertex order makes equal-distance choices independent of hash order.
-        let mut bv: Vec<VertexId> = boundary_verts.iter().copied().collect();
-        bv.sort_unstable();
-        let bv_pos: Vec<leto::geometry::Point3<f64>> =
-            bv.iter().map(|&v| *mesh.vertices.position(v)).collect();
 
         // Phase 2: find closest boundary-boundary pair within tolerance,
         // skipping pairs that previously caused a χ decrease.
@@ -199,91 +310,21 @@ pub(super) fn merge_nearby_boundary_vertices_with_mult(mesh: &mut IndexedMesh, m
         // Uses a spatial hash grid with cell size = tol so that only
         // vertices in the 27-cell neighbourhood are compared, reducing
         // worst-case O(B²) to O(B) expected.
-        let mut best = find_best_boundary_pair(&bv, &bv_pos, tol, &skip_pairs);
-
-        // Phase 3: if no boundary-boundary pair found, try boundary-to-interior
-        // using a spatial hash grid with cell size = per_vertex_tol.
-        if best.is_none() {
-            best = find_best_boundary_to_interior_pair(
-                mesh,
-                &boundary_verts,
-                &bv,
-                tol,
-                &skip_pairs,
-                best,
-            );
-        }
-
-        let Some((keep, remove, _dist)) = best else {
+        let Some((keep, remove, _dist)) =
+            select_best_boundary_merge_candidate(mesh, &boundary_verts, tol, &skip_pairs)
+        else {
             break;
         };
 
-        // --- Euler-preserving guard ---
-        // Save face-store snapshot before merge so we can revert if χ
-        // decreases.  A decrease means the merge created a topological
-        // handle (common at dense N-way junctions where two boundary
-        // loops should not be connected).
-        let faces_snapshot: Vec<crate::infrastructure::storage::face_store::FaceData> =
-            mesh.faces.iter().copied().collect();
-
-        let chi_before = quick_euler_referenced(mesh);
-
-        // Merge: replace all references to `remove` with `keep`.
-        let mut changed = false;
-        for face in mesh.faces.iter_mut() {
-            for v in &mut face.vertices {
-                if *v == remove {
-                    *v = keep;
-                    changed = true;
+        match attempt_boundary_merge(mesh, keep, remove, &mut skip_pairs) {
+            BoundaryMergeOutcome::Applied => {
+                finalize_boundary_merge(mesh);
+                if mesh.is_watertight() {
+                    break;
                 }
             }
-        }
-
-        if !changed {
-            break;
-        }
-
-        collapse_degenerate_faces(mesh);
-        mesh.rebuild_edges();
-
-        let chi_after = quick_euler_referenced(mesh);
-
-        // If χ decreased, this merge created a topological handle.
-        // Revert and skip this pair.
-        if chi_after < chi_before {
-            mesh.faces.clear();
-            for face_data in faces_snapshot {
-                mesh.faces.push(face_data);
-            }
-            mesh.rebuild_edges();
-            let pair_key = if keep < remove {
-                (keep, remove)
-            } else {
-                (remove, keep)
-            };
-            skip_pairs.insert(pair_key);
-            continue; // Try next pair instead of breaking.
-        }
-
-        split_non_manifold_edges(mesh);
-        collapse_degenerate_faces(mesh);
-        mesh.rebuild_edges();
-
-        if !mesh.is_watertight() {
-            let es =
-                crate::infrastructure::storage::edge_store::EdgeStore::from_face_store(&mesh.faces);
-            let _ = crate::application::watertight::seal::seal_boundary_loops(
-                &mut mesh.vertices,
-                &mut mesh.faces,
-                &es,
-                crate::domain::core::index::RegionId::INVALID,
-            );
-            collapse_degenerate_faces(mesh);
-            mesh.rebuild_edges();
-        }
-
-        if mesh.is_watertight() {
-            break;
+            BoundaryMergeOutcome::Rejected => {}
+            BoundaryMergeOutcome::NoChange => break,
         }
     }
 }

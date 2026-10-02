@@ -2,16 +2,73 @@
 
 use crate::application::csg::intersect::SnapSegment;
 use crate::application::csg::predicates3d::point_on_segment_exact;
-use crate::application::welding::snap::GridCell;
+use crate::application::welding::SpatialHashGrid;
 use crate::domain::core::scalar::{Point3r, Real, Vector3r};
 use crate::infrastructure::storage::face_store::FaceData;
 use crate::infrastructure::storage::vertex_pool::VertexPool;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 
 use super::tolerances::{
     COINCIDENT_LEN_SQ, COLLINEAR_TOL_SQ, DEGENERATE_LEN_SQ, MIN_HASH_CELL, PARAM_DEDUP_TOL,
     PARAM_MARGIN, PARAM_MIN_SPAN,
 };
+
+/// Find non-coplanar barrel faces whose shared cap-plane edge forms a rim edge.
+fn find_rim_faces(
+    barrel_faces: &[FaceData],
+    coplanar_used: &HashSet<usize>,
+    plane_pt: &Point3r,
+    plane_n: &Vector3r,
+    tol: Real,
+    pool: &VertexPool,
+) -> Vec<(usize, Point3r, Point3r)> {
+    let mut rim_faces: Vec<(usize, Point3r, Point3r)> = Vec::with_capacity(barrel_faces.len() / 4);
+    for (face_idx, face) in barrel_faces.iter().enumerate() {
+        if coplanar_used.contains(&face_idx) {
+            continue;
+        }
+        let v0 = *pool.position(face.vertices[0]);
+        let v1 = *pool.position(face.vertices[1]);
+        let v2 = *pool.position(face.vertices[2]);
+        let d0 = (v0 - plane_pt).dot(*plane_n);
+        let d1 = (v1 - plane_pt).dot(*plane_n);
+        let d2 = (v2 - plane_pt).dot(*plane_n);
+        let on0 = d0.abs() < tol;
+        let on1 = d1.abs() < tol;
+        let on2 = d2.abs() < tol;
+        let on_count = u8::from(on0) + u8::from(on1) + u8::from(on2);
+        if on_count != 2 {
+            continue;
+        }
+        let (pa, pb) = match (on0, on1, on2) {
+            (true, true, false) => (v0, v1),
+            (true, false, true) => (v0, v2),
+            (false, true, true) => (v1, v2),
+            _ => continue,
+        };
+        if (pb - pa).norm_squared() < DEGENERATE_LEN_SQ {
+            continue;
+        }
+        rim_faces.push((face_idx, pa, pb));
+    }
+    rim_faces
+}
+
+/// Build the seam-position spatial hash and return its query radius.
+fn build_seam_position_hash(
+    seam_positions: &[Point3r],
+    max_rim_edge_len: Real,
+) -> (SpatialHashGrid, Real) {
+    let hash_cell = (max_rim_edge_len / 8.0).max(MIN_HASH_CELL);
+    let mut seam_hash = SpatialHashGrid::new(hash_cell);
+    for (i, position) in seam_positions.iter().enumerate() {
+        seam_hash.insert(
+            position,
+            u32::try_from(i).expect("seam-position index fits in u32"),
+        );
+    }
+    (seam_hash, hash_cell)
+}
 
 /// Inject snap segments into barrel rim faces so they are corefined at every
 /// seam vertex produced by `boolean_coplanar`.
@@ -91,40 +148,7 @@ pub fn inject_cap_seam_into_barrels(
     let tol = on_tol * plane_n_len;
 
     // ── Phase 1: Pre-filter barrel faces to rim faces ─────────────────────────
-    // Rim face: exactly 2 on-plane vertices (the rim edge [pa, pb] lies on the
-    // cap plane).  We pre-compute all rim edges once instead of re-detecting
-    // them inside the seam-position loop.
-    let mut rim_faces: Vec<(usize, Point3r, Point3r)> = Vec::with_capacity(barrel_faces.len() / 4);
-    for (face_idx, face) in barrel_faces.iter().enumerate() {
-        if coplanar_used.contains(&face_idx) {
-            continue;
-        }
-        let v0 = *pool.position(face.vertices[0]);
-        let v1 = *pool.position(face.vertices[1]);
-        let v2 = *pool.position(face.vertices[2]);
-        let d0 = (v0 - plane_pt).dot(*plane_n);
-        let d1 = (v1 - plane_pt).dot(*plane_n);
-        let d2 = (v2 - plane_pt).dot(*plane_n);
-        let on0 = d0.abs() < tol;
-        let on1 = d1.abs() < tol;
-        let on2 = d2.abs() < tol;
-        let on_count = u8::from(on0) + u8::from(on1) + u8::from(on2);
-        if on_count != 2 {
-            continue;
-        }
-        let (pa, pb) = match (on0, on1, on2) {
-            (true, true, false) => (v0, v1),
-            (true, false, true) => (v0, v2),
-            (false, true, true) => (v1, v2),
-            _ => continue,
-        };
-        let edge_len_sq = (pb - pa).norm_squared();
-        if edge_len_sq < DEGENERATE_LEN_SQ {
-            continue;
-        }
-        rim_faces.push((face_idx, pa, pb));
-    }
-
+    let rim_faces = find_rim_faces(barrel_faces, coplanar_used, plane_pt, plane_n, tol, pool);
     if rim_faces.is_empty() {
         return;
     }
@@ -138,20 +162,10 @@ pub fn inject_cap_seam_into_barrels(
         .iter()
         .map(|&(_, pa, pb)| (pb - pa).norm())
         .fold(0.0_f64, f64::max);
-    let hash_cell = (max_rim_edge_len / 8.0).max(MIN_HASH_CELL);
-    let inv_cell = 1.0 / hash_cell;
-
-    let mut seam_hash: HashMap<GridCell, Vec<usize>> =
-        HashMap::with_capacity(seam_positions.len() * 2);
-    for (i, s) in seam_positions.iter().enumerate() {
-        seam_hash
-            .entry(GridCell::from_point_round(s, inv_cell))
-            .or_default()
-            .push(i);
-    }
+    let (seam_hash, hash_cell) = build_seam_position_hash(seam_positions, max_rim_edge_len);
 
     // ── Phase 3: Query & inject ───────────────────────────────────────────────
-    let mut candidates: Vec<usize> = Vec::new();
+    let mut candidates: Vec<u32> = Vec::new();
     let mut cut_params: Vec<Real> = Vec::new();
     let mut params: Vec<Real> = Vec::new();
 
@@ -165,12 +179,7 @@ pub fn inject_cap_seam_into_barrels(
         for k in 0..=4_u8 {
             let t = Real::from(k) * 0.25;
             let sample = pa + edge * t;
-            let home = GridCell::from_point_round(&sample, inv_cell);
-            for cell in home.neighborhood_27() {
-                if let Some(idxs) = seam_hash.get(&cell) {
-                    candidates.extend_from_slice(idxs);
-                }
-            }
+            seam_hash.query_radius_to(&sample, hash_cell, seam_positions, &mut candidates);
         }
 
         if candidates.is_empty() {
@@ -182,7 +191,12 @@ pub fn inject_cap_seam_into_barrels(
         // Collinearity test for each candidate seam position.
         cut_params.clear();
         for &i in &candidates {
-            let s = &seam_positions[i];
+            let Ok(candidate_idx) = usize::try_from(i) else {
+                continue;
+            };
+            let Some(s) = seam_positions.get(candidate_idx) else {
+                continue;
+            };
 
             // Guard: s must lie on the cap plane.
             let ds = (*s - plane_pt).dot(*plane_n);
