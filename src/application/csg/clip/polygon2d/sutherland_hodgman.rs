@@ -10,6 +10,8 @@
 
 use crate::domain::core::scalar::Real;
 
+const INTERSECTION_EPS: Real = 1e-30;
+
 /// Evaluates the 2-D cross product (unscaled signed distance).
 /// MUST be evaluated in standard floats to construct precise `t` interpolations.
 #[inline]
@@ -17,22 +19,20 @@ fn edge_distance(ax: Real, ay: Real, bx: Real, by: Real, px: Real, py: Real) -> 
     (bx - ax) * (py - ay) - (by - ay) * (px - ax)
 }
 
-/// Clip a polygon against the left half-plane of directed edge (ax,ay)→(bx,by).
-///
-/// Retained from the original implementation because it is still the canonical polygon clipper.
-/// Optimal for convex clip regions (one pass per edge, O(n) total).
-pub fn sh_clip_halfplane(
+fn sh_clip_halfplane_into(
     poly: &[[Real; 2]],
     ax: Real,
     ay: Real,
     bx: Real,
     by: Real,
-) -> Vec<[Real; 2]> {
+    out: &mut Vec<[Real; 2]>,
+) {
+    out.clear();
     if poly.len() < 2 {
-        return Vec::new();
+        return;
     }
+    out.reserve(poly.len() + 1);
     let n = poly.len();
-    let mut out = Vec::with_capacity(n + 1);
     for i in 0..n {
         let s = poly[i];
         let e = poly[(i + 1) % n];
@@ -47,14 +47,14 @@ pub fn sh_clip_halfplane(
             (true, true) => out.push(e),
             (true, false) => {
                 let denom = sc - ec;
-                if denom.abs() > 1e-30 {
+                if denom.abs() > INTERSECTION_EPS {
                     let t = sc / denom;
                     out.push([s[0] + (e[0] - s[0]) * t, s[1] + (e[1] - s[1]) * t]);
                 }
             }
             (false, true) => {
                 let denom = sc - ec;
-                if denom.abs() > 1e-30 {
+                if denom.abs() > INTERSECTION_EPS {
                     let t = sc / denom;
                     out.push([s[0] + (e[0] - s[0]) * t, s[1] + (e[1] - s[1]) * t]);
                 }
@@ -63,6 +63,21 @@ pub fn sh_clip_halfplane(
             (false, false) => {}
         }
     }
+}
+
+/// Clip a polygon against the left half-plane of directed edge (ax,ay)→(bx,by).
+///
+/// Retained from the original implementation because it is still the canonical polygon clipper.
+/// Optimal for convex clip regions (one pass per edge, O(n) total).
+pub fn sh_clip_halfplane(
+    poly: &[[Real; 2]],
+    ax: Real,
+    ay: Real,
+    bx: Real,
+    by: Real,
+) -> Vec<[Real; 2]> {
+    let mut out = Vec::with_capacity(poly.len().saturating_add(1));
+    sh_clip_halfplane_into(poly, ax, ay, bx, by, &mut out);
     out
 }
 
@@ -74,12 +89,21 @@ pub fn sh_clip_convex(subject: &[[Real; 2]], clip: &[[Real; 2]]) -> Vec<[Real; 2
         return Vec::new();
     }
     let mut result = subject.to_vec();
+    let mut scratch = Vec::with_capacity(subject.len().saturating_add(1));
     for i in 0..n {
         let j = (i + 1) % n;
-        result = sh_clip_halfplane(&result, clip[i][0], clip[i][1], clip[j][0], clip[j][1]);
-        if result.len() < 3 {
+        sh_clip_halfplane_into(
+            &result,
+            clip[i][0],
+            clip[i][1],
+            clip[j][0],
+            clip[j][1],
+            &mut scratch,
+        );
+        if scratch.len() < 3 {
             return Vec::new();
         }
+        std::mem::swap(&mut result, &mut scratch);
     }
     result
 }
