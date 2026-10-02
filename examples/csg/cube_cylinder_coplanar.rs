@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cube–Cylinder (coplanar caps): union, intersection, and difference
 //!
 //! A 2×2×2 mm axis-aligned cube and a cylinder (r = 0.6 mm, h = 2 mm) aligned

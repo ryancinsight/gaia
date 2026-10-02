@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Compound: Multi-operation tree using `CsgNode` → `outputs/csg/`
 //!
 //! Demonstrates composable CSG operations via the [`CsgNode`] expression tree.

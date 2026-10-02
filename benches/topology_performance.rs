@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // bench/test: usize→f64 for ratios
 //! Criterion performance benchmarks for the topology repair paths.
 //!
 //! `orient_outward` and `retain_largest_component` both exist to repair the

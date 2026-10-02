@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Intersection: `CubeA` ∩ `CubeB` → `outputs/csg/intersection_cube_cube.stl`
 //!
 //! Demonstrates the Boolean intersection of two overlapping cubes.

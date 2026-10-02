@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // bench/test: usize→f64 for ratios
 //! Regression suite for previously broken CSG boolean configurations.
 
 use std::f64::consts::{PI, TAU};

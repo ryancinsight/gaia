@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Difference: Cube − Slot → `outputs/csg/difference_slotted_block.stl`
 //!
 //! A 3×3×3 mm block with a rectangular slot (channel) cut straight through it.

@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Union: `CubeA` ∪ `CubeB` → `outputs/csg/union_cube_cube.stl`
 //!
 //! Demonstrates the Boolean union of two overlapping cubes.

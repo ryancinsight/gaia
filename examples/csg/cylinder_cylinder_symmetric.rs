@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cylinder–Cylinder (Symmetric): union, intersection, and difference
 //!
 //! Two **equal-radius, equal-height** Y-axis cylinders (r = 0.6 mm, h = 3 mm)

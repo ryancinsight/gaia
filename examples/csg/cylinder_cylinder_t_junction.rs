@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cylinder–Cylinder (T-Junction): union, intersection, and difference
 //!
 //! Two **equal-radius** cylinders arranged as a **T**: the stem runs along +Y

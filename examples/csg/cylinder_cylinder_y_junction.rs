@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cylinder–Cylinder (Y-Junction): union, branch intersection, trunk difference
 //!
 //! One **trunk** cylinder along +X ends at a **junction point** from which two

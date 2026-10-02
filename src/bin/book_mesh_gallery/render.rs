@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // bin: usize→f64 for rendering dimensions
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
 use std::fs;

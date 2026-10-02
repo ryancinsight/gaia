@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! CSG Cube–Cube: union, intersection, and difference
 //!
 //! All three Boolean operations between two overlapping 2×2×2 mm axis-aligned

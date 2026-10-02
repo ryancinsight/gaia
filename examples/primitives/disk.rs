@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)] // example: usize display ratios
 //! Export: Disk → `outputs/primitives/disk.stl`
 //!
 //! Builds a flat circular disk (r = 1 mm, 64 segments) using
