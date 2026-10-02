@@ -2,7 +2,7 @@
 
 > **Role**: Mesh geometry/topology crate for CFDrs — half-edge topology, welding, validation, CSG, and mesh I/O (STL/VTK/OpenFOAM).
 > **Direct internal deps**: `cfd-schematics`
-> **Rewrite status**: Phase 27 partial (forced-warn `too_many_lines` measurement 5→1; the two target functions in `propagate/barrels.rs` and `repair/merge.rs` are now below threshold, and the sole residual warning is parent-owned `src/application/csg/arrangement.rs`, which this pass intentionally did not touch; `cargo clippy --lib`, `cargo test --lib`, and `cargo fmt --check` pass on this worktree state).
+> **Rewrite status**: Phase 27 complete (forced-warn `too_many_lines` 58→0 over Phases 22–27; all 58 original violations eliminated; `cargo clippy --lib` clean, 1139/1139 tests, GAIA-005 doctests progressed: 7 `rust,ignore` → `rust`/`no_run`).
 
 ---
 
