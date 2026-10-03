@@ -159,6 +159,22 @@ pub(crate) fn sheet(cases: &[MeshCase], title: &str, output: &Path) -> GalleryRe
     Ok(())
 }
 
+pub(crate) fn case_panels(cases: &[MeshCase], output_dir: &Path) -> GalleryResult<()> {
+    fs::create_dir_all(output_dir)?;
+    for case in cases {
+        let mut svg = String::with_capacity(60_000);
+        let title = xml_escape(case.title);
+        let _ = write!(
+            svg,
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{PANEL_WIDTH:.0}\" height=\"{PANEL_HEIGHT:.0}\" viewBox=\"0 0 {PANEL_WIDTH:.0} {PANEL_HEIGHT:.0}\" role=\"img\" aria-labelledby=\"panel-title\"><title id=\"panel-title\">{title}</title><desc>Single Gaia mesh panel generated from an IndexedMesh value.</desc><rect width=\"100%\" height=\"100%\" fill=\"white\"/>",
+        );
+        render_panel(&mut svg, case, 0.0, 0.0);
+        svg.push_str("</svg>\n");
+        fs::write(output_dir.join(format!("{}.svg", case.slug)), svg)?;
+    }
+    Ok(())
+}
+
 const DIAGNOSTIC_PANEL_WIDTH: f64 = 280.0;
 const DIAGNOSTIC_PANEL_HEIGHT: f64 = 260.0;
 const DIAGNOSTIC_COLUMNS: usize = 3;

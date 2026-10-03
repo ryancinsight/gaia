@@ -2,6 +2,8 @@
 
 #[path = "book_mesh_gallery/builders/mod.rs"]
 mod builders;
+#[path = "book_mesh_gallery/catalog.rs"]
+mod catalog;
 #[path = "book_mesh_gallery/manifest.rs"]
 mod manifest;
 #[path = "book_mesh_gallery/model.rs"]
@@ -63,12 +65,22 @@ fn main() -> GalleryResult<()> {
         "Gaia topology and volume mesh families",
         &figures.join("topology-mesh-families.svg"),
     )?;
+    let model_panels = figures.join("models");
+    render::case_panels(&primitive_cases, &model_panels.join("primitive"))?;
+    render::case_panels(&channel_cases, &model_panels.join("channel"))?;
+    render::case_panels(&topology_cases, &model_panels.join("topology"))?;
     manifest::write(
         &primitive_cases,
         &channel_cases,
         &topology_cases,
         &blockers,
         &root.join("figure_manifest.md"),
+    )?;
+    catalog::write(
+        &primitive_cases,
+        &channel_cases,
+        &topology_cases,
+        &root.join("model_catalog.md"),
     )?;
     watertightness::write_manifest(
         &watertight_cases,

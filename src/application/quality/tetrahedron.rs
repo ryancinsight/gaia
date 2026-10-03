@@ -6,6 +6,7 @@
 //! double precision.
 
 use leto::geometry::{Point3, Vector3};
+use aequitas::systems::si::quantities::{Angle, Dimensionless};
 
 use super::boundary::{
     assess_boundary_cells, BoundaryFacetQualityCriteria, BoundaryTetrahedralQualityAcceptance,
@@ -138,10 +139,36 @@ impl<T: Scalar> TetrahedralQualityCriteria<T> {
         })
     }
 
+    /// Create validated criteria with aequitas-typed angle/ratio bounds.
+    ///
+    /// This constructor is a dimension-safe wrapper over [`Self::try_new`]:
+    /// the radius-edge ratio and normalized-volume bounds are dimensionless,
+    /// while the dihedral-angle bound is explicitly typed as radians.
+    #[must_use = "handle invalid tetrahedral criteria"]
+    pub fn try_new_typed(
+        max_radius_edge_ratio: Dimensionless<T>,
+        min_dihedral_angle: Angle<T>,
+        min_normalized_volume: Dimensionless<T>,
+        max_volume: Option<T>,
+    ) -> Result<Self, TetrahedralQualityCriteriaError> {
+        Self::try_new(
+            max_radius_edge_ratio.into_base(),
+            min_dihedral_angle.into_base(),
+            min_normalized_volume.into_base(),
+            max_volume,
+        )
+    }
+
     /// Return the maximum accepted radius-edge ratio.
     #[must_use]
     pub fn max_radius_edge_ratio(&self) -> T {
         self.max_radius_edge_ratio
+    }
+
+    /// Return the maximum accepted radius-edge ratio as a typed quantity.
+    #[must_use]
+    pub fn max_radius_edge_ratio_quantity(&self) -> Dimensionless<T> {
+        Dimensionless::from_base(self.max_radius_edge_ratio)
     }
 
     /// Return the minimum accepted interior dihedral angle in radians.
@@ -150,10 +177,22 @@ impl<T: Scalar> TetrahedralQualityCriteria<T> {
         self.min_dihedral_angle
     }
 
+    /// Return the minimum accepted interior dihedral angle as a typed quantity.
+    #[must_use]
+    pub fn min_dihedral_angle_quantity(&self) -> Angle<T> {
+        Angle::from_base(self.min_dihedral_angle)
+    }
+
     /// Return the minimum accepted equilateral-normalized volume.
     #[must_use]
     pub fn min_normalized_volume(&self) -> T {
         self.min_normalized_volume
+    }
+
+    /// Return the minimum accepted normalized volume as a typed quantity.
+    #[must_use]
+    pub fn min_normalized_volume_quantity(&self) -> Dimensionless<T> {
+        Dimensionless::from_base(self.min_normalized_volume)
     }
 
     /// Return the optional maximum accepted cell volume.
@@ -660,6 +699,24 @@ mod tests {
             TetrahedralQualityCriteria::<f64>::try_new(2.0, 0.5, 0.5, Some(0.0)),
             Err(TetrahedralQualityCriteriaError::InvalidMaxVolume)
         );
+    }
+
+    #[test]
+    fn typed_criteria_constructor_matches_scalar_constructor() {
+        let typed = TetrahedralQualityCriteria::<f64>::try_new_typed(
+            Dimensionless::from_base(2.0),
+            Angle::from_base(0.5),
+            Dimensionless::from_base(0.5),
+            Some(1.0),
+        )
+        .expect("typed criteria are valid");
+        let scalar =
+            TetrahedralQualityCriteria::<f64>::try_new(2.0, 0.5, 0.5, Some(1.0))
+                .expect("scalar criteria are valid");
+        assert_eq!(typed, scalar);
+        assert_eq!(typed.max_radius_edge_ratio_quantity().into_base(), 2.0);
+        assert_eq!(typed.min_dihedral_angle_quantity().into_base(), 0.5);
+        assert_eq!(typed.min_normalized_volume_quantity().into_base(), 0.5);
     }
 
     #[test]
