@@ -15,10 +15,7 @@ fn write_section(
         out,
         "| Model | Preview | Parameters | Vertices | Faces | Cells | Source |"
     )?;
-    writeln!(
-        out,
-        "| --- | --- | --- | ---: | ---: | ---: | --- |"
-    )?;
+    writeln!(out, "| --- | --- | --- | ---: | ---: | ---: | --- |")?;
     for case in cases {
         writeln!(
             out,
@@ -56,9 +53,24 @@ orthographic renders from real `IndexedMesh` outputs.\n\n",
 RITK snapshots when a raster triage artifact is required.\n\n",
     );
 
-    write_section(&mut markdown, "Primitive families", "primitive", primitive_cases)?;
-    write_section(&mut markdown, "Channel and sweep families", "channel", channel_cases)?;
-    write_section(&mut markdown, "Topology and volume families", "topology", topology_cases)?;
+    write_section(
+        &mut markdown,
+        "Primitive families",
+        "primitive",
+        primitive_cases,
+    )?;
+    write_section(
+        &mut markdown,
+        "Channel and sweep families",
+        "channel",
+        channel_cases,
+    )?;
+    write_section(
+        &mut markdown,
+        "Topology and volume families",
+        "topology",
+        topology_cases,
+    )?;
 
     fs::write(output, markdown)?;
     Ok(())

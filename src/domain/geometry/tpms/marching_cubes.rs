@@ -537,7 +537,7 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
 
     // Pre-sample field on (n+1)³ grid — each iz-slice is independent.
     let iz_all: Vec<usize> = (0..=n).collect();
-    let field_slices: Vec<Vec<f64>> = iz_all.par().map_collect(|&iz| {
+    let field_slices: Vec<Box<[f64]>> = iz_all.par().map_collect(|&iz| {
         let wz = -r + f64::from_count(iz) * step;
         let mut slice = vec![0.0_f64; gs * gs];
         for iy in 0..=n {
@@ -547,11 +547,11 @@ fn extract_impl<E: SurfaceEvaluator + ?Sized>(
                 slice[iy * gs + ix] = evaluator.field(wx, wy, wz, k) - iso;
             }
         }
-        slice
+        slice.into_boxed_slice()
     });
     let mut field = Vec::with_capacity(gs * gs * gs);
     for slice in field_slices {
-        field.extend(slice);
+        field.extend_from_slice(&slice);
     }
     let idx = |ix: usize, iy: usize, iz: usize| iz * gs * gs + iy * gs + ix;
 

@@ -4,33 +4,41 @@
 //! all clipping algorithms: signed area, convexity test, winding-number
 //! point-in-polygon, and segment-segment intersection.
 
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 use crate::domain::geometry::predicates::{orient_2d_arr, Orientation};
+use eunomia::NumericElement;
 
 /// Signed area of a 2-D polygon (positive = CCW, negative = CW).
-pub(crate) fn signed_area(poly: &[[Real; 2]]) -> Real {
+pub(crate) fn signed_area<T: Scalar + std::ops::Neg<Output = T>>(poly: &[[T; 2]]) -> T {
     let n = poly.len();
     if n < 3 {
-        return 0.0;
+        return <T as NumericElement>::ZERO;
     }
-    let mut sum = 0.0;
+    let mut sum = <T as NumericElement>::ZERO;
     for i in 0..n {
         let j = (i + 1) % n;
         sum += poly[i][0] * poly[j][1] - poly[j][0] * poly[i][1];
     }
-    sum * 0.5
+    sum * <T as Scalar>::from_f64(0.5)
+}
+
+/// Unsigned area of a 2-D polygon.
+#[inline]
+#[must_use]
+pub(crate) fn polygon_area_generic<T: Scalar + std::ops::Neg<Output = T>>(poly: &[[T; 2]]) -> T {
+    signed_area(poly).abs()
 }
 
 /// Unsigned area of a 2-D polygon.
 #[inline]
 #[must_use]
 pub fn polygon_area(poly: &[[Real; 2]]) -> Real {
-    signed_area(poly).abs()
+    polygon_area_generic(poly)
 }
 
 /// Test if a simple polygon is convex.
 #[cfg(test)]
-pub(crate) fn is_convex(poly: &[[Real; 2]]) -> bool {
+pub(crate) fn is_convex<T: Scalar>(poly: &[[T; 2]]) -> bool {
     let n = poly.len();
     if n < 3 {
         return true;
@@ -53,7 +61,7 @@ pub(crate) fn is_convex(poly: &[[Real; 2]]) -> bool {
 }
 
 /// Ensure a polygon is in CCW winding order.
-pub(crate) fn ensure_ccw(poly: &mut [[Real; 2]]) {
+pub(crate) fn ensure_ccw<T: Scalar + std::ops::Neg<Output = T>>(poly: &mut [[T; 2]]) {
     if winding_ccw(poly) == Some(false) {
         poly.reverse();
     }
@@ -66,11 +74,11 @@ pub(crate) fn ensure_ccw(poly: &mut [[Real; 2]]) {
 /// edge is `Degenerate` for that edge and therefore counts as inside
 /// (boundary-inclusive) — which is what the boundary-loop ear test needs.
 #[inline]
-pub(crate) fn point_in_triangle(
-    p: &[Real; 2],
-    a: &[Real; 2],
-    b: &[Real; 2],
-    c: &[Real; 2],
+pub(crate) fn point_in_triangle<T: Scalar + std::ops::Neg<Output = T>>(
+    p: &[T; 2],
+    a: &[T; 2],
+    b: &[T; 2],
+    c: &[T; 2],
 ) -> bool {
     let d1 = orient_2d_arr(*a, *b, *p);
     let d2 = orient_2d_arr(*b, *c, *p);
@@ -97,7 +105,7 @@ pub(crate) fn point_in_triangle(
     clippy::float_cmp,
     reason = "lexicographic lower-left pivot: exact equality of x-coordinates is the correct tie-breaker for finding the bottommost-leftmost point in a convex hull algorithm"
 )]
-pub(crate) fn winding_ccw(pts: &[[Real; 2]]) -> Option<bool> {
+pub(crate) fn winding_ccw<T: Scalar + std::ops::Neg<Output = T>>(pts: &[[T; 2]]) -> Option<bool> {
     let n = pts.len();
     if n < 3 {
         return None;
@@ -105,7 +113,9 @@ pub(crate) fn winding_ccw(pts: &[[Real; 2]]) -> Option<bool> {
 
     let mut min_i = 0usize;
     for i in 1..n {
-        if pts[i][0] < pts[min_i][0] || (pts[i][0] == pts[min_i][0] && pts[i][1] < pts[min_i][1]) {
+        let same_x = <T as NumericElement>::to_f64(pts[i][0])
+            == <T as NumericElement>::to_f64(pts[min_i][0]);
+        if pts[i][0] < pts[min_i][0] || (same_x && pts[i][1] < pts[min_i][1]) {
             min_i = i;
         }
     }
@@ -124,9 +134,9 @@ pub(crate) fn winding_ccw(pts: &[[Real; 2]]) -> Option<bool> {
     // Documented fallback: no turn resolved the winding exactly, so use the
     // shoelace sign.  Only reached for fully-degenerate (collinear) inputs.
     let area = signed_area(pts);
-    if area > 0.0 {
+    if area > <T as NumericElement>::ZERO {
         Some(true)
-    } else if area < 0.0 {
+    } else if area < <T as NumericElement>::ZERO {
         Some(false)
     } else {
         None
@@ -152,18 +162,20 @@ pub(crate) fn winding_ccw(pts: &[[Real; 2]]) -> Option<bool> {
 /// The orientation determinant is the 2x2 determinant `d1.x*d2.y-d1.y*d2.x`,
 /// which is the signed area of the parallelogram spanned by `d1,d2`.
 /// Zero area is equivalent to linear dependence (parallel vectors). ∎
-pub(crate) fn seg_intersect(
-    p1: [Real; 2],
-    p2: [Real; 2],
-    p3: [Real; 2],
-    p4: [Real; 2],
-) -> Option<(Real, Real)> {
+pub(crate) fn seg_intersect<T: Scalar + std::ops::Neg<Output = T>>(
+    p1: [T; 2],
+    p2: [T; 2],
+    p3: [T; 2],
+    p4: [T; 2],
+) -> Option<(T, T)> {
     let d1x = p2[0] - p1[0];
     let d1y = p2[1] - p1[1];
     let d2x = p4[0] - p3[0];
     let d2y = p4[1] - p3[1];
 
-    if orient_2d_arr([0.0, 0.0], [d1x, d1y], [d2x, d2y]) == Orientation::Degenerate {
+    if orient_2d_arr([<T as NumericElement>::ZERO; 2], [d1x, d1y], [d2x, d2y])
+        == Orientation::Degenerate
+    {
         return None;
     }
 
@@ -176,7 +188,11 @@ pub(crate) fn seg_intersect(
 }
 
 /// Point-in-polygon test using winding number (robust for concave polygons).
-pub(crate) fn point_in_polygon(px: Real, py: Real, poly: &[[Real; 2]]) -> bool {
+pub(crate) fn point_in_polygon<T: Scalar + std::ops::Neg<Output = T>>(
+    px: T,
+    py: T,
+    poly: &[[T; 2]],
+) -> bool {
     let n = poly.len();
     if n < 3 {
         return false;
@@ -202,13 +218,13 @@ pub(crate) fn point_in_polygon(px: Real, py: Real, poly: &[[Real; 2]]) -> bool {
 mod tests {
     use super::*;
 
-    fn approx_eq(a: Real, b: Real, tol: Real) -> bool {
+    fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
         (a - b).abs() < tol
     }
 
     #[test]
     fn test_signed_area_ccw_triangle() {
-        let tri = vec![[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]];
+        let tri: Vec<[f64; 2]> = vec![[0.0_f64, 0.0_f64], [1.0_f64, 0.0_f64], [0.0_f64, 1.0_f64]];
         let area = signed_area(&tri);
         assert!(area > 0.0, "CCW triangle should have positive signed area");
         assert!(approx_eq(area, 0.5, 1e-12));
@@ -216,47 +232,67 @@ mod tests {
 
     #[test]
     fn test_signed_area_cw_triangle() {
-        let tri = vec![[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]];
+        let tri: Vec<[f64; 2]> = vec![[0.0_f64, 0.0_f64], [0.0_f64, 1.0_f64], [1.0_f64, 0.0_f64]];
         let area = signed_area(&tri);
         assert!(area < 0.0, "CW triangle should have negative signed area");
     }
 
     #[test]
     fn test_is_convex_square() {
-        let sq = vec![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
+        let sq: Vec<[f64; 2]> = vec![
+            [0.0_f64, 0.0_f64],
+            [1.0_f64, 0.0_f64],
+            [1.0_f64, 1.0_f64],
+            [0.0_f64, 1.0_f64],
+        ];
         assert!(is_convex(&sq));
     }
 
     #[test]
     fn test_is_convex_l_shape() {
-        let l = vec![
-            [0.0, 0.0],
-            [2.0, 0.0],
-            [2.0, 1.0],
-            [1.0, 1.0],
-            [1.0, 2.0],
-            [0.0, 2.0],
+        let l: Vec<[f64; 2]> = vec![
+            [0.0_f64, 0.0_f64],
+            [2.0_f64, 0.0_f64],
+            [2.0_f64, 1.0_f64],
+            [1.0_f64, 1.0_f64],
+            [1.0_f64, 2.0_f64],
+            [0.0_f64, 2.0_f64],
         ];
         assert!(!is_convex(&l));
     }
 
     #[test]
     fn test_point_in_polygon_inside() {
-        let sq = vec![[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0]];
-        assert!(point_in_polygon(1.0, 1.0, &sq));
+        let sq: Vec<[f64; 2]> = vec![
+            [0.0_f64, 0.0_f64],
+            [2.0_f64, 0.0_f64],
+            [2.0_f64, 2.0_f64],
+            [0.0_f64, 2.0_f64],
+        ];
+        assert!(point_in_polygon(1.0_f64, 1.0_f64, &sq));
     }
 
     #[test]
     fn test_point_in_polygon_outside() {
-        let sq = vec![[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0]];
-        assert!(!point_in_polygon(3.0, 1.0, &sq));
+        let sq: Vec<[f64; 2]> = vec![
+            [0.0_f64, 0.0_f64],
+            [2.0_f64, 0.0_f64],
+            [2.0_f64, 2.0_f64],
+            [0.0_f64, 2.0_f64],
+        ];
+        assert!(!point_in_polygon(3.0_f64, 1.0_f64, &sq));
     }
 
     #[test]
     fn test_seg_intersect_crossing() {
         // The diagonals of the unit square cross at their shared midpoint.
-        let (t, u) = seg_intersect([0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [1.0, 0.0])
-            .expect("crossing segments must produce parameters");
+        let (t, u) = seg_intersect(
+            [0.0_f64, 0.0_f64],
+            [1.0_f64, 1.0_f64],
+            [0.0_f64, 1.0_f64],
+            [1.0_f64, 0.0_f64],
+        )
+        .expect("crossing segments must produce parameters");
         assert!((t - 0.5).abs() < 1e-12, "expected t = 0.5, got {t}");
         assert!((u - 0.5).abs() < 1e-12, "expected u = 0.5, got {u}");
     }
@@ -264,8 +300,8 @@ mod tests {
     #[test]
     fn test_seg_intersect_nearly_parallel_not_dropped() {
         // determinant = 5e-21 (below legacy threshold), but non-zero exactly.
-        let (p1, p2) = ([0.0, 0.0], [1.0e-10, 1.0e-10]);
-        let (p3, p4) = ([0.0, 1.0e-10], [2.0e-10, 3.5e-10]);
+        let (p1, p2) = ([0.0_f64, 0.0_f64], [1.0e-10_f64, 1.0e-10_f64]);
+        let (p3, p4) = ([0.0_f64, 1.0e-10_f64], [2.0e-10_f64, 3.5e-10_f64]);
         let (t, u) = seg_intersect(p1, p2, p3, p4)
             .expect("non-parallel directions must not be rejected by epsilon threshold");
 
@@ -282,33 +318,42 @@ mod tests {
 
     #[test]
     fn test_winding_ccw_ccw_and_cw_triangles() {
-        let ccw = [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]];
-        let cw = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]];
+        let ccw = [[0.0_f64, 0.0_f64], [1.0_f64, 0.0_f64], [0.0_f64, 1.0_f64]];
+        let cw = [[0.0_f64, 0.0_f64], [0.0_f64, 1.0_f64], [1.0_f64, 0.0_f64]];
         assert_eq!(winding_ccw(&ccw), Some(true));
         assert_eq!(winding_ccw(&cw), Some(false));
     }
 
     #[test]
     fn test_winding_ccw_degenerate_is_none() {
-        let collinear = [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]];
+        let collinear = [[0.0_f64, 0.0_f64], [1.0_f64, 1.0_f64], [2.0_f64, 2.0_f64]];
         assert_eq!(winding_ccw(&collinear), None);
-        assert_eq!(winding_ccw(&[[0.0, 0.0], [1.0, 1.0]]), None);
+        assert_eq!(winding_ccw(&[[0.0_f64, 0.0_f64], [1.0_f64, 1.0_f64]]), None);
     }
 
     #[test]
     fn test_ensure_ccw_normalises_cw_polygon() {
-        let mut cw = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]];
+        let mut cw = [[0.0_f64, 0.0_f64], [0.0_f64, 1.0_f64], [1.0_f64, 0.0_f64]];
         ensure_ccw(&mut cw);
         assert_eq!(winding_ccw(&cw), Some(true));
     }
 
     #[test]
     fn test_point_in_triangle_inside_on_edge_and_outside() {
-        let a = [0.0, 0.0];
-        let b = [1.0, 0.0];
-        let c = [0.0, 1.0];
-        assert!(point_in_triangle(&[0.25, 0.25], &a, &b, &c), "interior");
-        assert!(point_in_triangle(&[0.5, 0.0], &a, &b, &c), "on edge a→b");
-        assert!(!point_in_triangle(&[1.0, 1.0], &a, &b, &c), "exterior");
+        let a = [0.0_f64, 0.0_f64];
+        let b = [1.0_f64, 0.0_f64];
+        let c = [0.0_f64, 1.0_f64];
+        assert!(
+            point_in_triangle(&[0.25_f64, 0.25_f64], &a, &b, &c),
+            "interior"
+        );
+        assert!(
+            point_in_triangle(&[0.5_f64, 0.0_f64], &a, &b, &c),
+            "on edge a→b"
+        );
+        assert!(
+            !point_in_triangle(&[1.0_f64, 1.0_f64], &a, &b, &c),
+            "exterior"
+        );
     }
 }

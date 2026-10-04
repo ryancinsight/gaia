@@ -5,8 +5,8 @@
 //! so `IndexedMesh<f32>` does not silently execute its quality kernel in
 //! double precision.
 
-use leto::geometry::{Point3, Vector3};
 use aequitas::systems::si::quantities::{Angle, Dimensionless};
+use leto::geometry::{Point3, Vector3};
 
 use super::boundary::{
     assess_boundary_cells, BoundaryFacetQualityCriteria, BoundaryTetrahedralQualityAcceptance,
@@ -144,6 +144,12 @@ impl<T: Scalar> TetrahedralQualityCriteria<T> {
     /// This constructor is a dimension-safe wrapper over [`Self::try_new`]:
     /// the radius-edge ratio and normalized-volume bounds are dimensionless,
     /// while the dihedral-angle bound is explicitly typed as radians.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same validation error as [`Self::try_new`] when any bound
+    /// is non-finite or outside its mathematical domain after conversion to
+    /// base units.
     #[must_use = "handle invalid tetrahedral criteria"]
     pub fn try_new_typed(
         max_radius_edge_ratio: Dimensionless<T>,
@@ -710,9 +716,8 @@ mod tests {
             Some(1.0),
         )
         .expect("typed criteria are valid");
-        let scalar =
-            TetrahedralQualityCriteria::<f64>::try_new(2.0, 0.5, 0.5, Some(1.0))
-                .expect("scalar criteria are valid");
+        let scalar = TetrahedralQualityCriteria::<f64>::try_new(2.0, 0.5, 0.5, Some(1.0))
+            .expect("scalar criteria are valid");
         assert_eq!(typed, scalar);
         assert_eq!(typed.max_radius_edge_ratio_quantity().into_base(), 2.0);
         assert_eq!(typed.min_dihedral_angle_quantity().into_base(), 0.5);

@@ -8,29 +8,30 @@
 //!
 //! Sutherland & Hodgman (1974), "Reentrant polygon clipping"
 
-use crate::domain::core::scalar::Real;
-
-const INTERSECTION_EPS: Real = 1e-30;
+use crate::domain::core::scalar::{Real, Scalar};
+use eunomia::NumericElement;
 
 /// Evaluates the 2-D cross product (unscaled signed distance).
 /// MUST be evaluated in standard floats to construct precise `t` interpolations.
 #[inline]
-fn edge_distance(ax: Real, ay: Real, bx: Real, by: Real, px: Real, py: Real) -> Real {
+fn edge_distance<T: Scalar>(ax: T, ay: T, bx: T, by: T, px: T, py: T) -> T {
     (bx - ax) * (py - ay) - (by - ay) * (px - ax)
 }
 
-fn sh_clip_halfplane_into(
-    poly: &[[Real; 2]],
-    ax: Real,
-    ay: Real,
-    bx: Real,
-    by: Real,
-    out: &mut Vec<[Real; 2]>,
+fn sh_clip_halfplane_into<T: Scalar>(
+    poly: &[[T; 2]],
+    ax: T,
+    ay: T,
+    bx: T,
+    by: T,
+    out: &mut Vec<[T; 2]>,
 ) {
     out.clear();
     if poly.len() < 2 {
         return;
     }
+    let intersection_eps: Real = 1e-30;
+    let intersection_eps = <T as Scalar>::from_f64(intersection_eps);
     out.reserve(poly.len() + 1);
     let n = poly.len();
     for i in 0..n {
@@ -41,20 +42,20 @@ fn sh_clip_halfplane_into(
 
         // Use the same float values for inside checking to perfectly synchronize
         // with the numeric interpolation branching.
-        let s_in = sc >= 0.0;
-        let e_in = ec >= 0.0;
+        let s_in = sc >= <T as NumericElement>::ZERO;
+        let e_in = ec >= <T as NumericElement>::ZERO;
         match (s_in, e_in) {
             (true, true) => out.push(e),
             (true, false) => {
                 let denom = sc - ec;
-                if denom.abs() > INTERSECTION_EPS {
+                if denom.abs() > intersection_eps {
                     let t = sc / denom;
                     out.push([s[0] + (e[0] - s[0]) * t, s[1] + (e[1] - s[1]) * t]);
                 }
             }
             (false, true) => {
                 let denom = sc - ec;
-                if denom.abs() > INTERSECTION_EPS {
+                if denom.abs() > intersection_eps {
                     let t = sc / denom;
                     out.push([s[0] + (e[0] - s[0]) * t, s[1] + (e[1] - s[1]) * t]);
                 }
@@ -69,13 +70,7 @@ fn sh_clip_halfplane_into(
 ///
 /// Retained from the original implementation because it is still the canonical polygon clipper.
 /// Optimal for convex clip regions (one pass per edge, O(n) total).
-pub fn sh_clip_halfplane(
-    poly: &[[Real; 2]],
-    ax: Real,
-    ay: Real,
-    bx: Real,
-    by: Real,
-) -> Vec<[Real; 2]> {
+pub fn sh_clip_halfplane<T: Scalar>(poly: &[[T; 2]], ax: T, ay: T, bx: T, by: T) -> Vec<[T; 2]> {
     let mut out = Vec::with_capacity(poly.len().saturating_add(1));
     sh_clip_halfplane_into(poly, ax, ay, bx, by, &mut out);
     out
@@ -83,7 +78,7 @@ pub fn sh_clip_halfplane(
 
 /// Clip subject polygon to the inside of a CCW convex clip polygon
 /// using iterated Sutherland-Hodgman half-plane clips.
-pub fn sh_clip_convex(subject: &[[Real; 2]], clip: &[[Real; 2]]) -> Vec<[Real; 2]> {
+pub fn sh_clip_convex<T: Scalar>(subject: &[[T; 2]], clip: &[[T; 2]]) -> Vec<[T; 2]> {
     let n = clip.len();
     if n < 3 || subject.len() < 3 {
         return Vec::new();
@@ -113,7 +108,7 @@ mod tests {
     use super::super::geometry::polygon_area;
     use super::*;
 
-    fn approx_eq(a: Real, b: Real, tol: Real) -> bool {
+    fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
         (a - b).abs() < tol
     }
 

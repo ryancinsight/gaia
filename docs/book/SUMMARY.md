@@ -5,6 +5,7 @@
 - [Mesh-generation contract](mesh_generation_contract.md)
 - [Executable quick start](quick_start.md)
 - [Atlas ownership and provider boundaries](atlas_ownership.md)
+- [User Guide](user_guide.md)
 - [Reviewed mesh gallery](mesh_gallery.md)
   - [Figure manifest](figure_manifest.md)
   - [Full model catalog](model_catalog.md)

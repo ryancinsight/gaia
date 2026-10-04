@@ -69,7 +69,7 @@ fn sample_box_field<S: Tpms + Send + Sync>(
 
     // Each iz-slice is independent: write to field[iz*gs*gs .. (iz+1)*gs*gs].
     let iz_indices: Vec<usize> = (0..gs).collect();
-    let slices: Vec<Vec<f64>> = iz_indices.par().map_collect(|&iz| {
+    let slices: Vec<Box<[f64]>> = iz_indices.par().map_collect(|&iz| {
         let wz = z0 + (f64::from_count(iz) - 1.0) * dz;
         let mut slice = vec![0.0_f64; gs * gs];
         for iy in 0..gs {
@@ -80,13 +80,13 @@ fn sample_box_field<S: Tpms + Send + Sync>(
                 slice[iy * gs + ix] = tpms_val.max(box_sdf(wx, wy, wz, bounds));
             }
         }
-        slice
+        slice.into_boxed_slice()
     });
 
     // Concatenate slices in iz order into the full field buffer.
     let mut field = Vec::with_capacity(gs * gs * gs);
     for slice in slices {
-        field.extend(slice);
+        field.extend_from_slice(&slice);
     }
     field
 }
