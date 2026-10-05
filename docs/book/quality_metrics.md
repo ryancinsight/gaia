@@ -31,19 +31,24 @@ let elr  = edge_length_ratio_native(a, b, c); // shortest/longest ∈ (0,1]
 ### Full Quality Report
 
 The `StandardQualityAnalyzer` produces per-metric histograms and aggregate
-counts in one pass:
+counts in one pass. `QualityThresholds::from_typed` accepts aequitas typed
+quantities to prevent unit mix-ups:
 
 ```rust,ignore
 use gaia::application::quality::analyzer::{
     QualityAnalyzer, StandardQualityAnalyzer,
 };
 use gaia::application::quality::validation::QualityThresholds;
+use aequitas::systems::si::quantities::{Angle, Dimensionless};
 
+// Typed thresholds: angle in radians, ratios dimensionless
 let analyzer = StandardQualityAnalyzer {
-    thresholds: QualityThresholds {
-        min_angle: 15_f64.to_radians(),
-        max_aspect_ratio: 10.0,
-    },
+    thresholds: QualityThresholds::from_typed(
+        Dimensionless::from_base(10.0),          // max aspect ratio
+        Angle::from_base(15_f64.to_radians()),   // min angle
+        Dimensionless::from_base(0.85),          // max skewness
+        Dimensionless::from_base(0.05),          // min edge ratio
+    ),
     n_histogram_bins: 20,
 };
 
