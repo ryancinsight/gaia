@@ -5,7 +5,6 @@ use std::path::Path;
 
 use super::model::{GalleryResult, MeshCase, WatertightCase, WatertightRejection};
 
-const MAX_DRAW_FACES: usize = 900;
 const PANEL_WIDTH: f64 = 280.0;
 const PANEL_HEIGHT: f64 = 240.0;
 const SHEET_COLUMNS: usize = 4;
@@ -80,7 +79,7 @@ fn project(point: [f64; 3]) -> [f64; 3] {
 }
 
 fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
-    render_panel_sampled(svg, case, left, top, MAX_DRAW_FACES);
+    render_panel_sampled(svg, case, left, top, usize::MAX);
 }
 
 fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, max_faces: usize) {
@@ -298,13 +297,8 @@ fn diagnostic_mesh_panel(
         ]
     };
 
-    let face_stride =
-        case.mesh.faces.len().saturating_add(MAX_DRAW_FACES - 1) / MAX_DRAW_FACES.max(1);
     let mut sampled_faces = Vec::new();
-    for (index, face) in case.mesh.faces.iter().enumerate() {
-        if index % face_stride.max(1) != 0 {
-            continue;
-        }
+    for face in case.mesh.faces.iter() {
         let [a, b, c] = face.vertices;
         let Some(&pa) = positions.get(a.as_usize()) else {
             continue;
