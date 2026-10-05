@@ -10,12 +10,12 @@
 //! where **d** is the owner→neighbour centroid vector, **fc** is the face
 //! centre, and **Pi** is the point where **d** intersects the face plane.
 
-use eunomia::FloatElement;
+use eunomia::{FloatElement, NumericElement};
 use leto::geometry::Point3;
 
 use crate::application::quality::metrics::QualityMetric;
 use crate::domain::core::index::{FaceId, VertexId};
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 use crate::domain::mesh::IndexedMesh;
 
 // ── Per-face computations ─────────────────────────────────────────────────────
@@ -29,34 +29,35 @@ use crate::domain::mesh::IndexedMesh;
     reason = "standard face-vertex, normal, and direction-vector naming"
 )]
 #[must_use]
-pub fn face_non_orthogonality(
+pub fn face_non_orthogonality<T: Scalar>(
     face: FaceId,
     owner: usize,
     neighbour: usize,
-    mesh: &IndexedMesh,
-) -> Option<Real> {
+    mesh: &IndexedMesh<T>,
+) -> Option<T> {
     let face_data = mesh.faces.get(face);
     let [va, vb, vc] = face_data.vertices;
     let a = mesh.vertices.position(va);
     let b = mesh.vertices.position(vb);
     let c = mesh.vertices.position(vc);
+    let eps = <T as Scalar>::from_f64(1e-30);
 
     let n = (b - a).cross(c - a);
-    if n.norm_squared() < 1e-30 {
-        return Some(0.0);
+    if n.norm_squared() < eps {
+        return Some(<T as NumericElement>::ZERO);
     }
     let n = n.normalize();
 
     let c_owner = cell_centroid(owner, mesh)?;
     let c_neigh = cell_centroid(neighbour, mesh)?;
     let d = c_neigh - c_owner;
-    if d.norm_squared() < 1e-30 {
-        return Some(0.0);
+    if d.norm_squared() < eps {
+        return Some(<T as NumericElement>::ZERO);
     }
     let d = d.normalize();
 
-    let cos_theta = n.dot(d).abs().min(1.0);
-    Some(cos_theta.acos().to_degrees())
+    let cos_theta = n.dot(d).abs().min_scalar(<T as NumericElement>::ONE);
+    Some(cos_theta.acos() * <T as Scalar>::from_f64(180.0 / std::f64::consts::PI))
 }
 
 /// Skewness: ratio of (face-centre deviation from the owner→neighbour
@@ -68,25 +69,26 @@ pub fn face_non_orthogonality(
     reason = "standard face-vertex, normal, and line-parameter naming"
 )]
 #[must_use]
-pub fn face_skewness(
+pub fn face_skewness<T: Scalar>(
     face: FaceId,
     owner: usize,
     neighbour: usize,
-    mesh: &IndexedMesh,
-) -> Option<Real> {
+    mesh: &IndexedMesh<T>,
+) -> Option<T> {
     let face_data = mesh.faces.get(face);
     let [va, vb, vc] = face_data.vertices;
     let a = mesh.vertices.position(va);
     let b = mesh.vertices.position(vb);
     let c = mesh.vertices.position(vc);
+    let eps = <T as Scalar>::from_f64(1e-30);
 
     // Face centre = centroid of the triangle.
-    let fc = Point3::from((a.coords + b.coords + c.coords) / 3.0);
+    let fc = Point3::from((a.coords + b.coords + c.coords) / <T as FloatElement>::from_count(3));
 
     // Face normal (unnormalised; used for plane intersection).
     let n = (b - a).cross(c - a);
-    if n.norm_squared() < 1e-30 {
-        return Some(0.0);
+    if n.norm_squared() < eps {
+        return Some(<T as NumericElement>::ZERO);
     }
 
     let c_owner = cell_centroid(owner, mesh)?;
@@ -96,16 +98,16 @@ pub fn face_skewness(
     //   P(t) = c_owner + t * d,  and  n · (P(t) - fc) = 0
     let d = c_neigh - c_owner;
     let denom = n.dot(d);
-    if denom.abs() < 1e-30 {
-        return Some(0.0);
+    if denom.abs() < eps {
+        return Some(<T as NumericElement>::ZERO);
     }
     let t = n.dot(fc - c_owner) / denom;
     let p_i = c_owner + d * t; // intersection point on face plane
 
     let deviation = (fc - p_i).norm();
     let ref_dist = (fc - c_owner).norm();
-    if ref_dist < 1e-30 {
-        return Some(0.0);
+    if ref_dist < eps {
+        return Some(<T as NumericElement>::ZERO);
     }
     Some(deviation / ref_dist)
 }
@@ -131,7 +133,7 @@ pub struct CellQualityReport {
 ///
 /// Returns `None` when the mesh has no volumetric cells or no internal faces.
 #[must_use]
-pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
+pub fn cell_quality_report<T: Scalar>(mesh: &IndexedMesh<T>) -> Option<CellQualityReport> {
     if mesh.cell_count() == 0 {
         return None;
     }
@@ -167,8 +169,8 @@ pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
         ) else {
             continue;
         };
-        non_orth_vals.push(non_orthogonality);
-        skew_vals.push(skewness);
+        non_orth_vals.push(<T as NumericElement>::to_f64(non_orthogonality));
+        skew_vals.push(<T as NumericElement>::to_f64(skewness));
     }
 
     let non_orthogonality = QualityMetric::from_values(&non_orth_vals)?;
@@ -189,22 +191,24 @@ pub fn cell_quality_report(mesh: &IndexedMesh) -> Option<CellQualityReport> {
 
 /// Centroid of a cell: arithmetic mean of its vertices.
 #[must_use]
-pub fn cell_centroid(cell_id: usize, mesh: &IndexedMesh) -> Option<Point3<Real>> {
+pub fn cell_centroid<T: Scalar>(cell_id: usize, mesh: &IndexedMesh<T>) -> Option<Point3<T>> {
     let cell = mesh.cells().get(cell_id)?;
 
     // Prefer vertex_ids if populated; fall back to face-vertex union.
     if !cell.vertex_ids.is_empty() {
-        let sum: leto::geometry::Vector3<Real> = cell
+        let sum: leto::geometry::Vector3<T> = cell
             .vertex_ids
             .iter()
             .map(|&vi| mesh.vertices.position(VertexId::from_usize(vi)).coords)
             .fold(leto::geometry::Vector3::zeros(), |sum, position| {
                 sum + position
             });
-        return Some(Point3::from(sum / Real::from_count(cell.vertex_ids.len())));
+        return Some(Point3::from(
+            sum / <T as FloatElement>::from_count(cell.vertex_ids.len()),
+        ));
     }
 
-    let mut sum = leto::geometry::Vector3::<Real>::zeros();
+    let mut sum = leto::geometry::Vector3::<T>::zeros();
     let mut count = 0usize;
     // hashbrown::HashSet gives O(1) amortised membership test vs O(n) Vec::contains.
     let mut seen: hashbrown::HashSet<_> = hashbrown::HashSet::with_capacity(cell.faces.len() * 3);
@@ -219,7 +223,7 @@ pub fn cell_centroid(cell_id: usize, mesh: &IndexedMesh) -> Option<Point3<Real>>
     if count == 0 {
         None
     } else {
-        Some(Point3::from(sum / Real::from_count(count)))
+        Some(Point3::from(sum / <T as FloatElement>::from_count(count)))
     }
 }
 

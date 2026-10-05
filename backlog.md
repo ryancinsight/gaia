@@ -54,6 +54,10 @@ Progress (Phase 32, 2026-10-04):
 - `src/application/quality/analyzer.rs` marks the `HistogramT<T>` follow-up seam for GAIA-003 once `FullQualityReport` becomes generic.
 - `src/application/welding/snap.rs` records the next inline-overflow storage optimization after confirming `smallvec` is not a direct dependency and singleton cells already stay inline through `CellIndices`.
 
+Progress (Phase 34, 2026-10-04):
+- `face_non_orthogonality`, `face_skewness`, `cell_centroid`, `cell_quality_report` now generic over `T: Scalar`; `CellQualityReport` uses `Real` for reporting (converting T→Real at the report boundary).
+- Remaining highest-count Real files: `planar.rs` (44), `cdt.rs` (26), `mod.rs` (23), `operations.rs` (24).
+
 ---
 
 ## GAIA-005 — Retire the 39 ignored doctests

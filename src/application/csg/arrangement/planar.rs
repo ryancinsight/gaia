@@ -295,6 +295,8 @@ pub(crate) fn collect_points_on_segment_interior(
     t_eps: Real,
     dist_sq_tol: Real,
 ) -> Vec<(Real, usize)> {
+    // PERF-NOTE: this function is called once per constraint edge; the Vec allocation
+    // is proportional to the segment's local point density and not a bottleneck.
     let mut out = Vec::new();
     collect_points_on_segment_interior_to_buf(
         unique_pts,
