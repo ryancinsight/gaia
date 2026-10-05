@@ -315,15 +315,34 @@ impl HexToTetConverter {
         (six_v > volume_tol).then_some(six_v)
     }
 
+    /// Add one tetrahedron to `mesh`, deduplicating shared faces via `face_map`.
+    ///
+    /// ## Face winding theorem
+    ///
+    /// For a tetrahedron `[v0, v1, v2, v3]` with **positive** signed volume
+    /// `(v1−v0)·((v2−v0)×(v3−v0)) > 0`, the outward face normals are:
+    ///
+    /// | Face (opposite) | Winding | Why outward |
+    /// |---|---|---|
+    /// | opposite v3 | `[v0, v2, v1]` | n = (v2−v0)×(v1−v0); n·(v3−v0) = −6V < 0 |
+    /// | opposite v2 | `[v0, v1, v3]` | n = (v1−v0)×(v3−v0); n·(v2−v0) = −6V < 0 |
+    /// | opposite v1 | `[v0, v3, v2]` | n = (v3−v0)×(v2−v0); n·(v1−v0) = −6V < 0 |
+    /// | opposite v0 | `[v1, v2, v3]` | n = (v2−v1)×(v3−v1); n·(v0−v1) = −6V < 0 |
+    ///
+    /// Shared internal faces are deduplicated by canonical key regardless of
+    /// the winding passed in, so the first tet's winding is stored and both
+    /// incident tets receive the same `FaceId`. ∎
     fn add_tet<T: Scalar>(
         mesh: &mut IndexedMesh<T>,
         face_map: &mut HashMap<TriKey, FaceId>,
         nodes: [VertexId; 4],
     ) {
-        let f0 = Self::add_tri_face(mesh, face_map, [nodes[0], nodes[1], nodes[2]]).as_usize();
-        let f1 = Self::add_tri_face(mesh, face_map, [nodes[0], nodes[1], nodes[3]]).as_usize();
-        let f2 = Self::add_tri_face(mesh, face_map, [nodes[0], nodes[2], nodes[3]]).as_usize();
-        let f3 = Self::add_tri_face(mesh, face_map, [nodes[1], nodes[2], nodes[3]]).as_usize();
+        let [v0, v1, v2, v3] = nodes;
+        // Use outward-facing winding for a positive-volume tet.
+        let f0 = Self::add_tri_face(mesh, face_map, [v0, v2, v1]).as_usize(); // opposite v3
+        let f1 = Self::add_tri_face(mesh, face_map, [v0, v1, v3]).as_usize(); // opposite v2
+        let f2 = Self::add_tri_face(mesh, face_map, [v0, v3, v2]).as_usize(); // opposite v1
+        let f3 = Self::add_tri_face(mesh, face_map, [v1, v2, v3]).as_usize(); // opposite v0
         mesh.add_cell(Cell::tetrahedron(f0, f1, f2, f3));
     }
 
@@ -635,6 +654,32 @@ mod tests {
             .iter()
             .all(|c| c.element_type == ElementType::Tetrahedron));
         assert_no_degenerate_tets(&tet_mesh);
+    }
+
+    #[test]
+    fn hex_to_tet_boundary_faces_are_outward_oriented() {
+        // After conversion, every boundary face must have a positive signed volume
+        // integral (outward-facing normal). The orient_outward pass in convert()
+        // must correct any inward-pointing boundary faces from the tet patterns.
+        use crate::application::quality::normals::analyze_normals;
+        let hex_mesh = StructuredHexGridBuilder::new(2, 2, 2).build();
+        let tet_mesh = HexToTetConverter::convert(&hex_mesh);
+
+        let analysis = analyze_normals(&tet_mesh);
+        assert_eq!(
+            analysis.inward_faces,
+            0,
+            "orient_outward must eliminate all inward-facing boundary faces; \
+             got {}/{} inward (before: {}/{})",
+            analysis.inward_faces,
+            analysis.total_faces(),
+            analysis.outward_faces,
+            analysis.inward_faces,
+        );
+        assert!(
+            analysis.outward_faces > 0,
+            "converted tet mesh must have outward boundary faces"
+        );
     }
 
     #[test]
