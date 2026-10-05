@@ -124,40 +124,61 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
         ]
     };
 
-    let face_stride = case.mesh.faces.len().saturating_add(max_faces - 1) / max_faces.max(1);
-    let face_stride = face_stride.max(1);
-    let mut sampled_edges = BTreeSet::new();
-    let mut sampled_faces: Vec<([[f64; 3]; 3], f64, f64)> = Vec::new();
-    for (index, face) in case.mesh.faces.iter().enumerate() {
-        if index % face_stride != 0 {
-            continue;
-        }
+    // ── Front-face collection: gather ALL front-facing faces first, then ──────
+    // stride-sample the visible set so the budget applies to visible faces.
+    // Previously, stride was computed from total faces → after back-face culling
+    // only ~50% remained, leaving the family-sheet panels with visible gaps.
+    // screen=[f64;3]×3, depth=f64, shade=f64, vertex-indices=[usize;3]
+    #[allow(clippy::type_complexity)]
+    let mut front_faces: Vec<(
+        [[f64; 3]; 3], // projected screen triangle
+        f64,           // depth for painter sort
+        f64,           // Lambert shade
+        [usize; 3],    // vertex indices for edge collection
+    )> = Vec::new();
+
+    for face in case.mesh.faces.iter() {
         let [a, b, c] = face.vertices;
-        let Some(&pa) = positions.get(a.as_usize()) else {
+        let Some(&pos_a) = positions.get(a.as_usize()) else {
             continue;
         };
-        let Some(&pb) = positions.get(b.as_usize()) else {
+        let Some(&pos_b) = positions.get(b.as_usize()) else {
             continue;
         };
-        let Some(&pc) = positions.get(c.as_usize()) else {
+        let Some(&pos_c) = positions.get(c.as_usize()) else {
             continue;
         };
-        // World-space positions for front-face culling and shading.
         let wa = world.get(a.as_usize()).copied().unwrap_or([0.0; 3]);
         let wb = world.get(b.as_usize()).copied().unwrap_or([0.0; 3]);
         let wc = world.get(c.as_usize()).copied().unwrap_or([0.0; 3]);
-        // Skip back-facing faces — they would draw edges on top of front faces.
         if !is_front_facing(wa, wb, wc) {
             continue;
         }
-        // Only front-facing edges end up in the wireframe overlay.
-        sampled_edges.extend(face.edges_canonical());
-        let pa = map(pa);
-        let pb = map(pb);
-        let pc = map(pc);
+        let pa = map(pos_a);
+        let pb = map(pos_b);
+        let pc = map(pos_c);
         let depth = (pa[2] + pb[2] + pc[2]) / 3.0;
-        let shade = face_shade(wa, wb, wc);
-        sampled_faces.push(([pa, pb, pc], depth, shade));
+        front_faces.push((
+            [pa, pb, pc],
+            depth,
+            face_shade(wa, wb, wc),
+            [a.as_usize(), b.as_usize(), c.as_usize()],
+        ));
+    }
+
+    // Stride-sample the *visible* set so we show up to `max_faces` front faces.
+    let face_stride = front_faces.len().saturating_add(max_faces - 1) / max_faces.max(1);
+    let face_stride = face_stride.max(1);
+    let mut sampled_edges: BTreeSet<(usize, usize)> = BTreeSet::new();
+    let mut sampled_faces: Vec<([[f64; 3]; 3], f64, f64)> = Vec::new();
+    for (index, (screen, depth, shade, [ai, bi, ci])) in front_faces.iter().enumerate() {
+        if index % face_stride != 0 {
+            continue;
+        }
+        sampled_edges.insert(((*ai).min(*bi), (*ai).max(*bi)));
+        sampled_edges.insert(((*bi).min(*ci), (*bi).max(*ci)));
+        sampled_edges.insert(((*ai).min(*ci), (*ai).max(*ci)));
+        sampled_faces.push((*screen, *depth, *shade));
     }
     sampled_faces.sort_by(|l, r| l.1.total_cmp(&r.1));
 
@@ -185,10 +206,10 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
     }
     svg.push_str("</g><g stroke=\"#0f172a\" stroke-width=\"0.35\" stroke-opacity=\"0.30\">");
     for (a, b) in sampled_edges {
-        let Some(&pa) = positions.get(a.as_usize()) else {
+        let Some(&pa) = positions.get(a) else {
             continue;
         };
-        let Some(&pb) = positions.get(b.as_usize()) else {
+        let Some(&pb) = positions.get(b) else {
             continue;
         };
         let pa = map(pa);
