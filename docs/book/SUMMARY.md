@@ -7,6 +7,7 @@
 - [Atlas ownership and provider boundaries](atlas_ownership.md)
 - [User Guide](user_guide.md)
 - [Quality Metrics Reference](quality_metrics.md)
+- [Algorithm Reference](algorithms.md)
 - [Reviewed mesh gallery](mesh_gallery.md)
   - [Figure manifest](figure_manifest.md)
   - [Full model catalog](model_catalog.md)
