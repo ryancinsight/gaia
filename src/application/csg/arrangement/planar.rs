@@ -5,12 +5,12 @@
 //! - `clip::polygon2d::cdt` (native 2-D polygon Boolean)
 //! - `corefine` (3-D face projection -> planar CDT subdivision)
 
-use eunomia::FloatElement;
+use eunomia::{FloatElement, NumericElement};
 use hashbrown::HashMap;
 
 use crate::application::delaunay::{Pslg, PslgVertexId};
 use crate::application::welding::GridCell2d;
-use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::{Real, Scalar};
 
 /// Canonical undirected edge key between two point slots.
 pub(crate) type PlanarEdgeKey = (usize, usize);
@@ -26,6 +26,11 @@ pub(crate) struct PlanarPointGridIndex {
 }
 
 impl PlanarPointGridIndex {
+    #[inline]
+    fn point_to_real<T: Scalar>(p: [T; 2]) -> [Real; 2] {
+        [p[0].to_f64(), p[1].to_f64()]
+    }
+
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the corridor radius is ceil()'d to an integer number of cells, non-negative, and bounded by practical mesh geometry"
@@ -35,20 +40,22 @@ impl PlanarPointGridIndex {
     }
 
     #[must_use]
-    pub(crate) fn new(points: &[[Real; 2]], cell: Real) -> Self {
-        let safe_cell = cell.max(1e-12);
+    pub(crate) fn new<T: Scalar>(points: &[[T; 2]], cell: T) -> Self {
+        let safe_cell = cell.to_f64().max(1e-12);
         let inv_cell = 1.0 / safe_cell;
         let mut bins: HashMap<GridCell2d, Vec<usize>> = HashMap::with_capacity(points.len());
-        for (slot, &p) in points.iter().enumerate() {
-            bins.entry(GridCell2d::from_point(&p, inv_cell))
+        for (slot, p) in points.iter().enumerate() {
+            let point = Self::point_to_real(*p);
+            bins.entry(GridCell2d::from_point(&point, inv_cell))
                 .or_default()
                 .push(slot);
         }
         Self { inv_cell, bins }
     }
 
-    fn cell_of(&self, p: [Real; 2]) -> GridCell2d {
-        GridCell2d::from_point(&p, self.inv_cell)
+    fn cell_of<T: Scalar>(&self, p: [T; 2]) -> GridCell2d {
+        let point = Self::point_to_real(p);
+        GridCell2d::from_point(&point, self.inv_cell)
     }
 
     pub(crate) fn collect_aabb_candidates(
@@ -102,12 +109,14 @@ impl PlanarPointGridIndex {
         }
     }
 
-    fn traverse_segment_cells(
+    fn traverse_segment_cells<T: Scalar>(
         &self,
-        p1: [Real; 2],
-        p2: [Real; 2],
+        p1: [T; 2],
+        p2: [T; 2],
         mut visit: impl FnMut(i64, i64),
     ) {
+        let p1 = Self::point_to_real(p1);
+        let p2 = Self::point_to_real(p2);
         let c1 = self.cell_of(p1);
         let c2 = self.cell_of(p2);
         let (mut cx, mut cy) = (c1.x, c1.y);
@@ -198,18 +207,21 @@ impl PlanarPointGridIndex {
     /// In sparse-fallback mode, AABB-filter completeness holds: every accepted
     /// point lies in the segment AABB expanded by `tol`. Since dispatch chooses
     /// one of these complete supersets, candidate retrieval is complete. ∎
-    pub(crate) fn collect_segment_corridor_candidates(
+    pub(crate) fn collect_segment_corridor_candidates<T: Scalar>(
         &self,
-        p1: [Real; 2],
-        p2: [Real; 2],
-        tol: Real,
+        p1: [T; 2],
+        p2: [T; 2],
+        tol: T,
         out: &mut Vec<usize>,
     ) {
         out.clear();
+        let p1_f = Self::point_to_real(p1);
+        let p2_f = Self::point_to_real(p2);
+        let tol = tol.to_f64();
         let cell_size = 1.0 / self.inv_cell;
         let radius = Self::corridor_radius(tol, cell_size);
-        let c_start = self.cell_of(p1);
-        let c_end = self.cell_of(p2);
+        let c_start = self.cell_of(p1_f);
+        let c_end = self.cell_of(p2_f);
         let (sx, sy) = (c_start.x, c_start.y);
         let (tx, ty) = (c_end.x, c_end.y);
 
@@ -225,13 +237,13 @@ impl PlanarPointGridIndex {
         // In those cases, scanning occupied bins in a segment AABB corridor
         // is asymptotically better than stepping every crossed grid cell.
         if dda_visits > occupied_bin_count.saturating_mul(8) {
-            let min = [p1[0].min(p2[0]) - tol, p1[1].min(p2[1]) - tol];
-            let max = [p1[0].max(p2[0]) + tol, p1[1].max(p2[1]) + tol];
+            let min = [p1_f[0].min(p2_f[0]) - tol, p1_f[1].min(p2_f[1]) - tol];
+            let max = [p1_f[0].max(p2_f[0]) + tol, p1_f[1].max(p2_f[1]) + tol];
             self.collect_aabb_candidates(min, max, out);
             return;
         }
 
-        self.traverse_segment_cells(p1, p2, |cx, cy| {
+        self.traverse_segment_cells(p1_f, p2_f, |cx, cy| {
             self.append_neighborhood_slots(cx, cy, radius, out);
         });
         out.sort_unstable();
@@ -245,56 +257,61 @@ impl PlanarPointGridIndex {
 /// This variant is used by the native 2-D polygon clipping path where polygon
 /// loop endpoints are known explicitly and interior intersection points are
 /// added from the merged point set.
-pub(crate) fn collect_points_on_segment_interior_to_buf(
-    unique_pts: &[[Real; 2]],
-    p1: [Real; 2],
-    p2: [Real; 2],
+pub(crate) fn collect_points_on_segment_interior_to_buf<T: Scalar>(
+    unique_pts: &[[T; 2]],
+    p1: [T; 2],
+    p2: [T; 2],
     endpoint_slots: (usize, usize),
-    t_eps: Real,
-    dist_sq_tol: Real,
-    out: &mut Vec<(Real, usize)>,
+    t_eps: T,
+    dist_sq_tol: T,
+    out: &mut Vec<(T, usize)>,
 ) {
     let (ri, rj) = endpoint_slots;
-    let dx = p2[0] - p1[0];
-    let dy = p2[1] - p1[1];
+    let p1_f = PlanarPointGridIndex::point_to_real(p1);
+    let p2_f = PlanarPointGridIndex::point_to_real(p2);
+    let dx = p2_f[0] - p1_f[0];
+    let dy = p2_f[1] - p1_f[1];
     let l2 = dx * dx + dy * dy;
+    let t_eps_f = t_eps.to_f64();
+    let dist_sq_tol_f = dist_sq_tol.to_f64();
 
     out.clear();
-    out.push((0.0, ri));
-    out.push((1.0, rj));
+    out.push((<T as NumericElement>::ZERO, ri));
+    out.push((<T as NumericElement>::ONE, rj));
     if l2 < 1e-24 {
         return;
     }
 
-    for (slot, &upt) in unique_pts.iter().enumerate() {
+    for (slot, upt) in unique_pts.iter().enumerate() {
         if slot == ri || slot == rj {
             continue;
         }
 
-        let t = ((upt[0] - p1[0]) * dx + (upt[1] - p1[1]) * dy) / l2;
-        if t < t_eps || t > 1.0 - t_eps {
+        let upt_f = PlanarPointGridIndex::point_to_real(*upt);
+        let t = ((upt_f[0] - p1_f[0]) * dx + (upt_f[1] - p1_f[1]) * dy) / l2;
+        if t < t_eps_f || t > 1.0 - t_eps_f {
             continue;
         }
 
-        let fx = p1[0] + t * dx;
-        let fy = p1[1] + t * dy;
-        let ex = upt[0] - fx;
-        let ey = upt[1] - fy;
+        let fx = p1_f[0] + t * dx;
+        let fy = p1_f[1] + t * dy;
+        let ex = upt_f[0] - fx;
+        let ey = upt_f[1] - fy;
         let d2 = ex * ex + ey * ey;
-        if d2 < dist_sq_tol {
-            out.push((t, slot));
+        if d2 < dist_sq_tol_f {
+            out.push((<T as Scalar>::from_f64(t), slot));
         }
     }
 }
 
-pub(crate) fn collect_points_on_segment_interior(
-    unique_pts: &[[Real; 2]],
-    p1: [Real; 2],
-    p2: [Real; 2],
+pub(crate) fn collect_points_on_segment_interior<T: Scalar>(
+    unique_pts: &[[T; 2]],
+    p1: [T; 2],
+    p2: [T; 2],
     endpoint_slots: (usize, usize),
-    t_eps: Real,
-    dist_sq_tol: Real,
-) -> Vec<(Real, usize)> {
+    t_eps: T,
+    dist_sq_tol: T,
+) -> Vec<(T, usize)> {
     // PERF-NOTE: this function is called once per constraint edge; the Vec allocation
     // is proportional to the segment's local point density and not a bottleneck.
     let mut out = Vec::new();
@@ -323,25 +340,29 @@ pub(crate) fn collect_points_on_segment_interior(
     clippy::too_many_arguments,
     reason = "segment-point query requires both endpoints, tolerances, a spatial index, a scratch buffer, and an output buffer — splitting would force extra allocations"
 )]
-pub(crate) fn collect_points_on_segment_interior_indexed(
-    unique_pts: &[[Real; 2]],
+pub(crate) fn collect_points_on_segment_interior_indexed<T: Scalar>(
+    unique_pts: &[[T; 2]],
     point_index: &PlanarPointGridIndex,
-    p1: [Real; 2],
-    p2: [Real; 2],
+    p1: [T; 2],
+    p2: [T; 2],
     endpoint_slots: (usize, usize),
-    t_eps: Real,
-    dist_sq_tol: Real,
+    t_eps: T,
+    dist_sq_tol: T,
     candidate_slots: &mut Vec<usize>,
-    out: &mut Vec<(Real, usize)>,
+    out: &mut Vec<(T, usize)>,
 ) {
     let (ri, rj) = endpoint_slots;
-    let dx = p2[0] - p1[0];
-    let dy = p2[1] - p1[1];
+    let p1_f = PlanarPointGridIndex::point_to_real(p1);
+    let p2_f = PlanarPointGridIndex::point_to_real(p2);
+    let dx = p2_f[0] - p1_f[0];
+    let dy = p2_f[1] - p1_f[1];
     let l2 = dx * dx + dy * dy;
+    let t_eps_f = t_eps.to_f64();
+    let dist_sq_tol_f = dist_sq_tol.to_f64();
 
     out.clear();
-    out.push((0.0, ri));
-    out.push((1.0, rj));
+    out.push((<T as NumericElement>::ZERO, ri));
+    out.push((<T as NumericElement>::ONE, rj));
     if l2 < 1e-24 {
         return;
     }
@@ -354,26 +375,27 @@ pub(crate) fn collect_points_on_segment_interior_indexed(
             continue;
         }
         let upt = unique_pts[slot];
-        let t = ((upt[0] - p1[0]) * dx + (upt[1] - p1[1]) * dy) / l2;
-        if t < t_eps || t > 1.0 - t_eps {
+        let upt_f = PlanarPointGridIndex::point_to_real(upt);
+        let t = ((upt_f[0] - p1_f[0]) * dx + (upt_f[1] - p1_f[1]) * dy) / l2;
+        if t < t_eps_f || t > 1.0 - t_eps_f {
             continue;
         }
 
-        let fx = p1[0] + t * dx;
-        let fy = p1[1] + t * dy;
-        let ex = upt[0] - fx;
-        let ey = upt[1] - fy;
+        let fx = p1_f[0] + t * dx;
+        let fy = p1_f[1] + t * dy;
+        let ex = upt_f[0] - fx;
+        let ey = upt_f[1] - fy;
         let d2 = ex * ex + ey * ey;
-        if d2 < dist_sq_tol {
-            out.push((t, slot));
+        if d2 < dist_sq_tol_f {
+            out.push((<T as Scalar>::from_f64(t), slot));
         }
     }
 }
 
 /// Sort a `(t, slot)` point list, deduplicate slots, and emit shattered
 /// consecutive sub-edges into `edges`.
-pub(crate) fn insert_shattered_subedges(
-    on_seg: &mut Vec<(Real, usize)>,
+pub(crate) fn insert_shattered_subedges<T: Scalar>(
+    on_seg: &mut Vec<(T, usize)>,
     edges: &mut Vec<PlanarEdgeKey>,
 ) {
     on_seg.sort_by(|a, b| a.0.total_cmp(&b.0));
@@ -390,13 +412,13 @@ pub(crate) fn insert_shattered_subedges(
 }
 
 /// Build a PSLG from planar points and deduplicated undirected edge keys.
-pub(crate) fn build_pslg_from_points_and_edges(
-    points: &[[Real; 2]],
+pub(crate) fn build_pslg_from_points_and_edges<T: Scalar>(
+    points: &[[T; 2]],
     edges: &[PlanarEdgeKey],
 ) -> Pslg {
     let mut pslg = Pslg::with_capacity(points.len(), edges.len());
     for &p in points {
-        pslg.add_vertex(p[0], p[1]);
+        pslg.add_vertex(p[0].to_f64(), p[1].to_f64());
     }
     for &(a, b) in edges {
         if a == b {

@@ -58,6 +58,12 @@ Progress (Phase 34, 2026-10-04):
 - `face_non_orthogonality`, `face_skewness`, `cell_centroid`, `cell_quality_report` now generic over `T: Scalar`; `CellQualityReport` uses `Real` for reporting (converting T→Real at the report boundary).
 - Remaining highest-count Real files: `planar.rs` (44), `cdt.rs` (26), `mod.rs` (23), `operations.rs` (24).
 
+Progress (Phase 35, 2026-10-05):
+- `quality/validation.rs`: `QualityThresholds::from_typed()` accepts aequitas `Dimensionless` and `Angle` typed parameters.
+- `quality/metrics.rs`: `count_below_scalar<T>` generic alongside `count_below`.
+- `quality/normals.rs`: `NormalAnalysis::is_consistent_within(Dimensionless<Real>)` typed helper.
+- `arrangement/planar.rs`: public functions accept `&[[T; 2]]` coordinates; internal grid arithmetic stays in f64.
+
 ---
 
 ## GAIA-005 — Retire the 39 ignored doctests

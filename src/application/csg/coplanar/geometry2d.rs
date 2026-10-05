@@ -3,8 +3,6 @@
 #[cfg(test)]
 use eunomia::NumericElement;
 
-#[cfg(test)]
-use crate::domain::core::scalar::Real;
 use crate::domain::core::scalar::Scalar;
 use crate::domain::geometry::predicates::{orient_2d_arr, Orientation};
 

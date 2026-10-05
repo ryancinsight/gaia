@@ -98,6 +98,12 @@ impl QualityMetric {
     /// Number of elements below a threshold.
     #[must_use]
     pub fn count_below(values: &[Real], threshold: Real) -> usize {
+        Self::count_below_scalar(values, threshold)
+    }
+
+    /// Generic version of `count_below` over any `T: Scalar`.
+    #[must_use]
+    pub fn count_below_scalar<T: Scalar + PartialOrd>(values: &[T], threshold: T) -> usize {
         values.iter().filter(|&&v| v < threshold).count()
     }
 }

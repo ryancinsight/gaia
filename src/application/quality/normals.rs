@@ -95,6 +95,19 @@ impl NormalAnalysis {
         }
     }
 
+    /// Returns true when the inward-face fraction is below a threshold.
+    ///
+    /// The threshold uses an [`aequitas`] `Dimensionless` quantity to
+    /// prevent confusion with fraction vs percentage.
+    #[inline]
+    #[must_use]
+    pub fn is_consistent_within(
+        &self,
+        max_inward_fraction: aequitas::systems::si::quantities::Dimensionless<Real>,
+    ) -> bool {
+        self.inward_fraction() <= max_inward_fraction.into_base()
+    }
+
     /// Returns `true` when every non-degenerate face is outward-facing.
     #[inline]
     #[must_use]
@@ -403,6 +416,22 @@ mod tests {
         let r = analyze_normals(&mesh);
         assert_eq!(r.inward_fraction().to_bits(), 0.0_f64.to_bits());
         assert!(r.all_outward());
+    }
+
+    #[test]
+    fn is_consistent_within_accepts_clean_mesh() {
+        use aequitas::systems::si::quantities::Dimensionless;
+
+        let mesh = Cube {
+            origin: Point3r::origin(),
+            width: 2.0,
+            height: 2.0,
+            depth: 2.0,
+        }
+        .build()
+        .unwrap();
+        let r = analyze_normals(&mesh);
+        assert!(r.is_consistent_within(Dimensionless::from_base(0.0)));
     }
 
     #[test]

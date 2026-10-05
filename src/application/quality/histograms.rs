@@ -186,9 +186,12 @@ impl<T: Scalar> HistogramT<T> {
     }
 
     /// Number of bins.
-    #[expect(
-        dead_code,
-        reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+        )
     )]
     #[must_use]
     pub fn n_bins(&self) -> usize {
@@ -196,9 +199,12 @@ impl<T: Scalar> HistogramT<T> {
     }
 
     /// Bin width (uniform).
-    #[expect(
-        dead_code,
-        reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+        )
     )]
     #[must_use]
     pub fn bin_width(&self) -> T {
@@ -209,9 +215,12 @@ impl<T: Scalar> HistogramT<T> {
     }
 
     /// Bin midpoint for bin index `i`.
-    #[expect(
-        dead_code,
-        reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+        )
     )]
     #[must_use]
     pub fn midpoint(&self, i: usize) -> T {
@@ -259,6 +268,15 @@ mod tests {
         let values = vec![1.0, f64::NAN, 2.0, 3.0];
         let h = Histogram::compute(&values, 3).unwrap();
         assert_eq!(h.bins.iter().sum::<usize>(), 3);
+    }
+
+    #[test]
+    fn generic_histogram_accessors_work() {
+        let h = HistogramT::compute(&[0.0_f64, 1.0, 2.0, 3.0], 3).unwrap();
+        assert_eq!(h.n_bins(), 3);
+        assert!(h.bin_width() > 0.0);
+        assert!(h.midpoint(0) >= h.min);
+        assert!(h.midpoint(0) <= h.max);
     }
 
     #[test]

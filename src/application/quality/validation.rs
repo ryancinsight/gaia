@@ -35,6 +35,41 @@ impl Default for QualityThresholds {
     }
 }
 
+impl QualityThresholds {
+    /// Create quality thresholds from typed [`aequitas`] quantities.
+    ///
+    /// Using typed quantities prevents unit confusion (e.g. passing degrees
+    /// where radians are required, or a skewness ratio as an angle).
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use gaia::application::quality::validation::QualityThresholds;
+    /// use aequitas::systems::si::quantities::{Angle, Dimensionless};
+    ///
+    /// let thresholds = QualityThresholds::from_typed(
+    ///     Dimensionless::from_base(10.0),  // max aspect ratio
+    ///     Angle::from_base(15_f64.to_radians()),  // min angle
+    ///     Dimensionless::from_base(0.85),  // max skewness
+    ///     Dimensionless::from_base(0.05),  // min edge ratio
+    /// );
+    /// ```
+    #[must_use]
+    pub fn from_typed(
+        max_aspect_ratio: aequitas::systems::si::quantities::Dimensionless<Real>,
+        min_angle: aequitas::systems::si::quantities::Angle<Real>,
+        max_skewness: aequitas::systems::si::quantities::Dimensionless<Real>,
+        min_edge_ratio: aequitas::systems::si::quantities::Dimensionless<Real>,
+    ) -> Self {
+        Self {
+            max_aspect_ratio: max_aspect_ratio.into_base(),
+            min_angle: min_angle.into_base(),
+            max_skewness: max_skewness.into_base(),
+            min_edge_ratio: min_edge_ratio.into_base(),
+        }
+    }
+}
+
 /// Quality validation report.
 #[derive(Clone, Debug)]
 pub struct QualityReport {
@@ -215,5 +250,21 @@ mod tests {
 
         assert_eq!(report.failing_faces, 1);
         assert!(!report.passed);
+    }
+
+    #[test]
+    fn typed_thresholds_match_scalar_thresholds() {
+        use aequitas::systems::si::quantities::{Angle, Dimensionless};
+
+        let typed = QualityThresholds::from_typed(
+            Dimensionless::from_base(10.0),
+            Angle::from_base(0.261_799), // ≈ 15°
+            Dimensionless::from_base(0.8),
+            Dimensionless::from_base(0.1),
+        );
+        assert!((typed.max_aspect_ratio - 10.0).abs() < 1e-12);
+        assert!((typed.min_angle - 0.261_799).abs() < 1e-6);
+        assert!((typed.max_skewness - 0.8).abs() < 1e-12);
+        assert!((typed.min_edge_ratio - 0.1).abs() < 1e-12);
     }
 }
