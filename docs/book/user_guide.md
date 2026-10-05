@@ -6,6 +6,11 @@ coordinates are in metres; physical quantities use
 [`aequitas`](https://docs.rs/aequitas) types to prevent unit confusion at the
 type-system level.
 
+> **Hosted book:** The complete Gaia Mesh Book — including this guide, the
+> reviewed gallery, and the full model catalog — is published at
+> **<https://ryancinsight.github.io/gaia/>** and is rebuilt on every push to
+> `main` by the `Gaia mesh book` GitHub Actions workflow.
+
 ## Dependency
 
 ```toml
@@ -338,6 +343,23 @@ use gaia::application::quality::vertex_mean_curvature;
 let curvatures: Vec<f64> = vertex_mean_curvature(&mesh);
 println!("Max curvature: {:.4}",
          curvatures.iter().cloned().fold(f64::NAN, f64::max));
+```
+
+### Quality Histograms (Generic — f32 and f64)
+
+`HistogramT<T>` computes fixed-width histograms in the input scalar precision
+with no widening to `f64`:
+
+```rust,no_run
+use gaia::application::quality::histograms::HistogramT;
+
+// f32 mesh — histogram bins stay in f32
+let curvatures_f32: Vec<f32> = vertex_mean_curvature(&mesh_f32);
+if let Some(hist) = HistogramT::compute(&curvatures_f32, 10) {
+    println!("Bin 0 [{:.3}, {:.3}]: {} faces",
+             hist.edges[0], hist.edges[1], hist.bins[0]);
+    println!("min={:.4} max={:.4}", hist.min, hist.max);
+}
 ```
 
 ### Tetrahedral Quality — Aequitas-Typed Criteria
