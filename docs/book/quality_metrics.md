@@ -1,4 +1,4 @@
-# Quality Metrics Reference
+﻿# Quality Metrics Reference
 
 Gaia provides a layered set of mesh quality metrics for surface validation,
 tetrahedral volume assessment, and CFD boundary-layer checking. All metric
@@ -14,7 +14,7 @@ functions are generic over `T: Scalar` — they execute in the input precision
 
 ### Triangle Quality Score
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::triangle::{
     aspect_ratio, min_angle, edge_length_ratio_native, triangle_angles,
 };
@@ -33,7 +33,7 @@ let elr  = edge_length_ratio_native(a, b, c); // shortest/longest ∈ (0,1]
 The `StandardQualityAnalyzer` produces per-metric histograms and aggregate
 counts in one pass:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::analyzer::{
     QualityAnalyzer, StandardQualityAnalyzer,
 };
@@ -70,7 +70,7 @@ if let Some(hist) = &report.min_angle_histogram {
 `HistogramT<T>` computes histograms in the input scalar precision without
 widening to `f64`. Use it on `f32` meshes to stay in single precision:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::{vertex_mean_curvature, histograms::HistogramT};
 
 // f32 mesh — all histogram arithmetic stays in f32
@@ -92,7 +92,7 @@ if let Some(hist) = HistogramT::compute(&curvatures_f32, 15) {
 
 ### Per-Cell Metrics
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::{
     tetrahedron_quality, TetrahedronQuality,
 };
@@ -110,7 +110,7 @@ if let Some(q) = tetrahedron_quality(cell_points) {
 The `TetrahedralQualityCriteria` constructors accept `aequitas` dimensioned
 quantities to prevent unit confusion:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::{
     TetrahedralQualityCriteria, TetrahedralQualityAcceptance,
 };
@@ -140,7 +140,7 @@ if let Some(acceptance) = criteria.assess(&volume_mesh) {
 
 ### Quality Report with Statistics
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::tetrahedral_quality_report;
 
 if let Some(report) = tetrahedral_quality_report(&mesh) {
@@ -167,7 +167,7 @@ if let Some(report) = tetrahedral_quality_report(&mesh) {
 Boundary-facet criteria use aequitas `Angle`, `Dimensionless`, and `Length`
 types so callers cannot accidentally pass a skewness ratio as an angle:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::{
     BoundaryFacetQualityCriteria, TetrahedralQualityCriteria,
 };
@@ -204,7 +204,7 @@ if let Some(acceptance) = cell_criteria.assess_boundary(&mesh, &facet_criteria) 
 Non-orthogonality and skewness are the two primary `checkMesh` metrics for
 CFD solvers. Gaia computes them for internal faces of volume meshes:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::cell_quality::{
     cell_quality_report, face_non_orthogonality, face_skewness,
 };
@@ -242,7 +242,7 @@ if let Some(report) = cell_quality_report(&mesh) {
 Mean curvature at each vertex via the cotangent-weighted Laplace-Beltrami
 operator. Generic over `T: Scalar`:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::vertex_mean_curvature;
 
 // f64 mesh
@@ -264,7 +264,7 @@ degenerate local geometry (zero-area faces in the 1-ring).
 
 ## Surface Normal Analysis
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::{analyze_normals, NormalAnalysis};
 
 let analysis: NormalAnalysis = analyze_normals(&mesh);

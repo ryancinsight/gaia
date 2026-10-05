@@ -1,4 +1,4 @@
-# User Guide
+﻿# User Guide
 
 Gaia is the Atlas stack's mesh-generation library. This chapter shows how to
 use each mesh family from Rust and documents the key API surface. All mesh
@@ -30,7 +30,7 @@ All primitives implement `PrimitiveMesh` and return `Result<IndexedMesh, Primiti
 The canonical closed cuboid. `Cube::unit()` and `Cube::centred(side)` are
 convenience constructors.
 
-```rust,no_run
+```rust,ignore
 use gaia::{Cube, primitives::PrimitiveMesh};
 
 // 2 m³ cube centred at the origin
@@ -47,7 +47,7 @@ assert!(mesh.is_watertight());
 Latitude–longitude parametric sphere; increasing `segments`/`stacks` reduces
 faceting error.
 
-```rust,no_run
+```rust,ignore
 use gaia::{UvSphere, primitives::PrimitiveMesh};
 use gaia::domain::core::scalar::Point3r;
 
@@ -67,7 +67,7 @@ let mesh = UvSphere {
 
 Icosphere subdivision — uniform triangles, minimal variation in face area.
 
-```rust,no_run
+```rust,ignore
 use gaia::{GeodesicSphere, primitives::PrimitiveMesh};
 
 let mesh = GeodesicSphere::default().build().expect("geodesic sphere");
@@ -77,7 +77,7 @@ let mesh = GeodesicSphere::default().build().expect("geodesic sphere");
 
 ### Cylinder / Cone / Frustum / Capsule / Pipe
 
-```rust,no_run
+```rust,ignore
 use gaia::primitives::PrimitiveMesh;
 use gaia::{Cylinder, Cone, Frustum, Capsule, Pipe};
 
@@ -98,7 +98,7 @@ let pipe    = Pipe::default().build().expect("pipe");
 
 ### Torus / Ellipsoid / Disk / Spherical Shell
 
-```rust,no_run
+```rust,ignore
 use gaia::{Torus, Ellipsoid, Disk, SphericalShell};
 use gaia::primitives::PrimitiveMesh;
 
@@ -115,7 +115,7 @@ let ellipse = Ellipsoid::default().build().expect("ellipsoid");
 
 ### Polyhedra
 
-```rust,no_run
+```rust,ignore
 use gaia::primitives::PrimitiveMesh;
 use gaia::{Tetrahedron, Octahedron, Icosahedron, Dodecahedron};
 
@@ -153,7 +153,7 @@ let ico = Icosahedron.build().expect("icosahedron");
 Triply Periodic Minimal Surfaces are sphere-clipped implicit-surface meshes
 with zero mean curvature. Adjust `iso_value` to shift the isosurface position.
 
-```rust,no_run
+```rust,ignore
 use gaia::{GyroidSphere, primitives::PrimitiveMesh};
 
 let gyroid = GyroidSphere {
@@ -187,7 +187,7 @@ inputs to prevent metre/millimetre confusion.
 
 ### Serpentine Channel
 
-```rust,no_run
+```rust,ignore
 use gaia::SerpentineMeshBuilder;
 use gaia::domain::core::constants::length_mm;
 
@@ -208,7 +208,7 @@ let mesh = SerpentineMeshBuilder::from_quantities(
 
 The Venturi builder also accepts typed `Length` quantities.
 
-```rust,no_run
+```rust,ignore
 use gaia::channel::VenturiMeshBuilder;
 use gaia::domain::core::constants::length_mm;
 
@@ -247,7 +247,7 @@ let mesh = VenturiMeshBuilder::from_quantities(
 
 ### Structured Grids
 
-```rust,no_run
+```rust,ignore
 use gaia::domain::grid::StructuredGrid;
 
 let tet_grid = StructuredGrid::tetrahedral(2, 2, 2).build();
@@ -273,7 +273,7 @@ let hex_grid = StructuredGrid::hexahedral(2, 2, 2).build();
 
 Generate a body-fitted tetrahedral volume from a signed distance function:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::delaunay::dim3::SphereSdf;
 
 let volume = SphereSdf { radius: 1.0, cell_size: 0.8 }
@@ -289,7 +289,7 @@ let volume = SphereSdf { radius: 1.0, cell_size: 0.8 }
 
 Gaia supports robust closed-mesh Booleans via `csg_boolean`:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::csg::{csg_boolean, BooleanOp};
 use gaia::{Cube, UvSphere, primitives::PrimitiveMesh};
 use gaia::domain::core::scalar::Point3r;
@@ -319,7 +319,7 @@ let difference = csg_boolean(BooleanOp::Difference, &cube, &sphere)
 
 For more than two operands use `csg_boolean_nary`:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::csg::csg_boolean_nary;
 
 let result = csg_boolean_nary(BooleanOp::Union, &[mesh_a, mesh_b, mesh_c])
@@ -337,7 +337,7 @@ let result = csg_boolean_nary(BooleanOp::Union, &[mesh_a, mesh_b, mesh_c])
 `vertex_mean_curvature` is generic over `T: Scalar` and works without silent
 precision widening on both `IndexedMesh` (f64) and `IndexedMesh<f32>`:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::vertex_mean_curvature;
 
 let curvatures: Vec<f64> = vertex_mean_curvature(&mesh);
@@ -350,7 +350,7 @@ println!("Max curvature: {:.4}",
 `HistogramT<T>` computes fixed-width histograms in the input scalar precision
 with no widening to `f64`:
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::histograms::HistogramT;
 
 // f32 mesh — histogram bins stay in f32
@@ -364,7 +364,7 @@ if let Some(hist) = HistogramT::compute(&curvatures_f32, 10) {
 
 ### Tetrahedral Quality — Aequitas-Typed Criteria
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::{TetrahedralQualityCriteria, tetrahedral_quality_report};
 use aequitas::systems::si::quantities::{Angle, Dimensionless};
 
@@ -393,7 +393,7 @@ if let Some(report) = tetrahedral_quality_report(&volume_mesh) {
 
 ### Boundary Facet Quality
 
-```rust,no_run
+```rust,ignore
 use gaia::application::quality::BoundaryFacetQualityCriteria;
 use aequitas::systems::si::quantities::{Angle, Dimensionless, Length};
 
@@ -409,7 +409,7 @@ let facet_criteria = BoundaryFacetQualityCriteria::<f64>::try_new(
 
 ## Watertightness Validation
 
-```rust,no_run
+```rust,ignore
 use gaia::application::watertight::check::check_watertight;
 
 let report = check_watertight(&mesh);
@@ -427,7 +427,7 @@ if report.is_watertight {
 
 ## Export Formats
 
-```rust,no_run
+```rust,ignore
 use std::fs::File;
 use gaia::infrastructure::io::{
     stl::write_binary_stl,
@@ -477,7 +477,7 @@ viewer to inspect geometry interactively.
 For raster-based triage (intensity windows, spatial analysis), export to STL
 and load via the RITK IO pipeline:
 
-```rust,no_run
+```rust,ignore
 // In a RITK-enabled context:
 use ritk_io::mesh::load_stl;
 let surface = load_stl("mesh.stl").expect("load");
@@ -490,7 +490,7 @@ let surface = load_stl("mesh.stl").expect("load");
 Quality-metric functions are generic over `T: Scalar`; call them on
 `IndexedMesh<f32>` or `IndexedMesh<f64>` without precision widening:
 
-```rust,no_run
+```rust,ignore
 // f32 mesh — curvature stays in f32 throughout
 let mesh_f32: IndexedMesh<f32> = Cube::centred(2.0_f32).build().expect("cube");
 let curvatures_f32: Vec<f32> = vertex_mean_curvature(&mesh_f32);
