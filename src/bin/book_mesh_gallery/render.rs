@@ -129,7 +129,10 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
     // Previously, stride was computed from total faces → after back-face culling
     // only ~50% remained, leaving the family-sheet panels with visible gaps.
     // screen=[f64;3]×3, depth=f64, shade=f64, vertex-indices=[usize;3]
-    #[allow(clippy::type_complexity)]
+    #[expect(
+        clippy::type_complexity,
+        reason = "local collection type for the front-face pipeline; a named struct would be heavier without clarifying the algorithm"
+    )]
     let mut front_faces: Vec<(
         [[f64; 3]; 3], // projected screen triangle
         f64,           // depth for painter sort
