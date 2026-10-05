@@ -10,13 +10,9 @@ const PANEL_WIDTH: f64 = 280.0;
 const PANEL_HEIGHT: f64 = 240.0;
 const SHEET_COLUMNS: usize = 4;
 
-// ── Headlight shading ─────────────────────────────────────────────────────────
-
-/// Isometric view direction `[1,1,1]/√3`.
+/// Isometric view/light direction `[1,1,1]/√3`.
 const VIEW: [f64; 3] = [0.577_350_3, 0.577_350_3, 0.577_350_3];
-
-/// Isometric headlight direction (matches the projection axes).
-const LIGHT: [f64; 3] = [0.577_350_3, 0.577_350_3, 0.577_350_3]; // normalised [1,1,1]/√3
+const LIGHT: [f64; 3] = VIEW;
 
 /// Returns the (unnormalised) face normal from 3-D world positions.
 #[inline]
@@ -65,8 +61,6 @@ fn shade_to_color(intensity: f64) -> String {
     let b = to_byte(intensity * (213.0 / 255.0));
     format!("#{r:02x}{g:02x}{b:02x}")
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 fn xml_escape(value: &str) -> String {
     value
@@ -124,22 +118,11 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
         ]
     };
 
-    // ── Front-face collection: gather ALL front-facing faces first, then ──────
-    // stride-sample the visible set so the budget applies to visible faces.
-    // Previously, stride was computed from total faces → after back-face culling
-    // only ~50% remained, leaving the family-sheet panels with visible gaps.
-    // screen=[f64;3]×3, depth=f64, shade=f64, vertex-indices=[usize;3]
-    #[expect(
-        clippy::type_complexity,
-        reason = "local collection type for the front-face pipeline; a named struct would be heavier without clarifying the algorithm"
-    )]
-    let mut front_faces: Vec<(
-        [[f64; 3]; 3], // projected screen triangle
-        f64,           // depth for painter sort
-        f64,           // Lambert shade
-        [usize; 3],    // vertex indices for edge collection
-    )> = Vec::new();
-
+    // Collect front-facing faces first, then stride-sample the visible set
+    // so the budget applies to renderable faces, not total faces.
+    #[rustfmt::skip] // keep #[expect] single-line to stay under the 500-line file limit
+    #[expect(clippy::type_complexity, reason = "local render pipeline tuple; struct would not clarify")]
+    let mut front_faces: Vec<([[f64; 3]; 3], f64, f64, [usize; 3])> = Vec::new();
     for face in case.mesh.faces.iter() {
         let [a, b, c] = face.vertices;
         let Some(&pos_a) = positions.get(a.as_usize()) else {
@@ -169,9 +152,8 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
         ));
     }
 
-    // Stride-sample the *visible* set so we show up to `max_faces` front faces.
-    let face_stride = front_faces.len().saturating_add(max_faces - 1) / max_faces.max(1);
-    let face_stride = face_stride.max(1);
+    // Stride-sample the visible set to stay within the face budget.
+    let face_stride = (front_faces.len().saturating_add(max_faces - 1) / max_faces.max(1)).max(1);
     let mut sampled_edges: BTreeSet<(usize, usize)> = BTreeSet::new();
     let mut sampled_faces: Vec<([[f64; 3]; 3], f64, f64)> = Vec::new();
     for (index, (screen, depth, shade, [ai, bi, ci])) in front_faces.iter().enumerate() {
@@ -196,7 +178,6 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
         left + 140.0,
         top + 21.0
     );
-    // Draw front-facing faces with Lambert shading; each polygon carries its own stroke.
     svg.push_str("<g stroke-linejoin=\"round\">");
     for (points, _, shade) in &sampled_faces {
         let color = shade_to_color(*shade);
