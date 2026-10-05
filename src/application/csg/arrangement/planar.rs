@@ -16,10 +16,7 @@ use crate::domain::core::scalar::{Real, Scalar};
 pub(crate) type PlanarEdgeKey = (usize, usize);
 
 /// Uniform-grid index over planar points for local AABB candidate queries.
-///
-/// This accelerates repeated "points near segment" searches during PSLG
-/// shattering from `O(E * P)` full scans to expected near-linear behavior in
-/// the number of points that actually fall into each segment's local corridor.
+/// Accelerates "points near segment" searches from O(E·P) to near-linear.
 pub(crate) struct PlanarPointGridIndex {
     inv_cell: Real,
     bins: HashMap<GridCell2d, Vec<usize>>,

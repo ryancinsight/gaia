@@ -450,19 +450,9 @@ mod tests {
 
     // ── Adversarial BFS analysis tests ────────────────────────────────────
 
-    /// # Theorem — Signed-Volume BFS Correction for Inward Meshes
-    ///
-    /// **Statement**: When `analyze_normals` BFS labels a majority of
-    /// faces as "outward" but the signed-volume integral is negative,
-    /// the seed heuristic was wrong.  The outward/inward counts must
-    /// be swapped so that `inward_faces` reflects the true orientation
-    /// inconsistency count.
-    ///
-    /// **Proof**: The BFS seed heuristic (max-X face with $`n_x` \geq 0$)
-    /// assumes the extreme face points outward.  For a fully inward-wound
-    /// mesh, the seed labels all faces "outward" (consistent BFS), but
-    /// the signed volume is negative.  Swapping the counts corrects the
-    /// analysis without re-running BFS.
+    /// Signed-volume correction: BFS labels all faces "outward" for a fully
+    /// inward-wound mesh (consistent BFS), but the negative signed volume
+    /// signals the seed was wrong. Swapping counts corrects the analysis.
     #[test]
     fn analyze_normals_all_inward_tet() {
         use crate::domain::mesh::IndexedMesh;
@@ -491,17 +481,8 @@ mod tests {
         assert_eq!(r.outward_faces, 0);
     }
 
-    /// # Theorem — BFS Multi-Component Completeness
-    ///
-    /// **Statement**: `analyze_normals` correctly handles meshes with
-    /// multiple disconnected connected components by re-seeding BFS
-    /// for each unvisited component.  The total face count must equal
-    /// the sum across all components.
-    ///
-    /// **Proof**: The outer `loop` in `analyze_normals` iterates until
-    /// `find_seed` returns `None`, which only happens when every
-    /// non-degenerate face has been assigned an orientation.  Each
-    /// iteration seeds and floods one component.
+    /// BFS re-seeds for each disconnected component, so the total face count
+    /// must equal the sum across all components.
     #[test]
     fn analyze_normals_two_disjoint_cubes() {
         // Two separate cubes — both outward-wound.
