@@ -83,15 +83,14 @@ fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
 }
 
 fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, max_faces: usize) {
-    // World-space positions for normal/shading computation.
+    // Volume meshes: filter to boundary faces only (those in exactly one cell).
+    let bfi = case.boundary_face_ids();
     let world: Vec<[f64; 3]> = case
         .mesh
         .vertices
         .positions()
         .map(|p| [p.x, p.y, p.z])
         .collect();
-
-    // Projected positions for screen mapping.
     let positions: Vec<[f64; 3]> = world.iter().map(|&p| project(p)).collect();
 
     let mut min_x = f64::INFINITY;
@@ -122,7 +121,14 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
     #[rustfmt::skip] // keep #[expect] single-line to stay under the 500-line file limit
     #[expect(clippy::type_complexity, reason = "local render pipeline tuple; struct would not clarify")]
     let mut front_faces: Vec<([[f64; 3]; 3], f64, f64, [usize; 3])> = Vec::new();
-    for face in case.mesh.faces.iter() {
+    for (face_idx, face) in case.mesh.faces.iter_enumerated() {
+        // Skip interior tet faces (only render boundary faces for volume meshes).
+        if bfi
+            .as_ref()
+            .is_some_and(|ids| !ids.contains(&face_idx.as_usize()))
+        {
+            continue;
+        }
         let [a, b, c] = face.vertices;
         let Some(&pos_a) = positions.get(a.as_usize()) else {
             continue;
