@@ -84,6 +84,70 @@ impl BranchingMeshBuilder {
         }
     }
 
+    /// Create a symmetric bifurcation (1 parent, 2 daughters) from typed
+    /// [`aequitas`](aequitas::systems::si::quantities) `Length` and `Angle`
+    /// quantities.
+    ///
+    /// All length values are stored in SI metres internally. Using typed
+    /// quantities prevents unit mix-ups between diameters and tube lengths.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use gaia::BranchingMeshBuilder;
+    /// use gaia::domain::core::constants::{length_mm, angle_rad};
+    /// use std::f64::consts::FRAC_PI_6;
+    ///
+    /// let builder = BranchingMeshBuilder::bifurcation_typed(
+    ///     length_mm(4.0),   // d_parent
+    ///     length_mm(20.0),  // l_parent
+    ///     length_mm(3.0),   // d_daughter
+    ///     length_mm(15.0),  // l_daughter
+    ///     angle_rad(FRAC_PI_6), // 30° branching angle
+    ///     4,
+    /// );
+    /// ```
+    #[must_use]
+    pub fn bifurcation_typed(
+        d_parent: aequitas::systems::si::quantities::Length<Real>,
+        l_parent: aequitas::systems::si::quantities::Length<Real>,
+        d_daughter: aequitas::systems::si::quantities::Length<Real>,
+        l_daughter: aequitas::systems::si::quantities::Length<Real>,
+        branching_angle: aequitas::systems::si::quantities::Angle<Real>,
+        resolution: usize,
+    ) -> Self {
+        Self::bifurcation(
+            d_parent.into_base(),
+            l_parent.into_base(),
+            d_daughter.into_base(),
+            l_daughter.into_base(),
+            branching_angle.into_base(),
+            resolution,
+        )
+    }
+
+    /// Create a symmetric trifurcation (1 parent, 3 daughters) from typed
+    /// [`aequitas`](aequitas::systems::si::quantities) `Length` and `Angle`
+    /// quantities.
+    #[must_use]
+    pub fn trifurcation_typed(
+        d_parent: aequitas::systems::si::quantities::Length<Real>,
+        l_parent: aequitas::systems::si::quantities::Length<Real>,
+        d_daughter: aequitas::systems::si::quantities::Length<Real>,
+        l_daughter: aequitas::systems::si::quantities::Length<Real>,
+        branching_angle: aequitas::systems::si::quantities::Angle<Real>,
+        resolution: usize,
+    ) -> Self {
+        Self::trifurcation(
+            d_parent.into_base(),
+            l_parent.into_base(),
+            d_daughter.into_base(),
+            l_daughter.into_base(),
+            branching_angle.into_base(),
+            resolution,
+        )
+    }
+
     /// Build a watertight surface mesh (parent + daughter walls, inlet, and outlet caps).
     ///
     /// Region IDs:

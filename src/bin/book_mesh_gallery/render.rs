@@ -10,6 +10,47 @@ const PANEL_WIDTH: f64 = 280.0;
 const PANEL_HEIGHT: f64 = 240.0;
 const SHEET_COLUMNS: usize = 4;
 
+// ── Headlight shading ─────────────────────────────────────────────────────────
+
+/// Isometric headlight direction (matches the projection axes).
+/// Points roughly from upper-right-front toward the scene.
+const LIGHT: [f64; 3] = [0.577_350_3, 0.577_350_3, 0.577_350_3]; // normalised [1,1,1]/√3
+
+/// Compute Lambert shading intensity for a face given its 3-D world positions.
+fn face_shade(p0: [f64; 3], p1: [f64; 3], p2: [f64; 3]) -> f64 {
+    let ab = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+    let ac = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+    let nx = ab[1] * ac[2] - ab[2] * ac[1];
+    let ny = ab[2] * ac[0] - ab[0] * ac[2];
+    let nz = ab[0] * ac[1] - ab[1] * ac[0];
+    let len = (nx * nx + ny * ny + nz * nz).sqrt().max(1e-20);
+    let cos_theta = ((nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / len).abs();
+    // Lambert with ambient floor
+    (0.25_f64 + 0.75 * cos_theta).clamp(0.0, 1.0)
+}
+
+/// Convert a shading intensity in `[0,1]` to a CSS hex colour (blue-grey tones).
+fn shade_to_color(intensity: f64) -> String {
+    // Base surface colour: #5b9bd5 (soft steel blue).
+    // intensity.clamp(0.0, 1.0) is non-negative; cast is safe but triggers sign-loss.
+    fn to_byte(x: f64) -> u8 {
+        #[expect(
+            clippy::cast_sign_loss,
+            clippy::cast_possible_truncation,
+            reason = "x is clamped to [0,1]; product is in [0,255] and fits u8"
+        )]
+        {
+            x.clamp(0.0, 1.0).mul_add(255.0, 0.5).floor() as u8
+        }
+    }
+    let r = to_byte(intensity * (91.0 / 255.0));
+    let g = to_byte(intensity * (155.0 / 255.0));
+    let b = to_byte(intensity * (213.0 / 255.0));
+    format!("#{r:02x}{g:02x}{b:02x}")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 fn xml_escape(value: &str) -> String {
     value
         .replace('&', "&amp;")
@@ -28,12 +69,16 @@ fn project(point: [f64; 3]) -> [f64; 3] {
 }
 
 fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
-    let positions: Vec<[f64; 3]> = case
+    // World-space positions for normal/shading computation.
+    let world: Vec<[f64; 3]> = case
         .mesh
         .vertices
         .positions()
-        .map(|point| project([point.x, point.y, point.z]))
+        .map(|p| [p.x, p.y, p.z])
         .collect();
+
+    // Projected positions for screen mapping.
+    let positions: Vec<[f64; 3]> = world.iter().map(|&p| project(p)).collect();
 
     let mut min_x = f64::INFINITY;
     let mut max_x = f64::NEG_INFINITY;
@@ -62,7 +107,7 @@ fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
         case.mesh.faces.len().saturating_add(MAX_DRAW_FACES - 1) / MAX_DRAW_FACES.max(1);
     let face_stride = face_stride.max(1);
     let mut sampled_edges = BTreeSet::new();
-    let mut sampled_faces = Vec::new();
+    let mut sampled_faces: Vec<([[f64; 3]; 3], f64, f64)> = Vec::new();
     for (index, face) in case.mesh.faces.iter().enumerate() {
         if index % face_stride != 0 {
             continue;
@@ -81,9 +126,15 @@ fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
         let pa = map(pa);
         let pb = map(pb);
         let pc = map(pc);
-        sampled_faces.push(([pa, pb, pc], (pa[2] + pb[2] + pc[2]) / 3.0));
+        let depth = (pa[2] + pb[2] + pc[2]) / 3.0;
+        // Lambert shading from world-space positions
+        let wa = world.get(a.as_usize()).copied().unwrap_or([0.0; 3]);
+        let wb = world.get(b.as_usize()).copied().unwrap_or([0.0; 3]);
+        let wc = world.get(c.as_usize()).copied().unwrap_or([0.0; 3]);
+        let shade = face_shade(wa, wb, wc);
+        sampled_faces.push(([pa, pb, pc], depth, shade));
     }
-    sampled_faces.sort_by(|left, right| left.1.total_cmp(&right.1));
+    sampled_faces.sort_by(|l, r| l.1.total_cmp(&r.1));
 
     let title = xml_escape(case.title);
     let _ = write!(
@@ -96,18 +147,17 @@ fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
         left + 140.0,
         top + 21.0
     );
-    let _ = write!(
-        svg,
-        "<g stroke=\"#2563eb\" stroke-width=\"0.7\" stroke-linejoin=\"round\">"
-    );
-    for (points, _) in sampled_faces {
+    svg.push_str("<g stroke-linejoin=\"round\">");
+    for (points, _, shade) in sampled_faces {
+        let color = shade_to_color(shade);
+        let stroke = shade_to_color((shade * 0.6).max(0.1));
         let _ = write!(
             svg,
-            "<polygon points=\"{:.1},{:.1} {:.1},{:.1} {:.1},{:.1}\" fill=\"#60a5fa\" fill-opacity=\"0.28\"/>",
+            "<polygon points=\"{:.1},{:.1} {:.1},{:.1} {:.1},{:.1}\" fill=\"{color}\" stroke=\"{stroke}\" stroke-width=\"0.5\"/>",
             points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1]
         );
     }
-    svg.push_str("</g><g stroke=\"#0f172a\" stroke-width=\"0.45\" stroke-opacity=\"0.68\">");
+    svg.push_str("</g><g stroke=\"#0f172a\" stroke-width=\"0.35\" stroke-opacity=\"0.45\">");
     for (a, b) in sampled_edges {
         let Some(&pa) = positions.get(a.as_usize()) else {
             continue;
