@@ -226,6 +226,9 @@ impl GridCell2d {
 /// parallel insertion is required.
 pub struct SnappingGrid {
     /// Grid cell → list of `positions` indices stored in that cell.
+    ///
+    /// PERF: `CellIndices` already keeps singleton cells inline; if profiling
+    /// shows 2-4 vertex cells dominating, consider a small-inline overflow tier.
     buckets: HashMap<GridCell, CellIndices>,
     /// Flat array of all accepted (snapped) positions.
     positions: Vec<Point3r>,

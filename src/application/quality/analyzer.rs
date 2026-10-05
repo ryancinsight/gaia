@@ -86,6 +86,7 @@ impl QualityAnalyzer for StandardQualityAnalyzer {
         let bins = self.n_histogram_bins;
         FullQualityReport {
             base,
+            // GAIA-003-NEXT: use HistogramT<T> here once FullQualityReport is generic.
             edge_length_histogram: Histogram::compute(&edge_len_values, bins),
             min_angle_histogram: Histogram::compute(&min_angle_values, bins),
             aspect_ratio_histogram: Histogram::compute(&aspect_values, bins),

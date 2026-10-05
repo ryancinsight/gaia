@@ -1,6 +1,11 @@
 //! 2-D point and AABB helpers.
 
+#[cfg(test)]
+use eunomia::NumericElement;
+
+#[cfg(test)]
 use crate::domain::core::scalar::Real;
+use crate::domain::core::scalar::Scalar;
 use crate::domain::geometry::predicates::{orient_2d_arr, Orientation};
 
 /// Test whether 2-D point `(px,py)` lies inside or on the boundary of the
@@ -27,15 +32,15 @@ use crate::domain::geometry::predicates::{orient_2d_arr, Orientation};
     reason = "2-D triangle-containment predicate: 3 vertices + 1 query = 8 scalar coordinates; struct grouping would obscure the mathematical structure"
 )]
 #[inline]
-pub(crate) fn point_in_tri_2d_exact(
-    px: Real,
-    py: Real,
-    ax: Real,
-    ay: Real,
-    bx: Real,
-    by: Real,
-    cx: Real,
-    cy: Real,
+pub(crate) fn point_in_tri_2d_exact<T: Scalar>(
+    px: T,
+    py: T,
+    ax: T,
+    ay: T,
+    bx: T,
+    by: T,
+    cx: T,
+    cy: T,
 ) -> bool {
     let p = [px, py];
     let a = [ax, ay];
@@ -67,10 +72,10 @@ pub(crate) fn point_in_tri_2d_exact(
 ///
 /// `indices` refers into `tris`; duplicates are tolerated and behave as a set.
 #[inline]
-pub(crate) fn point_in_union_2d_exact_indexed(
-    px: Real,
-    py: Real,
-    tris: &[[Real; 6]],
+pub(crate) fn point_in_union_2d_exact_indexed<T: Scalar>(
+    px: T,
+    py: T,
+    tris: &[[T; 6]],
     indices: &[usize],
 ) -> bool {
     indices.iter().any(|&i| {
@@ -81,35 +86,35 @@ pub(crate) fn point_in_union_2d_exact_indexed(
 
 /// 2-D AABB of a triangle: `[min_u, min_v, max_u, max_v]`.
 #[inline]
-pub(crate) fn aabb2(ax: Real, ay: Real, bx: Real, by: Real, cx: Real, cy: Real) -> [Real; 4] {
+pub(crate) fn aabb2<T: Scalar>(ax: T, ay: T, bx: T, by: T, cx: T, cy: T) -> [T; 4] {
     [
-        ax.min(bx).min(cx),
-        ay.min(by).min(cy),
-        ax.max(bx).max(cx),
-        ay.max(by).max(cy),
+        ax.min_scalar(bx).min_scalar(cx),
+        ay.min_scalar(by).min_scalar(cy),
+        ax.max_scalar(bx).max_scalar(cx),
+        ay.max_scalar(by).max_scalar(cy),
     ]
 }
 
 /// True if two 2-D AABBs intersect (inclusive boundary).
 #[inline]
-pub(crate) fn aabb_overlaps(a: &[Real; 4], b: &[Real; 4]) -> bool {
+pub(crate) fn aabb_overlaps<T: Scalar>(a: &[T; 4], b: &[T; 4]) -> bool {
     a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3]
 }
 
 /// Unsigned area of a 2-D polygon via the shoelace formula.
 #[cfg(test)]
 #[inline]
-pub(crate) fn polygon_area_2d(poly: &[[Real; 2]]) -> Real {
+pub(crate) fn polygon_area_2d<T: Scalar + std::ops::Neg<Output = T>>(poly: &[[T; 2]]) -> T {
     let n = poly.len();
     if n < 3 {
-        return 0.0;
+        return <T as NumericElement>::ZERO;
     }
-    let mut sum = 0.0;
+    let mut sum = <T as NumericElement>::ZERO;
     for i in 0..n {
         let j = (i + 1) % n;
         sum += poly[i][0] * poly[j][1] - poly[j][0] * poly[i][1];
     }
-    sum.abs() * 0.5
+    <T as NumericElement>::abs(sum) * <T as Scalar>::from_f64(0.5)
 }
 
 #[cfg(test)]

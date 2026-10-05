@@ -186,12 +186,20 @@ impl<T: Scalar> HistogramT<T> {
     }
 
     /// Number of bins.
+    #[expect(
+        dead_code,
+        reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+    )]
     #[must_use]
     pub fn n_bins(&self) -> usize {
         self.bins.len()
     }
 
     /// Bin width (uniform).
+    #[expect(
+        dead_code,
+        reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+    )]
     #[must_use]
     pub fn bin_width(&self) -> T {
         if self.edges.len() < 2 {
@@ -201,6 +209,10 @@ impl<T: Scalar> HistogramT<T> {
     }
 
     /// Bin midpoint for bin index `i`.
+    #[expect(
+        dead_code,
+        reason = "GAIA-003 keeps generic histogram helpers available for the upcoming analyzer/report migration even though the lib target does not consume them yet"
+    )]
     #[must_use]
     pub fn midpoint(&self, i: usize) -> T {
         let half = <T as Scalar>::from_f64(0.5);

@@ -48,6 +48,12 @@ Progress (Phase 30, 2026-10-04):
 - `exact_percentile_scalar<T>` and `HistogramT<T>` in `histograms.rs` — quality histogram arithmetic stays in input precision; public `Histogram` delegates to generic `HistogramT<Real>`.
 - Remaining `Real` count: ~780 across ~100 files; next slices: `cdt.rs`, `coplanar/geometry2d.rs`, `welding/snap.rs`.
 
+Progress (Phase 32, 2026-10-04):
+- `src/application/csg/coplanar/geometry2d.rs` now carries `point_in_tri_2d_exact`, `point_in_union_2d_exact_indexed`, `aabb2`, and `aabb_overlaps` over `T: Scalar` without changing `operations.rs` callers; test-only `polygon_area_2d` matches the generic seam.
+- `src/application/delaunay/dim2/refinement/quality.rs` tightened its numeric formulas with named constants, inline attributes, and clippy-clean cosine clamping/circumradius factors.
+- `src/application/quality/analyzer.rs` marks the `HistogramT<T>` follow-up seam for GAIA-003 once `FullQualityReport` becomes generic.
+- `src/application/welding/snap.rs` records the next inline-overflow storage optimization after confirming `smallvec` is not a direct dependency and singleton cells already stay inline through `CellIndices`.
+
 ---
 
 ## GAIA-005 — Retire the 39 ignored doctests

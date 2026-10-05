@@ -35,6 +35,15 @@
 use crate::application::delaunay::dim2::pslg::vertex::PslgVertex;
 use crate::domain::core::scalar::Real;
 
+/// Law-of-sines denominator in the circumradius formula `R = abc / (4A)`.
+const CIRCUMRADIUS_AREA_FACTOR: Real = 4.0;
+/// Law-of-cosines denominator factor `2ab` for the interior-angle cosine.
+const LAW_OF_COSINES_DENOMINATOR_FACTOR: Real = 2.0;
+/// Clamp lower bound for cosine values before `acos`.
+const MIN_COSINE: Real = -1.0;
+/// Clamp upper bound for cosine values before `acos`.
+const MAX_COSINE: Real = 1.0;
+
 /// Quality metrics for a single triangle.
 #[derive(Debug, Clone, Copy)]
 pub struct TriangleQuality {
@@ -64,6 +73,7 @@ impl TriangleQuality {
     /// threshold is correct for coordinates in any range — unlike the
     /// previous absolute threshold of $10^{-30}$ which could mis-classify
     /// micro-scale triangles.
+    #[inline]
     #[must_use]
     pub fn compute(a: &PslgVertex, b: &PslgVertex, c: &PslgVertex) -> Self {
         let (abx, aby) = (b.x - a.x, b.y - a.y);
@@ -90,7 +100,7 @@ impl TriangleQuality {
 
         // Circumradius: R = (a * b * c) / (4 * area)
         let circumradius = if area > area_tol {
-            (lab * lbc * lca) / (4.0 * area)
+            (lab * lbc * lca) / (CIRCUMRADIUS_AREA_FACTOR * area)
         } else {
             Real::INFINITY
         };
@@ -131,13 +141,13 @@ impl TriangleQuality {
     #[inline]
     fn min_interior_angle(ab: Real, bc: Real, ca: Real) -> Real {
         // Angle at A (between edges AB and CA): cos A = (AB² + CA² - BC²) / (2·AB·CA)
-        let cos_a = (ab * ab + ca * ca - bc * bc) / (2.0 * ab * ca);
-        let cos_b = (ab * ab + bc * bc - ca * ca) / (2.0 * ab * bc);
-        let cos_c = (bc * bc + ca * ca - ab * ab) / (2.0 * bc * ca);
+        let cos_a = (ab * ab + ca * ca - bc * bc) / (LAW_OF_COSINES_DENOMINATOR_FACTOR * ab * ca);
+        let cos_b = (ab * ab + bc * bc - ca * ca) / (LAW_OF_COSINES_DENOMINATOR_FACTOR * ab * bc);
+        let cos_c = (bc * bc + ca * ca - ab * ab) / (LAW_OF_COSINES_DENOMINATOR_FACTOR * bc * ca);
 
-        let angle_a = cos_a.clamp(-1.0, 1.0).acos();
-        let angle_b = cos_b.clamp(-1.0, 1.0).acos();
-        let angle_c = cos_c.clamp(-1.0, 1.0).acos();
+        let angle_a = cos_a.clamp(MIN_COSINE, MAX_COSINE).acos();
+        let angle_b = cos_b.clamp(MIN_COSINE, MAX_COSINE).acos();
+        let angle_c = cos_c.clamp(MIN_COSINE, MAX_COSINE).acos();
 
         angle_a.min(angle_b).min(angle_c)
     }
