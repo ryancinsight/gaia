@@ -17,30 +17,29 @@ use crate::domain::core::constants::{
     CLIP2D_INTERSECT_PARAM_MARGIN, CLIP2D_SHATTER_DIST_SQ, CLIP2D_SHATTER_PARAM_MARGIN,
     CLIP2D_WELD_LEN,
 };
-use crate::domain::core::scalar::Real;
 use hashbrown::HashMap;
 
 /// Weld distance for the point grid and intersection welds.
 ///
 /// Delegates to [`CLIP2D_WELD_LEN`] (SSOT).
-const WELD_TOL: Real = CLIP2D_WELD_LEN;
+const WELD_TOL: f64 = CLIP2D_WELD_LEN;
 /// Parameter margin for "strictly interior" on a clip segment.
 ///
 /// Delegates to [`CLIP2D_INTERSECT_PARAM_MARGIN`] (SSOT).
-const INTERIOR_TOL: Real = CLIP2D_INTERSECT_PARAM_MARGIN;
+const INTERIOR_TOL: f64 = CLIP2D_INTERSECT_PARAM_MARGIN;
 
 #[derive(Clone, Copy, Debug)]
 struct EdgeAabb2d {
-    a: [Real; 2],
-    b: [Real; 2],
-    min_x: Real,
-    min_y: Real,
-    max_x: Real,
-    max_y: Real,
+    a: [f64; 2],
+    b: [f64; 2],
+    min_x: f64,
+    min_y: f64,
+    max_x: f64,
+    max_y: f64,
 }
 
 impl EdgeAabb2d {
-    fn new(a: [Real; 2], b: [Real; 2]) -> Self {
+    fn new(a: [f64; 2], b: [f64; 2]) -> Self {
         Self {
             a,
             b,
@@ -55,7 +54,7 @@ impl EdgeAabb2d {
         clippy::float_cmp,
         reason = "degenerate-edge guard: consecutive polygon vertices that are bitwise-identical produce zero-length edges; comparing the 2-element f64 arrays by equality is correct here since they must be the same values from the same polygon array"
     )]
-    fn from_polygon(poly: &[[Real; 2]]) -> Vec<Self> {
+    fn from_polygon(poly: &[[f64; 2]]) -> Vec<Self> {
         let n = poly.len();
         let mut edges = Vec::with_capacity(n);
         for i in 0..n {
@@ -92,13 +91,13 @@ impl EdgeAabb2d {
 /// floor indices implies cell index difference in `{-1,0,1}`. Cartesian product
 /// over two axes gives exactly the 3x3 neighborhood. ∎
 struct SpatialHashWeld2d {
-    inv_cell: Real,
-    tol_sq: Real,
+    inv_cell: f64,
+    tol_sq: f64,
     bins: HashMap<GridCell2d, Vec<usize>>,
 }
 
 impl SpatialHashWeld2d {
-    fn new(tol: Real) -> Self {
+    fn new(tol: f64) -> Self {
         Self {
             inv_cell: 1.0 / tol,
             tol_sq: tol * tol,
@@ -107,11 +106,11 @@ impl SpatialHashWeld2d {
     }
 
     #[inline]
-    fn cell_of(&self, p: [Real; 2]) -> GridCell2d {
+    fn cell_of(&self, p: [f64; 2]) -> GridCell2d {
         GridCell2d::from_point(&p, self.inv_cell)
     }
 
-    fn insert_or_weld(&mut self, p: [Real; 2], unique: &mut Vec<[Real; 2]>) -> usize {
+    fn insert_or_weld(&mut self, p: [f64; 2], unique: &mut Vec<[f64; 2]>) -> usize {
         let cell = self.cell_of(p);
 
         for nb_cell in cell.neighborhood_9() {
@@ -208,7 +207,7 @@ fn collect_overlapping_edge_pairs_sweep(
     clippy::similar_names,
     reason = "subject/clip polygon shorthand is standard for clipping algorithms"
 )]
-pub fn cdt_clip(subject: &[[Real; 2]], clip: &[[Real; 2]], op: ClipOp) -> Vec<Vec<[Real; 2]>> {
+pub fn cdt_clip(subject: &[[f64; 2]], clip: &[[f64; 2]], op: ClipOp) -> Vec<Vec<[f64; 2]>> {
     use crate::application::delaunay::Cdt;
 
     if subject.len() < 3 || clip.len() < 3 {
@@ -220,7 +219,7 @@ pub fn cdt_clip(subject: &[[Real; 2]], clip: &[[Real; 2]], op: ClipOp) -> Vec<Ve
     ensure_ccw(&mut subj);
     ensure_ccw(&mut clp);
 
-    let mut unique: Vec<[Real; 2]> = Vec::with_capacity(subj.len() + clp.len());
+    let mut unique: Vec<[f64; 2]> = Vec::with_capacity(subj.len() + clp.len());
     let mut welder = SpatialHashWeld2d::new(WELD_TOL);
 
     let mut subj_indices: Vec<usize> = Vec::with_capacity(subj.len());
@@ -269,7 +268,7 @@ pub fn cdt_clip(subject: &[[Real; 2]], clip: &[[Real; 2]], op: ClipOp) -> Vec<Ve
     let dt = cdt.triangulation();
 
     let verts = dt.vertices();
-    let mut result: Vec<Vec<[Real; 2]>> = Vec::new();
+    let mut result: Vec<Vec<[f64; 2]>> = Vec::new();
 
     for (_, tri) in dt.interior_triangles() {
         let [v0, v1, v2] = tri.vertices;
@@ -298,15 +297,15 @@ pub fn cdt_clip(subject: &[[Real; 2]], clip: &[[Real; 2]], op: ClipOp) -> Vec<Ve
 }
 
 fn add_shattered_edges(
-    poly: &[[Real; 2]],
+    poly: &[[f64; 2]],
     indices: &[usize],
-    unique: &[[Real; 2]],
+    unique: &[[f64; 2]],
     point_index: &PlanarPointGridIndex,
     pslg_edges: &mut Vec<PlanarEdgeKey>,
 ) {
     let n = poly.len();
     let mut candidates: Vec<usize> = Vec::new();
-    let mut on_edge: Vec<(Real, usize)> = Vec::new();
+    let mut on_edge: Vec<(f64, usize)> = Vec::new();
     for i in 0..n {
         let j = (i + 1) % n;
         let ri = indices[i];
@@ -367,11 +366,11 @@ mod tests {
             subj in prop::collection::vec((-40_i16..40_i16, -40_i16..40_i16), 3..10),
             clip in prop::collection::vec((-40_i16..40_i16, -40_i16..40_i16), 3..10)
         ) {
-            let subj_poly: Vec<[Real;2]> = subj.into_iter()
-                .map(|(x,y)| [Real::from(x) * 0.25, Real::from(y) * 0.25])
+            let subj_poly: Vec<[f64;2]> = subj.into_iter()
+                .map(|(x,y)| [f64::from(x) * 0.25, f64::from(y) * 0.25])
                 .collect();
-            let clip_poly: Vec<[Real;2]> = clip.into_iter()
-                .map(|(x,y)| [Real::from(x) * 0.25, Real::from(y) * 0.25])
+            let clip_poly: Vec<[f64;2]> = clip.into_iter()
+                .map(|(x,y)| [f64::from(x) * 0.25, f64::from(y) * 0.25])
                 .collect();
 
             let subj_edges = EdgeAabb2d::from_polygon(&subj_poly);

@@ -64,6 +64,11 @@ Progress (Phase 35, 2026-10-05):
 - `quality/normals.rs`: `NormalAnalysis::is_consistent_within(Dimensionless<Real>)` typed helper.
 - `arrangement/planar.rs`: public functions accept `&[[T; 2]]` coordinates; internal grid arithmetic stays in f64.
 
+Progress (Phase 36, 2026-10-05):
+- `infrastructure/io/stl.rs`, `obj.rs`, `ply.rs`: `write_*` functions now generic over `T: Scalar`; `IndexedMesh<f32>` meshes can be exported without widening. Tests: `ascii_stl_exports_f32_mesh`, `binary_stl_exports_f32_mesh` added.
+- ADR-0007 added: documents the T:Scalar precision seam and the intentional f64 boundary in the CDT/CSG predicates.
+- `cdt.rs` / `mod.rs`: explicit `f64` replacing `Real` type alias to document the intentional precision boundary.
+
 ---
 
 ## GAIA-005 — Retire the 39 ignored doctests

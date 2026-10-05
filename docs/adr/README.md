@@ -15,3 +15,4 @@
 | [0004](0004-symmetric-gwn-classification-thresholds.md) | Derive symmetric GWN classification thresholds | Accepted |
 | [0005](0005-native-precision-predicate-boundary.md) | Native-precision predicate boundary via exact promotion | Accepted |
 | [0006](0006-pslg-scalar-relative-tolerances.md) | PSLG scalar-relative tolerances | Accepted |
+| [0007](0007-scalar-precision-seam.md) | Native-Precision Scalar Seam (`T: Scalar`) | Accepted |

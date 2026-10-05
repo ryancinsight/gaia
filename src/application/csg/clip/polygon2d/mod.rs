@@ -31,7 +31,6 @@ pub(crate) mod geometry;
 pub(crate) mod sutherland_hodgman;
 pub use geometry::polygon_area;
 
-use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{orient_2d_arr, Orientation};
 use cdt::cdt_clip;
 use sutherland_hodgman::{sh_clip_convex, sh_clip_halfplane};
@@ -53,7 +52,7 @@ pub enum ClipOp {
 /// clipping. Internally it uses the CDT-based constrained arrangement backend,
 /// which is robust under shared vertices/edges and other degeneracies.
 #[must_use]
-pub fn boolean_clip(subject: &[[Real; 2]], clip: &[[Real; 2]], op: ClipOp) -> Vec<Vec<[Real; 2]>> {
+pub fn boolean_clip(subject: &[[f64; 2]], clip: &[[f64; 2]], op: ClipOp) -> Vec<Vec<[f64; 2]>> {
     cdt_clip(subject, clip, op)
 }
 
@@ -64,14 +63,14 @@ pub fn boolean_clip(subject: &[[Real; 2]], clip: &[[Real; 2]], op: ClipOp) -> Ve
 /// Used by the coplanar CSG pipeline.
 #[must_use]
 pub fn clip_polygon_to_triangle(
-    poly: &[[Real; 2]],
-    dx: Real,
-    dy: Real,
-    ex: Real,
-    ey: Real,
-    fx: Real,
-    fy: Real,
-) -> Vec<[Real; 2]> {
+    poly: &[[f64; 2]],
+    dx: f64,
+    dy: f64,
+    ex: f64,
+    ey: f64,
+    fx: f64,
+    fy: f64,
+) -> Vec<[f64; 2]> {
     if poly.len() < 3 {
         return Vec::new();
     }
@@ -96,14 +95,14 @@ pub fn clip_polygon_to_triangle(
 /// Used by the coplanar CSG pipeline.
 #[must_use]
 pub fn split_polygon_outside_triangle(
-    poly: &[[Real; 2]],
-    dx: Real,
-    dy: Real,
-    ex: Real,
-    ey: Real,
-    fx: Real,
-    fy: Real,
-) -> Vec<Vec<[Real; 2]>> {
+    poly: &[[f64; 2]],
+    dx: f64,
+    dy: f64,
+    ex: f64,
+    ey: f64,
+    fx: f64,
+    fy: f64,
+) -> Vec<Vec<[f64; 2]>> {
     if poly.len() < 3 {
         return Vec::new();
     }
@@ -163,11 +162,11 @@ pub fn split_polygon_outside_triangle(
 mod tests {
     use super::*;
 
-    fn approx_eq(a: Real, b: Real, tol: Real) -> bool {
+    fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
         (a - b).abs() < tol
     }
 
-    fn total_area(polys: &[Vec<[Real; 2]>]) -> Real {
+    fn total_area(polys: &[Vec<[f64; 2]>]) -> f64 {
         polys.iter().map(|p| polygon_area(p)).sum()
     }
 
@@ -205,7 +204,7 @@ mod tests {
 
         let area_poly = polygon_area(&poly);
         let area_in = polygon_area(&inside);
-        let area_out: Real = outside.iter().map(|p| polygon_area(p)).sum();
+        let area_out: f64 = outside.iter().map(|p| polygon_area(p)).sum();
         let err = ((area_in + area_out) - area_poly).abs();
         assert!(err < 0.01, "area conservation: err={err:.2e}");
     }
@@ -223,8 +222,8 @@ mod tests {
         let union = boolean_clip(&a, &b, ClipOp::Union);
         let inter = boolean_clip(&a, &b, ClipOp::Intersection);
 
-        let area_union: Real = union.iter().map(|p| polygon_area(p)).sum();
-        let area_inter: Real = inter.iter().map(|p| polygon_area(p)).sum();
+        let area_union: f64 = union.iter().map(|p| polygon_area(p)).sum();
+        let area_inter: f64 = inter.iter().map(|p| polygon_area(p)).sum();
 
         let lhs = area_a + area_b;
         let rhs = area_union + area_inter;
