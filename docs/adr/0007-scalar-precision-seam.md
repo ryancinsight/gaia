@@ -1,4 +1,4 @@
-# ADR-0007 — Native-Precision Scalar Seam (`T: Scalar`)
+# ADR 0007: Native-Precision Scalar Seam (`T: Scalar`)
 
 **Status**: Accepted  
 **Date**: 2026-10-05  

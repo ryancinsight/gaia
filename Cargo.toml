@@ -50,10 +50,8 @@ path = "src/lib.rs"
 
 # Error handling
 thiserror = "1.0"
-anyhow = "1.0"
 
 # Data structures
-indexmap = "2.0"
 slotmap = "1.0"
 leto = { version = "0.45.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
 eunomia = { version = "0.9.0", git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
