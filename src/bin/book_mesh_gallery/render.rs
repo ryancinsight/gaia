@@ -69,6 +69,10 @@ fn project(point: [f64; 3]) -> [f64; 3] {
 }
 
 fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
+    render_panel_sampled(svg, case, left, top, MAX_DRAW_FACES);
+}
+
+fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, max_faces: usize) {
     // World-space positions for normal/shading computation.
     let world: Vec<[f64; 3]> = case
         .mesh
@@ -103,8 +107,7 @@ fn render_panel(svg: &mut String, case: &MeshCase, left: f64, top: f64) {
         ]
     };
 
-    let face_stride =
-        case.mesh.faces.len().saturating_add(MAX_DRAW_FACES - 1) / MAX_DRAW_FACES.max(1);
+    let face_stride = case.mesh.faces.len().saturating_add(max_faces - 1) / max_faces.max(1);
     let face_stride = face_stride.max(1);
     let mut sampled_edges = BTreeSet::new();
     let mut sampled_faces: Vec<([[f64; 3]; 3], f64, f64)> = Vec::new();
@@ -218,7 +221,9 @@ pub(crate) fn case_panels(cases: &[MeshCase], output_dir: &Path) -> GalleryResul
             svg,
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{PANEL_WIDTH:.0}\" height=\"{PANEL_HEIGHT:.0}\" viewBox=\"0 0 {PANEL_WIDTH:.0} {PANEL_HEIGHT:.0}\" role=\"img\" aria-labelledby=\"panel-title\"><title id=\"panel-title\">{title}</title><desc>Single Gaia mesh panel generated from an IndexedMesh value.</desc><rect width=\"100%\" height=\"100%\" fill=\"white\"/>",
         );
-        render_panel(&mut svg, case, 0.0, 0.0);
+        // Individual model panels render ALL faces (no stride sampling) to avoid
+        // visible gaps in dense meshes like the capsule or spherical shell.
+        render_panel_sampled(&mut svg, case, 0.0, 0.0, usize::MAX);
         svg.push_str("</svg>\n");
         fs::write(output_dir.join(format!("{}.svg", case.slug)), svg)?;
     }
