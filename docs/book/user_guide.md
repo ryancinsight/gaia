@@ -427,6 +427,10 @@ if report.is_watertight {
 
 ## Export Formats
 
+All export functions are generic over `T: Scalar` — `IndexedMesh<f32>` and
+`IndexedMesh<f64>` can both be exported without conversion. Coordinates are
+written in `f64` (ASCII formats) or `f32` (binary STL, per specification).
+
 ```rust,ignore
 use std::fs::File;
 use gaia::infrastructure::io::{
@@ -438,8 +442,11 @@ use gaia::infrastructure::io::{
     three_mf::write_3mf,
 };
 
-// Binary STL
-write_binary_stl(&mut File::create("mesh.stl").unwrap(), &mesh).expect("STL");
+// f64 mesh — Binary STL
+write_binary_stl(&mut File::create("mesh.stl").unwrap(), &mesh_f64).expect("STL");
+
+// f32 mesh — same API, no conversion needed
+write_binary_stl(&mut File::create("mesh_f32.stl").unwrap(), &mesh_f32).expect("STL f32");
 
 // OBJ
 write_obj(&mut File::create("mesh.obj").unwrap(), &mesh).expect("OBJ");
