@@ -42,10 +42,11 @@ Progress (Phase 19, 2026-09-30):
   channel dimension accessors using `aequitas::systems::si::quantities`.
 - Phase 19 replaced 56+ `as Real` index casts with the eunomia conversions.
 
-Progress (Phase 29, 2026-10-02):
-- `src/application/quality/curvature.rs` now keeps cotangent-weighted mean-curvature accumulation in native `T: Scalar` precision, with a compatibility `vertex_mean_curvature_f64()` wrapper for explicit `f64` consumers.
-- `src/application/quality/metrics.rs` now exposes `from_scalar_values_direct<T: Scalar>()` and reduces sums/counts in the input scalar before converting only the final report fields to `f64`.
-- `src/application/csg/arrangement/seam.rs` keeps its tolerance math on `Real` intentionally and now documents that default-precision CSG-kernel boundary.
+Progress (Phase 30, 2026-10-04):
+- `src/application/csg/clip/polygon2d/geometry.rs` and `sutherland_hodgman.rs` now generic over `T: Scalar + Neg<Output=T>`.
+- New `polygon_area_generic<T>` crate-internal generic alongside backward-compat `polygon_area(poly: &[[Real; 2]])`.
+- `exact_percentile_scalar<T>` and `HistogramT<T>` in `histograms.rs` — quality histogram arithmetic stays in input precision; public `Histogram` delegates to generic `HistogramT<Real>`.
+- Remaining `Real` count: ~780 across ~100 files; next slices: `cdt.rs`, `coplanar/geometry2d.rs`, `welding/snap.rs`.
 
 ---
 
