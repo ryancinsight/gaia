@@ -12,19 +12,36 @@ const SHEET_COLUMNS: usize = 4;
 
 // ── Headlight shading ─────────────────────────────────────────────────────────
 
+/// Isometric view direction `[1,1,1]/√3`.
+const VIEW: [f64; 3] = [0.577_350_3, 0.577_350_3, 0.577_350_3];
+
 /// Isometric headlight direction (matches the projection axes).
-/// Points roughly from upper-right-front toward the scene.
 const LIGHT: [f64; 3] = [0.577_350_3, 0.577_350_3, 0.577_350_3]; // normalised [1,1,1]/√3
+
+/// Returns the (unnormalised) face normal from 3-D world positions.
+#[inline]
+fn face_normal(p0: [f64; 3], p1: [f64; 3], p2: [f64; 3]) -> [f64; 3] {
+    let ab = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+    let ac = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+    [
+        ab[1] * ac[2] - ab[2] * ac[1],
+        ab[2] * ac[0] - ab[0] * ac[2],
+        ab[0] * ac[1] - ab[1] * ac[0],
+    ]
+}
+
+/// Returns `true` when the face is front-facing relative to the isometric view.
+#[inline]
+fn is_front_facing(p0: [f64; 3], p1: [f64; 3], p2: [f64; 3]) -> bool {
+    let n = face_normal(p0, p1, p2);
+    n[0] * VIEW[0] + n[1] * VIEW[1] + n[2] * VIEW[2] > 0.0
+}
 
 /// Compute Lambert shading intensity for a face given its 3-D world positions.
 fn face_shade(p0: [f64; 3], p1: [f64; 3], p2: [f64; 3]) -> f64 {
-    let ab = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
-    let ac = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
-    let nx = ab[1] * ac[2] - ab[2] * ac[1];
-    let ny = ab[2] * ac[0] - ab[0] * ac[2];
-    let nz = ab[0] * ac[1] - ab[1] * ac[0];
-    let len = (nx * nx + ny * ny + nz * nz).sqrt().max(1e-20);
-    let cos_theta = ((nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / len).abs();
+    let n = face_normal(p0, p1, p2);
+    let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt().max(1e-20);
+    let cos_theta = ((n[0] * LIGHT[0] + n[1] * LIGHT[1] + n[2] * LIGHT[2]) / len).abs();
     // Lambert with ambient floor
     (0.25_f64 + 0.75 * cos_theta).clamp(0.0, 1.0)
 }
@@ -125,15 +142,20 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
         let Some(&pc) = positions.get(c.as_usize()) else {
             continue;
         };
+        // World-space positions for front-face culling and shading.
+        let wa = world.get(a.as_usize()).copied().unwrap_or([0.0; 3]);
+        let wb = world.get(b.as_usize()).copied().unwrap_or([0.0; 3]);
+        let wc = world.get(c.as_usize()).copied().unwrap_or([0.0; 3]);
+        // Skip back-facing faces — they would draw edges on top of front faces.
+        if !is_front_facing(wa, wb, wc) {
+            continue;
+        }
+        // Only front-facing edges end up in the wireframe overlay.
         sampled_edges.extend(face.edges_canonical());
         let pa = map(pa);
         let pb = map(pb);
         let pc = map(pc);
         let depth = (pa[2] + pb[2] + pc[2]) / 3.0;
-        // Lambert shading from world-space positions
-        let wa = world.get(a.as_usize()).copied().unwrap_or([0.0; 3]);
-        let wb = world.get(b.as_usize()).copied().unwrap_or([0.0; 3]);
-        let wc = world.get(c.as_usize()).copied().unwrap_or([0.0; 3]);
         let shade = face_shade(wa, wb, wc);
         sampled_faces.push(([pa, pb, pc], depth, shade));
     }
@@ -150,9 +172,10 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
         left + 140.0,
         top + 21.0
     );
+    // Draw front-facing faces with Lambert shading; each polygon carries its own stroke.
     svg.push_str("<g stroke-linejoin=\"round\">");
-    for (points, _, shade) in sampled_faces {
-        let color = shade_to_color(shade);
+    for (points, _, shade) in &sampled_faces {
+        let color = shade_to_color(*shade);
         let stroke = shade_to_color((shade * 0.6).max(0.1));
         let _ = write!(
             svg,
@@ -160,7 +183,7 @@ fn render_panel_sampled(svg: &mut String, case: &MeshCase, left: f64, top: f64, 
             points[0][0], points[0][1], points[1][0], points[1][1], points[2][0], points[2][1]
         );
     }
-    svg.push_str("</g><g stroke=\"#0f172a\" stroke-width=\"0.35\" stroke-opacity=\"0.45\">");
+    svg.push_str("</g><g stroke=\"#0f172a\" stroke-width=\"0.35\" stroke-opacity=\"0.30\">");
     for (a, b) in sampled_edges {
         let Some(&pa) = positions.get(a.as_usize()) else {
             continue;
