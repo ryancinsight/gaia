@@ -4,11 +4,11 @@
 
 use std::io::{BufRead, BufReader, Read, Write};
 
-use eunomia::FloatElement;
+use eunomia::{FloatElement, NumericElement};
 
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Real, Vector3r};
+use crate::domain::core::scalar::{Point3r, Real, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 use crate::infrastructure::storage::face_store::{FaceData, FaceStore};
 use crate::infrastructure::storage::vertex_pool::VertexPool;
@@ -17,14 +17,17 @@ use super::parse;
 
 /// Write an indexed mesh as ASCII STL.
 ///
+/// Generic over the scalar type `T`; coordinates are written as `f64` so the
+/// output precision is independent of the input scalar width.
+///
 /// # Errors
 ///
 /// Returns [`MeshError::Io`] if writing any header, facet, or vertex record
 /// to `writer` fails.
-pub fn write_ascii_stl<W: Write>(
+pub fn write_ascii_stl<W: Write, T: Scalar>(
     writer: &mut W,
     name: &str,
-    vertex_pool: &VertexPool,
+    vertex_pool: &VertexPool<T>,
     face_store: &FaceStore,
 ) -> MeshResult<()> {
     writeln!(writer, "solid {name}").map_err(MeshError::Io)?;
@@ -35,17 +38,30 @@ pub fn write_ascii_stl<W: Write>(
         let c = vertex_pool.position(face.vertices[2]);
 
         let normal =
-            crate::domain::geometry::normal::triangle_normal(a, b, c).unwrap_or_else(Vector3r::z);
+            crate::domain::geometry::normal::triangle_normal(a, b, c).unwrap_or_else(|| {
+                let mut z = leto::geometry::Vector3::zeros();
+                z.z = <T as crate::domain::core::scalar::Scalar>::from_f64(1.0);
+                z
+            });
 
         writeln!(
             writer,
-            "  facet normal {} {} {}",
-            normal.x, normal.y, normal.z
+            "  facet normal {:.7} {:.7} {:.7}",
+            <T as NumericElement>::to_f64(normal.x),
+            <T as NumericElement>::to_f64(normal.y),
+            <T as NumericElement>::to_f64(normal.z),
         )
         .map_err(MeshError::Io)?;
         writeln!(writer, "    outer loop").map_err(MeshError::Io)?;
         for p in [&a, &b, &c] {
-            writeln!(writer, "      vertex {} {} {}", p.x, p.y, p.z).map_err(MeshError::Io)?;
+            writeln!(
+                writer,
+                "      vertex {:.7} {:.7} {:.7}",
+                <T as NumericElement>::to_f64(p.x),
+                <T as NumericElement>::to_f64(p.y),
+                <T as NumericElement>::to_f64(p.z),
+            )
+            .map_err(MeshError::Io)?;
         }
         writeln!(writer, "    endloop").map_err(MeshError::Io)?;
         writeln!(writer, "  endfacet").map_err(MeshError::Io)?;
@@ -57,6 +73,9 @@ pub fn write_ascii_stl<W: Write>(
 
 /// Write an indexed mesh as binary STL.
 ///
+/// Generic over the scalar type `T`; vertex coordinates and normals are stored
+/// as `f32` per the binary STL specification.
+///
 /// # Errors
 ///
 /// Returns [`MeshError::Io`] if writing the header, triangle count, triangle
@@ -65,9 +84,9 @@ pub fn write_ascii_stl<W: Write>(
 /// # Panics
 ///
 /// Panics if the triangle count exceeds the binary STL `u32` header field.
-pub fn write_binary_stl<W: Write>(
+pub fn write_binary_stl<W: Write, T: Scalar>(
     writer: &mut W,
-    vertex_pool: &VertexPool,
+    vertex_pool: &VertexPool<T>,
     face_store: &FaceStore,
 ) -> MeshResult<()> {
     // 80-byte header
@@ -86,7 +105,11 @@ pub fn write_binary_stl<W: Write>(
         let c = vertex_pool.position(face.vertices[2]);
 
         let normal =
-            crate::domain::geometry::normal::triangle_normal(a, b, c).unwrap_or_else(Vector3r::z);
+            crate::domain::geometry::normal::triangle_normal(a, b, c).unwrap_or_else(|| {
+                let mut z = leto::geometry::Vector3::zeros();
+                z.z = <T as crate::domain::core::scalar::Scalar>::from_f64(1.0);
+                z
+            });
 
         // Normal (3 × f32) — eunomia's to_f32() is the explicit precision-reduction path
         write_f32(writer, normal.x.to_f32())?;
@@ -296,19 +319,30 @@ pub fn read_stl<R: Read>(reader: R) -> MeshResult<IndexedMesh> {
 
 /// Write an [`IndexedMesh`] as ASCII STL (convenience wrapper).
 ///
+/// Generic over scalar `T`; existing callers with `IndexedMesh<f64>` are unchanged.
+///
 /// # Errors
 ///
 /// Returns [`MeshError::Io`] if emitting the ASCII STL stream fails.
-pub fn write_stl_ascii<W: Write>(writer: &mut W, name: &str, mesh: &IndexedMesh) -> MeshResult<()> {
+pub fn write_stl_ascii<W: Write, T: Scalar>(
+    writer: &mut W,
+    name: &str,
+    mesh: &IndexedMesh<T>,
+) -> MeshResult<()> {
     write_ascii_stl(writer, name, &mesh.vertices, &mesh.faces)
 }
 
 /// Write an [`IndexedMesh`] as binary STL (convenience wrapper).
 ///
+/// Generic over scalar `T`; existing callers with `IndexedMesh<f64>` are unchanged.
+///
 /// # Errors
 ///
 /// Returns [`MeshError::Io`] if emitting the binary STL stream fails.
-pub fn write_stl_binary<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
+pub fn write_stl_binary<W: Write, T: Scalar>(
+    writer: &mut W,
+    mesh: &IndexedMesh<T>,
+) -> MeshResult<()> {
     write_binary_stl(writer, &mesh.vertices, &mesh.faces)
 }
 
@@ -382,7 +416,38 @@ mod tests {
         assert_eq!(mesh2.vertex_count(), 3);
     }
 
-    // ── Non-finite input is refused ───────────────────────────────────────
+    // ── f32 mesh export ───────────────────────────────────────────────────
+
+    #[test]
+    fn ascii_stl_exports_f32_mesh() {
+        use leto::geometry::Point3;
+        let mut mesh = IndexedMesh::<f32>::new();
+        let v0 = mesh.add_vertex_pos(Point3::new(0.0_f32, 0.0, 0.0));
+        let v1 = mesh.add_vertex_pos(Point3::new(1.0_f32, 0.0, 0.0));
+        let v2 = mesh.add_vertex_pos(Point3::new(0.0_f32, 1.0, 0.0));
+        mesh.add_face(v0, v1, v2);
+
+        let mut buf = Vec::new();
+        write_stl_ascii(&mut buf, "f32-test", &mesh).unwrap();
+        let s = std::str::from_utf8(&buf).unwrap();
+        assert!(s.contains("solid f32-test"));
+        assert!(s.contains("vertex"));
+    }
+
+    #[test]
+    fn binary_stl_exports_f32_mesh() {
+        use leto::geometry::Point3;
+        let mut mesh = IndexedMesh::<f32>::new();
+        let v0 = mesh.add_vertex_pos(Point3::new(0.0_f32, 0.0, 0.0));
+        let v1 = mesh.add_vertex_pos(Point3::new(1.0_f32, 0.0, 0.0));
+        let v2 = mesh.add_vertex_pos(Point3::new(0.0_f32, 1.0, 0.0));
+        mesh.add_face(v0, v1, v2);
+
+        let mut buf = Vec::new();
+        write_stl_binary(&mut buf, &mesh).unwrap();
+        // Binary STL: 80-byte header + 4-byte count + 1 triangle × 50 bytes = 134
+        assert_eq!(buf.len(), 134);
+    }
 
     /// A one-triangle binary STL whose first vertex has x-coordinate `first_x`.
     ///

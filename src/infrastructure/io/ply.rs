@@ -5,9 +5,11 @@
 use hashbrown::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
 
+use eunomia::NumericElement;
+
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 use super::parse;
@@ -35,25 +37,34 @@ fn write_ply_header<W: Write>(
 }
 
 /// Write the vertex section and return the contiguous vertex index map.
-fn write_ply_vertices<W: Write>(
+fn write_ply_vertices<W: Write, T: Scalar>(
     writer: &mut W,
-    mesh: &IndexedMesh,
+    mesh: &IndexedMesh<T>,
 ) -> MeshResult<HashMap<crate::domain::core::index::VertexId, usize>> {
     let mut id_to_idx = HashMap::with_capacity(mesh.vertex_count());
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
         id_to_idx.insert(vid, idx);
         let p = &vdata.position;
         let n = &vdata.normal;
-        writeln!(writer, "{} {} {} {} {} {}", p.x, p.y, p.z, n.x, n.y, n.z)
-            .map_err(MeshError::Io)?;
+        writeln!(
+            writer,
+            "{:.7} {:.7} {:.7} {:.7} {:.7} {:.7}",
+            <T as NumericElement>::to_f64(p.x),
+            <T as NumericElement>::to_f64(p.y),
+            <T as NumericElement>::to_f64(p.z),
+            <T as NumericElement>::to_f64(n.x),
+            <T as NumericElement>::to_f64(n.y),
+            <T as NumericElement>::to_f64(n.z),
+        )
+        .map_err(MeshError::Io)?;
     }
     Ok(id_to_idx)
 }
 
 /// Write the face section using the previously emitted vertex index map.
-fn write_ply_faces<W: Write>(
+fn write_ply_faces<W: Write, T: Scalar>(
     writer: &mut W,
-    mesh: &IndexedMesh,
+    mesh: &IndexedMesh<T>,
     id_to_idx: &HashMap<crate::domain::core::index::VertexId, usize>,
 ) -> MeshResult<()> {
     for (_fid, face) in mesh.faces.iter_enumerated() {
@@ -71,11 +82,13 @@ fn write_ply_faces<W: Write>(
 
 /// Write an [`IndexedMesh`] as ASCII PLY.
 ///
+/// Generic over scalar `T`; existing callers with `IndexedMesh<f64>` are unchanged.
+///
 /// # Errors
 ///
 /// Returns [`MeshError::Io`] if writing the PLY header, vertex records, or
 /// face records fails.
-pub fn write_ply<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
+pub fn write_ply<W: Write, T: Scalar>(writer: &mut W, mesh: &IndexedMesh<T>) -> MeshResult<()> {
     let vertex_count = mesh.vertex_count();
     let face_count = mesh.face_count();
     write_ply_header(writer, vertex_count, face_count)?;

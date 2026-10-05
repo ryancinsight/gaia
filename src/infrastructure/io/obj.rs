@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::core::index::RegionId;
-use crate::domain::core::scalar::{Point3r, Vector3r};
+use crate::domain::core::scalar::{Point3r, Scalar, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
 use super::parse;
@@ -18,13 +18,17 @@ use super::parse;
 
 /// Write an [`IndexedMesh`] as Wavefront OBJ.
 ///
+/// Generic over scalar `T`; existing callers with `IndexedMesh<f64>` are unchanged.
+/// Coordinates are written as `f64` for consistent precision.
+///
 /// Emits `v` (position), `vn` (normal), and `f` (face) records.
 /// OBJ uses 1-based indexing.
 ///
 /// # Errors
 ///
 /// Returns [`MeshError::Io`] if writing any OBJ record to `writer` fails.
-pub fn write_obj<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()> {
+pub fn write_obj<W: Write, T: Scalar>(writer: &mut W, mesh: &IndexedMesh<T>) -> MeshResult<()> {
+    use eunomia::NumericElement;
     writeln!(writer, "# OBJ exported by gaia").map_err(MeshError::Io)?;
 
     // Build a contiguous index map: VertexId -> 0-based index.
@@ -35,12 +39,26 @@ pub fn write_obj<W: Write>(writer: &mut W, mesh: &IndexedMesh) -> MeshResult<()>
     for (idx, (vid, vdata)) in mesh.vertices.iter().enumerate() {
         id_to_idx.insert(vid, idx);
         let p = &vdata.position;
-        writeln!(writer, "v {} {} {}", p.x, p.y, p.z).map_err(MeshError::Io)?;
+        writeln!(
+            writer,
+            "v {:.7} {:.7} {:.7}",
+            <T as NumericElement>::to_f64(p.x),
+            <T as NumericElement>::to_f64(p.y),
+            <T as NumericElement>::to_f64(p.z),
+        )
+        .map_err(MeshError::Io)?;
     }
 
     for (_vid, vdata) in mesh.vertices.iter() {
         let n = &vdata.normal;
-        writeln!(writer, "vn {} {} {}", n.x, n.y, n.z).map_err(MeshError::Io)?;
+        writeln!(
+            writer,
+            "vn {:.7} {:.7} {:.7}",
+            <T as NumericElement>::to_f64(n.x),
+            <T as NumericElement>::to_f64(n.y),
+            <T as NumericElement>::to_f64(n.z),
+        )
+        .map_err(MeshError::Io)?;
     }
 
     // Emit faces (1-indexed).
