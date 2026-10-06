@@ -60,7 +60,7 @@
 use eunomia::FloatElement;
 use hashbrown::HashMap;
 
-use crate::domain::core::scalar::{Point3r, Real};
+use crate::domain::core::scalar::{Point3r, Real, Scalar};
 use crate::infrastructure::storage::CellIndices;
 
 // ── GridCell ─────────────────────────────────────────────────────────────────
@@ -435,6 +435,40 @@ impl SnappingGrid {
     pub fn clear(&mut self) {
         self.buckets.clear();
         self.positions.clear();
+    }
+
+    // ── Generic precision adapters ────────────────────────────────────────
+
+    /// Insert a point of precision `T`, widening to `f64` at the boundary.
+    ///
+    /// Wraps [`insert_or_weld`][Self::insert_or_weld] with a `to_f64`
+    /// conversion.  For `f64` meshes this is a zero-cost identity; for `f32`
+    /// meshes it keeps the widening explicit and local.
+    #[inline]
+    pub fn insert_or_weld_t<T: Scalar>(&mut self, point: leto::geometry::Point3<T>) -> (u32, bool) {
+        self.insert_or_weld(Point3r::new(
+            point.x.to_f64(),
+            point.y.to_f64(),
+            point.z.to_f64(),
+        ))
+    }
+
+    /// Collect all stored positions as `Point3<T>`, narrowing from `f64`.
+    ///
+    /// For `f64` meshes this is a zero-cost identity; for `f32` meshes each
+    /// coordinate is narrowed once at the reporting boundary.
+    #[must_use]
+    pub fn positions_as<T: Scalar>(&self) -> Vec<leto::geometry::Point3<T>> {
+        self.positions
+            .iter()
+            .map(|p| {
+                leto::geometry::Point3::new(
+                    <T as Scalar>::from_f64(p.x),
+                    <T as Scalar>::from_f64(p.y),
+                    <T as Scalar>::from_f64(p.z),
+                )
+            })
+            .collect()
     }
 }
 
