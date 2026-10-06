@@ -6,6 +6,8 @@
 - [Executable quick start](quick_start.md)
 - [Atlas ownership and provider boundaries](atlas_ownership.md)
 - [User Guide](user_guide.md)
+- [Performance & Precision Guide](performance.md)
+- [Safety & Validation Reference](safety.md)
 - [Quality Metrics Reference](quality_metrics.md)
 - [Algorithm Reference](algorithms.md)
 - [Reviewed mesh gallery](mesh_gallery.md)
