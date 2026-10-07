@@ -76,8 +76,7 @@ mod private {
 /// assert_eq!(f64::from_integer(-7), -7.0);
 /// ```
 pub trait Scalar:
-    eunomia::FloatElement
-    + eunomia::RealField
+    eunomia::RealField
     + Copy
     + Default
     + std::fmt::Debug
@@ -95,8 +94,14 @@ pub trait Scalar:
 
     /// Convert an `f64` literal to this scalar type.
     ///
-    /// Zero-cost identity for `f64`; one `as` cast for `f32`.
-    /// Enables generic code to write `T::from_f64(0.5)` instead of `0.5_T`.
+    /// **Deliberately shadows `eunomia::FloatElement::from_f64`** (which uses a
+    /// precision-preserving odd-rounding path for narrow formats). This version
+    /// is the crate's explicit f64-to-f32 narrowing seam: for `f64` it is a
+    /// zero-cost identity; for `f32` it is a direct `v as f32` cast that
+    /// documents the intentional precision loss at this boundary.
+    ///
+    /// Always qualify at call sites as `<T as Scalar>::from_f64(v)` to avoid
+    /// ambiguity with the `FloatElement` supertrait method.
     fn from_f64(v: f64) -> Self;
 
     /// Convert a collection length/count into this scalar via Eunomia's
