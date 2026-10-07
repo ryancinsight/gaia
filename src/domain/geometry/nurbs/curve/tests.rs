@@ -255,7 +255,7 @@ fn f32_rational_quarter_circle_radius_is_weight_rounding_bounded() {
 }
 
 fn assert_extreme_weight_curve_tangent<T: Scalar>(tiny: T, large: T) {
-    let zero = <T as Scalar>::from_f64(0.0);
+    let zero = T::ZERO;
     let small_point = SVector::<T, 2>::new(tiny, zero);
     let curve = linear_rational_curve([SVector::<T, 2>::zeros(), small_point], [tiny, large]);
 
@@ -269,7 +269,7 @@ fn assert_extreme_weight_curve_tangent<T: Scalar>(tiny: T, large: T) {
             SVector::<T, 2>::new(-(large * half), zero),
             SVector::<T, 2>::new(large, zero),
         ],
-        [<T as Scalar>::from_f64(1.0), <T as Scalar>::from_f64(0.25)],
+        [T::ONE, <T as Scalar>::from_f64(0.25)],
     );
     let (_, tangent) = curve.point_and_tangent(zero);
     assert_eq!(tangent[0], large * <T as Scalar>::from_f64(0.375));
@@ -288,8 +288,8 @@ fn assert_rational_curve_tangent_sum_avoids_intermediate_overflow<T: Scalar>(
     maximum: T,
     epsilon: T,
 ) {
-    let zero = <T as Scalar>::from_f64(0.0);
-    let one = <T as Scalar>::from_f64(1.0);
+    let zero = T::ZERO;
+    let one = T::ONE;
     let curve = NurbsCurve::<2, T>::new(
         [
             maximum,
@@ -327,10 +327,10 @@ fn rational_curve_tangent_sum_avoids_intermediate_overflow() {
 
 fn assert_rational_curve_constant_infinite_coordinate_has_zero_tangent<T: Scalar>() {
     let infinity = <T as Scalar>::from_f64(f64::INFINITY);
-    let zero = <T as Scalar>::from_f64(0.0);
+    let zero = T::ZERO;
     let curve = NurbsCurve::<2, T>::new(
         vec![SVector::<T, 2>::new(infinity, zero); 2],
-        vec![<T as Scalar>::from_f64(1.0); 2],
+        vec![T::ONE; 2],
         KnotVector::<T>::clamped_uniform(1, 1),
         1,
     )
@@ -377,7 +377,7 @@ fn assert_constant_rational_curve_coordinate_with_weights<T: Scalar>(
     coordinate: T,
     weights: [T; 2],
 ) {
-    let zero = <T as Scalar>::from_f64(0.0);
+    let zero = T::ZERO;
     let half = <T as Scalar>::from_f64(0.5);
     let point = SVector::<T, 2>::new(coordinate, zero);
     let curve = linear_rational_curve([point, point], weights);
@@ -389,8 +389,8 @@ fn assert_constant_rational_curve_coordinate_with_weights<T: Scalar>(
 }
 
 fn assert_curve_point<T: Scalar>(coordinates: [T; 3], expected: T) {
-    let zero = <T as Scalar>::from_f64(0.0);
-    let one = <T as Scalar>::from_f64(1.0);
+    let zero = T::ZERO;
+    let one = T::ONE;
     let curve = NurbsCurve::new(
         coordinates
             .into_iter()

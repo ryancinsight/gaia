@@ -42,7 +42,7 @@ impl SparseVoxelDag<8, OctreeSubdivision> {
     pub fn from_mesh<T: Scalar>(mesh: &IndexedMesh<T>, max_depth: u8) -> Self {
         // Degenerate mesh guard.
         let root_aabb_t = mesh.bounding_box();
-        if root_aabb_t.volume() == <T as Scalar>::from_f64(0.0) {
+        if root_aabb_t.volume() == T::ZERO {
             return Self::new(Aabb::new(
                 Point3r::new(-1.0, -1.0, -1.0),
                 Point3r::new(1.0, 1.0, 1.0),

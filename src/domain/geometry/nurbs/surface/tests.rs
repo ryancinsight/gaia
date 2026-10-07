@@ -239,11 +239,7 @@ fn assert_tiny_active_denominator_terms<T: Scalar>(weight_exponent: i32, coordin
             Point3::<T>::origin(),
             Point3::<T>::origin(),
             Point3::<T>::origin(),
-            Point3::<T>::new(
-                coordinate,
-                <T as Scalar>::from_f64(0.0),
-                <T as Scalar>::from_f64(0.0),
-            ),
+            Point3::<T>::new(coordinate, T::ZERO, T::ZERO),
         ],
         [tiny, tiny, tiny, large],
     );
@@ -268,8 +264,8 @@ fn rational_surface_scales_tiny_active_denominator_terms() {
 /// before the final cancellation in loop order.
 fn assert_rational_surface_partials_sum_avoids_intermediate_overflow<T: Scalar>(maximum: T) {
     let half = maximum / <T as Scalar>::from_f64(2.0);
-    let zero = <T as Scalar>::from_f64(0.0);
-    let one = <T as Scalar>::from_f64(1.0);
+    let zero = T::ZERO;
+    let one = T::ONE;
     let surface = weighted_patch(
         [
             Point3::<T>::new(-half, zero, zero),
@@ -280,8 +276,7 @@ fn assert_rational_surface_partials_sum_avoids_intermediate_overflow<T: Scalar>(
         [one; 4],
     );
 
-    let (point, du, dv) =
-        surface.point_and_derivs(<T as Scalar>::from_f64(1.0), <T as Scalar>::from_f64(0.5));
+    let (point, du, dv) = surface.point_and_derivs(T::ONE, <T as Scalar>::from_f64(0.5));
     assert_eq!(point.x, half);
     assert_eq!(du.x, maximum);
     assert_eq!(dv.x, -maximum);
@@ -295,8 +290,8 @@ fn rational_surface_partials_sum_avoids_intermediate_overflow() {
 
 fn assert_rational_surface_constant_infinite_coordinate_has_zero_partials<T: Scalar>() {
     let infinity = <T as Scalar>::from_f64(f64::INFINITY);
-    let zero = <T as Scalar>::from_f64(0.0);
-    let one = <T as Scalar>::from_f64(1.0);
+    let zero = T::ZERO;
+    let one = T::ONE;
     let point = Point3::<T>::new(infinity, zero, zero);
     let surface = weighted_patch([point; 4], [one; 4]);
 

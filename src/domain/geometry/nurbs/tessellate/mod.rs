@@ -35,9 +35,6 @@ use leto::geometry::UnitVector3;
 /// Angle in degrees between two unit vectors (clamped to [0, 180]).
 #[inline]
 fn angle_deg<T: Scalar>(a: UnitVector3<T>, b: UnitVector3<T>) -> T {
-    let cos_t = a
-        .into_inner()
-        .dot(b.into_inner())
-        .clamp(<T as Scalar>::from_f64(-1.0), <T as Scalar>::from_f64(1.0));
+    let cos_t = a.into_inner().dot(b.into_inner()).clamp(-T::ONE, T::ONE);
     cos_t.acos().to_degrees()
 }

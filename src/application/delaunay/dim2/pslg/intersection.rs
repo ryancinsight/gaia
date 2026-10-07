@@ -79,7 +79,7 @@ pub(super) fn collinear_overlap_interior<T: Scalar>(
     };
 
     let overlap = a_hi.min(b_hi) - a_lo.max(b_lo);
-    overlap > <T as Scalar>::from_f64(0.0)
+    overlap > T::ZERO
 }
 
 /// Compute the parametric crossing point of two non-parallel line segments.
@@ -106,7 +106,7 @@ pub(super) fn segment_cross_point<T: Scalar>(
     let dy_b = b2.y - b1.y;
     let dx_q = b1.x - a1.x;
     let dy_q = b1.y - a1.y;
-    let zero = <T as Scalar>::from_f64(0.0);
+    let zero = T::ZERO;
     let scale = [dx_a, dy_a, dx_b, dy_b, dx_q, dy_q]
         .into_iter()
         .map(T::abs)
@@ -131,11 +131,11 @@ pub(super) fn segment_cross_point<T: Scalar>(
     let dx_q = dx_q / scale;
     let dy_q = dy_q / scale;
     let denom = dx_a * dy_b - dy_a * dx_b;
-    if denom == <T as Scalar>::from_f64(0.0) {
+    if denom == T::ZERO {
         return None;
     }
     let t = (dx_q * dy_b - dy_q * dx_b) / denom;
-    let one = <T as Scalar>::from_f64(1.0);
+    let one = T::ONE;
     Some(((one - t) * a1.x + t * a2.x, (one - t) * a1.y + t * a2.y))
 }
 
@@ -147,8 +147,8 @@ mod tests {
     use leto::geometry::Point2;
 
     fn shallow_crossing<T: Scalar>() {
-        let zero = <T as Scalar>::from_f64(0.0);
-        let one = <T as Scalar>::from_f64(1.0);
+        let zero = T::ZERO;
+        let one = T::ONE;
         let offset = <T as Scalar>::from_f64(16.0) * <T as eunomia::RealField>::EPSILON;
         let a1 = Point2::new(zero, zero);
         let a2 = Point2::new(one, zero);
@@ -164,7 +164,7 @@ mod tests {
     }
 
     fn scale_extremes<T: Scalar>(small_scale: f64, large_scale: f64) {
-        let zero = <T as Scalar>::from_f64(0.0);
+        let zero = T::ZERO;
         let scale_values = [
             <T as Scalar>::from_f64(small_scale),
             <T as Scalar>::from_f64(large_scale),

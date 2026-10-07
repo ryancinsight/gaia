@@ -116,7 +116,7 @@ pub fn gwn<T: Scalar>(
     faces: &[FaceData],
     pool: &VertexPool<T>,
 ) -> T {
-    let mut solid_angle_sum = <T as Scalar>::from_f64(0.0);
+    let mut solid_angle_sum = T::ZERO;
     let near_sq = <T as Scalar>::from_f64(f64::MIN_POSITIVE);
     let one_e_30 = <T as Scalar>::from_f64(GWN_DENOMINATOR_GUARD);
     let two = <T as Scalar>::from_f64(2.0);
@@ -147,7 +147,7 @@ pub fn gwn<T: Scalar>(
             solid_angle_sum += two * (num).atan2(den);
         }
     }
-    (solid_angle_sum / four_pi).clamp(<T as Scalar>::from_f64(-1.0), <T as Scalar>::from_f64(1.0))
+    (solid_angle_sum / four_pi).clamp(-T::ONE, T::ONE)
 }
 
 #[inline]

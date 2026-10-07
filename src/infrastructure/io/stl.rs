@@ -40,7 +40,7 @@ pub fn write_ascii_stl<W: Write, T: Scalar>(
         let normal =
             crate::domain::geometry::normal::triangle_normal(a, b, c).unwrap_or_else(|| {
                 let mut z = leto::geometry::Vector3::zeros();
-                z.z = <T as crate::domain::core::scalar::Scalar>::from_f64(1.0);
+                z.z = T::ONE;
                 z
             });
 
@@ -107,7 +107,7 @@ pub fn write_binary_stl<W: Write, T: Scalar>(
         let normal =
             crate::domain::geometry::normal::triangle_normal(a, b, c).unwrap_or_else(|| {
                 let mut z = leto::geometry::Vector3::zeros();
-                z.z = <T as crate::domain::core::scalar::Scalar>::from_f64(1.0);
+                z.z = T::ONE;
                 z
             });
 
