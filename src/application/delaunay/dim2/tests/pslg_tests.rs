@@ -339,8 +339,8 @@ fn non_finite_vertex_error_display() {
 }
 
 fn assert_pslg_scalar_behavior<T: Scalar>() {
-    let zero = <T as Scalar>::from_f64(0.0);
-    let one = <T as Scalar>::from_f64(1.0);
+    let zero = T::ZERO;
+    let one = T::ONE;
     let two = <T as Scalar>::from_f64(2.0);
     let start = PslgVertex::<T>::from([zero, zero]);
     let end = PslgVertex::<T>::from((one, one));
@@ -425,7 +425,7 @@ fn pslg_geometry_uses_each_supported_scalar_precision() {
 }
 
 fn assert_crossing_at_scale<T: Scalar>(scale: T) {
-    let zero = <T as Scalar>::from_f64(0.0);
+    let zero = T::ZERO;
     let mut pslg = Pslg::<T>::default();
     let a = pslg.add_vertex(-scale, -scale);
     let b = pslg.add_vertex(scale, scale);

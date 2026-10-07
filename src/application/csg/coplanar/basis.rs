@@ -85,8 +85,8 @@ impl<T: Scalar> PlaneBasis<T> {
     pub(crate) fn from_points_centroid(points: &[Point3<T>]) -> Option<Self> {
         let normal = newell_normal(points)?;
 
-        let one = <T as Scalar>::from_f64(1.0);
-        let zero = <T as Scalar>::from_f64(0.0);
+        let one = T::ONE;
+        let zero = T::ZERO;
         let seed = if normal.x.abs() < <T as Scalar>::from_f64(0.9) {
             Vector3::new(one, zero, zero)
         } else {

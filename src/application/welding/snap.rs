@@ -1,4 +1,4 @@
-﻿//! # Unified Vertex Snapping and Welding
+//! # Unified Vertex Snapping and Welding
 //!
 //! This module unifies coordinate snapping and deduplication in a single
 //! [`SnappingGrid`] that owns the canonical vertex set.

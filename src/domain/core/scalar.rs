@@ -226,8 +226,8 @@ mod tests {
     #[test]
     fn total_order_distinguishes_signed_zero() {
         fn assert_total_order<T: Scalar>() {
-            let negative_zero = -<T as Scalar>::from_f64(0.0);
-            let positive_zero = <T as Scalar>::from_f64(0.0);
+            let negative_zero = -T::ZERO;
+            let positive_zero = T::ZERO;
             let infinity = <T as eunomia::RealField>::infinity();
             let nan = <T as eunomia::RealField>::nan();
             assert_eq!(
