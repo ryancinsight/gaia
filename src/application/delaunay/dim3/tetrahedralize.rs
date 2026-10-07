@@ -213,26 +213,26 @@ impl<T: Scalar> BowyerWatson3D<T> {
     /// do not hit the degenerate corners.
     fn inject_super_tetrahedron(&mut self, min: Point3<T>, max: Point3<T>) {
         let d = max - min;
-        let d_max = (d.x).max_scalar(d.y).max_scalar(d.z) * <T as Scalar>::from_f64(5.0);
-        let center = min + d / <T as Scalar>::from_f64(2.0);
+        let d_max = (d.x).max_scalar(d.y).max_scalar(d.z) * T::from_int(5);
+        let center = min + d / T::from_int(2);
 
         let p0 = center
             + Vector3::new(
                 <T as eunomia::NumericElement>::ZERO,
                 d_max,
-                -d_max / <T as Scalar>::from_f64(3.0),
+                -d_max / T::from_int(3),
             );
         let p1 = center
             + Vector3::new(
                 d_max * (<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)).sin(),
-                -d_max / <T as Scalar>::from_f64(2.0),
-                -d_max / <T as Scalar>::from_f64(3.0),
+                -d_max / T::from_int(2),
+                -d_max / T::from_int(3),
             );
         let p2 = center
             + Vector3::new(
                 -d_max * (<T as Scalar>::from_f64(std::f64::consts::FRAC_PI_3)).sin(),
-                -d_max / <T as Scalar>::from_f64(2.0),
-                -d_max / <T as Scalar>::from_f64(3.0),
+                -d_max / T::from_int(2),
+                -d_max / T::from_int(3),
             );
         // The peak point goes upwards to enclose +Z, completing the regular tetrahedron mathematically
         let p3 = center

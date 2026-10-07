@@ -134,7 +134,7 @@ pub(crate) fn equiangle_skewness_native<T: Scalar>(
     b: &leto::geometry::Point3<T>,
     c: &leto::geometry::Point3<T>,
 ) -> T {
-    let ideal = <T as RealField>::PI / <T as Scalar>::from_f64(3.0); // 60° for equilateral triangle
+    let ideal = <T as RealField>::PI / T::from_int(3); // 60° for equilateral triangle
     let angles = triangle_angles(a, b, c);
     let max_a = angles
         .iter()

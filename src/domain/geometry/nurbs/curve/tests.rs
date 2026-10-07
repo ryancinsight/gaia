@@ -308,13 +308,13 @@ fn assert_rational_curve_tangent_sum_avoids_intermediate_overflow<T: Scalar>(
 
     let (point, tangent) = curve.point_and_tangent(<T as Scalar>::from_f64(0.5));
     let expected = <T as Scalar>::from_f64(-15.0 / 16.0) * maximum;
-    let unit_roundoff = epsilon / <T as Scalar>::from_f64(2.0);
+    let unit_roundoff = epsilon / T::from_int(2);
     // The point assertion pins the exact 19/32 MAX evaluation; each control
     // difference is exact (Sterbenz for the nonzero pairs). The four derivative
     // terms have absolute sum 75/64 MAX. Their scaled products round once, the
     // expansion retains the sum, and final rounding stays below 4u MAX; 8u MAX
     // is a conservative forward-error bound.
-    let tolerance = <T as Scalar>::from_f64(8.0) * unit_roundoff * maximum;
+    let tolerance = T::from_int(8) * unit_roundoff * maximum;
     assert_eq!(point[0], <T as Scalar>::from_f64(19.0 / 32.0) * maximum);
     assert!((tangent[0] - expected).abs() <= tolerance);
 }
@@ -369,7 +369,7 @@ fn rational_curve_preserves_scaled_point_contributions() {
 }
 
 fn assert_constant_rational_curve_coordinate<T: Scalar>(coordinate: T) {
-    let two = <T as Scalar>::from_f64(2.0);
+    let two = T::from_int(2);
     assert_constant_rational_curve_coordinate_with_weights(coordinate, [two, two]);
 }
 

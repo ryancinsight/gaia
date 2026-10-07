@@ -425,7 +425,7 @@ pub fn tetrahedron_quality<T: Scalar>(points: [Point3<T>; 4]) -> Option<Tetrahed
         return None;
     }
 
-    let six = <T as Scalar>::from_f64(6.0);
+    let six = T::from_int(6);
     let volume = signed_six_volume.abs() / six;
     let two = <T as eunomia::NumericElement>::ONE + <T as eunomia::NumericElement>::ONE;
     let center_numerator = v.cross(w) * u.norm_squared()
@@ -478,8 +478,8 @@ pub fn tetrahedron_quality<T: Scalar>(points: [Point3<T>; 4]) -> Option<Tetrahed
         .fold(zero, |sum, squared| sum + squared);
     let edge_mean_squared = edge_sum / six;
     let edge_rms = edge_mean_squared.sqrt();
-    let normalized_volume = ((six + six) * volume)
-        / (<T as Scalar>::from_f64(2.0).sqrt() * edge_rms * edge_mean_squared);
+    let normalized_volume =
+        ((six + six) * volume) / (T::from_int(2).sqrt() * edge_rms * edge_mean_squared);
     if !<T as eunomia::NumericElement>::is_finite(radius_edge_ratio)
         || !<T as eunomia::NumericElement>::is_finite(min_dihedral_angle)
         || !<T as eunomia::NumericElement>::is_finite(normalized_volume)

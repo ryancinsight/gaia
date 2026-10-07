@@ -263,7 +263,7 @@ fn rational_surface_scales_tiny_active_denominator_terms() {
 /// The exact u partial is MAX although the first three terms sum above MAX
 /// before the final cancellation in loop order.
 fn assert_rational_surface_partials_sum_avoids_intermediate_overflow<T: Scalar>(maximum: T) {
-    let half = maximum / <T as Scalar>::from_f64(2.0);
+    let half = maximum / T::from_int(2);
     let zero = T::ZERO;
     let one = T::ONE;
     let surface = weighted_patch(

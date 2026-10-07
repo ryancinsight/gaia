@@ -19,7 +19,7 @@ fn face_geometry<T: Scalar>(
 
     let mut face_normals: Vec<Option<Vector3<T>>> = Vec::with_capacity(face_list.len());
     let mut centroid_x: Vec<T> = Vec::with_capacity(face_list.len());
-    let third = <T as Scalar>::from_f64(3.0);
+    let third = T::from_int(3);
     for face in face_list {
         let a = mesh.vertices.position(face.vertices[0]);
         let b = mesh.vertices.position(face.vertices[1]);
@@ -256,9 +256,9 @@ fn detect_nested_components<T: Scalar>(
         let b = mesh.vertices.position(seed_face.vertices[1]);
         let c = mesh.vertices.position(seed_face.vertices[2]);
         let centroid = leto::geometry::Point3::new(
-            (a.x + b.x + c.x) / <T as Scalar>::from_f64(3.0),
-            (a.y + b.y + c.y) / <T as Scalar>::from_f64(3.0),
-            (a.z + b.z + c.z) / <T as Scalar>::from_f64(3.0),
+            (a.x + b.x + c.x) / T::from_int(3),
+            (a.y + b.y + c.y) / T::from_int(3),
+            (a.z + b.z + c.z) / T::from_int(3),
         );
 
         let diag = (component_aabbs[comp].max - component_aabbs[comp].min)

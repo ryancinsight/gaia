@@ -64,8 +64,8 @@ pub fn vertex_mean_curvature<T: Scalar>(mesh: &IndexedMesh<T>) -> Vec<T> {
     // Accumulate cotangent-weighted Laplacian vectors and barycentric areas.
     let zero = <T as NumericElement>::ZERO;
     let half = <T as Scalar>::from_f64(0.5);
-    let three = <T as Scalar>::from_f64(3.0);
-    let four = <T as Scalar>::from_f64(4.0);
+    let three = T::from_int(3);
+    let four = T::from_int(4);
     let min_positive = <T as Scalar>::from_f64(f64::MIN_POSITIVE);
     let mut laplacian: Vec<Vector3<T>> = vec![Vector3::zeros(); n];
     let mut area: Vec<T> = vec![zero; n];

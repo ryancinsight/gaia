@@ -119,7 +119,7 @@ pub fn gwn<T: Scalar>(
     let mut solid_angle_sum = T::ZERO;
     let near_sq = <T as Scalar>::from_f64(f64::MIN_POSITIVE);
     let one_e_30 = <T as Scalar>::from_f64(GWN_DENOMINATOR_GUARD);
-    let two = <T as Scalar>::from_f64(2.0);
+    let two = T::from_int(2);
     let four_pi = <T as Scalar>::from_f64(4.0 * std::f64::consts::PI);
 
     for face in faces {

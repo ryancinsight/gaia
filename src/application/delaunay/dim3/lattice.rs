@@ -158,7 +158,7 @@ fn generate_bcc_points<T: Scalar, S: Sdf3D<T>>(
     snap_iterations: usize,
     snap_radius: T,
 ) -> Vec<Point3<T>> {
-    let half_h = h / <T as Scalar>::from_f64(2.0);
+    let half_h = h / T::from_int(2);
     let w_x = eunomia::NumericElement::to_f64((max.x - min.x) / h);
     let w_y = eunomia::NumericElement::to_f64((max.y - min.y) / h);
     let w_z = eunomia::NumericElement::to_f64((max.z - min.z) / h);
@@ -240,7 +240,7 @@ fn weld_and_order_points<T: Scalar>(points: Vec<Point3<T>>, h: T) -> Vec<Point3<
     let point_capacity = points.len();
     let weld_tol = <T as Scalar>::from_f64(1e-4) * h;
     let weld_tol_sq = weld_tol * weld_tol;
-    let cell_s = weld_tol * <T as Scalar>::from_f64(2.0);
+    let cell_s = weld_tol * T::from_int(2);
     let c_s_f64 = eunomia::NumericElement::to_f64(cell_s);
     let mut grid: HashMap<[isize; 3], Vec<usize>> = HashMap::with_capacity(points.len());
     let mut unique_points = Vec::with_capacity(points.len());
@@ -275,7 +275,7 @@ fn weld_and_order_points<T: Scalar>(points: Vec<Point3<T>>, h: T) -> Vec<Point3<
     }
 
     let mut rng = StdRng::seed_from_u64(deterministic_point_seed(&unique_points, h));
-    let macro_h = eunomia::NumericElement::to_f64(<T as Scalar>::from_f64(5.0) * h);
+    let macro_h = eunomia::NumericElement::to_f64(T::from_int(5) * h);
     let mut blocks: HashMap<[isize; 3], Vec<Point3<T>>> =
         HashMap::with_capacity((unique_points.len() / 32).max(16));
     for p in unique_points {
@@ -315,8 +315,8 @@ fn carve_tetrahedra<T: Scalar, S: Sdf3D<T>>(
     tetrahedra: &[[usize; 4]],
     h: T,
 ) -> Vec<[usize; 4]> {
-    let point_four = <T as Scalar>::from_f64(4.0);
-    let third = <T as Scalar>::from_f64(3.0);
+    let point_four = T::from_int(4);
+    let third = T::from_int(3);
     let half = <T as Scalar>::from_f64(0.5);
     let p_25 = <T as Scalar>::from_f64(0.25);
     let p_75 = <T as Scalar>::from_f64(0.75);
@@ -431,7 +431,7 @@ fn orient_boundary_faces<T: Scalar>(mesh: &mut IndexedMesh<T>, b_faces: &[FaceId
         }
     }
 
-    let third = <T as Scalar>::from_f64(3.0);
+    let third = T::from_int(3);
     for &fid in b_faces {
         if let Some(&cell_idx) = face_to_cell.get(&fid) {
             let cell = &mesh.cells[cell_idx];

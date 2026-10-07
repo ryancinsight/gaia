@@ -341,7 +341,7 @@ fn non_finite_vertex_error_display() {
 fn assert_pslg_scalar_behavior<T: Scalar>() {
     let zero = T::ZERO;
     let one = T::ONE;
-    let two = <T as Scalar>::from_f64(2.0);
+    let two = T::from_int(2);
     let start = PslgVertex::<T>::from([zero, zero]);
     let end = PslgVertex::<T>::from((one, one));
     assert_eq!(start.dist_sq(&end), two);
@@ -353,7 +353,7 @@ fn assert_pslg_scalar_behavior<T: Scalar>() {
     for scale in [
         <T as Scalar>::from_f64(1.0 / 1024.0),
         one,
-        <T as Scalar>::from_f64(1024.0),
+        T::from_int(1024),
     ] {
         let mut pslg = Pslg::<T>::default();
         let a = pslg.add_vertex(-scale, -scale);
@@ -373,8 +373,8 @@ fn assert_pslg_scalar_behavior<T: Scalar>() {
     }
 
     for offset in [
-        <T as Scalar>::from_f64(256.0) * <T as eunomia::RealField>::EPSILON,
-        <T as Scalar>::from_f64(512.0) * <T as eunomia::RealField>::EPSILON,
+        T::from_int(256) * <T as eunomia::RealField>::EPSILON,
+        T::from_int(512) * <T as eunomia::RealField>::EPSILON,
     ] {
         let mut shallow = Pslg::<T>::default();
         let a = shallow.add_vertex(zero, zero);
@@ -394,9 +394,9 @@ fn assert_pslg_scalar_behavior<T: Scalar>() {
 
     let mut overlap = Pslg::<T>::default();
     let a = overlap.add_vertex(zero, zero);
-    let b = overlap.add_vertex(<T as Scalar>::from_f64(4.0), zero);
+    let b = overlap.add_vertex(T::from_int(4), zero);
     let c = overlap.add_vertex(one, zero);
-    let d = overlap.add_vertex(<T as Scalar>::from_f64(3.0), zero);
+    let d = overlap.add_vertex(T::from_int(3), zero);
     overlap.add_segment(a, b);
     overlap.add_segment(c, d);
     overlap.resolve_crossings();
@@ -406,7 +406,7 @@ fn assert_pslg_scalar_behavior<T: Scalar>() {
     let epsilon = <T as eunomia::RealField>::EPSILON;
     let mut coincident = Pslg::<T>::default();
     coincident.add_vertex(one, zero);
-    coincident.add_vertex(one + <T as Scalar>::from_f64(32.0) * epsilon, zero);
+    coincident.add_vertex(one + T::from_int(32) * epsilon, zero);
     assert!(matches!(
         coincident.validate(),
         Err(PslgValidationError::CoincidentVertices { .. })
@@ -414,7 +414,7 @@ fn assert_pslg_scalar_behavior<T: Scalar>() {
 
     let mut distinct = Pslg::<T>::default();
     distinct.add_vertex(one, zero);
-    distinct.add_vertex(one + <T as Scalar>::from_f64(256.0) * epsilon, zero);
+    distinct.add_vertex(one + T::from_int(256) * epsilon, zero);
     assert_eq!(distinct.validate(), Ok(()));
 }
 
