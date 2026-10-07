@@ -149,7 +149,7 @@ mod tests {
     fn shallow_crossing<T: Scalar>() {
         let zero = T::ZERO;
         let one = T::ONE;
-        let offset = <T as Scalar>::from_f64(16.0) * <T as eunomia::RealField>::EPSILON;
+        let offset = T::from_int(16) * <T as eunomia::RealField>::EPSILON;
         let a1 = Point2::new(zero, zero);
         let a2 = Point2::new(one, zero);
         let b1 = Point2::new(zero, offset);

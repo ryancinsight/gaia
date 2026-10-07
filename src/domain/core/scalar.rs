@@ -112,6 +112,18 @@ pub trait Scalar:
         <Self as eunomia::FloatElement>::from_count(v)
     }
 
+    /// Convert a signed integer constant to this scalar type.
+    ///
+    /// Delegates to [`eunomia::FloatElement::from_integer`]; exact for
+    /// `|k| ≤ 2²⁴` in `f32` and `|k| ≤ 2⁵³` in `f64`. Use instead of
+    /// `from_f64(2.0)` / `from_f64(3.0)` etc. so integer constants use the
+    /// integer-to-float path rather than the f64-narrowing seam.
+    #[inline]
+    #[must_use]
+    fn from_int(k: i32) -> Self {
+        <Self as eunomia::FloatElement>::from_integer(i64::from(k))
+    }
+
     /// Compare values using the IEEE 754 total order, including signed zero and NaN.
     ///
     /// ```

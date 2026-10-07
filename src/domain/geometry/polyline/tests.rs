@@ -45,7 +45,7 @@ fn assert_relative_eq<T: Scalar>(actual: T, expected: T) {
     let relative_error = (actual - expected).abs() / expected.abs();
     // The provider norm performs six rounded scalar operations for this
     // conditioned two-component reference, bounded by eight epsilons.
-    let tolerance = T::EPSILON * <T as Scalar>::from_f64(8.0);
+    let tolerance = T::EPSILON * T::from_int(8);
     assert!(relative_error <= tolerance);
 }
 

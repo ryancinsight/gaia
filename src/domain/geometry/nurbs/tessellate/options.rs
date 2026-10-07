@@ -20,7 +20,7 @@ pub struct TessellationOptions<T = Real> {
 impl<T: Scalar> Default for TessellationOptions<T> {
     fn default() -> Self {
         Self {
-            max_angle_deg: <T as Scalar>::from_f64(5.0),
+            max_angle_deg: T::from_int(5),
             min_segments: 4,
             max_depth: 6,
         }
