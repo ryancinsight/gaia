@@ -12,14 +12,6 @@ Seeded 2026-08-20 by the Atlas gap audit (`atlas-gap-audit`) at
 
 Triage order: correctness → architecture → verification → tightening → feature.
 
-<a id="GAIA-MOIRAI-RANGE-001"></a>
-## GAIA-MOIRAI-RANGE-001 — Verify the Metis provider graph [patch]
-- status: todo
-- outcome: Gaia 0.5.2 resolves the shared Moirai 0.8 Git source while admitting compatible 0.7 registry releases.
-- priority: correctness; needs: Moirai PR 611; phase: Closure
-- scope: Cargo requirements, standalone lock, unchanged geometry/runtime tests and API comparison.
-- acceptance oracle: exact existing mesh values and concurrency tests pass under a 60-second nextest bound; diagnostics and public API comparison pass; unrelated pins stay unchanged.
-- next step: Complete the pushed-provider checks and protected delivery, then advance Metis's one-source lock.
 
 ---
 
