@@ -156,7 +156,7 @@ fn tessellation_vertices_match_evaluated_grid() {
         NurbsSurface::<f32>::clamped(ControlGrid::new(corners32.to_vec(), 2, 2), 1, 1).unwrap();
     let opts = TessellationOptions::<f32> {
         min_segments: 3,
-        max_angle_deg: <f32 as Scalar>::from_f64(180.0),
+        max_angle_deg: <f32 as Scalar>::from_int(180),
         max_depth: 0,
     };
     let mesh = tessellate_surface(&surf, &opts);
@@ -212,7 +212,7 @@ fn f32_tessellation_matches_f64_on_dyadic_patch() {
         NurbsSurface::<f64>::clamped(ControlGrid::new(corners64.to_vec(), 2, 2), 1, 1).unwrap();
     let opts32 = TessellationOptions::<f32> {
         min_segments: 2,
-        max_angle_deg: <f32 as Scalar>::from_f64(5.0),
+        max_angle_deg: <f32 as Scalar>::from_int(5),
         max_depth: 3,
     };
     let opts64 = TessellationOptions::<f64> {
@@ -266,7 +266,7 @@ fn f32_curve_tessellation_matches_f64_on_dyadic_segment() {
         &curve32,
         &TessellationOptions::<f32> {
             min_segments: 4,
-            max_angle_deg: <f32 as Scalar>::from_f64(5.0),
+            max_angle_deg: <f32 as Scalar>::from_int(5),
             max_depth: 2,
         },
     );

@@ -33,7 +33,7 @@ pub trait Sdf3D<T: Scalar> {
     /// Default implementation uses a highly accurate central Cartesian finite
     /// difference formulation.
     fn gradient(&self, p: &Point3<T>) -> Vector3<T> {
-        let eps = T::tolerance() * <T as Scalar>::from_f64(10.0);
+        let eps = T::tolerance() * T::from_int(10);
         let dx = Vector3::new(
             eps,
             <T as eunomia::NumericElement>::ZERO,
@@ -54,7 +54,7 @@ pub trait Sdf3D<T: Scalar> {
         let df_dy = self.eval(&(p + dy)) - self.eval(&(p - dy));
         let df_dz = self.eval(&(p + dz)) - self.eval(&(p - dz));
 
-        let denom = <T as Scalar>::from_f64(2.0) * eps;
+        let denom = T::from_int(2) * eps;
         let mut grad = Vector3::new(df_dx / denom, df_dy / denom, df_dz / denom);
 
         // Normalize the gradient to ensure strict unity length for projection
@@ -133,7 +133,7 @@ impl<T: Scalar> Sdf3D<T> for CylinderSdf<T> {
     fn bounds(&self) -> (Point3<T>, Point3<T>) {
         // Technically infinite in the axis direction.
         // We return an expansive bound clamped to arbitrary CFD limits.
-        let big = <T as Scalar>::from_f64(100.0);
+        let big = T::from_int(100);
         let bound = Vector3::new(big, big, big);
         (self.point - bound, self.point + bound)
     }

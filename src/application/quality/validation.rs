@@ -125,7 +125,7 @@ impl MeshValidator {
         let min_angle = <T as Scalar>::from_f64(self.thresholds.min_angle);
         let max_skewness = <T as Scalar>::from_f64(self.thresholds.max_skewness);
         let min_edge_ratio = <T as Scalar>::from_f64(self.thresholds.min_edge_ratio);
-        let ideal = <T as eunomia::RealField>::PI / <T as Scalar>::from_f64(3.0);
+        let ideal = <T as eunomia::RealField>::PI / T::from_int(3);
 
         for (_, face) in face_store.iter_enumerated() {
             let a = vertex_pool.position(face.vertices[0]);

@@ -112,7 +112,7 @@ impl<T: Scalar> BoundaryFacetQualityCriteria<T> {
         let min_edge_length_ratio_value = min_edge_length_ratio.into_base();
         let zero = <T as NumericElement>::ZERO;
         let one = <T as NumericElement>::ONE;
-        let sixty_degrees = <T as RealField>::PI / <T as Scalar>::from_f64(3.0);
+        let sixty_degrees = <T as RealField>::PI / T::from_int(3);
 
         if !<T as NumericElement>::is_finite(min_angle_value)
             || min_angle_value < zero
@@ -547,7 +547,7 @@ mod tests {
         fn exercise<T: Scalar + eunomia::UnitScalar>() {
             let length = aequitas::systems::si::quantities::Length::<T>::from_unit::<
                 aequitas::systems::si::units::Millimeter,
-            >(<T as Scalar>::from_f64(2.0));
+            >(T::from_int(2));
             assert!((length.into_base().to_f64() - 0.002).abs() < 1e-8);
         }
 
