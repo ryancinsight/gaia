@@ -11,8 +11,12 @@ import path stays `gaia` via the `[lib] name`, so rename the dependency and no
 
 ```toml
 [dependencies]
-gaia = { package = "gaia-mesh", version = "0.5.0" }
+gaia = { package = "gaia-mesh", version = "0.5.2" }
 ```
+
+Gaia 0.5.2 admits Moirai 0.7 and 0.8 through the same Rust scheduling API.
+The standalone lock selects the exact provider revision; the version range
+also permits registry packaging without requiring a new provider release first.
 
 The crate has no cargo features: every format module and the moirai-backed
 concurrency are built unconditionally — moirai picks the concurrency method at
