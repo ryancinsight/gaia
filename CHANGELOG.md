@@ -10,3 +10,7 @@
   range. No geometry, scheduling API or scalar implementation changes.
 - The standalone lock binds the integration to Moirai's pushed Rust browser and
   macOS scope-wait correction. Unrelated provider revisions remain pinned.
+- Preserve the existing explicit narrowing contract through Eunomia's primitive
+  `CastFrom` seam and compare precision-specific tolerances after exact widening
+  in the test. IEEE 754 midpoint/subnormal/signed-zero/Infinity bit oracles replace
+  two bare casts without changing geometry tolerances or precision semantics.
