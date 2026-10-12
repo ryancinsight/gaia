@@ -97,8 +97,8 @@ pub trait Scalar:
     /// **Deliberately shadows `eunomia::FloatElement::from_f64`** (which uses a
     /// precision-preserving odd-rounding path for narrow formats). This version
     /// is the crate's explicit f64-to-f32 narrowing seam: for `f64` it is a
-    /// zero-cost identity; for `f32` it is a direct `v as f32` cast that
-    /// documents the intentional precision loss at this boundary.
+    /// zero-cost identity; for `f32` it uses Eunomia `CastFrom`, whose primitive
+    /// contract preserves Rust round-to-nearest narrowing at this explicit boundary.
     ///
     /// Always qualify at call sites as `<T as Scalar>::from_f64(v)` to avoid
     /// ambiguity with the `FloatElement` supertrait method.
@@ -165,13 +165,9 @@ impl Scalar for f32 {
     fn tolerance() -> Self {
         1e-5_f32
     }
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the f32 Scalar implementation is the crate's explicit f64-to-f32 narrowing seam for callers that choose reduced precision"
-    )]
     #[inline]
     fn from_f64(v: f64) -> Self {
-        v as f32
+        <Self as eunomia::CastFrom<f64>>::cast_from(v)
     }
     #[inline]
     fn total_cmp(&self, other: &Self) -> core::cmp::Ordering {
@@ -230,9 +226,33 @@ mod tests {
     #[test]
     fn tolerance_ordering() {
         assert!(
-            f32::tolerance() > f64::tolerance() as f32,
+            f64::from(f32::tolerance()) > f64::tolerance(),
             "f32 tolerance must be coarser than f64"
         );
+    }
+
+    #[test]
+    fn explicit_narrowing_preserves_ieee_rounding_boundaries() {
+        // IEEE 754 binary64 inputs: signed zero, infinity, the midpoint of
+        // adjacent binary32 values near 1, and the subnormal zero midpoint.
+        // Ties choose the even binary32 significand; one binary64 ULP above
+        // each midpoint chooses the next binary32 value.
+        for (input, expected) in [
+            (0x0000_0000_0000_0000, 0x0000_0000),
+            (0x8000_0000_0000_0000, 0x8000_0000),
+            (0x7ff0_0000_0000_0000, 0x7f80_0000),
+            (0xfff0_0000_0000_0000, 0xff80_0000),
+            (0x3ff0_0000_1000_0000, 0x3f80_0000),
+            (0x3ff0_0000_1000_0001, 0x3f80_0001),
+            (0x3690_0000_0000_0000, 0x0000_0000),
+            (0x3690_0000_0000_0001, 0x0000_0001),
+            (0x36a0_0000_0000_0000, 0x0000_0001),
+        ] {
+            assert_eq!(
+                <f32 as Scalar>::from_f64(f64::from_bits(input)).to_bits(),
+                expected
+            );
+        }
     }
 
     #[test]
