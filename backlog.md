@@ -14,6 +14,7 @@ Triage order: correctness → architecture → verification → tightening → f
 
 <a id="GAIA-MOIRAI-RANGE-001"></a>
 ## GAIA-MOIRAI-RANGE-001 — Verify the Metis provider graph [patch]
+- status: todo
 - outcome: Gaia 0.5.2 resolves the shared Moirai 0.8 Git source while admitting compatible 0.7 registry releases.
 - priority: correctness; needs: Moirai PR 611; phase: Closure
 - scope: Cargo requirements, standalone lock, unchanged geometry/runtime tests and API comparison.
