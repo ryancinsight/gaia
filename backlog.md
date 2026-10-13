@@ -22,7 +22,18 @@ Triage order: correctness → architecture → verification → tightening → f
 - scope: Cargo dependency contracts, standalone lock and version artifacts.
 - acceptance: Actual mesh/property suites and strict diagnostics pass against the published provider; unrelated pins remain unchanged.
 - basis: Metis's attempted locked 0.9 adoption rejects Gaia's `<0.9.0` bound.
-- next: Verify Gaia, publish through normal gates and reconcile protected provider merges.
+- next: Verify the protected Moirai merge, publish Gaia through normal gates, then verify the Metis consumer.
+
+<a id="GAIA-NEXTEST-PIPE"></a>
+## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]
+
+- status: todo
+- priority: verification
+- outcome: Every completed test releases its actual output handles.
+- scope: Reproduce the unchanged suite's process and output-handle lifetimes.
+- acceptance: Identify the owning process/handle and verify the original full suite exits without leaked output pipes; retain all computed assertions and deadlines.
+- basis: Two provider-candidate runs pass 1,159 values but report one leak in different tests; focused reproduction and the preceding baseline exit cleanly.
+- next: Capture process/handle evidence around the reported completion, then correct the identified owner.
 
 
 ---
