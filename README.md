@@ -11,10 +11,10 @@ import path stays `gaia` via the `[lib] name`, so rename the dependency and no
 
 ```toml
 [dependencies]
-gaia = { package = "gaia-mesh", version = "0.5.2" }
+gaia = { package = "gaia-mesh", version = "0.5.3" }
 ```
 
-Gaia 0.5.2 admits Moirai 0.7 and 0.8 through the same Rust scheduling API.
+Gaia 0.5.3 admits Moirai 0.7, 0.8 and 0.9 through the same Rust scheduling API.
 The standalone lock selects the exact provider revision; the version range
 also permits registry packaging without requiring a new provider release first.
 

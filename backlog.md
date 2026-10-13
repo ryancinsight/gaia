@@ -13,6 +13,18 @@ Seeded 2026-08-20 by the Atlas gap audit (`atlas-gap-audit`) at
 Triage order: correctness → architecture → verification → tightening → feature.
 
 
+<a id="GAIA-MOIRAI-09-COHERENCE"></a>
+## GAIA-MOIRAI-09-COHERENCE — Verify provider compatibility [patch]
+
+- status: todo
+- priority: correctness
+- outcome: Gaia and Metis resolve one Moirai 0.9 source through the existing scheduling API.
+- scope: Cargo dependency contracts, standalone lock and version artifacts.
+- acceptance: Actual mesh/property suites and strict diagnostics pass against the published provider; unrelated pins remain unchanged.
+- basis: Metis's attempted locked 0.9 adoption rejects Gaia's `<0.9.0` bound.
+- next: Verify Gaia, publish through normal gates and reconcile protected provider merges.
+
+
 ---
 
 <a id="GAIA-003"></a>
