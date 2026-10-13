@@ -13,6 +13,29 @@ Seeded 2026-08-20 by the Atlas gap audit (`atlas-gap-audit`) at
 Triage order: correctness → architecture → verification → tightening → feature.
 
 
+<a id="GAIA-MOIRAI-09-COHERENCE"></a>
+## GAIA-MOIRAI-09-COHERENCE — Verify provider compatibility [patch]
+
+- status: todo
+- priority: correctness
+- outcome: Gaia and Metis resolve one Moirai 0.9 source through the existing scheduling API.
+- scope: Cargo dependency contracts, standalone lock and version artifacts.
+- acceptance: Actual mesh/property suites and strict diagnostics pass against the published provider; unrelated pins remain unchanged.
+- basis: Metis's attempted locked 0.9 adoption rejects Gaia's `<0.9.0` bound.
+- next: Verify the protected Moirai merge, publish Gaia through normal gates, then verify the Metis consumer.
+
+<a id="GAIA-NEXTEST-PIPE"></a>
+## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]
+
+- status: todo
+- priority: verification
+- outcome: Every completed test releases its actual output handles.
+- scope: Reproduce the unchanged suite's process and output-handle lifetimes.
+- acceptance: Identify the owning process/handle and verify the original full suite exits without leaked output pipes; retain all computed assertions and deadlines.
+- basis: Two provider-candidate runs pass 1,159 values but report one leak in different tests; focused reproduction and the preceding baseline exit cleanly.
+- next: Capture process/handle evidence around the reported completion, then correct the identified owner.
+
+
 ---
 
 <a id="GAIA-003"></a>

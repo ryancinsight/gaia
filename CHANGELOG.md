@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.3] - Unreleased
+
+### Fixed
+
+- [patch] Admit Moirai 0.9 through the existing scheduling API in runtime and
+  development dependencies (`>=0.7.0, <0.10.0`). The standalone lock records
+  the actual published Rust page provider revision; unrelated provider pins
+  retain their existing identities. Geometry and public APIs remain unchanged.
+
+
 ## [0.5.2] - Unreleased
 
 ### Fixed
