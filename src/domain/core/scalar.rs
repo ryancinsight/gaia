@@ -94,11 +94,12 @@ pub trait Scalar:
 
     /// Convert an `f64` literal to this scalar type.
     ///
-    /// **Deliberately shadows `eunomia::FloatElement::from_f64`** (which uses a
-    /// precision-preserving odd-rounding path for narrow formats). This version
-    /// is the crate's explicit f64-to-f32 narrowing seam: for `f64` it is a
-    /// zero-cost identity; for `f32` it uses Eunomia `CastFrom`, whose primitive
-    /// contract preserves Rust round-to-nearest narrowing at this explicit boundary.
+    /// **Deliberately shadows `eunomia::FloatElement::from_f64`** (whose
+    /// wrapper path uses precision-preserving odd rounding for narrow formats).
+    /// This version is the crate's explicit f64-to-f32 narrowing seam: for
+    /// `f64` it is a zero-cost identity; for the primitive `f32` it delegates
+    /// to `FloatElement::from_f64`, whose contract is Rust round-to-nearest
+    /// narrowing at this explicit boundary.
     ///
     /// Always qualify at call sites as `<T as Scalar>::from_f64(v)` to avoid
     /// ambiguity with the `FloatElement` supertrait method.
@@ -167,7 +168,7 @@ impl Scalar for f32 {
     }
     #[inline]
     fn from_f64(v: f64) -> Self {
-        <Self as eunomia::CastFrom<f64>>::cast_from(v)
+        <Self as eunomia::FloatElement>::from_f64(v)
     }
     #[inline]
     fn total_cmp(&self, other: &Self) -> core::cmp::Ordering {
