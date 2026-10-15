@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0] - Unreleased
+
+### Breaking
+
+- [major] Move the public `Scalar: RealField` contract to Eunomia 0.10 and
+  public geometry types to Leto 0.46. Generic consumers using the old Eunomia
+  0.9 bound must select the new provider identity and advance Gaia to 0.6.
+  ADR0008 records the boundary; the external-consumer regression reproduces it.
+- Require the coherent Eunomia 0.10, Leto 0.46, Aequitas 0.3, memory 0.10 and
+  Moirai 0.9.3 cohort through existing Git sources/features/defaults. This also
+  fixes normalized package verification against the published providers.
+  Geometry kernels, precision tolerances and all 166 registry records remain
+  unchanged.
+
 ## [0.5.3] - Unreleased
 
 ### Fixed

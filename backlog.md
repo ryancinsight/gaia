@@ -1,5 +1,21 @@
 # Backlog
 
+<a id="GAIA-EUNOMIA-010"></a>
+## GAIA-EUNOMIA-010 — Version the current numeric provider boundary [major]
+
+- status: in progress; priority: correctness; delivery: PR175.
+- outcome: Gaia 0.6 uses Eunomia 0.10 and Leto 0.46 at its public scalar/geometry boundary.
+- scope: versions, canonical lock, ADR0008 and a real external-consumer regression; geometry source is unchanged.
+- basis: PR175 at `273eb814` retained Gaia 0.5.3/Leto ^0.45 while admitting Eunomia 0.10.
+- package evidence: its standard dry-run fails with 149 errors from registry Leto 0.45.2/Eunomia 0.9.2; the 0.6/^0.46 proposal passes.
+- public regression: identical generic code builds/runs on published Gaia 0.5.3, then fails E0277 when the new Scalar no longer implies Eunomia 0.9's RealField.
+- reproduction: `cargo +1.97.0 publish --dry-run --locked -p gaia-mesh`, then `python3 scripts/check_provider_boundary.py`.
+- source contract: retain the existing Git URLs/features/defaults and all 166 registry records; no geometry kernel or compatibility alias changes.
+- acceptance oracle: full native CI profile, strict diagnostics/docs, supply-chain/hygiene, lock/ADR/API gates, standard package and the external probe on the final head.
+- local proposal evidence: 1,159 native passes/one existing skip; 57 doctest passes/one existing ignore; Clippy, docs, deny, machete and package pass.
+- API classification: the scanner passes 196 checks but misses external nominal trait identity; the executed consumer establishes the [major] pre-1.0 minor boundary.
+- next step: pass final-head CI/review before integration/publication; keep existing output-pipe investigations and their limits intact. Miri remains deferred locally.
+
 Shared state and ownership board for `gaia-mesh` (import path `gaia`).
 This board is the ordered queue of open work. GAIA-022 folds the legacy
 `CHECKLIST.md` execution state into this queue and removes the duplicate.
