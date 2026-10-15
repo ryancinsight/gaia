@@ -16,3 +16,4 @@
 | [0005](0005-native-precision-predicate-boundary.md) | Native-precision predicate boundary via exact promotion | Accepted |
 | [0006](0006-pslg-scalar-relative-tolerances.md) | PSLG scalar-relative tolerances | Accepted |
 | [0007](0007-scalar-precision-seam.md) | Native-Precision Scalar Seam (`T: Scalar`) | Accepted |
+| [0008](0008-eunomia-010-provider-boundary.md) | Admit the Eunomia 0.10 numeric contract | Accepted |
