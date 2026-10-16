@@ -1,4 +1,4 @@
-//! Exact finite-box classification after positive-infinity slab collapse.
+//! Exact finite-box classification after rounded slab endpoints collapse.
 //!
 //! Stored-coordinate endpoint ratios are (bound-origin)/direction. Comparing
 //! two ratios needs no floating subtraction, multiplication, or division:
@@ -21,30 +21,32 @@ struct Endpoint {
 
 impl Endpoint {
     fn before(self, other: Self) -> bool {
+        // All denominators are positive. With the same stored origin and
+        // denominator, the common subtraction/division cancels exactly.
+        let same_origin = self.origin.to_bits() == other.origin.to_bits()
+            || (self.origin == 0.0 && other.origin == 0.0);
+        if same_origin && self.direction.to_bits() == other.direction.to_bits() {
+            return self.bound <= other.bound;
+        }
         let determinant = evaluate::orient3d(
             [self.bound, other.bound, 1.0],
             [self.origin, other.origin, 1.0],
             [self.direction, other.direction, 0.0],
             [0.0; 3],
         );
-        if (self.direction > 0.0) == (other.direction > 0.0) {
-            determinant >= 0.0
-        } else {
-            determinant <= 0.0
-        }
+        determinant >= 0.0
     }
 
     fn nonnegative(self) -> bool {
-        if self.direction > 0.0 {
-            self.bound >= self.origin
-        } else {
-            self.bound <= self.origin
-        }
+        self.bound >= self.origin
     }
 }
 
 /// Keep legacy nonfinite-box behavior; remove only a proven finite-box miss.
 /// This does not select an invalid-input or returned-distance representation.
+// Even the cheap certificates belong to the tie-only path. Outlining the
+// complete decision keeps their branches and register pressure out of ordinary
+// clipping, including callers where the public method cannot be inlined.
 #[cold]
 #[inline(never)]
 pub(super) fn retains_hit<T: Scalar>(
@@ -52,6 +54,23 @@ pub(super) fn retains_hit<T: Scalar>(
     direction: Vector3<T>,
     bounds: &Aabb<T>,
 ) -> bool {
+    // The caller has already checked parallel slab containment and ordering.
+    // A contained origin supplies t=0. With one active axis, its nonempty
+    // interval is the only remaining constraint; unit direction is +/-1.
+    let zero = <T as NumericElement>::ZERO;
+    if bounds.contains_point(&origin)
+        || (direction.x == zero && direction.y == zero)
+        || (direction.y == zero && direction.z == zero)
+        || (direction.z == zero && direction.x == zero)
+    {
+        return true;
+    }
+    exact_hit(origin, direction, bounds)
+}
+
+#[cold]
+#[inline(never)]
+fn exact_hit<T: Scalar>(origin: Point3<T>, direction: Vector3<T>, bounds: &Aabb<T>) -> bool {
     if !(0..3).all(|axis| {
         <T as NumericElement>::is_finite(bounds.min[axis])
             && <T as NumericElement>::is_finite(bounds.max[axis])
@@ -69,8 +88,8 @@ pub(super) fn retains_hit<T: Scalar>(
 }
 
 /// At most three active axes require four endpoint selections and one final
-/// comparison. Each calls the existing bounded exact orient3d implementation;
-/// no extra numeric provider, unbounded search, or dynamic collection occurs.
+/// comparison. Each cancels a shared scale or calls the existing bounded exact
+/// orient3d implementation; no extra provider, search, or collection occurs.
 fn intersect(origin: [f64; 3], direction: [f64; 3], lo: [f64; 3], hi: [f64; 3]) -> bool {
     let mut entry: Option<Endpoint> = None;
     let mut exit: Option<Endpoint> = None;
@@ -84,12 +103,19 @@ fn intersect(origin: [f64; 3], direction: [f64; 3], lo: [f64; 3], hi: [f64; 3]) 
             }
             continue;
         }
-        let endpoint = |bound| Endpoint {
-            bound,
-            origin: origin[axis],
-            direction: direction[axis],
+        let positive = direction[axis] > 0.0;
+        // Exact sign reversal makes every denominator positive and exposes
+        // shared-scale comparisons even when the original directions differ
+        // by sign. Finite IEEE negation loses no coordinate bits.
+        let endpoint = |bound| {
+            let sign = |value: f64| if positive { value } else { -value };
+            Endpoint {
+                bound: sign(bound),
+                origin: sign(origin[axis]),
+                direction: sign(direction[axis]),
+            }
         };
-        let (lower, upper) = if direction[axis] > 0.0 {
+        let (lower, upper) = if positive {
             (endpoint(lo[axis]), endpoint(hi[axis]))
         } else {
             (endpoint(hi[axis]), endpoint(lo[axis]))

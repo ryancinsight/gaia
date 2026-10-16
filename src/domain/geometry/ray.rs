@@ -2,7 +2,7 @@
 
 use crate::domain::core::scalar::{Real, Scalar};
 use crate::domain::geometry::Aabb;
-mod overflow;
+mod interval_order;
 
 use core::fmt;
 use eunomia::{FloatElement, NumericElement, RealField};
@@ -124,10 +124,18 @@ impl<T: Scalar> Ray<T> {
     ///
     /// Slab distances use native scalar arithmetic. A distance outside the
     /// scalar's finite range may be infinite, even for finite box coordinates.
-    /// When positive-infinity entry/exit distances collapse distinct finite
-    /// slabs, an exact stored-coordinate comparison still rejects a miss.
+    /// When equal entry/exit distances collapse distinct finite slabs, an exact
+    /// stored-coordinate comparison still rejects a miss, including infinity.
     /// True intersections retain the native infinite distance representation.
     /// NaN box bounds have no checked invalid-input result.
+    ///
+    /// Some equal-endpoint candidates require allocating exact predicate work,
+    /// even when both distances are finite. Finite unequal entry/exit distances
+    /// avoid that predicate path. Cheap contact cases do not bound every tie's cost.
+    // The tie certificates enlarge this generic method beyond the default
+    // inlining heuristic in some callers. Keep the ordinary slab loop visible
+    // to those callers; exceptional quotient and exact predicate work stay cold.
+    #[inline]
     #[must_use]
     pub fn intersect_aabb(self, aabb: &Aabb<T>) -> Option<(T, T)> {
         let origin = self.origin;
@@ -172,14 +180,15 @@ impl<T: Scalar> Ray<T> {
                 }
             }
         }
-        if t_enter == <T as RealField>::infinity() && !overflow::retains_hit(origin, dir, aabb) {
+        if t_exit < <T as NumericElement>::ZERO {
             return None;
         }
-        if t_exit < <T as NumericElement>::ZERO {
-            None
-        } else {
-            Some((t_enter, t_exit))
+        if (t_enter == t_exit || t_enter == <T as RealField>::infinity())
+            && !interval_order::retains_hit(origin, dir, aabb)
+        {
+            return None;
         }
+        Some((t_enter, t_exit))
     }
 }
 

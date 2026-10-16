@@ -1,6 +1,22 @@
 # Checklist
 
-Active correctness target: **0.6.3** (GAIA-026 finite predicates).
+Active isolated correctness target: **0.6.6** (GAIA-031 finite slab ties).
+Prerequisite: PR #180 / 0.6.5 is published and source/archive/tag/CI/docs verified.
+
+- [ ] **GAIA-031: finite rounded slab ties [patch] — isolated 0.6.6**
+    - [x] Check original/current intersection contracts and current ownership.
+    - [x] Prove all 456 residual false hits; reproduce four saved failures on
+      unchanged #180 in both build modes with genuine-contact controls.
+    - [x] Extend exact interval ordering only to native ties, preserving native
+      true-hit tuples, nonfinite bounds and range policy; certify cheap contacts.
+    - [x] Verify full native/docs/diagnostic gates and both exact Fraction modes.
+    - [x] Reproduce independent P2 caller-context overhead; outline the complete
+      tie-only decision and inspect ordinary codegen under standard level 2/3,
+      direct, opaque-wrapper and function-pointer callers without flag changes.
+    - [x] Record paired latency/allocation samples and add the mixed-exponent
+      finite true-contact controls; cheap contacts do not bound all tie costs.
+    - [ ] Require independent exact-head re-review of the performance repair and
+      all applicable gates/coherence/scope assessment before this followup ships.
 
 - [ ] **GAIA-026: full-exponent finite predicate signs [patch]**
     - [x] Preserve ownership and reproduce the unchanged 0.6.2 failures with

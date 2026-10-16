@@ -1,64 +1,63 @@
 # Backlog
 
-<a id="GAIA-030"></a>
-## GAIA-030 — Reject finite-box misses after infinite slab collapse [patch]
-
-- status: blocked; owner: Codex; target: 0.6.5; priority: correctness.
-- prerequisite: PR #179 is independently accepted and publishes 0.6.4 at
-  bcd3d50e78eb821f2cc189752e4b0c23f2778af9; actual source/archive/tag/docs verify.
-- outcome: Distinct finite slabs cannot invent an intersection merely because
-  positive entry/exit distances both overflow to infinity. True intersections
-  beyond the scalar's finite distance range retain their existing result.
-- scope: A postfilter only for native `Some((+inf,+inf))` candidates with finite
-  box bounds. NaN/infinite-bound policy and returned-distance representation
-  stay GAIA-029; all other native slab arithmetic is unchanged.
-- evidence: Four saved miss regressions fail on the parent in both build modes.
-  For an x=y ray, finite disjoint x/y intervals still report a hit on #179.
-  Separate true-hit controls cover both precisions, signs and axis rotations.
-- design: Compare original-coordinate endpoint ratios through the existing
-  exact orient3d evaluator (ADRs 0005/0009). A fixed determinant gives the
-  cross-multiplied ratio order, adjusted for denominator signs, without rounded
-  subtraction or division. At most five bounded comparisons select the maximum
-  entry, minimum exit and inclusive overlap. The cold path is non-inlined;
-  native storage/construction and returned distances are not widened/rescaled.
-- oracle: 13502 exact Fraction comparisons per build mode cover IEEE full-bit
-  inputs, exponent boundaries and mixed directions/origins. The postfilter
-  corrects 1130 misses and retains all 150 true infinite-distance hits; no new
-  classification error appears. The 456 pre-existing finite ties remain open
-  as GAIA-031 and are reported, not counted as fixed or oracle-correct.
-- local validation: 1206 native tests pass with one existing skip; 57 doctests
-  pass with one existing ignore. Strict all-target/all-feature Clippy, warning-
-  denied docs and formatting pass. Exact final test source is red on the parent
-  in both modes (four failures, two true-hit controls pass).
-- sampled cost: Seven alternating ARM64 pairs put ordinary calls at 2.37-4.43 ns
-  versus 2.22-4.15 ns on the parent; largest paired ordinary overhead is 14%.
-  Ordinary samples allocate nothing. Cold fixtures take 45 ns-5.04 us, with up
-  to 115 allocation calls and 3104 peak live bytes per call; temporaries release.
-  These warmed samples are not whole-mesh throughput or a formal heap bound.
-- sequencing: The candidate is restacked onto actual 0.6.4 main integration.
-  The Rust/source tree is unchanged by that restack. Independent final-head
-  review, applicable gates and current sole-0.6.5 scope remain required before
-  any merge/publication; no earlier release hold is inherited as approval.
-- next: Complete performance/memory/full gates and independent exact-head review.
-
 <a id="GAIA-031"></a>
 ## GAIA-031 — Classify finite rounded slab ties [patch]
 
-- status: todo; owner: unclaimed; priority: correctness.
+- status: blocked; owner: Codex; target: 0.6.6; priority: correctness.
+- prerequisite: PR #180 publishes 0.6.5 at
+  0e2f98a22dca3911843fae27cd409807872b33c2; reviewed tree, actual archive,
+  sole version, tag, main CI and docs verify. This followup bases on that merge.
+- contract: The original and current public ray method promise `None` for a
+  miss; neither documents conservative candidate hits. Native distance rounding
+  does not justify reporting disjoint intervals as an actual intersection.
+- evidence: All 456 GAIA-030 residuals are proven finite false hits by exact
+  stored-coordinate Fraction clipping (216 binary32, 240 binary64). Of these,
+  228 have positive width on every axis. Equal-magnitude stored x/y directions
+  cannot reach disjoint x/y intervals, even at ordinary coordinates near 0.5.
+  Four saved miss tests fail on unchanged #180 in debug and release; genuine
+  contacts pass. The regressions cover point and positive-width slabs, signs
+  and axis permutations without tolerances.
 - outcome: Distinct exact finite slab intervals do not become a hit through
   equal rounded finite endpoints; retain inclusive real boundary contact.
-- evidence: The deterministic GAIA-030 Fraction corpus retains 456 unchanged
-  false hits with finite equal returned endpoints (216 binary32, 240 binary64).
-  Original stored-coordinate intervals are disjoint. Both parent and candidate
-  have these discrepancies; GAIA-030 repairs positive-infinity collapse only.
-- scope: Finite-parameter classification; separate from GAIA-029's invalid-input
-  and range-representation policy. No tolerance, test or result policy changes
-  are selected by this entry.
-- acceptance oracle: Reproduce from check_ray_overflow_oracle.py and the saved
-  residual-native-rounding JSON; preserve existing true contacts and no new
-  classification errors across both precisions/build modes.
-- next: Audit finite tie classification and implement a separately reviewed
-  bounded repair under the existing miss contract.
+- design: Extend the existing exact finite-box postfilter to native ties.
+  A contained origin supplies t=0; a cardinal ray has only one nonempty interval.
+  Canonicalize denominator signs exactly; same-origin/same-denominator ratio
+  ordering reduces to bound comparison. Other comparisons use the existing
+  exact predicate seam (ADRs 0005/0009), at most five calls per candidate.
+- boundary: True hits retain native distance bits, including infinity. Nonfinite
+  bounds retain the existing behavior; GAIA-029 selects no new policy here.
+  This does not promise correctly rounded or conservatively enclosed endpoints
+  or globally exact classification for native candidates with unequal bounds.
+- acceptance oracle: `scripts/regressions/check_ray_interval_oracle.py` uses
+  actual stored ray directions and Python Fraction clipping in debug/release;
+  all selected ties must match truth, with true-hit tuples and other candidates
+  unchanged. Report residual errors explicitly rather than counting them as passes.
+- performance repair: Independent review of the first head reports an ordinary
+  untied f64 axis case slowing from about 3.2 to 8.6 ns in a saved executable.
+  An inline hint alone is insufficient across contexts. Outline the entire
+  tie-only decision, retaining all certificates, and keep the public kernel
+  inlineable. Standard level-2/3 direct, opaque-wrapper and function-pointer
+  samples restore the observed method frame from 192 to 144 bytes and retain
+  three reciprocal divisions. Frame size is an observation, not a complete
+  explanation of artifact-sensitive timings. No compiler flags or gates change.
+- contact costs: Shared-origin contact samples near 12 ns are not a general
+  bound. The independently tested least-subnormal y-origin contact at x=0.5
+  requires exact mixed-exponent work: about 1.1-1.3 us in that review, with
+  35 temporary allocations and 384/2088 requested live bytes for f32/f64, zero
+  retained. Two permanent value regressions preserve this true hit and tuple.
+  Current paired timing/allocation/codegen evidence records each caller context;
+  warmed primitive samples do not establish whole-mesh or formal resource bounds.
+- local validation: 1216 native tests pass with one existing skip; 57 doctests
+  pass with one existing ignore. Strict Clippy, docs, formatting, supply chain
+  and dependency hygiene pass under unchanged limits. Ten saved regressions
+  pass in debug and level-2/3 clients; all four miss tests fail on unchanged
+  0.6.5 while all six true-contact controls pass.
+- retained coverage: The 13502 author, 16592 prior-review and 10224 fresh
+  certificate cases pass in debug and both optimized client modes, with outputs
+  bit-identical to the original #181 head; 48 nonfinite observations per mode
+  are preserved. No numerical expression or classification certificate changes.
+- next: Freeze repaired exact-head package/API/oracle/performance evidence and
+  pass normal push/hosted gates; require independent re-review before release.
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]

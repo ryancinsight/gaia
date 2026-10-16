@@ -1,6 +1,33 @@
 # Changelog
 
-## [0.6.5] - Unreleased
+## [0.6.6] - Unreleased
+
+### Fixed
+
+- [patch] Reject finite-box misses whose distinct slab intervals collapse to
+  equal native finite distances. Check exact stored-coordinate interval order
+  at ties, preserving inclusive genuine contact and the existing returned
+  distance bits. The existing infinity-collapse repair remains in effect.
+- [patch] Certify origin-containing and axis-aligned candidates directly;
+  compare same-origin/same-denominator endpoint ratios by their bounds after
+  exact sign normalization. Other ambiguous ties use the shared exact predicate.
+  NaN/infinite-bound policy, range representation and all providers are unchanged.
+
+- [patch] Keep the entire tie-only classification decision cold and non-inlined,
+  with the public slab kernel inlineable, to repair an ordinary untied caller
+  regression under standard consumer flags. Preserve all numerical expressions,
+  exact certificates and native tuples. Add mixed-exponent finite true-contact
+  controls and document that some finite ties allocate and take over a microsecond
+  in sampled exact-predicate cases; cheap contacts do not bound the general cost.
+
+### Sequencing
+
+PR #180 publishes 0.6.5 at 0e2f98a22dca3911843fae27cd409807872b33c2.
+This isolated followup bases on that verified integration and requires its own
+independent exact-head review, applicable gates and current publication-scope
+assessment before any 0.6.6 merge or publication.
+
+## [0.6.5] - 2026-10-16
 
 ### Fixed
 
@@ -14,10 +41,13 @@
 
 ### Sequencing
 
-PR #179 is independently accepted and its 0.6.4 source/archive/tag/docs are
-verified. This draft bases on that actual main integration and requires its
-own independent final-head review, current gates and publication-scope check
-before any 0.6.5 merge or publication.
+PR #180 is independently accepted at bf1379266f0d9374bbde386de4b25f4918571cc6
+and merges at 0e2f98a22dca3911843fae27cd409807872b33c2 with the same reviewed
+tree. Sole 0.6.5 actual archive/VCS/all 420 Rust files/original manifest/tag,
+main CI and authorized automatic docs verify. Independent cost samples reach
+19% ordinary overhead, 5.35 us exceptional latency and 3104 requested live heap
+bytes with none retained; ordinary samples allocate nothing. These are warmed
+local ARM64 fixture measurements, not formal bounds or whole-mesh throughput.
 
 ## [0.6.4] - 2026-10-16
 
