@@ -12,7 +12,7 @@ Active correctness target: **0.6.1** (ZIP prerequisite for PR #176).
     - [x] Verify 1,159 native passes/one existing skip, 57 doctest passes/one
       existing ignore, strict diagnostics/docs, supply chain, lock and hygiene.
     - [x] Compare the unchanged main's locked Rustdoc API: 196 checks pass.
-    - [ ] Verify normalized package consumers and normal push gates on the final head.
+    - [x] Verify standard packaging, normalized fresh consumers and normal push gates.
     - [ ] Resolve the canonical release probe's re-resolution of Gaia 0.6.0's
       yanked ZIP baseline; the API comparison does not replace that gate.
     - [ ] Obtain independent review and assess automatic crate-publication scope.

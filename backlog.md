@@ -16,6 +16,8 @@
 - local evidence: 1,159 native and 57 doctest passes (one existing skip/ignore
   each); strict Clippy/docs, deny, machete and standalone lock pass. The exact
   unchanged main's locked Rustdoc API passes 196 compatibility checks.
+- package evidence: standard locked packaging, the normalized package's fresh
+  consumer, independent archive validation and the normal pre-push gates pass.
 - release blocker: the standard `--baseline-version 0.6.0` SemVer probe still
   freshly resolves the old release's yanked ZIP range; no gate is bypassed.
 - next: independent exact-head review and hosted gates before integration;
