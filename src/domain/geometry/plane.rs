@@ -5,6 +5,7 @@
 //! normal form: `n · x + d = 0`.
 
 use crate::domain::core::scalar::{Real, Scalar};
+use crate::domain::geometry::predicates::orient_2d_arr;
 use eunomia::NumericElement;
 use leto::geometry::{Point3, Vector3};
 
@@ -51,16 +52,22 @@ impl<T: Scalar> Plane<T> {
 
     /// Create a plane from three non-collinear points (CCW winding → outward normal).
     ///
-    /// Returns `None` for non-finite coordinates, a doubled triangle area below
-    /// [`Scalar::tolerance_sq`], or arithmetic that cannot represent a finite
-    /// cross-product norm or plane offset in `T`.
+    /// Returns `None` for exactly collinear points, non-finite coordinates, a
+    /// computed doubled triangle area below [`Scalar::tolerance_sq`], or
+    /// arithmetic that cannot represent a finite cross-product norm or plane
+    /// offset in `T`.
     ///
     /// # Theorem
     ///
     /// The cross product has magnitude `2 × area`, with units of length², so
-    /// its degeneracy threshold is the squared length tolerance. Dividing by
-    /// its finite non-zero norm yields a unit normal; `w = -normal · a` then
-    /// places all three vertices on the plane, up to native-precision rounding.
+    /// its physical threshold is the squared length tolerance. Collinearity
+    /// means that all three 2×2 minors of the edge matrix vanish: exactly the
+    /// orientation determinants of its XY, YZ and ZX projections. Evaluate
+    /// these on the original stored points through the exact predicate seam
+    /// (ADR 0005), so rounded edge differences cannot invent a plane for an
+    /// exactly collinear triple. The area, normal and offset stay in `T`.
+    /// Dividing by the finite non-zero norm yields a unit normal;
+    /// `w = -normal · a` places the vertices on the plane up to rounding.
     #[inline]
     #[must_use]
     pub fn from_three_points(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> Option<Self> {
@@ -70,6 +77,16 @@ impl<T: Scalar> Plane<T> {
         let len = cross.norm();
         if !<T as NumericElement>::is_finite(len) || len < T::tolerance_sq() {
             return None; // Degenerate (collinear points)
+        }
+        if [[0, 1], [1, 2], [2, 0]].into_iter().all(|[row, column]| {
+            orient_2d_arr(
+                [a[row], a[column]],
+                [b[row], b[column]],
+                [c[row], c[column]],
+            )
+            .is_degenerate()
+        }) {
+            return None;
         }
         let normal = cross / len;
         let w = -normal.dot(a.coords);
@@ -305,6 +322,86 @@ mod tests {
     fn degenerate_triangles_still_cannot_construct_planes() {
         assert_degenerate_triangle_contract::<f32>();
         assert_degenerate_triangle_contract::<f64>();
+    }
+
+    fn assert_cancellation_collinearity<T: Scalar>(parameters: [f64; 3], exponent: i32) {
+        let f = <T as Scalar>::from_f64;
+        let scale = 2.0_f64.powi(exponent);
+        // Each integer x and 3x fits the selected scalar's significand;
+        // multiplication by this power of two is exact. Thus all stored
+        // points satisfy y = 3x and z = 0 as exact rational equalities.
+        let mut points = parameters.map(|x| Point3::new(f(x * scale), f(3.0 * x * scale), f(0.0)));
+        for point in points {
+            assert_eq!(point.y, f(3.0) * point.x);
+        }
+        for (left, right) in [(0, 1), (0, 2), (1, 2)] {
+            assert!((points[right] - points[left]).norm() > T::tolerance());
+        }
+        let rounded_area = (points[1] - points[0]).cross(points[2] - points[0]).norm();
+        assert!(rounded_area >= T::tolerance_sq());
+        assert!(rounded_area < T::tolerance());
+        for _ in 0..3 {
+            for [first, second, third] in [
+                [0, 1, 2],
+                [0, 2, 1],
+                [1, 0, 2],
+                [1, 2, 0],
+                [2, 0, 1],
+                [2, 1, 0],
+            ] {
+                assert_eq!(
+                    Plane::from_three_points(&points[first], &points[second], &points[third]),
+                    None
+                );
+            }
+            points = points.map(|p| Point3::new(p.y, p.z, p.x));
+        }
+    }
+
+    #[test]
+    fn collinear_cancellation_at_single_precision_is_rejected() {
+        assert_cancellation_collinearity::<f32>([-4_000_001.0, 4_000_000.0, 1_000_000.0], -24);
+    }
+
+    #[test]
+    fn collinear_cancellation_at_double_precision_is_rejected() {
+        assert_cancellation_collinearity::<f64>(
+            [
+                -2_000_000_000_000_001.0,
+                2_000_000_000_000_000.0,
+                1_000_000_000_000_001.0,
+            ],
+            -53,
+        );
+    }
+
+    fn assert_noncollinear_projection_contract<T: Scalar>() {
+        let f = <T as Scalar>::from_f64;
+        // The XY projection is collinear, but the full triangle is not.
+        // Its cross product is (20, -15, 0), with norm 25 by 3² + 4² = 5².
+        let mut points = [
+            Point3::origin(),
+            Point3::new(f(3.0), f(4.0), f(0.0)),
+            Point3::new(f(6.0), f(8.0), f(5.0)),
+        ];
+        let mut expected = Vector3::new(f(0.8), f(-0.6), f(0.0));
+        for _ in 0..3 {
+            let plane = Plane::from_three_points(&points[0], &points[1], &points[2])
+                .expect("a nonzero projected determinant defines a plane");
+            assert_eq!(plane.normal, expected);
+            assert_eq!(plane.w, f(0.0));
+            for point in points {
+                assert_eq!(plane.classify_point(&point), PointClassification::Coplanar);
+            }
+            points = points.map(|p| Point3::new(p.y, p.z, p.x));
+            expected = Vector3::new(expected.y, expected.z, expected.x);
+        }
+    }
+
+    #[test]
+    fn noncollinear_triangles_survive_degenerate_coordinate_projections() {
+        assert_noncollinear_projection_contract::<f32>();
+        assert_noncollinear_projection_contract::<f64>();
     }
 
     #[test]
