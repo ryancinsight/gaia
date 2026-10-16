@@ -74,7 +74,8 @@ fn exact_collinear<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> bo
 const SIGNIFICAND_BITS: usize = 53;
 const MAX_LEAST_BIT_SHIFT: usize = 2045;
 const SUM_BITS: usize = 2 * MAX_LEAST_BIT_SHIFT + 2 * SIGNIFICAND_BITS + 3;
-const LIMBS: usize = SUM_BITS.div_ceil(u64::BITS as usize);
+const WORD_BITS: usize = 64;
+const LIMBS: usize = SUM_BITS.div_ceil(WORD_BITS);
 
 /// Sign, integer significand, and nonnegative least-bit shift from 2^-1074.
 #[inline]
@@ -98,10 +99,6 @@ fn add_word(sum: &mut [u64; LIMBS], mut index: usize, mut word: u64) {
 
 /// Exact zero of the original-point orientation determinant; inputs are finite.
 #[cold]
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "split a u128 product into its low and high u64 words; low truncation is intentional"
-)]
 fn zero_minor(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> bool {
     let [ax, ay] = a.map(dyadic);
     let [bx, by] = b.map(dyadic);
@@ -119,17 +116,23 @@ fn zero_minor(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> bool {
         let product = u128::from(left.1) * u128::from(right.1);
         let sum = &mut sums[usize::from(left.0 ^ right.0 ^ subtract)];
         let shift = left.2 + right.2;
-        let index = shift / 64;
-        let offset = shift % 64;
-        let low = product as u64;
-        let high = (product >> 64) as u64;
+        let index = shift / WORD_BITS;
+        let offset = shift % WORD_BITS;
+        let bytes = product.to_le_bytes();
+        let (low, high) = bytes.split_at(size_of::<u64>());
+        let low = u64::from_le_bytes(low.try_into().expect("low word has eight bytes"));
+        let high = u64::from_le_bytes(high.try_into().expect("high word has eight bytes"));
         if offset == 0 {
             add_word(sum, index, low);
             add_word(sum, index + 1, high);
         } else {
             add_word(sum, index, low << offset);
-            add_word(sum, index + 1, (high << offset) | (low >> (64 - offset)));
-            add_word(sum, index + 2, high >> (64 - offset));
+            add_word(
+                sum,
+                index + 1,
+                (high << offset) | (low >> (WORD_BITS - offset)),
+            );
+            add_word(sum, index + 2, high >> (WORD_BITS - offset));
         }
     }
     sums[0] == sums[1]
