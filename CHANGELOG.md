@@ -15,6 +15,9 @@
   cases using full-exponent exact dyadic integer sums. Preserve valid finite
   high-aspect triangles in both windings. Plane coefficients remain in their
   native precision; the accepted ZIP 9.0.4/provider graph remains unchanged.
+  Try every cheap projected-minor certificate before exact fallback, avoiding
+  expensive integer work when one projection is noisy but another resolves
+  the triangle; cover the chosen path without timing-dependent assertions.
 
 ## [0.6.1] - Unreleased
 

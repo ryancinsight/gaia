@@ -14,7 +14,9 @@
 //! expressing the bound in computed products). Our evaluated 16u(S+tol²)
 //! exceeds this even after bound-rounding for both sealed precisions. The
 //! tol² term dominates underflow: u tol² >> eta in binary32 and binary64.
-//! Overflow of S makes the filter inconclusive, never a nonzero certificate.
+//! Overflow of S makes that minor inconclusive, never a nonzero certificate.
+//! Try all three cheap certificates before exact arithmetic: one weak
+//! projection does not make an otherwise resolved 3-D triangle ambiguous.
 //!
 //! The fallback adds the six signed products of original coordinates as exact
 //! dyadic integers. Binary64 has at most 53 significand bits and a least-bit
@@ -38,23 +40,32 @@ pub(super) fn is_collinear<T: Scalar>(
     ac: Vector3<T>,
     cross: Vector3<T>,
 ) -> bool {
-    let zero = <T as NumericElement>::ZERO;
-    let (row, column, minor) = if cross.z != zero {
-        (0, 1, cross.z)
-    } else if cross.x != zero {
-        (1, 2, cross.x)
-    } else {
-        (2, 0, cross.y)
-    };
-    if ab[row] == zero || ac[column] == zero || ab[column] == zero || ac[row] == zero {
-        return false;
-    }
-    let permanent = (ab[row] * ac[column]).abs() + (ab[column] * ac[row]).abs();
-    let bound = T::from_int(8) * T::EPSILON * (permanent + T::tolerance_sq());
-    if minor.abs() > bound {
+    if certified_nonzero(ab, ac, cross) {
         return false;
     }
     exact_collinear(a, b, c)
+}
+
+/// Certify a nonzero projected minor without entering exact arithmetic.
+#[inline]
+fn certified_nonzero<T: Scalar>(ab: Vector3<T>, ac: Vector3<T>, cross: Vector3<T>) -> bool {
+    let zero = <T as NumericElement>::ZERO;
+    // A weak projection says nothing about the other two minors. Only use
+    // exact arithmetic after every nonzero native minor is inconclusive.
+    for (row, column, minor) in [(0, 1, cross.z), (1, 2, cross.x), (2, 0, cross.y)] {
+        if minor == zero {
+            continue;
+        }
+        if ab[row] == zero || ac[column] == zero || ab[column] == zero || ac[row] == zero {
+            return true;
+        }
+        let permanent = (ab[row] * ac[column]).abs() + (ab[column] * ac[row]).abs();
+        let bound = T::from_int(8) * T::EPSILON * (permanent + T::tolerance_sq());
+        if minor.abs() > bound {
+            return true;
+        }
+    }
+    false
 }
 
 /// Keep dyadic decoding and its stack storage outside the common inline path.
@@ -141,6 +152,60 @@ fn zero_minor(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::zero_minor;
+
+    fn assert_lifted_triangle_uses_certificate<T: crate::domain::core::scalar::Scalar>(
+        parameters: [f64; 3],
+        exponent: i32,
+    ) {
+        use crate::domain::geometry::plane::Plane;
+        use leto::geometry::Point3;
+        let f = <T as crate::domain::core::scalar::Scalar>::from_f64;
+        let scale = 2.0_f64.powi(exponent);
+        // XY alone has exactly collinear stored points, while lifting c to
+        // z=1 makes a resolved 3-D triangle with simple YZ and ZX minors.
+        let mut points = parameters.map(|x| Point3::new(f(x * scale), f(3.0 * x * scale), f(0.0)));
+        points[2].z = f(1.0);
+        for _ in 0..3 {
+            for [i, j, k] in [
+                [0, 1, 2],
+                [0, 2, 1],
+                [1, 0, 2],
+                [1, 2, 0],
+                [2, 0, 1],
+                [2, 1, 0],
+            ] {
+                let [a, b, c] = [points[i], points[j], points[k]];
+                let ab = b - a;
+                let ac = c - a;
+                let cross = ab.cross(ac);
+                assert!(
+                    super::certified_nonzero(ab, ac, cross),
+                    "a resolved projected minor must avoid the exact fallback"
+                );
+                let plane = Plane::from_three_points(&a, &b, &c).expect("resolved 3-D triangle");
+                let normal = cross / cross.norm();
+                assert_eq!(plane.normal, normal);
+                assert_eq!(plane.w, -normal.dot(a.coords));
+            }
+            points = points.map(|p| Point3::new(p.y, p.z, p.x));
+        }
+    }
+
+    #[test]
+    fn strong_projection_avoids_exact_fallback_despite_cancellation_noise() {
+        assert_lifted_triangle_uses_certificate::<f32>(
+            [-4_000_001.0, 4_000_000.0, 1_000_000.0],
+            -24,
+        );
+        assert_lifted_triangle_uses_certificate::<f64>(
+            [
+                -2_000_000_000_000_001.0,
+                2_000_000_000_000_000.0,
+                1_000_000_000_000_001.0,
+            ],
+            -53,
+        );
+    }
 
     #[test]
     fn exact_zero_covers_binary64_exponent_range() {

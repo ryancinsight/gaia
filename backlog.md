@@ -21,16 +21,24 @@
   at most one. Six binary64 products require at most 4199 bits; two 66-word
   sums suffice. The native filter's rounding/underflow bounds are documented
   beside the implementation; no coordinate/tolerance approximation is added.
-- local evidence: 13 focused checks pass debug/release; 15 unchanged reviewer
+- performance review: a weak first nonzero minor prematurely invoked exact
+  arithmetic for resolved 3-D triangles. A deterministic certificate-path
+  regression fails debug/release before repair; all three cheap minors are
+  now attempted before fallback, without changing any certificate bound.
+- local evidence: 14 focused checks pass debug/release; 15 unchanged reviewer
   boundary/cancellation/range tests pass against actual debug/release libraries.
-  An exact rational oracle agrees on 6144 binary32/binary64 fixtures. All
-  1168 native tests pass/one existing skip with exit 0 and no leak this run;
+  Author reruns of unchanged 34166 independent and 6144 author exact-rational
+  fixtures pass in both modes. All 1169 native tests pass/one existing skip
+  with exit 0 and no leak this run;
   57 doctests pass/one ignore. Strict Clippy/docs, fmt, deny and machete pass.
-- API: normal fresh published 0.6.1 baseline comparison passes 196 checks;
+- API: ordinary fresh published 0.6.1 comparison passes 196 checks/57 skips;
+  hosted 202/58 evidence is a separate Git-base comparison, not registry proof.
+  Hosted Miri covers GhostCell permission tests only, not this helper;
   only Gaia's self version changes from the coherent accepted lock graph.
-- performance: unchanged reviewer driver, seven alternating ARM64 runs:
-  4.14–4.48 ns/call, 1.15–1.26 times pre-collinearity construction, compared
-  with the prior guard's 5.22–11.17 ns. No end-to-end throughput claim.
+- performance: seven alternating runs of unchanged reviewer drivers reduce
+  the lifted-triangle case from 82.78/100.26 ns to 4.75/6.00 ns (single/double).
+  Axis-aligned medians are 4.32–4.98 ns; ordinary oblique medians 4.92/5.35 ns.
+  No timing assertions, CPU-affinity or end-to-end throughput claim is added.
 - package: standard locked package, source/normalized fresh consumers and
   publish dry-run pass; normal fresh published 0.6.1 API resolution passes.
 - next: normal push/hosted gates and independent exact-head review after
@@ -90,7 +98,11 @@ Triage order: correctness → architecture → verification → tightening → f
 - basis: Two provider-candidate runs pass 1,159 values but report one leak in different tests; focused reproduction and the preceding baseline exit cleanly.
 - additional evidence: the GAIA-024 repair passes 1,166 values but once flags
   `cylinder_through_torus_union`; subsequent focused/full repeats exit cleanly.
-- next: Capture process/handle evidence around the reported completion, then correct the identified owner.
+- bounded evidence: 20 focused repetitions and eight full main-branch suites
+  (1159 passes/one skip each) report no leak under unchanged capture/budgets.
+  Read-only process/pipe snapshots are preserved; no owning writer/cause or
+  production fix is established. These clean runs do not close this item.
+- next: Capture process/handle evidence around an actual reported leak, then correct the identified owner.
 
 
 ---

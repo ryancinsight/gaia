@@ -9,14 +9,18 @@ Active correctness target: **0.6.2**.
       and release, then cover both windings/axis rotations through exponent 1023.
     - [x] Use proven native nonzero filters and full-exponent exact dyadic
       zero decisions; retain native plane coefficients and squared tolerance.
-    - [x] Verify 13 focused tests debug/release, all 15 unchanged reviewer
-      tests in both build modes, and 6144 exact rational oracle fixtures.
-    - [x] Verify 1168 native passes/one skip, 57 doctests/one ignore, strict
+    - [x] Verify 14 focused tests debug/release, all 15 unchanged reviewer
+      tests in both build modes, and unchanged 34166 independent / 6144 author
+      exact-rational oracle fixtures.
+    - [x] Verify 1169 native passes/one skip, 57 doctests/one ignore, strict
       Clippy/public docs, fmt, deny and machete; retain GAIA-NEXTEST-PIPE.
     - [x] Rebase onto accepted PR #177, select patch 0.6.2, preserve the
       dependency graph and pass normal fresh published-baseline API comparison.
-    - [x] Measure the unchanged constructor benchmark; move exact work off
-      the inline path without weakening computed-value checks or budgets.
+    - [x] Reproduce the premature exact-fallback performance finding with a
+      deterministic certificate-path regression, then try all cheap minors
+      before fallback; verify all vertex orders and cyclic axis rotations.
+    - [x] Measure unchanged axis/oblique constructor drivers without weakening
+      computed-value checks, inputs, budgets or leak detection.
     - [x] Verify standard locked package, normalized/source fresh consumers
       and publish dry-run without upload; all select coherent ZIP 9.0.4.
     - [ ] Complete normal push/hosted gates and independent exact-head review
