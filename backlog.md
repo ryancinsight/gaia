@@ -1,50 +1,5 @@
 # Backlog
 
-<a id="GAIA-030"></a>
-## GAIA-030 — Reject finite-box misses after infinite slab collapse [patch]
-
-- status: done; owner: Codex; published: 0.6.5; priority: correctness.
-- prerequisite: PR #179 is independently accepted and publishes 0.6.4 at
-  bcd3d50e78eb821f2cc189752e4b0c23f2778af9; actual source/archive/tag/docs verify.
-- outcome: Distinct finite slabs cannot invent an intersection merely because
-  positive entry/exit distances both overflow to infinity. True intersections
-  beyond the scalar's finite distance range retain their existing result.
-- scope: A postfilter only for native `Some((+inf,+inf))` candidates with finite
-  box bounds. NaN/infinite-bound policy and returned-distance representation
-  stay GAIA-029; all other native slab arithmetic is unchanged.
-- evidence: Four saved miss regressions fail on the parent in both build modes.
-  For an x=y ray, finite disjoint x/y intervals still report a hit on #179.
-  Separate true-hit controls cover both precisions, signs and axis rotations.
-- design: Compare original-coordinate endpoint ratios through the existing
-  exact orient3d evaluator (ADRs 0005/0009). A fixed determinant gives the
-  cross-multiplied ratio order, adjusted for denominator signs, without rounded
-  subtraction or division. At most five bounded comparisons select the maximum
-  entry, minimum exit and inclusive overlap. The cold path is non-inlined;
-  native storage/construction and returned distances are not widened/rescaled.
-- oracle: 13502 exact Fraction comparisons per build mode cover IEEE full-bit
-  inputs, exponent boundaries and mixed directions/origins. The postfilter
-  corrects 1130 misses and retains all 150 true infinite-distance hits; no new
-  classification error appears. The 456 pre-existing finite ties remain open
-  as GAIA-031 and are reported, not counted as fixed or oracle-correct.
-- local validation: 1206 native tests pass with one existing skip; 57 doctests
-  pass with one existing ignore. Strict all-target/all-feature Clippy, warning-
-  denied docs and formatting pass. Exact final test source is red on the parent
-  in both modes (four failures, two true-hit controls pass).
-- sampled cost: Seven alternating ARM64 pairs put ordinary calls at 2.37-4.43 ns
-  versus 2.22-4.15 ns on the parent; largest paired ordinary overhead is 14%.
-  Ordinary samples allocate nothing. Cold fixtures take 45 ns-5.04 us, with up
-  to 115 allocation calls and 3104 peak live bytes per call; temporaries release.
-  These warmed samples are not whole-mesh throughput or a formal heap bound.
-- sequencing: The candidate is restacked onto actual 0.6.4 main integration.
-  The Rust/source tree is unchanged by that restack. Independent final-head
-  review, applicable gates and current sole-0.6.5 scope remain required before
-  any merge/publication; no earlier release hold is inherited as approval.
-- delivery: Independent exact-head review accepts bf137926; normal merge
-  0e2f98a publishes sole 0.6.5. Actual archive/VCS/420 Rust files/manifest/tag,
-  main CI and automatic docs verify. Independent fixture samples reach 19%
-  ordinary overhead and 5.35 us exceptional latency, with no retained heap.
-- next: Keep finite ties (GAIA-031) and checked policy (GAIA-029) separate.
-
 <a id="GAIA-031"></a>
 ## GAIA-031 — Classify finite rounded slab ties [patch]
 
