@@ -3,7 +3,8 @@
 <a id="GAIA-032"></a>
 ## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]
 
-- status: implemented; owner: Codex; target: 0.6.7; priority: correctness.
+- status: blocked; owner: Codex; target: 0.6.7; priority: correctness.
+- blocked by: Independent exact-head review and fresh release gates before integration.
 - prerequisite: Independently accepted PR #181 integrates at
   012fa6e118b0de4c3e248306c02754e912a5bbd4; sole 0.6.6 source/archive/tag,
   main CI and automatic documentation verify. This separate fix bases there.
@@ -39,67 +40,6 @@
 - next: Complete clean package/API/real consumer/dry-run and normal registered
   push/hosted gates, then obtain independent exact-head review. No merge or
   publication before acceptance and freshly assessed sole 0.6.7 release scope.
-
-<a id="GAIA-031"></a>
-## GAIA-031 — Classify finite rounded slab ties [patch]
-
-- status: completed; owner: Codex; target: 0.6.6; priority: correctness.
-- prerequisite: PR #180 publishes 0.6.5 at
-  0e2f98a22dca3911843fae27cd409807872b33c2; reviewed tree, actual archive,
-  sole version, tag, main CI and docs verify. This followup bases on that merge.
-- contract: The original and current public ray method promise `None` for a
-  miss; neither documents conservative candidate hits. Native distance rounding
-  does not justify reporting disjoint intervals as an actual intersection.
-- evidence: All 456 GAIA-030 residuals are proven finite false hits by exact
-  stored-coordinate Fraction clipping (216 binary32, 240 binary64). Of these,
-  228 have positive width on every axis. Equal-magnitude stored x/y directions
-  cannot reach disjoint x/y intervals, even at ordinary coordinates near 0.5.
-  Four saved miss tests fail on unchanged #180 in debug and release; genuine
-  contacts pass. The regressions cover point and positive-width slabs, signs
-  and axis permutations without tolerances.
-- outcome: Distinct exact finite slab intervals do not become a hit through
-  equal rounded finite endpoints; retain inclusive real boundary contact.
-- design: Extend the existing exact finite-box postfilter to native ties.
-  A contained origin supplies t=0; a cardinal ray has only one nonempty interval.
-  Canonicalize denominator signs exactly; same-origin/same-denominator ratio
-  ordering reduces to bound comparison. Other comparisons use the existing
-  exact predicate seam (ADRs 0005/0009), at most five calls per candidate.
-- boundary: True hits retain native distance bits, including infinity. Nonfinite
-  bounds retain the existing behavior; GAIA-029 selects no new policy here.
-  This does not promise correctly rounded or conservatively enclosed endpoints
-  or globally exact classification for native candidates with unequal bounds.
-- acceptance oracle: `scripts/regressions/check_ray_interval_oracle.py` uses
-  actual stored ray directions and Python Fraction clipping in debug/release;
-  all selected ties must match truth, with true-hit tuples and other candidates
-  unchanged. Report residual errors explicitly rather than counting them as passes.
-- performance repair: Independent review of the first head reports an ordinary
-  untied f64 axis case slowing from about 3.2 to 8.6 ns in a saved executable.
-  An inline hint alone is insufficient across contexts. Outline the entire
-  tie-only decision, retaining all certificates, and keep the public kernel
-  inlineable. Standard level-2/3 direct, opaque-wrapper and function-pointer
-  samples restore the observed method frame from 192 to 144 bytes and retain
-  three reciprocal divisions. Frame size is an observation, not a complete
-  explanation of artifact-sensitive timings. No compiler flags or gates change.
-- contact costs: Shared-origin contact samples near 12 ns are not a general
-  bound. The independently tested least-subnormal y-origin contact at x=0.5
-  requires exact mixed-exponent work: about 1.1-1.3 us in that review, with
-  35 temporary allocations and 384/2088 requested live bytes for f32/f64, zero
-  retained. Two permanent value regressions preserve this true hit and tuple.
-  Current paired timing/allocation/codegen evidence records each caller context;
-  warmed primitive samples do not establish whole-mesh or formal resource bounds.
-- local validation: 1216 native tests pass with one existing skip; 57 doctests
-  pass with one existing ignore. Strict Clippy, docs, formatting, supply chain
-  and dependency hygiene pass under unchanged limits. Ten saved regressions
-  pass in debug and level-2/3 clients; all four miss tests fail on unchanged
-  0.6.5 while all six true-contact controls pass.
-- retained coverage: The 13502 author, 16592 prior-review and 10224 fresh
-  certificate cases pass in debug and both optimized client modes, with outputs
-  bit-identical to the original #181 head; 48 nonfinite observations per mode
-  are preserved. No numerical expression or classification certificate changes.
-- delivered: Independent re-review accepts 6855803 with no remaining findings.
-  Normal merge 012fa6e1 has the same tree; sole 0.6.6 archive/all 421 Rust/manifest/
-  VCS/checksum/tag/main CI/docs verify. Sampled ordinary overhead reaches 6.73%;
-  the contact costs and excluded contracts above still apply.
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]
