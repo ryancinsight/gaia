@@ -1,6 +1,25 @@
 # Changelog
 
-## [0.6.4] - Unreleased
+## [0.6.5] - Unreleased
+
+### Fixed
+
+- [patch] Reject proven finite-box misses when native positive entry and exit
+  distances collapse to infinity. Use at most five exact stored-coordinate
+  ratio comparisons through the existing predicate provider; retain true hits
+  with native infinite distances. Keep NaN/infinite-bound behavior, public API,
+  physical tolerances and provider versions unchanged.
+- [patch] Record 456 pre-existing finite rounded-endpoint false hits as GAIA-031;
+  this bounded overflow repair does not fix or certify those cases.
+
+### Sequencing
+
+PR #179 is independently accepted and its 0.6.4 source/archive/tag/docs are
+verified. This draft bases on that actual main integration and requires its
+own independent final-head review, current gates and publication-scope check
+before any 0.6.5 merge or publication.
+
+## [0.6.4] - 2026-10-16
 
 ### Fixed
 
@@ -15,6 +34,17 @@
 - [patch] Keep the exceptional quotient in a cold, non-inlined generic helper,
   preventing speculative fallback divisions on ordinary finite-product slabs.
   Preserve every operand, selection decision and returned interval.
+
+### Integration evidence — 2026-10-16
+
+GAIA-028 closes through PR #179 at
+`bcd3d50e78eb821f2cc189752e4b0c23f2778af9`, with the independently accepted
+bf55af4 tree. Main CI, automatic API release gate/publication and authorized
+Pages deployment pass. Only Gaia 0.6.4 publishes; the actual registry archive
+checksum is `8912137124c5ae691724e4ffc42c2e1bdfacf294d1253fd52a57102d37bd275c`.
+All 417 packaged Rust files, original manifest and VCS match the merge; its
+release tag targets the same commit. GAIA-029/030/031 and the output-pipe
+followup stay separate. No settings, credentials or other service change.
 
 ## [0.6.3] - 2026-10-16
 
