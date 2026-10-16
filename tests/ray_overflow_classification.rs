@@ -10,7 +10,8 @@ use leto::geometry::{Point3, Vector3};
 fn unit_ray<T: Scalar>() -> Ray<T> {
     let zero = <T as NumericElement>::ZERO;
     let one = <T as NumericElement>::ONE;
-    let ray = Ray::try_new(Point3::new(zero, zero, zero), Vector3::new(one, one, zero)).unwrap();
+    let ray = Ray::try_new(Point3::new(zero, zero, zero), Vector3::new(one, one, zero))
+        .expect("finite nonzero analytical ray direction");
     assert!(ray.direction().x > zero && ray.direction().x == ray.direction().y);
     ray
 }
@@ -84,7 +85,7 @@ fn assert_true_hits<T: Scalar>(maximum: T) {
                 Point3::new(zero, zero, zero),
                 Vector3::new(direction[0], direction[1], direction[2]),
             )
-            .unwrap();
+            .expect("finite nonzero analytical ray direction");
             assert_eq!(
                 ray.intersect_aabb(&Aabb::new(target, target)),
                 Some((infinity, infinity))
@@ -93,7 +94,7 @@ fn assert_true_hits<T: Scalar>(maximum: T) {
                 target,
                 Vector3::new(-direction[0], -direction[1], -direction[2]),
             )
-            .unwrap();
+            .expect("finite nonzero analytical ray direction");
             let opposite = Point3::new(-target.x, -target.y, -target.z);
             assert_eq!(
                 far.intersect_aabb(&Aabb::new(opposite, opposite)),

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.5] - Unreleased
+
+### Fixed
+
+- [patch] Reject proven finite-box misses when native positive entry and exit
+  distances collapse to infinity. Use at most five exact stored-coordinate
+  ratio comparisons through the existing predicate provider; retain true hits
+  with native infinite distances. Keep NaN/infinite-bound behavior, public API,
+  physical tolerances and provider versions unchanged.
+- [patch] Record 456 pre-existing finite rounded-endpoint false hits as GAIA-031;
+  this bounded overflow repair does not fix or certify those cases.
+
+### Sequencing
+
+This draft stacks on #179 (0.6.4) for review. It must not merge into that
+branch or publish ahead of verified 0.6.4. Restack onto main afterward and
+repeat independent final-head review and current gates before 0.6.5 ships.
+
 ## [0.6.4] - Unreleased
 
 ### Fixed

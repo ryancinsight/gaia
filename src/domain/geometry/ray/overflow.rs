@@ -46,6 +46,7 @@ impl Endpoint {
 /// Keep legacy nonfinite-box behavior; remove only a proven finite-box miss.
 /// This does not select an invalid-input or returned-distance representation.
 #[cold]
+#[inline(never)]
 pub(super) fn retains_hit<T: Scalar>(
     origin: Point3<T>,
     direction: Vector3<T>,
