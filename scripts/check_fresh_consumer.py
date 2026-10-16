@@ -90,7 +90,9 @@ def main():
                        env=env, check=True, timeout=300)
         verify_archive(output)
         metadata = json.loads(subprocess.check_output(
-            cargo + ["metadata", "--locked", "--offline", "--format-version=1"],
+            # Metadata includes dependencies for targets the native run did
+            # not build, so a cold runner may still need their sources.
+            cargo + ["metadata", "--locked", "--format-version=1"],
             cwd=root, env=env, timeout=60,
         ))
         resolved = [p["version"] for p in metadata["packages"] if p["name"] == "zip"]
