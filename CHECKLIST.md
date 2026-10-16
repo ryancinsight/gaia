@@ -1,38 +1,29 @@
 # Checklist
 
-Active correctness target: **0.6.2**.
+Active correctness target: **0.6.3** (GAIA-026 finite predicates).
 
-- [ ] **GAIA-024: three-point plane correctness [patch]**
-    - [x] Reproduce dimensional, nonfinite, overflow and exact-collinearity
-      cancellation defects before their repairs; preserve both precisions.
-    - [x] Reproduce the second review's exponent-overflow rejection in debug
-      and release, then cover both windings/axis rotations through exponent 1023.
-    - [x] Use proven native nonzero filters and full-exponent exact dyadic
-      zero decisions; retain native plane coefficients and squared tolerance.
-    - [x] Verify 14 focused tests debug/release, all 15 unchanged reviewer
-      tests in both build modes, and unchanged 34166 independent / 6144 author
-      exact-rational oracle fixtures.
-    - [x] Verify 1169 native passes/one skip, 57 doctests/one ignore, strict
-      Clippy/public docs, fmt, deny and machete; retain GAIA-NEXTEST-PIPE.
-    - [x] Rebase onto accepted PR #177, select patch 0.6.2, preserve the
-      dependency graph and pass normal fresh published-baseline API comparison.
-    - [x] Reproduce the premature exact-fallback performance finding with a
-      deterministic certificate-path regression, then try all cheap minors
-      before fallback; verify all vertex orders and cyclic axis rotations.
-    - [x] Measure unchanged axis/oblique constructor drivers without weakening
-      computed-value checks, inputs, budgets or leak detection.
-    - [x] Verify standard locked package, normalized registry consumer and
-      publish dry-run without upload; these select ZIP 9.0.4.
-    - [x] Restore fresh Git-consumer resolution on current published Moirai
-      0.10.0; preserve all reviewed geometry source and unrelated lock entries.
-    - [x] Verify normal and stricter patch published API checks, plus direct
-      external generic Eunomia/Leto public-type consumers.
-    - [x] Verify normalized 0.10 package/type consumers and publish dry-run
-      without upload; pinned publisher plan selects only gaia-mesh 0.6.2.
-    - [x] Pass normal push and applicable hosted gates; record the Git-baseline
-      API comparison as inconclusive, distinct from published-baseline passes.
-    - [ ] Accept independent exact-head review before merge/publication;
-      the final provider integration remains held.
+- [ ] **GAIA-026: full-exponent finite predicate signs [patch]**
+    - [x] Preserve ownership and reproduce the unchanged 0.6.2 failures with
+      exact analytical fixtures and public geometry/topology interfaces.
+    - [x] Assess coherent providers and add the current private exact integer
+      dependency; retain proven expansion fast paths and all stored finite bits.
+    - [x] Verify saved red/green regressions, 4096 independent exact cases in
+      debug/release, 50 rational determinants, proptest and actual caller decisions.
+    - [x] Pass 1190 native values/one skip, 57 docs/one ignore, strict diagnostics,
+      supply chain, hygiene, fresh 3MF and explicit published API/patch comparisons.
+    - [x] Measure paired release latency and separate allocations/peak live bytes;
+      report ordinary-path costs and dense full-exponent fallback costs.
+    - [ ] Complete final normalized package/consumer and publish dry-run, normal
+      push/hosted gates and independent exact-head review before integration.
+    - [ ] Merge/publish only after accepted review and all applicable checks;
+      GAIA-027 [minor] and GAIA-NEXTEST-PIPE remain open.
+
+- [x] **GAIA-024: three-point plane correctness [patch] — published 0.6.2**
+    - [x] Preserve dimensional/nonfinite/overflow/collinearity/range and fast-path
+      regressions, exact rational corpora and native construction coefficients.
+    - [x] Accept independent review at 093dce6f; normal merge bae557a6 has the
+      exact reviewed tree. Verify sole 0.6.2 archive/source/tag and authorized docs.
+    - [x] Keep the broader predicate, invalid-input and pipe followups separate.
 
 - [x] **GAIA-025: current ZIP compatibility [patch] — published 0.6.1**
     - [x] Exact-head independent review: no actionable findings; independently

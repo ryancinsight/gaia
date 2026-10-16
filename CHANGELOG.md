@@ -1,6 +1,24 @@
 # Changelog
 
-## [0.6.2] - Unreleased
+## [0.6.3] - Unreleased
+
+### Fixed
+- [patch] Preserve exact signs for every finite stored coordinate across all
+  orientation, incircle and insphere wrappers, including overflow, underflow
+  and cyclic-order inconsistencies. Keep both existing 3-D sign conventions.
+- [patch] Keep Delaunay tetrahedron winding/circumsphere and CSG projected
+  degeneracy decisions correct on finite extreme-exponent fixtures.
+
+### Changed
+- [patch] Share the existing adaptive provider in its proven exponent range and
+  a bounded exact-integer sign fallback elsewhere (ADR 0009). Use current private
+  num-bigint 0.5.1 with defaults disabled; public provider identities are unchanged.
+  Exact shared dyadic-factor removal reduces integer work without rescaling or
+  rounding any float. Physical tolerances and native constructions stay unchanged.
+- [patch] Preserve legacy nonfinite-input behavior pending GAIA-027's separate
+  versioned contract. The finite-input repair adds no enum case, panic or error API.
+
+## [0.6.2] - 2026-10-16
 
 ### Fixed
 

@@ -9,7 +9,7 @@ resolver = "3"
 # `gaia = { package = "gaia-mesh", version = "0.5.0" }` and every `use gaia::…`
 # is unchanged.
 name = "gaia-mesh"
-version = "0.6.2"
+version = "0.6.3"
 edition = "2024"
 rust-version = "1.97"
 authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
@@ -60,6 +60,7 @@ melinoe = { version = "0.10.0", git = "https://github.com/ryancinsight/melinoe.g
 
 # Mesh / geometry — state-of-the-art kernel
 geometry-predicates = "0.3"
+num-bigint = { version = "0.5.1", default-features = false }
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

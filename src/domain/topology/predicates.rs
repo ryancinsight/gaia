@@ -2,9 +2,11 @@
 //!
 //! Exposes robust exact orientation tests to prevent floating-point
 //! heuristics from causing degenerate topological failures like non-manifold
-//! edge creation. These functions wrap adaptive multi-precision arithmetic.
+//! edge creation. These functions share the geometry module's adaptive
+//! provider and full-exponent finite integer fallback (ADR 0009).
 
 use crate::domain::core::scalar::Point3r;
+use crate::domain::geometry::predicates::evaluate;
 
 /// Exact algebraic sign representing geometric orientation.
 ///
@@ -73,7 +75,7 @@ pub fn orient3d(a: &Point3r, b: &Point3r, c: &Point3r, d: &Point3r) -> Sign {
     let pc = [c.x, c.y, c.z];
     let pd = [d.x, d.y, d.z];
 
-    let det = geometry_predicates::orient3d(pa, pb, pc, pd);
+    let det = evaluate::orient3d(pa, pb, pc, pd);
     Sign::from_exact_f64(det)
 }
 
@@ -88,7 +90,7 @@ pub fn orient2d(a: &Point3r, b: &Point3r, c: &Point3r) -> Sign {
     let pb = [b.x, b.y];
     let pc = [c.x, c.y];
 
-    let det = geometry_predicates::orient2d(pa, pb, pc);
+    let det = evaluate::orient2d(pa, pb, pc);
     Sign::from_exact_f64(det)
 }
 
@@ -101,7 +103,7 @@ pub fn incircle2d(a: &Point3r, b: &Point3r, c: &Point3r, d: &Point3r) -> Sign {
     let pc = [c.x, c.y];
     let pd = [d.x, d.y];
 
-    let det = geometry_predicates::incircle(pa, pb, pc, pd);
+    let det = evaluate::incircle(pa, pb, pc, pd);
     Sign::from_exact_f64(det)
 }
 
@@ -119,7 +121,7 @@ pub fn insphere3d(a: &Point3r, b: &Point3r, c: &Point3r, d: &Point3r, e: &Point3
     let pd = [d.x, d.y, d.z];
     let pe = [e.x, e.y, e.z];
 
-    let det = geometry_predicates::insphere(pa, pb, pc, pd, pe);
+    let det = evaluate::insphere(pa, pb, pc, pd, pe);
     Sign::from_exact_f64(det)
 }
 

@@ -1,72 +1,58 @@
 # Backlog
 
-<a id="GAIA-024"></a>
-## GAIA-024 — Finite, dimensionally consistent three-point planes [patch]
-
-- status: blocked; owner: Codex; target: 0.6.2; prerequisite: accepted PR #177.
-- outcome: resolved triangles construct finite unit-normal planes in native
-  precision; invalid or unrepresentable arithmetic returns `None`.
-- priority: correctness; scope: `Plane::from_three_points` and its tests.
-- evidence: regressions reproduce dimensional rejection, NaN acceptance and
-  area overflow; the first review adds exactly collinear cancellation cases.
-- second review: the prior exact-predicate guard rejects a valid finite
-  triangle with edges (1,0,0) and (2^600,2^600,0) in one winding, because its
-  predicate products overflow. The new regression fails debug and release
-  before repair; the original cancellation regressions remain unchanged.
-- repair: native zero-factor/error-bound certificates handle ordinary minors;
-  ambiguous original-point minors use bounded exact dyadic integer sums,
-  covering all finite binary32/binary64 exponents without floating products.
-  Native area, normal, offset and squared physical tolerance stay unchanged.
-- proof: all three exact projected minors vanish iff the edge matrix has rank
-  at most one. Six binary64 products require at most 4199 bits; two 66-word
-  sums suffice. The native filter's rounding/underflow bounds are documented
-  beside the implementation; no coordinate/tolerance approximation is added.
-- performance review: a weak first nonzero minor prematurely invoked exact
-  arithmetic for resolved 3-D triangles. A deterministic certificate-path
-  regression fails debug/release before repair; all three cheap minors are
-  now attempted before fallback, without changing any certificate bound.
-- local evidence: 14 focused checks pass debug/release; 15 unchanged reviewer
-  boundary/cancellation/range tests pass against actual debug/release libraries.
-  Author reruns of unchanged 34166 independent and 6144 author exact-rational
-  fixtures pass in both modes. All 1169 native tests pass/one existing skip
-  with exit 0 and no leak this run;
-  57 doctests pass/one ignore. Strict Clippy/docs, fmt, deny and machete pass.
-- API: ordinary fresh published 0.6.1 comparison passes 196 checks/57 skips;
-  stricter patch comparison passes 223/30. Historical hosted 202/58 evidence
-  compares a Git base; the current hosted comparison is inconclusive because
-  that base's ^0.9.3 requirement cannot resolve current Moirai main. Its green
-  wrapper is not API proof. Hosted Miri covers GhostCell permission tests only,
-  not this helper. The private Moirai cohort advances as recorded below;
-  public provider identities and all other lock entries remain unchanged.
-- performance: seven alternating runs of unchanged reviewer drivers reduce
-  the lifted-triangle case from 82.78/100.26 ns to 4.75/6.00 ns (single/double).
-  Axis-aligned medians are 4.32–4.98 ns; ordinary oblique medians 4.92/5.35 ns.
-  No timing assertions, CPU-affinity or end-to-end throughput claim is added.
-- package: standard locked package, normalized registry consumer and publish
-  dry-run pass; ordinary published 0.6.1 API resolution passes. Fresh source
-  resolution is restored by the current Moirai 0.10 candidate; see
-  GAIA-MOIRAI-09-COHERENCE for final integration verification.
-- next: independent exact-head review of the current-provider integration;
-  normal push and applicable hosted checks pass. Keep merge held;
-  a main push automatically publishes pending versions. GAIA-NEXTEST-PIPE
-  remains open; clean repeats do not establish an output-handle lifetime fix.
-
 <a id="GAIA-026"></a>
-## GAIA-026 — Bound adaptive-predicate exponent contracts [patch]
+## GAIA-026 — Full-exponent finite predicate signs [patch]
 
-- status: todo; owner: unclaimed; priority: correctness.
-- outcome: Public adaptive predicates distinguish exact zero from arithmetic
-  outside their exponent range instead of classifying NaN as Degenerate.
-- scope: `domain::geometry::predicates` and callers; separate from GAIA-024.
-- evidence: `orient_2d_arr([0,0], [1,0], [2^600,2^600])` reports Degenerate
-  although the exact determinant is positive 2^600. Locked geometry-predicates
-  0.3.0 documents exponent limitations; `Orientation::from_det` maps NaN to zero.
-- acceptance: finite extreme-exponent inputs and both windings receive correct
-  decisions with an explicit range-safe contract; preserve native construction
-  arithmetic, existing tolerances and unrelated owners' work.
-- next: audit the public predicate decision boundary and caller contracts.
-  GAIA-024 now uses its own exact-zero decision; this does not repair the
-  general sign/incircle/insphere interfaces or certify their input range.
+- status: blocked; owner: Codex; target: 0.6.3; priority: correctness.
+- outcome: Exact signed decisions for every finite stored f32/f64 input in
+  all ten geometry/topology orientation, incircle and insphere interfaces.
+- evidence: Saved analytical fixtures reproduce overflow-to-NaN, silent
+  underflow and cyclic inconsistency on the unchanged 0.6.2 merge. Twelve
+  regression tests fail there; all thirteen, including f32 controls, pass
+  after repair. The 2-D finite determinant 2^600 is one explicit counterexample.
+- design: ADR 0009 retains the current adaptive provider in proven exponent
+  bins and uses current private num-bigint 0.5.1 outside them. Exact integer
+  decoding includes every stored subnormal bit. A common integer dyadic factor
+  is removed only when it divides every coefficient; no float is rescaled or
+  rounded. Degree-2/3/4/5 signs share one bounded determinant implementation.
+- bounds: Fixed matrices have at most four columns, 24 terms and 65 recursive
+  visits. Original-basis operand/result magnitudes remain below 2^10502;
+  exact basis reduction can only shrink them. No custom unsafe integer kernel,
+  physical tolerance change, widened construction or older provider pin occurs.
+- verification: 4096 deterministic full-bit exact Bareiss oracle cases pass
+  debug/release through all public aliases. Independent Fraction checks verify
+  50 analytical determinants; full-bit proptest permutation/degeneracy checks,
+  actual tetrahedron orientation/circumsphere and CSG projection decisions pass.
+  The native suite passes 1190 values/one existing skip, docs 57/one ignore;
+  strict Clippy/docs, fmt, deny, machete and fresh 3MF consumer pass.
+- public API: Actual published 0.6.2 baseline builds/parses; ordinary 196 checks
+  and stricter patch 223 checks pass, with 57/30 instrument skips respectively.
+  All pre-existing dependency records and public provider identities remain
+  unchanged; only private num-bigint 0.5.1/num-integer 0.1.47 are added.
+- measured limits: Seven alternating ARM64 release pairs put common 2-D at
+  3.60->4.39 ns and 3-D at 6.56->8.89 ns; incircle 8.65->6.00 ns, insphere
+  16.23->17.48 ns. Ordinary/adaptive fixtures allocate nothing. Sampled sparse
+  fallback calls take 72-379 ns after exact basis reduction; a dense full-span
+  sphere takes 71 us, 288 allocations and 12576 peak live bytes, all released.
+  These local constructor samples are not whole-mesh throughput or a formal
+  heap peak bound. The 10502-bit arithmetic bound is separate from sampling.
+- next: Final normalized package/consumer, release and hosted gates, then
+  independent exact-head review before any merge/publication. Keep GAIA-027
+  and GAIA-NEXTEST-PIPE open; accepted #176 stays unmodified and published 0.6.2.
+
+<a id="GAIA-027"></a>
+## GAIA-027 — Specify invalid predicate inputs [minor]
+
+- status: blocked; owner: unclaimed; priority: correctness.
+- outcome: Invalid/nonfinite input is distinguished from exact degeneracy.
+- scope: Orientation::from_det, Sign::from_exact_f64 and predicate callers.
+- evidence: Both public converters map NaN to the zero variant; their three-way
+  result types cannot represent invalid input. No explicit checked contract exists.
+- boundary: GAIA-026 repairs finite inputs only. Nonfinite coordinates still
+  execute the same expansion calls and converters; no error variant, new panic,
+  return type, tolerance or precondition is silently introduced.
+- next: Select the public invalid-input contract, classify/version the change,
+  and audit caller handling with explicit NaN/infinity computed-value tests.
 
 Shared state and ownership board for `gaia-mesh` (import path `gaia`).
 This board is the ordered queue of open work. GAIA-022 folds the legacy
@@ -108,8 +94,12 @@ Triage order: correctness → architecture → verification → tightening → f
   hosted checks pass; the pinned read-only publisher plan selects only
   gaia-mesh 0.6.2. The current Git-baseline API comparison is inconclusive,
   separately from the successful published-baseline comparisons above.
-- next: Independent exact-head review before integration/publication. Preserve
-  the general predicate and output-pipe followups and all unrelated owners' holds.
+- Gaia prerequisite: Current 0.10.0 coherence is independently reviewed and
+  published in Gaia 0.6.2 at merge bae557a6; actual package/source/tag and docs
+  receipts are verified. No further Moirai change belongs to GAIA-026.
+- next: Keep downstream Metis consumer verification in its owner-controlled
+  integration; preserve the general predicate and output-pipe followups.
+
 
 <a id="GAIA-NEXTEST-PIPE"></a>
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]

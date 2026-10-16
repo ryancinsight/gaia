@@ -87,6 +87,27 @@ mod tests {
     }
 
     #[test]
+    fn projected_exact_decisions_preserve_nonzero_extreme_minors() {
+        let large = 2.0_f64.powi(600);
+        let origin = p(0.0, 0.0, 0.0);
+        let edge = p(1.0, 0.0, 0.0);
+        let third = p(large, large, 0.0);
+        assert!(!triangle_is_degenerate_exact(&origin, &edge, &third));
+        assert!(!collinear_3d_exact(&origin, &edge, &third));
+        let tiny = 2.0_f64.powi(-600);
+        assert!(!triangle_is_degenerate_exact(
+            &origin,
+            &p(tiny, 0.0, 0.0),
+            &p(0.0, tiny, 0.0)
+        ));
+        assert!(triangle_is_degenerate_exact(
+            &origin,
+            &p(tiny, tiny, 0.0),
+            &p(2.0 * tiny, 2.0 * tiny, 0.0)
+        ));
+    }
+
+    #[test]
     fn triangle_is_degenerate_exact_detects_collinear_triangle() {
         assert!(triangle_is_degenerate_exact(
             &p(0.0, 0.0, 0.0),
