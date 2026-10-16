@@ -32,9 +32,12 @@
   with exit 0 and no leak this run;
   57 doctests pass/one ignore. Strict Clippy/docs, fmt, deny and machete pass.
 - API: ordinary fresh published 0.6.1 comparison passes 196 checks/57 skips;
-  hosted 202/58 evidence is a separate Git-base comparison, not registry proof.
-  Hosted Miri covers GhostCell permission tests only, not this helper;
-  only Gaia's self version changes from the coherent accepted lock graph.
+  stricter patch comparison passes 223/30. Historical hosted 202/58 evidence
+  compares a Git base; the current hosted comparison is inconclusive because
+  that base's ^0.9.3 requirement cannot resolve current Moirai main. Its green
+  wrapper is not API proof. Hosted Miri covers GhostCell permission tests only,
+  not this helper. The private Moirai cohort advances as recorded below;
+  public provider identities and all other lock entries remain unchanged.
 - performance: seven alternating runs of unchanged reviewer drivers reduce
   the lifted-triangle case from 82.78/100.26 ns to 4.75/6.00 ns (single/double).
   Axis-aligned medians are 4.32–4.98 ns; ordinary oblique medians 4.92/5.35 ns.
@@ -43,8 +46,8 @@
   dry-run pass; ordinary published 0.6.1 API resolution passes. Fresh source
   resolution is restored by the current Moirai 0.10 candidate; see
   GAIA-MOIRAI-09-COHERENCE for final integration verification.
-- next: normal push/hosted gates and independent exact-head review after
-  this rebase/repair/version change. Keep merge held;
+- next: independent exact-head review of the current-provider integration;
+  normal push and applicable hosted checks pass. Keep merge held;
   a main push automatically publishes pending versions. GAIA-NEXTEST-PIPE
   remains open; clean repeats do not establish an output-handle lifetime fix.
 
@@ -100,9 +103,13 @@ Triage order: correctness → architecture → verification → tightening → f
 - local evidence: Fresh source 3MF consumer, 1169 native values/one skip, all 14
   release plane tests, 57 doctests/one ignore, strict Clippy/docs, fmt, advisory
   and hygiene checks pass on current 0.10.0 without changing geometry or limits.
-- next: Complete normalized package/public-type consumers, exact-head hosted
-  gates and independent review before integration/publication. Preserve the
-  general predicate and output-pipe followups and all unrelated owners' holds.
+- package evidence: Standard locked packaging, normalized 3MF and public-type
+  consumers, and publish dry-run pass without upload. Normal push and applicable
+  hosted checks pass; the pinned read-only publisher plan selects only
+  gaia-mesh 0.6.2. The current Git-baseline API comparison is inconclusive,
+  separately from the successful published-baseline comparisons above.
+- next: Independent exact-head review before integration/publication. Preserve
+  the general predicate and output-pipe followups and all unrelated owners' holds.
 
 <a id="GAIA-NEXTEST-PIPE"></a>
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]

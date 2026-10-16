@@ -27,10 +27,12 @@ Active correctness target: **0.6.2**.
       0.10.0; preserve all reviewed geometry source and unrelated lock entries.
     - [x] Verify normal and stricter patch published API checks, plus direct
       external generic Eunomia/Leto public-type consumers.
-    - [ ] Complete normalized 0.10 package/type consumers, final hosted gates
-      and exact-head independent review before merge/publication.
-    - [ ] Complete normal push/hosted gates and independent exact-head review
-      before merge; the reviewed geometry head remains held.
+    - [x] Verify normalized 0.10 package/type consumers and publish dry-run
+      without upload; pinned publisher plan selects only gaia-mesh 0.6.2.
+    - [x] Pass normal push and applicable hosted gates; record the Git-baseline
+      API comparison as inconclusive, distinct from published-baseline passes.
+    - [ ] Accept independent exact-head review before merge/publication;
+      the final provider integration remains held.
 
 - [x] **GAIA-025: current ZIP compatibility [patch] — published 0.6.1**
     - [x] Exact-head independent review: no actionable findings; independently
