@@ -1,9 +1,10 @@
 //! # Exact Geometric Predicates
 //!
-//! Thin wrappers around [Shewchuk's adaptive-precision arithmetic][shewchuk]
-//! as provided by the `geometry-predicates` crate.  All functions in this
-//! module run in **exact arithmetic** — they never return a wrong sign due to
-//! floating-point rounding, even for nearly-degenerate configurations.
+//! Wrappers around [Shewchuk's adaptive-precision arithmetic][shewchuk]
+//! in its proven exponent range, with an exact integer fallback across the
+//! remaining finite binary64 range (ADR 0009). Finite stored coordinates
+//! receive the exact determinant sign, including nearly-degenerate inputs.
+//! Nonfinite-input behavior remains unchanged pending GAIA-027's API contract.
 //!
 //! Every wrapper is generic over
 //! [`Scalar`]: coordinates of the
@@ -47,7 +48,8 @@
 //!
 //! [shewchuk]: https://www.cs.cmu.edu/~quake/robust.html
 
-use geometry_predicates as gp;
+pub(crate) mod evaluate;
+mod exact;
 use leto::geometry::Point2;
 
 use crate::domain::core::scalar::Scalar;
@@ -143,7 +145,7 @@ fn exact_f64<T: Scalar>(v: T) -> f64 {
 #[inline]
 #[must_use]
 pub fn orient_2d<T: Scalar>(a: &Point2<T>, b: &Point2<T>, c: &Point2<T>) -> Orientation {
-    let det = gp::orient2d(
+    let det = evaluate::orient2d(
         [exact_f64(a.x), exact_f64(a.y)],
         [exact_f64(b.x), exact_f64(b.y)],
         [exact_f64(c.x), exact_f64(c.y)],
@@ -157,7 +159,7 @@ pub fn orient_2d<T: Scalar>(a: &Point2<T>, b: &Point2<T>, c: &Point2<T>) -> Orie
 #[inline]
 #[must_use]
 pub fn orient_2d_arr<T: Scalar>(a: [T; 2], b: [T; 2], c: [T; 2]) -> Orientation {
-    let det = gp::orient2d(
+    let det = evaluate::orient2d(
         [exact_f64(a[0]), exact_f64(a[1])],
         [exact_f64(b[0]), exact_f64(b[1])],
         [exact_f64(c[0]), exact_f64(c[1])],
@@ -194,10 +196,10 @@ pub fn orient_2d_arr<T: Scalar>(a: [T; 2], b: [T; 2], c: [T; 2]) -> Orientation 
 #[must_use]
 pub fn orient_3d<T: Scalar>(a: [T; 3], b: [T; 3], c: [T; 3], d: [T; 3]) -> Orientation {
     let to64 = |v: [T; 3]| [exact_f64(v[0]), exact_f64(v[1]), exact_f64(v[2])];
-    // gp::orient3d returns positive when d is *below* the abc plane (Shewchuk
+    // evaluate::orient3d returns positive when d is *below* the abc plane (Shewchuk
     // convention).  We negate so that our API convention is "d above = Positive",
     // which matches standard signed-volume / right-hand-rule intuition.
-    let det = -gp::orient3d(to64(a), to64(b), to64(c), to64(d));
+    let det = -evaluate::orient3d(to64(a), to64(b), to64(c), to64(d));
     Orientation::from_det(det)
 }
 
@@ -245,7 +247,7 @@ pub fn incircle<T: Scalar>(
     c: &Point2<T>,
     d: &Point2<T>,
 ) -> Orientation {
-    let det = gp::incircle(
+    let det = evaluate::incircle(
         [exact_f64(a.x), exact_f64(a.y)],
         [exact_f64(b.x), exact_f64(b.y)],
         [exact_f64(c.x), exact_f64(c.y)],
@@ -272,7 +274,7 @@ pub fn incircle<T: Scalar>(
 #[must_use]
 pub fn insphere<T: Scalar>(a: [T; 3], b: [T; 3], c: [T; 3], d: [T; 3], e: [T; 3]) -> Orientation {
     let to64 = |v: [T; 3]| [exact_f64(v[0]), exact_f64(v[1]), exact_f64(v[2])];
-    let det = gp::insphere(to64(a), to64(b), to64(c), to64(d), to64(e));
+    let det = evaluate::insphere(to64(a), to64(b), to64(c), to64(d), to64(e));
     Orientation::from_det(det)
 }
 

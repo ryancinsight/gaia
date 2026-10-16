@@ -185,8 +185,10 @@ tetra quality before constrained refinement; explicit
 self-intersection policy before repair/remeshing; matched benchmarks before
 parallel or layout claims.
 
-The 3-D predicate-precision contract is closed: the exact predicate wrappers
-are generic over the `Scalar` seam and evaluate the stored `T` coordinates
-directly (`f32` promotes losslessly into the `f64` expansion arithmetic,
-`f64` is the identity), so orientation and insphere decisions are exact for
-the caller's precision (ADR 0005).
+The generic precision-transport seam remains lossless (ADR 0005). GAIA-026's
+0.6.3 candidate adds a shared full-exponent finite sign boundary (ADR 0009),
+retaining the expansion provider in proven bins and using bounded exact integer
+determinants elsewhere. Saved analytical, full-bit exact-oracle, property and
+actual caller tests cover both public wrapper families. Final package/hosted
+checks and independent review remain required before integration. GAIA-027's
+invalid/nonfinite-input contract remains open and unchanged by this patch.
