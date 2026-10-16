@@ -3,33 +3,38 @@
 <a id="GAIA-024"></a>
 ## GAIA-024 — Finite, dimensionally consistent three-point planes [patch]
 
-- status: blocked; owner: Codex; target: 0.6.2; basis: `c0db650`.
+- status: blocked; owner: Codex; target: 0.6.2; prerequisite: GAIA-025 done.
 - outcome: resolved triangles construct finite unit-normal planes in native
-  precision; invalid or unrepresentable input returns `None`.
-- priority: correctness; needs: none.
-- scope: `Plane::from_three_points`, its tests and release artifacts.
-- evidence: three regression tests fail before the fix: a dyadic edge of
-  2⁻¹⁶ is rejected; NaN coordinates return a NaN plane; finite maximum-value
-  edges overflow area arithmetic yet return a plane.
-- acceptance: area (length²) uses `Scalar::tolerance_sq`; both scalar types
-  cover winding, translation, small/large scales, all nonfinite vertex/axis
-  placements, overflow and degeneracy; existing tolerances stay unchanged.
-- review: P2 in PR #176's first review reproduced exactly collinear single/double precision
-  fixtures returning an arbitrary plane in debug and optimized builds.
-- repair: the three original-point projected orientation minors must not all
-  be exactly zero; use the existing ADR0005 predicate seam. Native area,
-  normal, offset and the squared physical tolerance remain unchanged.
-- focused evidence: 11 plane tests pass in debug and optimized builds,
-  including all vertex orders/coordinate rotations and noncollinear 3-D cases
-  with a degenerate coordinate projection. All 13 unchanged reviewer boundary
-  and cancellation tests also pass against the repair in both build modes.
-- native evidence: 1,166 value checks pass/one existing skip; one CSG output
-  leak diagnostic remains tracked by GAIA-NEXTEST-PIPE (focused repeat clean).
-  All 57 doctests pass/one existing ignore; strict Clippy/docs, lock and
-  machete pass. Supply-chain check now rejects old ZIP 2.4.2 until PR #177.
-- next: fresh exact-head independent review of the repair; after prerequisite
-  PR #177 is accepted, rebase/version/check this PR before any merge. A main
-  push automatically publishes pending versions.
+  precision; invalid or unrepresentable arithmetic returns `None`.
+- priority: correctness; scope: `Plane::from_three_points` and its tests.
+- evidence: regressions reproduce dimensional rejection, NaN acceptance and
+  area overflow; the first review adds exactly collinear cancellation cases.
+- second review: the prior exact-predicate guard rejects a valid finite
+  triangle with edges (1,0,0) and (2^600,2^600,0) in one winding, because its
+  predicate products overflow. The new regression fails debug and release
+  before repair; the original cancellation regressions remain unchanged.
+- repair: native zero-factor/error-bound certificates handle ordinary minors;
+  ambiguous original-point minors use bounded exact dyadic integer sums,
+  covering all finite binary32/binary64 exponents without floating products.
+  Native area, normal, offset and squared physical tolerance stay unchanged.
+- proof: all three exact projected minors vanish iff the edge matrix has rank
+  at most one. Six binary64 products require at most 4199 bits; two 66-word
+  sums suffice. The native filter's rounding/underflow bounds are documented
+  beside the implementation; no coordinate/tolerance approximation is added.
+- local evidence: 13 focused checks pass debug/release; 15 unchanged reviewer
+  boundary/cancellation/range tests pass against actual debug/release libraries.
+  An exact rational oracle agrees on 6144 binary32/binary64 fixtures. All
+  1168 native tests pass/one existing skip with exit 0 and no leak this run;
+  57 doctests pass/one ignore. Strict Clippy/docs, fmt, deny and machete pass.
+- API: normal fresh published 0.6.1 baseline comparison passes 196 checks;
+  only Gaia's self version changes from the coherent accepted lock graph.
+- performance: unchanged reviewer driver, seven alternating ARM64 runs:
+  4.14–4.48 ns/call, 1.15–1.26 times pre-collinearity construction, compared
+  with the prior guard's 5.22–11.17 ns. No end-to-end throughput claim.
+- next: standard package/fresh-consumer/push/hosted gates and independent
+  exact-head review after this rebase/repair/version change. Keep merge held;
+  a main push automatically publishes pending versions. GAIA-NEXTEST-PIPE
+  remains open; clean repeats do not establish an output-handle lifetime fix.
 
 <a id="GAIA-025"></a>
 ## GAIA-025 — Restore fresh dependency resolution [patch]
@@ -46,6 +51,23 @@
   release tag and automatic Pages deployment verified. Only Gaia is selected.
 - scope: private 3MF ZIP dependency and required lock closure; 23 first-party
   Git package identities and the public API remain unchanged.
+
+<a id="GAIA-026"></a>
+## GAIA-026 — Bound adaptive-predicate exponent contracts [patch]
+
+- status: todo; owner: unclaimed; priority: correctness.
+- outcome: Public adaptive predicates distinguish exact zero from arithmetic
+  outside their exponent range instead of classifying NaN as Degenerate.
+- scope: `domain::geometry::predicates` and callers; separate from GAIA-024.
+- evidence: `orient_2d_arr([0,0], [1,0], [2^600,2^600])` reports Degenerate
+  although the exact determinant is positive 2^600. Locked geometry-predicates
+  0.3.0 documents exponent limitations; `Orientation::from_det` maps NaN to zero.
+- acceptance: finite extreme-exponent inputs and both windings receive correct
+  decisions with an explicit range-safe contract; preserve native construction
+  arithmetic, existing tolerances and unrelated owners' work.
+- next: audit the public predicate decision boundary and caller contracts.
+  GAIA-024 now uses its own exact-zero decision; this does not repair the
+  general sign/incircle/insphere interfaces or certify their input range.
 
 Shared state and ownership board for `gaia-mesh` (import path `gaia`).
 This board is the ordered queue of open work. GAIA-022 folds the legacy

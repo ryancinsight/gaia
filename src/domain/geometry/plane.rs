@@ -5,9 +5,10 @@
 //! normal form: `n · x + d = 0`.
 
 use crate::domain::core::scalar::{Real, Scalar};
-use crate::domain::geometry::predicates::orient_2d_arr;
 use eunomia::NumericElement;
 use leto::geometry::{Point3, Vector3};
+
+mod collinearity;
 
 /// Classification of a point relative to a plane.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -63,9 +64,10 @@ impl<T: Scalar> Plane<T> {
     /// its physical threshold is the squared length tolerance. Collinearity
     /// means that all three 2×2 minors of the edge matrix vanish: exactly the
     /// orientation determinants of its XY, YZ and ZX projections. Evaluate
-    /// these on the original stored points through the exact predicate seam
-    /// (ADR 0005), so rounded edge differences cannot invent a plane for an
-    /// exactly collinear triple. The area, normal and offset stay in `T`.
+    /// these on the original stored points with an exponent-safe exact-zero
+    /// decision when a native rounding-error filter cannot certify nonzero.
+    /// Thus rounded edge differences cannot invent a plane for an exactly
+    /// collinear triple. The area, normal and offset stay in `T`.
     /// Dividing by the finite non-zero norm yields a unit normal;
     /// `w = -normal · a` places the vertices on the plane up to rounding.
     #[inline]
@@ -78,14 +80,7 @@ impl<T: Scalar> Plane<T> {
         if !<T as NumericElement>::is_finite(len) || len < T::tolerance_sq() {
             return None; // Degenerate (collinear points)
         }
-        if [[0, 1], [1, 2], [2, 0]].into_iter().all(|[row, column]| {
-            orient_2d_arr(
-                [a[row], a[column]],
-                [b[row], b[column]],
-                [c[row], c[column]],
-            )
-            .is_degenerate()
-        }) {
+        if collinearity::is_collinear(a, b, c, ab, ac, cross) {
             return None;
         }
         let normal = cross / len;
@@ -237,6 +232,38 @@ mod tests {
             assert_eq!(reversed.normal, -plane.normal);
             assert_eq!(reversed.w, -plane.w);
         }
+    }
+
+    fn assert_large_aspect_triangle<T: Scalar>(exponents: &[i32]) {
+        let f = <T as Scalar>::from_f64;
+        for &exponent in exponents {
+            // The native cross has exactly one nonzero component, 2^e:
+            // its norm is finite even when c-relative predicate products
+            // would overflow at 2^(2e). Both windings define exact planes.
+            let large = f(2.0_f64.powi(exponent));
+            let mut b = Point3::new(f(1.0), f(0.0), f(0.0));
+            let mut c = Point3::new(large, large, f(0.0));
+            let mut normal = Vector3::new(f(0.0), f(0.0), f(1.0));
+            for _ in 0..3 {
+                for (first, second, expected) in [(b, c, normal), (c, b, -normal)] {
+                    let plane = Plane::from_three_points(&Point3::origin(), &first, &second)
+                        .expect("finite native high-aspect triangle defines a plane");
+                    assert_eq!(plane.normal, expected, "exponent {exponent}");
+                    assert_eq!(plane.w, f(0.0));
+                    assert_eq!(plane.signed_distance(&first), f(0.0));
+                    assert_eq!(plane.signed_distance(&second), f(0.0));
+                }
+                b = Point3::new(b.y, b.z, b.x);
+                c = Point3::new(c.y, c.z, c.x);
+                normal = Vector3::new(normal.y, normal.z, normal.x);
+            }
+        }
+    }
+
+    #[test]
+    fn large_aspect_triangles_keep_both_windings() {
+        assert_large_aspect_triangle::<f32>(&[0, 32, 64, 100, 127]);
+        assert_large_aspect_triangle::<f64>(&[0, 128, 511, 512, 600, 900, 1023]);
     }
 
     fn assert_nonfinite_triangle_contract<T: Scalar>() {

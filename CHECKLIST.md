@@ -3,25 +3,22 @@
 Active correctness target: **0.6.2**.
 
 - [ ] **GAIA-024: three-point plane correctness [patch]**
-    - [x] Reproduce dimensional rejection, NaN acceptance and finite-input
-      area overflow with three failing regressions on `c0db650`.
-    - [x] Use the existing squared tolerance and reject nonfinite computed
-      plane coefficients without changing scalar precision or dependencies.
-    - [x] Reproduce the review's exact-collinearity cancellation cases as two
-      failing regressions in both debug and optimized builds before repair.
-    - [x] Use canonical exact projected-orientation decisions on original
-      points; retain native area/normal arithmetic and squared tolerance.
-    - [x] Verify all 11 plane tests in debug and optimized builds, including
-      all vertex orders/coordinate rotations and valid 3-D projection cases.
-    - [x] Verify all 13 unchanged reviewer boundary/cancellation tests against
-      the repair in debug and optimized modes.
-    - [x] Verify 1,166 native value checks/one skip and 57 doctests/one ignore;
-      preserve one CSG output-leak diagnostic under GAIA-NEXTEST-PIPE.
-    - [x] Verify strict Clippy/public docs, formatting, standalone lock and machete.
-    - [ ] Complete normal push/hosted gates; supply-chain currently rejects
-      the old ZIP dependency until PR #177 is integrated.
-    - [ ] After GAIA-025 / PR #177 acceptance, rebase, select the following
-      patch version and repeat exact-head review/gates before any merge.
+    - [x] Reproduce dimensional, nonfinite, overflow and exact-collinearity
+      cancellation defects before their repairs; preserve both precisions.
+    - [x] Reproduce the second review's exponent-overflow rejection in debug
+      and release, then cover both windings/axis rotations through exponent 1023.
+    - [x] Use proven native nonzero filters and full-exponent exact dyadic
+      zero decisions; retain native plane coefficients and squared tolerance.
+    - [x] Verify 13 focused tests debug/release, all 15 unchanged reviewer
+      tests in both build modes, and 6144 exact rational oracle fixtures.
+    - [x] Verify 1168 native passes/one skip, 57 doctests/one ignore, strict
+      Clippy/public docs, fmt, deny and machete; retain GAIA-NEXTEST-PIPE.
+    - [x] Rebase onto accepted PR #177, select patch 0.6.2, preserve the
+      dependency graph and pass normal fresh published-baseline API comparison.
+    - [x] Measure the unchanged constructor benchmark; move exact work off
+      the inline path without weakening computed-value checks or budgets.
+    - [ ] Verify standard package, normalized/source fresh consumers and normal push gates.
+    - [ ] Obtain final hosted gates and independent exact-head review before merge.
 
 - [x] **GAIA-025: current ZIP compatibility [patch] — published 0.6.1**
     - [x] Exact-head independent review: no actionable findings; independently

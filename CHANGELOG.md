@@ -10,7 +10,11 @@
   arithmetic instead of returning a plane with NaN or zero normals.
   Reject exact collinearity through the canonical original-point orientation
   predicates, so cross-product cancellation cannot invent an arbitrary plane.
-  Dependencies and their locked provider identities remain unchanged.
+  Reject exactly collinear stored points despite native cancellation noise;
+  certify ordinary nonzero minors with native arithmetic and evaluate ambiguous
+  cases using full-exponent exact dyadic integer sums. Preserve valid finite
+  high-aspect triangles in both windings. Plane coefficients remain in their
+  native precision; the accepted ZIP 9.0.4/provider graph remains unchanged.
 
 ## [0.6.1] - Unreleased
 
