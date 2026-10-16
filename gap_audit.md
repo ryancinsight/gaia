@@ -1,5 +1,29 @@
 # Gaia provider compatibility audit
 
+## GAIA-031 finite rounded ray/slab ties [patch]
+
+The ray/AABB method promises an intersection, with `None` for a miss. No
+conservative-candidate allowance is documented. The 456 saved finite ties have
+strictly disjoint exact stored-coordinate intervals; 228 boxes have positive
+width on all axes. Near 0.5, a stored x=y ray cannot reach unequal point slabs
+or disjoint positive-width x/y intervals. Parent #180 returns an equal finite
+interval anyway. Four analytical regressions fail in both build modes while
+real contacts pass. This is a classification defect under the existing contract,
+separate from the quality of the approximate distance representation.
+
+The isolated 0.6.6 candidate extends the already-established exact finite-box
+postfilter to native endpoint ties. It certifies contained origins and cardinal
+rays without determinant work. Endpoint sign normalization is exact; common
+origins/denominators cancel, allowing direct bound order. Other ambiguous ratios
+use the existing exact predicate seam, with at most five calls. True-hit output
+bits, nonfinite-bound behavior and unrepresentable-distance policy are preserved.
+Unequal native intervals are outside this bounded change; it does not establish
+universal exact classification or a conservative/correctly-rounded enclosure.
+
+PR #180 publishes 0.6.5 at 0e2f98a22dca3911843fae27cd409807872b33c2; the
+reviewed tree, actual archive/VCS/420 Rust files/manifest/tag, main CI and docs
+verify. This isolated followup requires its own independent review and gates.
+
 ## Eunomia 0.10 / Leto 0.46 public boundary [major]
 
 Gaia175's provider update at `273eb814` keeps Gaia 0.5.3 and Leto ^0.45.

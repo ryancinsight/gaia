@@ -1,8 +1,8 @@
 """Compare actual stored-direction slab classification with a Fraction oracle.
 
 Run separately compiled public-API drivers from tests/support on the same
-finite IEEE corpus. Certify the positive-infinity-hit postfilter and detect
-new errors elsewhere; report pre-existing finite-rounding discrepancies.
+finite IEEE corpus. Certify the equal-endpoint and positive-infinity-hit
+postfilter and detect new errors elsewhere. Report any residual discrepancies.
 """
 import argparse
 from fractions import Fraction
@@ -133,7 +133,8 @@ for index, ((width, label, values), base, head) in enumerate(zip(fixtures, outpu
     truth = expected(values, head[1:4], width)
     row = counts[str(width)]
     row['cases'] += 1
-    collapsed = bool(base[4]) and base[5] == encode(float('inf'), width)
+    collapsed = bool(base[4]) and (base[5] == base[6]
+                                 or base[5] == encode(float('inf'), width))
     if collapsed:
         row['collapsed_candidates'] += 1
         assert bool(head[4]) == truth, (index, label, truth, base, head)
@@ -157,6 +158,6 @@ for row in counts.values():
 receipt = {'status': 'BOUNDED_POSTFILTER_PASS; NO_NEW_CLASSIFICATION_ERROR',
            'corpus_sha256': hashlib.sha256(text.encode()).hexdigest(), 'counts': counts,
            'oracle': 'Python Fraction original stored-coordinate subtraction/division and interval clipping; normalized direction read from each actual public Ray.',
-           'scope': 'Every positive-infinity-entry candidate matches exact classification; true-hit returned intervals retained. Other native behavior unchanged. Residual finite-rounding errors are reported, not certified as correct.'}
+           'scope': 'Every equal-endpoint or positive-infinity-entry candidate matches exact classification; true-hit returned intervals retained. Other native behavior unchanged. Any residual errors are reported, not certified as correct.'}
 (out/'receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
 print(json.dumps(receipt, indent=2))
