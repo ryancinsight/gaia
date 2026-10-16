@@ -120,6 +120,9 @@ jobs:
       - name: Dependency hygiene (cargo machete)
         run: cargo machete
 
+      - name: Fresh consumer and independent 3MF archive verification
+        run: python3 scripts/check_fresh_consumer.py --manifest-path Cargo.toml
+
       # nextest applies the committed .config/nextest.toml budget (30 s slow /
       # 60 s terminate). Bare `cargo test` bypasses that instrument, so a hang
       # would run to the job timeout instead of failing the test.

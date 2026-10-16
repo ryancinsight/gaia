@@ -163,6 +163,14 @@ cargo test --doc --all-features
 $env:RUSTDOCFLAGS = "-D warnings"; cargo doc --no-deps --all-features
 ```
 
+The fresh-consumer gate starts without a lockfile, resolves Gaia from its public
+dependency requirements, and checks a real exported 3MF archive with Python's
+independent ZIP/XML readers (Python 3.11 or later):
+
+```sh
+python3 scripts/check_fresh_consumer.py --manifest-path Cargo.toml
+```
+
 ### Pre-push hook
 
 Install the hooks once per clone:

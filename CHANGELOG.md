@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.1] - Unreleased
+
+### Fixed
+
+- [patch] Restore fresh-consumer resolution by advancing the private 3MF ZIP
+  dependency from the entirely yanked 2.x series to current 9.0.4. Keep
+  defaults disabled and Deflate enabled; Gaia's public API and first-party
+  provider identities remain unchanged. CI now resolves a lock-free external
+  consumer and checks its real 3MF geometry with independent ZIP/XML readers.
+
 ## [0.6.0] - Unreleased
 
 ### Breaking
