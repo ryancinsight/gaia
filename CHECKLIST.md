@@ -1,21 +1,35 @@
 # Checklist
 
-Active correctness target: **0.6.1** (ZIP prerequisite for PR #176).
+Active correctness target: **0.6.2**.
 
-- [ ] **GAIA-025: current ZIP compatibility [patch]**
-    - [x] Reproduce fresh-consumer resolution failure against the yanked 2.x range.
-    - [x] Verify current ZIP 9.0.4, its Rust 1.88 minimum and Deflate features.
-    - [x] Preserve the 3MF writer API, disable default features and update only
-      the required ZIP dependency graph; keep all first-party sources unchanged.
-    - [x] Resolve a lock-free real consumer and independently verify Deflate,
-      ZIP CRCs, OPC metadata, vertex coordinates and triangle indices.
-    - [x] Verify 1,159 native passes/one existing skip, 57 doctest passes/one
-      existing ignore, strict diagnostics/docs, supply chain, lock and hygiene.
-    - [x] Compare the unchanged main's locked Rustdoc API: 196 checks pass.
-    - [x] Verify standard packaging, normalized fresh consumers and normal push gates.
-    - [ ] Resolve the canonical release probe's re-resolution of Gaia 0.6.0's
-      yanked ZIP baseline; the API comparison does not replace that gate.
-    - [ ] Obtain independent review and assess automatic crate-publication scope.
+- [ ] **GAIA-024: three-point plane correctness [patch]**
+    - [x] Reproduce dimensional rejection, NaN acceptance and finite-input
+      area overflow with three failing regressions on `c0db650`.
+    - [x] Use the existing squared tolerance and reject nonfinite computed
+      plane coefficients without changing scalar precision or dependencies.
+    - [x] Reproduce the review's exact-collinearity cancellation cases as two
+      failing regressions in both debug and optimized builds before repair.
+    - [x] Use canonical exact projected-orientation decisions on original
+      points; retain native area/normal arithmetic and squared tolerance.
+    - [x] Verify all 11 plane tests in debug and optimized builds, including
+      all vertex orders/coordinate rotations and valid 3-D projection cases.
+    - [x] Verify all 13 unchanged reviewer boundary/cancellation tests against
+      the repair in debug and optimized modes.
+    - [x] Verify 1,166 native value checks/one skip and 57 doctests/one ignore;
+      preserve one CSG output-leak diagnostic under GAIA-NEXTEST-PIPE.
+    - [x] Verify strict Clippy/public docs, formatting, standalone lock and machete.
+    - [ ] Complete normal push/hosted gates; supply-chain currently rejects
+      the old ZIP dependency until PR #177 is integrated.
+    - [ ] After GAIA-025 / PR #177 acceptance, rebase, select the following
+      patch version and repeat exact-head review/gates before any merge.
+
+- [x] **GAIA-025: current ZIP compatibility [patch] — published 0.6.1**
+    - [x] Exact-head independent review: no actionable findings; independently
+      regenerated authentic locked API comparison passes (196 checks; stricter
+      patch diagnostic 223). Raw fresh 0.6.0 resolution remains inconclusive.
+    - [x] Verify normal gates, fresh/normalized consumers, native/docs, standard
+      package verification, registry archive identity and release tag at PR #177.
+    - [x] Verify only gaia-mesh 0.6.1 publishes and automatic Pages deploy succeeds.
 
 - [ ] **Executable Gaia book gate [patch]**
     - [x] Confirm the direct `mdbook test` command was vacuous at `dbed97a`:

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.2] - Unreleased
+
+### Fixed
+
+- [patch] Compare the doubled triangle area in `Plane::from_three_points`
+  with the squared scalar tolerance, preserving resolved small triangles in
+  both precisions. Reject non-finite coordinates and unrepresentable plane
+  arithmetic instead of returning a plane with NaN or zero normals.
+  Reject exact collinearity through the canonical original-point orientation
+  predicates, so cross-product cancellation cannot invent an arbitrary plane.
+  Dependencies and their locked provider identities remain unchanged.
+
 ## [0.6.1] - Unreleased
 
 ### Fixed

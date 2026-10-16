@@ -50,6 +50,17 @@ impl<T: Scalar> Plane<T> {
     }
 
     /// Create a plane from three non-collinear points (CCW winding → outward normal).
+    ///
+    /// Returns `None` for non-finite coordinates, a doubled triangle area below
+    /// [`Scalar::tolerance_sq`], or arithmetic that cannot represent a finite
+    /// cross-product norm or plane offset in `T`.
+    ///
+    /// # Theorem
+    ///
+    /// The cross product has magnitude `2 × area`, with units of length², so
+    /// its degeneracy threshold is the squared length tolerance. Dividing by
+    /// its finite non-zero norm yields a unit normal; `w = -normal · a` then
+    /// places all three vertices on the plane, up to native-precision rounding.
     #[inline]
     #[must_use]
     pub fn from_three_points(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> Option<Self> {
@@ -57,12 +68,12 @@ impl<T: Scalar> Plane<T> {
         let ac = c - a;
         let cross = ab.cross(ac);
         let len = cross.norm();
-        if len < T::tolerance() {
+        if !<T as NumericElement>::is_finite(len) || len < T::tolerance_sq() {
             return None; // Degenerate (collinear points)
         }
         let normal = cross / len;
         let w = -normal.dot(a.coords);
-        Some(Self { normal, w })
+        <T as NumericElement>::is_finite(w).then_some(Self { normal, w })
     }
 
     /// Signed distance from a point to this plane.
@@ -186,6 +197,114 @@ mod tests {
             &Point3r::new(2.0, 2.0, 2.0)
         )
         .is_none());
+    }
+
+    fn assert_small_triangle_contract<T: Scalar>() {
+        let f = <T as Scalar>::from_f64;
+        // Dyadic lengths are exact in both precisions. Even the smallest
+        // edge exceeds both linear tolerances, but its cross product is
+        // smaller than either linear tolerance: it has units of length².
+        for edge in [1.0 / 65536.0, 1.0, 1024.0].map(f) {
+            let a = Point3::new(edge, edge, edge);
+            let b = Point3::new(edge + edge, edge, edge);
+            let c = Point3::new(edge, edge + edge, edge);
+            let plane = Plane::from_three_points(&a, &b, &c)
+                .expect("resolved right triangle defines a plane");
+            assert_eq!(plane.normal, Vector3::new(f(0.0), f(0.0), f(1.0)));
+            assert_eq!(plane.w, -edge);
+            assert_eq!(plane.signed_distance(&a), f(0.0));
+            assert_eq!(plane.signed_distance(&b), f(0.0));
+            assert_eq!(plane.signed_distance(&c), f(0.0));
+            let reversed = Plane::from_three_points(&a, &c, &b)
+                .expect("reversed triangle defines the opposite plane");
+            assert_eq!(reversed.normal, -plane.normal);
+            assert_eq!(reversed.w, -plane.w);
+        }
+    }
+
+    fn assert_nonfinite_triangle_contract<T: Scalar>() {
+        let f = <T as Scalar>::from_f64;
+        let valid = [
+            [f(0.0), f(0.0), f(0.0)],
+            [f(1.0), f(0.0), f(0.0)],
+            [f(0.0), f(1.0), f(0.0)],
+        ];
+        for invalid in [T::nan(), T::infinity(), T::neg_infinity()] {
+            for vertex in 0..3 {
+                for axis in 0..3 {
+                    let mut points = valid;
+                    points[vertex][axis] = invalid;
+                    let points = points.map(|p| Point3::new(p[0], p[1], p[2]));
+                    assert_eq!(
+                        Plane::from_three_points(&points[0], &points[1], &points[2]),
+                        None,
+                        "nonfinite vertex {vertex}, axis {axis}: {invalid}"
+                    );
+                }
+            }
+        }
+    }
+
+    fn assert_unrepresentable_plane_contract<T: Scalar>() {
+        let f = <T as Scalar>::from_f64;
+        // The coordinates are finite, but native-precision area arithmetic
+        // overflows. Construction must not return a zero or NaN normal.
+        let huge = <T as NumericElement>::MAX_VALUE;
+        assert_eq!(
+            Plane::from_three_points(
+                &Point3::origin(),
+                &Point3::new(huge, f(0.0), f(0.0)),
+                &Point3::new(f(0.0), huge, f(0.0)),
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn unrepresentable_triangles_cannot_construct_planes() {
+        assert_unrepresentable_plane_contract::<f32>();
+        assert_unrepresentable_plane_contract::<f64>();
+    }
+
+    #[test]
+    fn small_triangles_keep_native_precision_plane() {
+        assert_small_triangle_contract::<f32>();
+        assert_small_triangle_contract::<f64>();
+    }
+
+    #[test]
+    fn nonfinite_triangles_cannot_construct_planes() {
+        assert_nonfinite_triangle_contract::<f32>();
+        assert_nonfinite_triangle_contract::<f64>();
+    }
+
+    fn assert_degenerate_triangle_contract<T: Scalar>() {
+        let f = <T as Scalar>::from_f64;
+        let short = T::tolerance() / f(4.0);
+        for points in [
+            [Point3::origin(); 3],
+            [
+                Point3::origin(),
+                Point3::new(f(1.0), f(2.0), f(3.0)),
+                Point3::new(f(2.0), f(4.0), f(6.0)),
+            ],
+            [
+                Point3::origin(),
+                Point3::new(short, f(0.0), f(0.0)),
+                Point3::new(f(0.0), short, f(0.0)),
+            ],
+        ] {
+            assert_eq!(
+                Plane::from_three_points(&points[0], &points[1], &points[2]),
+                None
+            );
+        }
+    }
+
+    #[test]
+    fn degenerate_triangles_still_cannot_construct_planes() {
+        assert_degenerate_triangle_contract::<f32>();
+        assert_degenerate_triangle_contract::<f64>();
     }
 
     #[test]

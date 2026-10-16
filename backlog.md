@@ -1,27 +1,51 @@
 # Backlog
 
+<a id="GAIA-024"></a>
+## GAIA-024 — Finite, dimensionally consistent three-point planes [patch]
+
+- status: blocked; owner: Codex; target: 0.6.2; basis: `c0db650`.
+- outcome: resolved triangles construct finite unit-normal planes in native
+  precision; invalid or unrepresentable input returns `None`.
+- priority: correctness; needs: none.
+- scope: `Plane::from_three_points`, its tests and release artifacts.
+- evidence: three regression tests fail before the fix: a dyadic edge of
+  2⁻¹⁶ is rejected; NaN coordinates return a NaN plane; finite maximum-value
+  edges overflow area arithmetic yet return a plane.
+- acceptance: area (length²) uses `Scalar::tolerance_sq`; both scalar types
+  cover winding, translation, small/large scales, all nonfinite vertex/axis
+  placements, overflow and degeneracy; existing tolerances stay unchanged.
+- review: P2 in PR #176's first review reproduced exactly collinear single/double precision
+  fixtures returning an arbitrary plane in debug and optimized builds.
+- repair: the three original-point projected orientation minors must not all
+  be exactly zero; use the existing ADR0005 predicate seam. Native area,
+  normal, offset and the squared physical tolerance remain unchanged.
+- focused evidence: 11 plane tests pass in debug and optimized builds,
+  including all vertex orders/coordinate rotations and noncollinear 3-D cases
+  with a degenerate coordinate projection. All 13 unchanged reviewer boundary
+  and cancellation tests also pass against the repair in both build modes.
+- native evidence: 1,166 value checks pass/one existing skip; one CSG output
+  leak diagnostic remains tracked by GAIA-NEXTEST-PIPE (focused repeat clean).
+  All 57 doctests pass/one existing ignore; strict Clippy/docs, lock and
+  machete pass. Supply-chain check now rejects old ZIP 2.4.2 until PR #177.
+- next: fresh exact-head independent review of the repair; after prerequisite
+  PR #177 is accepted, rebase/version/check this PR before any merge. A main
+  push automatically publishes pending versions.
+
 <a id="GAIA-025"></a>
 ## GAIA-025 — Restore fresh dependency resolution [patch]
 
-- status: blocked; priority: correctness; owner: Codex; target: 0.6.1.
-- outcome: fresh consumers and API probes resolve supported dependencies.
-- scope: private 3MF ZIP dependency, fresh-consumer CI regression and release artifacts.
-- basis: `c0db650`; current `zip = ^2.0` has no non-yanked eligible release.
-- evidence: the lock-free consumer fails before the migration and exports an
-  independently verified 3MF archive after updating to current ZIP 9.0.4.
-- contract: Rust 1.97 remains pinned (ZIP requires 1.88); default features stay
-  disabled; only Deflate is selected; first-party provider identities do not change.
-- acceptance: native, strict diagnostics/docs, supply-chain, fresh/normalized
-  consumers, API compatibility, package verification and normal push gates pass.
-- local evidence: 1,159 native and 57 doctest passes (one existing skip/ignore
-  each); strict Clippy/docs, deny, machete and standalone lock pass. The exact
-  unchanged main's locked Rustdoc API passes 196 compatibility checks.
-- package evidence: standard locked packaging, the normalized package's fresh
-  consumer, independent archive validation and the normal pre-push gates pass.
-- release blocker: the standard `--baseline-version 0.6.0` SemVer probe still
-  freshly resolves the old release's yanked ZIP range; no gate is bypassed.
-- next: independent exact-head review and hosted gates before integration;
-  this prerequisite precedes geometry PR #176, which then needs a fresh version/head.
+- status: done; priority: correctness; owner: Codex; delivery: PR #177 / 0.6.1.
+- outcome: Fresh and normalized consumers resolve ZIP 9.0.4 and verify actual
+  3MF geometry/OPC metadata, Deflate entries and CRCs without provider downgrades.
+- evidence: required CI, native/docs, strict diagnostics, supply-chain, lock,
+  package and dry-run gates pass. Exact-head independent review has no findings;
+  unchanged authentic locked API proof passes 196 checks (stricter patch: 223).
+- limitation: raw fresh published 0.6.0 API resolution remains inconclusive
+  because ZIP 2.x is yanked; workflow success is not a compatibility verdict.
+- publication: normal merge, actual 0.6.1 registry checksum/VCS/source receipt,
+  release tag and automatic Pages deployment verified. Only Gaia is selected.
+- scope: private 3MF ZIP dependency and required lock closure; 23 first-party
+  Git package identities and the public API remain unchanged.
 
 Shared state and ownership board for `gaia-mesh` (import path `gaia`).
 This board is the ordered queue of open work. GAIA-022 folds the legacy
@@ -56,6 +80,8 @@ Triage order: correctness → architecture → verification → tightening → f
 - scope: Reproduce the unchanged suite's process and output-handle lifetimes.
 - acceptance: Identify the owning process/handle and verify the original full suite exits without leaked output pipes; retain all computed assertions and deadlines.
 - basis: Two provider-candidate runs pass 1,159 values but report one leak in different tests; focused reproduction and the preceding baseline exit cleanly.
+- additional evidence: the GAIA-024 repair passes 1,166 values but once flags
+  `cylinder_through_torus_union`; subsequent focused/full repeats exit cleanly.
 - next: Capture process/handle evidence around the reported completion, then correct the identified owner.
 
 
