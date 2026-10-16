@@ -31,12 +31,12 @@ for line in args.artifacts_json.read_text().splitlines():
             artifacts[name] = filename
 assert set(artifacts) == {'gaia', 'leto', 'geometry_predicates'}, artifacts
 (args.output_dir / 'artifacts.json').write_text(json.dumps(artifacts, indent=2) + '\n')
-source = Path(__file__).parent
+source = Path(__file__).parents[2] / "tests/support"
 results = {}
 for name, filename, libraries, flags in [
-    ('observe', 'predicate_range_probe.rs', ['gaia', 'leto'], []),
-    ('regressions', 'predicate_range_probe.rs', ['gaia', 'leto'], ['--test']),
-    ('provider', 'predicate_provider_probe.rs', ['gaia', 'geometry_predicates'], []),
+    ('observe', 'predicate_range.rs', ['gaia', 'leto'], []),
+    ('regressions', 'predicate_range.rs', ['gaia', 'leto'], ['--test']),
+    ('provider', 'predicate_provider.rs', ['gaia', 'geometry_predicates'], []),
 ]:
     executable = args.output_dir / name
     command = ['rustc', '+1.97.0', '--edition=2024', str(source / filename),
