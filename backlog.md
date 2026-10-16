@@ -4,7 +4,8 @@
 ## GAIA-030 — Reject finite-box misses after infinite slab collapse [patch]
 
 - status: blocked; owner: Codex; target: 0.6.5; priority: correctness.
-- needs: Accepted PR #179 and verified publication of its 0.6.4 first.
+- prerequisite: PR #179 is independently accepted and publishes 0.6.4 at
+  bcd3d50e78eb821f2cc189752e4b0c23f2778af9; actual source/archive/tag/docs verify.
 - outcome: Distinct finite slabs cannot invent an intersection merely because
   positive entry/exit distances both overflow to infinity. True intersections
   beyond the scalar's finite distance range retain their existing result.
@@ -34,10 +35,10 @@
   Ordinary samples allocate nothing. Cold fixtures take 45 ns-5.04 us, with up
   to 115 allocation calls and 3104 peak live bytes per call; temporaries release.
   These warmed samples are not whole-mesh throughput or a formal heap bound.
-- sequencing: The draft is stacked on unchanged #179 bf55af4 for review only.
-  Never merge this branch into #179. After #179 merges and 0.6.4 publication is
-  verified, restack/retarget main and obtain independent final-head review and
-  current gates/scope before any 0.6.5 merge/publication.
+- sequencing: The candidate is restacked onto actual 0.6.4 main integration.
+  The Rust/source tree is unchanged by that restack. Independent final-head
+  review, applicable gates and current sole-0.6.5 scope remain required before
+  any merge/publication; no earlier release hold is inherited as approval.
 - next: Complete performance/memory/full gates and independent exact-head review.
 
 <a id="GAIA-031"></a>
@@ -58,35 +59,6 @@
   classification errors across both precisions/build modes.
 - next: Audit finite tie classification and implement a separately reviewed
   bounded repair under the existing miss contract.
-
-<a id="GAIA-028"></a>
-## GAIA-028 — Recover representable ray/AABB intervals [patch]
-
-- status: blocked; owner: Codex; target: 0.6.4; priority: correctness.
-- outcome: Nonzero subnormal components retain valid slab intervals and zero
-  boundary contact; a finite rounded reciprocal cannot invent an infinite
-  distance when native division yields a representable result. Empty/inverted
-  boxes and intervals strictly behind the origin do not intersect a half-line.
-- scope: `Ray::intersect_aabb`; public signatures and provider graph unchanged.
-- evidence: Ten saved regressions fail on unchanged integrated 0.6.3 source in
-  debug and release before repair. Exact Fraction ratios prove both new witnesses
-  round to finite MAX; tests execute both native precisions and axis rotations.
-- repair: Retain reciprocal multiplication for finite products; evaluate each
-  nonfinite product by native division. Check box ordering before slab roots
-  and reject negative exit intervals after clipping. Origin-inside negative
-  entry and contact at zero remain inclusive; no epsilon or direction floor.
-- acceptance oracle: Saved regressions, independent exact ratio proof, complete
-  committed nextest CI profile, strict lint/docs and normal hosted gates.
-- local validation: All ten regressions pass debug/release; complete native
-  CI profile passes 1200 tests with one existing skip, zero retries and no
-  output leak. All 57 doctests pass with one existing ignore. Strict all-target/
-  all-feature Clippy, warning-denied docs, formatting and exact ratio proof pass.
-- review repair: Independent exact-head review reproduces ARM64 speculative
-  fallback divisions on the ordinary finite-product path. Outline only the
-  exceptional quotient into a cold, non-inlined generic helper; all operands,
-  branch decisions, native precision and regression expectations stay unchanged.
-- next: Complete exact-head validation and independent re-review. Keep draft and
-  merge/publication held until review, gates, dependencies and scope are assessed.
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]

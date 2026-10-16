@@ -14,11 +14,12 @@
 
 ### Sequencing
 
-This draft stacks on #179 (0.6.4) for review. It must not merge into that
-branch or publish ahead of verified 0.6.4. Restack onto main afterward and
-repeat independent final-head review and current gates before 0.6.5 ships.
+PR #179 is independently accepted and its 0.6.4 source/archive/tag/docs are
+verified. This draft bases on that actual main integration and requires its
+own independent final-head review, current gates and publication-scope check
+before any 0.6.5 merge or publication.
 
-## [0.6.4] - Unreleased
+## [0.6.4] - 2026-10-16
 
 ### Fixed
 
@@ -33,6 +34,17 @@ repeat independent final-head review and current gates before 0.6.5 ships.
 - [patch] Keep the exceptional quotient in a cold, non-inlined generic helper,
   preventing speculative fallback divisions on ordinary finite-product slabs.
   Preserve every operand, selection decision and returned interval.
+
+### Integration evidence — 2026-10-16
+
+GAIA-028 closes through PR #179 at
+`bcd3d50e78eb821f2cc189752e4b0c23f2778af9`, with the independently accepted
+bf55af4 tree. Main CI, automatic API release gate/publication and authorized
+Pages deployment pass. Only Gaia 0.6.4 publishes; the actual registry archive
+checksum is `8912137124c5ae691724e4ffc42c2e1bdfacf294d1253fd52a57102d37bd275c`.
+All 417 packaged Rust files, original manifest and VCS match the merge; its
+release tag targets the same commit. GAIA-029/030/031 and the output-pipe
+followup stay separate. No settings, credentials or other service change.
 
 ## [0.6.3] - 2026-10-16
 
