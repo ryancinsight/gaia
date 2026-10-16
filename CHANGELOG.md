@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.6.2] - Unreleased
+
+### Fixed
+
+- [patch] Compare the doubled triangle area in `Plane::from_three_points`
+  with the squared scalar tolerance, preserving resolved small triangles in
+  both precisions. Reject non-finite coordinates and unrepresentable plane
+  arithmetic instead of returning a plane with NaN or zero normals.
+  Reject exact collinearity through the canonical original-point orientation
+  predicates, so cross-product cancellation cannot invent an arbitrary plane.
+  Reject exactly collinear stored points despite native cancellation noise;
+  certify ordinary nonzero minors with native arithmetic and evaluate ambiguous
+  cases using full-exponent exact dyadic integer sums. Preserve valid finite
+  high-aspect triangles in both windings. Plane coefficients remain in their
+  native precision; the accepted ZIP 9.0.4/provider graph remains unchanged.
+  Try every cheap projected-minor certificate before exact fallback, avoiding
+  expensive integer work when one projection is noisy but another resolves
+  the triangle; cover the chosen path without timing-dependent assertions.
+
+- [patch] Restore fresh source consumers after Moirai PR #625 advances the
+  provider workspace to 0.10.0. Advance both internal runtime declarations and
+  their nine lock identities to the published current cohort; retain disabled
+  defaults and the parallel feature. No Gaia Rust source or public provider
+  identity changes. The normal published API comparison and stricter patch
+  diagnostic pass; identical external generic code retains the exposed
+  Eunomia 0.10 / Leto 0.46 contract in published and source consumers.
+
 ## [0.6.1] - Unreleased
 
 ### Fixed
@@ -9,6 +36,16 @@
   defaults disabled and Deflate enabled; Gaia's public API and first-party
   provider identities remain unchanged. CI now resolves a lock-free external
   consumer and checks its real 3MF geometry with independent ZIP/XML readers.
+
+### Integration evidence — 2026-10-16
+
+GAIA-025 closes through PR #177 and gaia-mesh 0.6.1. The normal merge's tree
+matches the exact-head independent review and all required checks. The actual
+registry archive matches its index checksum and merge-commit VCS/source receipt;
+the release tag and authorized Pages deployment are verified. Only Gaia ships.
+The authentic unchanged locked API comparison passes independently (196 checks;
+stricter patch diagnostic 223). Raw fresh 0.6.0 baseline resolution remains
+inconclusive because ZIP 2.x is yanked; workflow tolerance is not an API verdict.
 
 ## [0.6.0] - Unreleased
 

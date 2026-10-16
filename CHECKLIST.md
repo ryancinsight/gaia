@@ -1,21 +1,46 @@
 # Checklist
 
-Active correctness target: **0.6.1** (ZIP prerequisite for PR #176).
+Active correctness target: **0.6.2**.
 
-- [ ] **GAIA-025: current ZIP compatibility [patch]**
-    - [x] Reproduce fresh-consumer resolution failure against the yanked 2.x range.
-    - [x] Verify current ZIP 9.0.4, its Rust 1.88 minimum and Deflate features.
-    - [x] Preserve the 3MF writer API, disable default features and update only
-      the required ZIP dependency graph; keep all first-party sources unchanged.
-    - [x] Resolve a lock-free real consumer and independently verify Deflate,
-      ZIP CRCs, OPC metadata, vertex coordinates and triangle indices.
-    - [x] Verify 1,159 native passes/one existing skip, 57 doctest passes/one
-      existing ignore, strict diagnostics/docs, supply chain, lock and hygiene.
-    - [x] Compare the unchanged main's locked Rustdoc API: 196 checks pass.
-    - [x] Verify standard packaging, normalized fresh consumers and normal push gates.
-    - [ ] Resolve the canonical release probe's re-resolution of Gaia 0.6.0's
-      yanked ZIP baseline; the API comparison does not replace that gate.
-    - [ ] Obtain independent review and assess automatic crate-publication scope.
+- [ ] **GAIA-024: three-point plane correctness [patch]**
+    - [x] Reproduce dimensional, nonfinite, overflow and exact-collinearity
+      cancellation defects before their repairs; preserve both precisions.
+    - [x] Reproduce the second review's exponent-overflow rejection in debug
+      and release, then cover both windings/axis rotations through exponent 1023.
+    - [x] Use proven native nonzero filters and full-exponent exact dyadic
+      zero decisions; retain native plane coefficients and squared tolerance.
+    - [x] Verify 14 focused tests debug/release, all 15 unchanged reviewer
+      tests in both build modes, and unchanged 34166 independent / 6144 author
+      exact-rational oracle fixtures.
+    - [x] Verify 1169 native passes/one skip, 57 doctests/one ignore, strict
+      Clippy/public docs, fmt, deny and machete; retain GAIA-NEXTEST-PIPE.
+    - [x] Rebase onto accepted PR #177, select patch 0.6.2, preserve the
+      dependency graph and pass normal fresh published-baseline API comparison.
+    - [x] Reproduce the premature exact-fallback performance finding with a
+      deterministic certificate-path regression, then try all cheap minors
+      before fallback; verify all vertex orders and cyclic axis rotations.
+    - [x] Measure unchanged axis/oblique constructor drivers without weakening
+      computed-value checks, inputs, budgets or leak detection.
+    - [x] Verify standard locked package, normalized registry consumer and
+      publish dry-run without upload; these select ZIP 9.0.4.
+    - [x] Restore fresh Git-consumer resolution on current published Moirai
+      0.10.0; preserve all reviewed geometry source and unrelated lock entries.
+    - [x] Verify normal and stricter patch published API checks, plus direct
+      external generic Eunomia/Leto public-type consumers.
+    - [x] Verify normalized 0.10 package/type consumers and publish dry-run
+      without upload; pinned publisher plan selects only gaia-mesh 0.6.2.
+    - [x] Pass normal push and applicable hosted gates; record the Git-baseline
+      API comparison as inconclusive, distinct from published-baseline passes.
+    - [ ] Accept independent exact-head review before merge/publication;
+      the final provider integration remains held.
+
+- [x] **GAIA-025: current ZIP compatibility [patch] — published 0.6.1**
+    - [x] Exact-head independent review: no actionable findings; independently
+      regenerated authentic locked API comparison passes (196 checks; stricter
+      patch diagnostic 223). Raw fresh 0.6.0 resolution remains inconclusive.
+    - [x] Verify normal gates, fresh/normalized consumers, native/docs, standard
+      package verification, registry archive identity and release tag at PR #177.
+    - [x] Verify only gaia-mesh 0.6.1 publishes and automatic Pages deploy succeeds.
 
 - [ ] **Executable Gaia book gate [patch]**
     - [x] Confirm the direct `mdbook test` command was vacuous at `dbed97a`:

@@ -1,27 +1,72 @@
 # Backlog
 
-<a id="GAIA-025"></a>
-## GAIA-025 — Restore fresh dependency resolution [patch]
+<a id="GAIA-024"></a>
+## GAIA-024 — Finite, dimensionally consistent three-point planes [patch]
 
-- status: blocked; priority: correctness; owner: Codex; target: 0.6.1.
-- outcome: fresh consumers and API probes resolve supported dependencies.
-- scope: private 3MF ZIP dependency, fresh-consumer CI regression and release artifacts.
-- basis: `c0db650`; current `zip = ^2.0` has no non-yanked eligible release.
-- evidence: the lock-free consumer fails before the migration and exports an
-  independently verified 3MF archive after updating to current ZIP 9.0.4.
-- contract: Rust 1.97 remains pinned (ZIP requires 1.88); default features stay
-  disabled; only Deflate is selected; first-party provider identities do not change.
-- acceptance: native, strict diagnostics/docs, supply-chain, fresh/normalized
-  consumers, API compatibility, package verification and normal push gates pass.
-- local evidence: 1,159 native and 57 doctest passes (one existing skip/ignore
-  each); strict Clippy/docs, deny, machete and standalone lock pass. The exact
-  unchanged main's locked Rustdoc API passes 196 compatibility checks.
-- package evidence: standard locked packaging, the normalized package's fresh
-  consumer, independent archive validation and the normal pre-push gates pass.
-- release blocker: the standard `--baseline-version 0.6.0` SemVer probe still
-  freshly resolves the old release's yanked ZIP range; no gate is bypassed.
-- next: independent exact-head review and hosted gates before integration;
-  this prerequisite precedes geometry PR #176, which then needs a fresh version/head.
+- status: blocked; owner: Codex; target: 0.6.2; prerequisite: accepted PR #177.
+- outcome: resolved triangles construct finite unit-normal planes in native
+  precision; invalid or unrepresentable arithmetic returns `None`.
+- priority: correctness; scope: `Plane::from_three_points` and its tests.
+- evidence: regressions reproduce dimensional rejection, NaN acceptance and
+  area overflow; the first review adds exactly collinear cancellation cases.
+- second review: the prior exact-predicate guard rejects a valid finite
+  triangle with edges (1,0,0) and (2^600,2^600,0) in one winding, because its
+  predicate products overflow. The new regression fails debug and release
+  before repair; the original cancellation regressions remain unchanged.
+- repair: native zero-factor/error-bound certificates handle ordinary minors;
+  ambiguous original-point minors use bounded exact dyadic integer sums,
+  covering all finite binary32/binary64 exponents without floating products.
+  Native area, normal, offset and squared physical tolerance stay unchanged.
+- proof: all three exact projected minors vanish iff the edge matrix has rank
+  at most one. Six binary64 products require at most 4199 bits; two 66-word
+  sums suffice. The native filter's rounding/underflow bounds are documented
+  beside the implementation; no coordinate/tolerance approximation is added.
+- performance review: a weak first nonzero minor prematurely invoked exact
+  arithmetic for resolved 3-D triangles. A deterministic certificate-path
+  regression fails debug/release before repair; all three cheap minors are
+  now attempted before fallback, without changing any certificate bound.
+- local evidence: 14 focused checks pass debug/release; 15 unchanged reviewer
+  boundary/cancellation/range tests pass against actual debug/release libraries.
+  Author reruns of unchanged 34166 independent and 6144 author exact-rational
+  fixtures pass in both modes. All 1169 native tests pass/one existing skip
+  with exit 0 and no leak this run;
+  57 doctests pass/one ignore. Strict Clippy/docs, fmt, deny and machete pass.
+- API: ordinary fresh published 0.6.1 comparison passes 196 checks/57 skips;
+  stricter patch comparison passes 223/30. Historical hosted 202/58 evidence
+  compares a Git base; the current hosted comparison is inconclusive because
+  that base's ^0.9.3 requirement cannot resolve current Moirai main. Its green
+  wrapper is not API proof. Hosted Miri covers GhostCell permission tests only,
+  not this helper. The private Moirai cohort advances as recorded below;
+  public provider identities and all other lock entries remain unchanged.
+- performance: seven alternating runs of unchanged reviewer drivers reduce
+  the lifted-triangle case from 82.78/100.26 ns to 4.75/6.00 ns (single/double).
+  Axis-aligned medians are 4.32–4.98 ns; ordinary oblique medians 4.92/5.35 ns.
+  No timing assertions, CPU-affinity or end-to-end throughput claim is added.
+- package: standard locked package, normalized registry consumer and publish
+  dry-run pass; ordinary published 0.6.1 API resolution passes. Fresh source
+  resolution is restored by the current Moirai 0.10 candidate; see
+  GAIA-MOIRAI-09-COHERENCE for final integration verification.
+- next: independent exact-head review of the current-provider integration;
+  normal push and applicable hosted checks pass. Keep merge held;
+  a main push automatically publishes pending versions. GAIA-NEXTEST-PIPE
+  remains open; clean repeats do not establish an output-handle lifetime fix.
+
+<a id="GAIA-026"></a>
+## GAIA-026 — Bound adaptive-predicate exponent contracts [patch]
+
+- status: todo; owner: unclaimed; priority: correctness.
+- outcome: Public adaptive predicates distinguish exact zero from arithmetic
+  outside their exponent range instead of classifying NaN as Degenerate.
+- scope: `domain::geometry::predicates` and callers; separate from GAIA-024.
+- evidence: `orient_2d_arr([0,0], [1,0], [2^600,2^600])` reports Degenerate
+  although the exact determinant is positive 2^600. Locked geometry-predicates
+  0.3.0 documents exponent limitations; `Orientation::from_det` maps NaN to zero.
+- acceptance: finite extreme-exponent inputs and both windings receive correct
+  decisions with an explicit range-safe contract; preserve native construction
+  arithmetic, existing tolerances and unrelated owners' work.
+- next: audit the public predicate decision boundary and caller contracts.
+  GAIA-024 now uses its own exact-zero decision; this does not repair the
+  general sign/incircle/insphere interfaces or certify their input range.
 
 Shared state and ownership board for `gaia-mesh` (import path `gaia`).
 This board is the ordered queue of open work. GAIA-022 folds the legacy
@@ -37,15 +82,34 @@ Triage order: correctness → architecture → verification → tightening → f
 
 
 <a id="GAIA-MOIRAI-09-COHERENCE"></a>
-## GAIA-MOIRAI-09-COHERENCE — Verify provider compatibility [patch]
+## GAIA-MOIRAI-09-COHERENCE — Verify current provider compatibility [patch]
 
-- status: todo
+- status: blocked
 - priority: correctness
-- outcome: Gaia and Metis resolve one Moirai 0.9 source through the existing scheduling API.
-- scope: Cargo dependency contracts, standalone lock and version artifacts.
-- acceptance: Actual mesh/property suites and strict diagnostics pass against the published provider; unrelated pins remain unchanged.
-- basis: Metis's attempted locked 0.9 adoption rejects Gaia's `<0.9.0` bound.
-- next: Verify the protected Moirai merge, publish Gaia through normal gates, then verify the Metis consumer.
+- outcome: Fresh Gaia/Metis consumers resolve one coherent current Moirai
+  provider identity through the existing internal scheduling API.
+- scope: Internal runtime/development declarations and the nine-package lock cohort.
+- basis: Moirai PR #625 advances main to 0.10.0; Gaia's ^0.9.3 Git requirement
+  reproduces a local/hosted fresh-consumer resolution failure before repair.
+- candidate: Require current 0.10.0 in both declarations, preserving source URL,
+  disabled defaults and parallel feature. All nine actual provider archives
+  match registry checksums and the published commit. Other lock entries and all
+  reviewed Gaia Rust source remain unchanged; no downgrade or old pin is used.
+- classification: Moirai types occur only in implementation bodies/imports,
+  not Gaia public fields, signatures, bounds, aliases or reexports. Public
+  Eunomia/Leto identities are unchanged; normal 196/57 and stricter patch
+  223/30 API checks pass. Identical real external generic consumers retain the
+  inherited RealField bound and direct Point3/Vector3 types. Gaia stays 0.6.2.
+- local evidence: Fresh source 3MF consumer, 1169 native values/one skip, all 14
+  release plane tests, 57 doctests/one ignore, strict Clippy/docs, fmt, advisory
+  and hygiene checks pass on current 0.10.0 without changing geometry or limits.
+- package evidence: Standard locked packaging, normalized 3MF and public-type
+  consumers, and publish dry-run pass without upload. Normal push and applicable
+  hosted checks pass; the pinned read-only publisher plan selects only
+  gaia-mesh 0.6.2. The current Git-baseline API comparison is inconclusive,
+  separately from the successful published-baseline comparisons above.
+- next: Independent exact-head review before integration/publication. Preserve
+  the general predicate and output-pipe followups and all unrelated owners' holds.
 
 <a id="GAIA-NEXTEST-PIPE"></a>
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]
@@ -56,7 +120,13 @@ Triage order: correctness → architecture → verification → tightening → f
 - scope: Reproduce the unchanged suite's process and output-handle lifetimes.
 - acceptance: Identify the owning process/handle and verify the original full suite exits without leaked output pipes; retain all computed assertions and deadlines.
 - basis: Two provider-candidate runs pass 1,159 values but report one leak in different tests; focused reproduction and the preceding baseline exit cleanly.
-- next: Capture process/handle evidence around the reported completion, then correct the identified owner.
+- additional evidence: the GAIA-024 repair passes 1,166 values but once flags
+  `cylinder_through_torus_union`; subsequent focused/full repeats exit cleanly.
+- bounded evidence: 20 focused repetitions and eight full main-branch suites
+  (1159 passes/one skip each) report no leak under unchanged capture/budgets.
+  Read-only process/pipe snapshots are preserved; no owning writer/cause or
+  production fix is established. These clean runs do not close this item.
+- next: Capture process/handle evidence around an actual reported leak, then correct the identified owner.
 
 
 ---
