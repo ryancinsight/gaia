@@ -1,44 +1,46 @@
 # Backlog
 
-<a id="GAIA-026"></a>
-## GAIA-026 — Full-exponent finite predicate signs [patch]
+<a id="GAIA-028"></a>
+## GAIA-028 — Recover representable ray/AABB intervals [patch]
 
-- status: blocked; owner: Codex; target: 0.6.3; priority: correctness.
-- outcome: Exact signed decisions for every finite stored f32/f64 input in
-  all ten geometry/topology orientation, incircle and insphere interfaces.
-- evidence: Saved analytical fixtures reproduce overflow-to-NaN, silent
-  underflow and cyclic inconsistency on the unchanged 0.6.2 merge. Twelve
-  regression tests fail there; all thirteen, including f32 controls, pass
-  after repair. The 2-D finite determinant 2^600 is one explicit counterexample.
-- design: ADR 0009 retains the current adaptive provider in proven exponent
-  bins and uses current private num-bigint 0.5.1 outside them. Exact integer
-  decoding includes every stored subnormal bit. A common integer dyadic factor
-  is removed only when it divides every coefficient; no float is rescaled or
-  rounded. Degree-2/3/4/5 signs share one bounded determinant implementation.
-- bounds: Fixed matrices have at most four columns, 24 terms and 65 recursive
-  visits. Original-basis operand/result magnitudes remain below 2^10502;
-  exact basis reduction can only shrink them. No custom unsafe integer kernel,
-  physical tolerance change, widened construction or older provider pin occurs.
-- verification: 4096 deterministic full-bit exact Bareiss oracle cases pass
-  debug/release through all public aliases. Independent Fraction checks verify
-  50 analytical determinants; full-bit proptest permutation/degeneracy checks,
-  actual tetrahedron orientation/circumsphere and CSG projection decisions pass.
-  The native suite passes 1190 values/one existing skip, docs 57/one ignore;
-  strict Clippy/docs, fmt, deny, machete and fresh 3MF consumer pass.
-- public API: Actual published 0.6.2 baseline builds/parses; ordinary 196 checks
-  and stricter patch 223 checks pass, with 57/30 instrument skips respectively.
-  All pre-existing dependency records and public provider identities remain
-  unchanged; only private num-bigint 0.5.1/num-integer 0.1.47 are added.
-- measured limits: Seven alternating ARM64 release pairs put common 2-D at
-  3.60->4.39 ns and 3-D at 6.56->8.89 ns; incircle 8.65->6.00 ns, insphere
-  16.23->17.48 ns. Ordinary/adaptive fixtures allocate nothing. Sampled sparse
-  fallback calls take 72-379 ns after exact basis reduction; a dense full-span
-  sphere takes 71 us, 288 allocations and 12576 peak live bytes, all released.
-  These local constructor samples are not whole-mesh throughput or a formal
-  heap peak bound. The 10502-bit arithmetic bound is separate from sampling.
-- next: Final normalized package/consumer, release and hosted gates, then
-  independent exact-head review before any merge/publication. Keep GAIA-027
-  and GAIA-NEXTEST-PIPE open; accepted #176 stays unmodified and published 0.6.2.
+- status: blocked; owner: Codex; target: 0.6.4; priority: correctness.
+- outcome: Nonzero subnormal components retain valid slab intervals and zero
+  boundary contact; a finite rounded reciprocal cannot invent an infinite
+  distance when native division yields a representable result. Empty/inverted
+  boxes and intervals strictly behind the origin do not intersect a half-line.
+- scope: `Ray::intersect_aabb`; public signatures and provider graph unchanged.
+- evidence: Ten saved regressions fail on unchanged integrated 0.6.3 source in
+  debug and release before repair. Exact Fraction ratios prove both new witnesses
+  round to finite MAX; tests execute both native precisions and axis rotations.
+- repair: Retain reciprocal multiplication for finite products; evaluate each
+  nonfinite product by native division. Check box ordering before slab roots
+  and reject negative exit intervals after clipping. Origin-inside negative
+  entry and contact at zero remain inclusive; no epsilon or direction floor.
+- acceptance oracle: Saved regressions, independent exact ratio proof, complete
+  committed nextest CI profile, strict lint/docs and normal hosted gates.
+- local validation: All ten regressions pass debug/release; complete native
+  CI profile passes 1200 tests with one existing skip, zero retries and no
+  output leak. All 57 doctests pass with one existing ignore. Strict all-target/
+  all-feature Clippy, warning-denied docs, formatting and exact ratio proof pass.
+- next: Complete exact-head validation and independent review. Keep draft and
+  merge/publication held until review, gates, dependencies and scope are assessed.
+
+<a id="GAIA-029"></a>
+## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]
+
+- status: blocked; owner: unclaimed; priority: correctness.
+- outcome: A checked contract distinguishes an actual miss from an
+  unrepresentable distance or invalid NaN box bound.
+- evidence: A ray from MAX toward -MAX reaches a finite point at distance
+  2*MAX, outside either native scalar range; legacy results contain infinity.
+  Public Aabb fields accept NaN without a construction error. The current
+  Option interval cannot distinguish range failure from an actual miss.
+- boundary: GAIA-028 repairs representable arithmetic and existing empty/half-line
+  semantics only. It does not add an error variant, panic, widening policy or
+  claim exact correctly rounded results for every slab calculation.
+- next: Select/version a checked API and audit callers before changing the
+  legacy overflow/invalid-input result contract. Do not classify overflow as
+  an ordinary miss merely to make returned values finite.
 
 <a id="GAIA-027"></a>
 ## GAIA-027 — Specify invalid predicate inputs [minor]
