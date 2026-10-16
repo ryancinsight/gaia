@@ -1,6 +1,22 @@
 # Changelog
 
-## [0.6.3] - Unreleased
+## [0.6.4] - Unreleased
+
+### Fixed
+
+- [patch] Recover representable ray/AABB slab distances when a reciprocal or
+  reciprocal product overflows, using native division for nonfinite products.
+  Preserve zero boundary distances for subnormal direction components. Reject
+  empty/inverted boxes and intervals strictly behind the ray origin, while
+  preserving signed entry distances for origins inside the box and inclusive
+  contact at the origin. No direction floor, scalar widening or tolerance
+  change is introduced. Distances outside the scalar range and NaN bounds
+  remain a separate checked-contract design item (GAIA-029).
+- [patch] Keep the exceptional quotient in a cold, non-inlined generic helper,
+  preventing speculative fallback divisions on ordinary finite-product slabs.
+  Preserve every operand, selection decision and returned interval.
+
+## [0.6.3] - 2026-10-16
 
 ### Fixed
 - [patch] Preserve exact signs for every finite stored coordinate across all
@@ -17,6 +33,20 @@
   rounding any float. Physical tolerances and native constructions stay unchanged.
 - [patch] Preserve legacy nonfinite-input behavior pending GAIA-027's separate
   versioned contract. The finite-input repair adds no enum case, panic or error API.
+
+### Integration evidence — 2026-10-16
+
+GAIA-026 closes through PR #178 at `9e494758dd7d906f753abcea4378005e3501dd36`.
+The integrated tree matches the accepted exact-head independent review
+(`418a2e4`); main native CI and the automatic release/API gate pass. The actual
+0.6.3 registry archive checksum is
+`92679b8095428f14b7e9d32783cfea4bc17132cd8d97c6046c69e608aeb63f16`;
+all 416 packaged Rust files and original manifest match the merge. The release
+tag targets that merge and authorized Pages deployment succeeds. Only Gaia
+0.6.3 publishes. Invalid predicate inputs remain GAIA-027; the output-pipe
+followup remains open. Independent validation adds 11,346 rational oracle
+cases in both build modes; this is not exhaustive IEEE enumeration or a
+whole-provider audit.
 
 ## [0.6.2] - 2026-10-16
 

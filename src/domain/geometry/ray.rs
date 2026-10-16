@@ -6,6 +6,14 @@ use core::fmt;
 use eunomia::{FloatElement, NumericElement, RealField};
 use leto::geometry::{Point3, UnitVector3, Vector3};
 
+// LLVM can speculate an inline floating division across a finite-product
+// selection. Keep this exceptional operation outside the ordinary slab path.
+#[cold]
+#[inline(never)]
+fn exceptional_slab_quotient<T: Scalar>(delta: T, direction: T) -> T {
+    delta / direction
+}
+
 /// Violation of the finite, non-degenerate ray construction contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -108,8 +116,13 @@ impl<T: Scalar> Ray<T> {
     ///
     /// A component parallel to a slab (`direction[axis] == 0`) contributes no
     /// bound but rejects the ray when the origin lies outside that slab. The
-    /// unit-direction invariant guarantees at least one non-parallel axis, so a
-    /// hit always yields finite distances.
+    /// direction has at least one non-parallel axis. Empty or inverted boxes
+    /// and intersections strictly behind the origin return `None`; touching
+    /// the origin counts as a hit.
+    ///
+    /// Slab distances use native scalar arithmetic. A distance outside the
+    /// scalar's finite range may be infinite, even for finite box coordinates.
+    /// NaN box bounds have no checked invalid-input result.
     #[must_use]
     pub fn intersect_aabb(self, aabb: &Aabb<T>) -> Option<(T, T)> {
         let origin = self.origin;
@@ -121,14 +134,29 @@ impl<T: Scalar> Ray<T> {
             let d = dir[axis];
             let lo = aabb.min[axis];
             let hi = aabb.max[axis];
+            if lo > hi {
+                return None;
+            }
             if <T as NumericElement>::abs(d) <= <T as NumericElement>::ZERO {
                 if o < lo || o > hi {
                     return None;
                 }
             } else {
                 let inv = <T as FloatElement>::recip(d);
-                let mut t0 = (lo - o) * inv;
-                let mut t1 = (hi - o) * inv;
+                let distance = |bound: T| {
+                    let delta = bound - o;
+                    let product = delta * inv;
+                    if <T as NumericElement>::is_finite(product) {
+                        product
+                    } else {
+                        // A rounded reciprocal can overflow, or its product
+                        // can overflow even when delta/d is representable.
+                        // Native division also preserves a zero boundary when
+                        // the reciprocal is infinite (0 * infinity is NaN).
+                        exceptional_slab_quotient(delta, d)
+                    }
+                };
+                let (mut t0, mut t1) = (distance(lo), distance(hi));
                 if t0 > t1 {
                     core::mem::swap(&mut t0, &mut t1);
                 }
@@ -139,7 +167,11 @@ impl<T: Scalar> Ray<T> {
                 }
             }
         }
-        Some((t_enter, t_exit))
+        if t_exit < <T as NumericElement>::ZERO {
+            None
+        } else {
+            Some((t_enter, t_exit))
+        }
     }
 }
 
