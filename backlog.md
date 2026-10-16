@@ -32,16 +32,32 @@
   actual stored ray directions and Python Fraction clipping in debug/release;
   all selected ties must match truth, with true-hit tuples and other candidates
   unchanged. Report residual errors explicitly rather than counting them as passes.
-- performance: Exact contact checks require cost assessment. Proven certificates
-  avoid general determinants for cardinal/origin contacts and shared-scale slabs;
-  record paired actual-library latency and allocator samples before review.
-- local validation: 1214 native tests pass with one existing skip; 57 doctests
+- performance repair: Independent review of the first head reports an ordinary
+  untied f64 axis case slowing from about 3.2 to 8.6 ns in a saved executable.
+  An inline hint alone is insufficient across contexts. Outline the entire
+  tie-only decision, retaining all certificates, and keep the public kernel
+  inlineable. Standard level-2/3 direct, opaque-wrapper and function-pointer
+  samples restore the observed method frame from 192 to 144 bytes and retain
+  three reciprocal divisions. Frame size is an observation, not a complete
+  explanation of artifact-sensitive timings. No compiler flags or gates change.
+- contact costs: Shared-origin contact samples near 12 ns are not a general
+  bound. The independently tested least-subnormal y-origin contact at x=0.5
+  requires exact mixed-exponent work: about 1.1-1.3 us in that review, with
+  35 temporary allocations and 384/2088 requested live bytes for f32/f64, zero
+  retained. Two permanent value regressions preserve this true hit and tuple.
+  Current paired timing/allocation/codegen evidence records each caller context;
+  warmed primitive samples do not establish whole-mesh or formal resource bounds.
+- local validation: 1216 native tests pass with one existing skip; 57 doctests
   pass with one existing ignore. Strict Clippy, docs, formatting, supply chain
-  and dependency hygiene pass under unchanged limits. Eight saved regressions
-  pass in both modes; all four miss tests fail on the unchanged parent while
-  all four true-contact controls pass.
-- next: Freeze current package/API/oracle/performance evidence and complete
-  normal push/hosted gates; require independent exact-head review before release.
+  and dependency hygiene pass under unchanged limits. Ten saved regressions
+  pass in debug and level-2/3 clients; all four miss tests fail on unchanged
+  0.6.5 while all six true-contact controls pass.
+- retained coverage: The 13502 author, 16592 prior-review and 10224 fresh
+  certificate cases pass in debug and both optimized client modes, with outputs
+  bit-identical to the original #181 head; 48 nonfinite observations per mode
+  are preserved. No numerical expression or classification certificate changes.
+- next: Freeze repaired exact-head package/API/oracle/performance evidence and
+  pass normal push/hosted gates; require independent re-review before release.
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]

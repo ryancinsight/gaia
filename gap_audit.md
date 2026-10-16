@@ -24,6 +24,28 @@ PR #180 publishes 0.6.5 at 0e2f98a22dca3911843fae27cd409807872b33c2; the
 reviewed tree, actual archive/VCS/420 Rust files/manifest/tag, main CI and docs
 verify. This isolated followup requires its own independent review and gates.
 
+### GAIA-031 independent performance finding and bounded repair
+
+The first independent review demonstrates an ordinary untied f64 axis call
+returning the same `Some((2,4))` but taking about 8.6 ns versus 3.2 ns in a
+saved executable. Freshly linked identical assembly can measure about 3.5 ns;
+this is an artifact/caller-sensitive result, not a universal slowdown claim.
+An inline hint alone leaves another slow context. Keep the complete tie-only
+decision cold and non-inlined, with the public slab kernel inlineable. Standard
+level-2/3 direct, opaque-wrapper and function-pointer codegen restores the
+observed double method frame from 192 to 144 bytes, retaining three reciprocal
+divisions. The frame observation alone does not establish the full timing cause.
+
+Numerical expressions and every exact certificate are unchanged. All three
+corpora (13502/16592/10224 cases) retain original #181 outputs in debug and both
+optimized client modes. Add two true-contact value tests with origin y=eta,
+x=0.5, y in [0.5,next(0.5)] and eta the least subnormal. Such finite contacts
+can require allocating full-exponent predicate work: the independent review
+samples about 1.1-1.3 us, 35 allocation calls and 384/2088 requested live bytes,
+zero retained. The cheap roughly 12 ns contact fixtures are not a general
+latency/allocation bound. Repaired exact-head gates and independent re-review
+remain required; no flag, provider, budget, NaN or range-policy changes apply.
+
 ## Eunomia 0.10 / Leto 0.46 public boundary [major]
 
 Gaia175's provider update at `273eb814` keeps Gaia 0.5.3 and Leto ^0.45.

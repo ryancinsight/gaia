@@ -13,6 +13,13 @@
   exact sign normalization. Other ambiguous ties use the shared exact predicate.
   NaN/infinite-bound policy, range representation and all providers are unchanged.
 
+- [patch] Keep the entire tie-only classification decision cold and non-inlined,
+  with the public slab kernel inlineable, to repair an ordinary untied caller
+  regression under standard consumer flags. Preserve all numerical expressions,
+  exact certificates and native tuples. Add mixed-exponent finite true-contact
+  controls and document that some finite ties allocate and take over a microsecond
+  in sampled exact-predicate cases; cheap contacts do not bound the general cost.
+
 ### Sequencing
 
 PR #180 publishes 0.6.5 at 0e2f98a22dca3911843fae27cd409807872b33c2.

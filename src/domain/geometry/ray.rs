@@ -128,6 +128,14 @@ impl<T: Scalar> Ray<T> {
     /// stored-coordinate comparison still rejects a miss, including infinity.
     /// True intersections retain the native infinite distance representation.
     /// NaN box bounds have no checked invalid-input result.
+    ///
+    /// Some equal-endpoint candidates require allocating exact predicate work,
+    /// even when both distances are finite. Finite unequal entry/exit distances
+    /// avoid that predicate path. Cheap contact cases do not bound every tie's cost.
+    // The tie certificates enlarge this generic method beyond the default
+    // inlining heuristic in some callers. Keep the ordinary slab loop visible
+    // to those callers; exceptional quotient and exact predicate work stay cold.
+    #[inline]
     #[must_use]
     pub fn intersect_aabb(self, aabb: &Aabb<T>) -> Option<(T, T)> {
         let origin = self.origin;
