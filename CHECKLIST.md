@@ -21,8 +21,10 @@ Active correctness target: **0.6.2**.
       before fallback; verify all vertex orders and cyclic axis rotations.
     - [x] Measure unchanged axis/oblique constructor drivers without weakening
       computed-value checks, inputs, budgets or leak detection.
-    - [x] Verify standard locked package, normalized/source fresh consumers
-      and publish dry-run without upload; all select coherent ZIP 9.0.4.
+    - [x] Verify standard locked package, normalized registry consumer and
+      publish dry-run without upload; these select ZIP 9.0.4.
+    - [ ] Restore fresh Git-consumer resolution after Moirai main advances
+      to 0.10.0; the required hosted gate now rejects the ^0.9.3 constraint.
     - [ ] Complete normal push/hosted gates and independent exact-head review
       before merge; the reviewed geometry head remains held.
 

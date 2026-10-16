@@ -39,8 +39,9 @@
   the lifted-triangle case from 82.78/100.26 ns to 4.75/6.00 ns (single/double).
   Axis-aligned medians are 4.32–4.98 ns; ordinary oblique medians 4.92/5.35 ns.
   No timing assertions, CPU-affinity or end-to-end throughput claim is added.
-- package: standard locked package, source/normalized fresh consumers and
-  publish dry-run pass; normal fresh published 0.6.1 API resolution passes.
+- package: standard locked package, normalized registry consumer and publish
+  dry-run pass; ordinary published 0.6.1 API resolution passes. Fresh source
+  resolution is now blocked by Moirai main 0.10.0; see GAIA-MOIRAI-09-COHERENCE.
 - next: normal push/hosted gates and independent exact-head review after
   this rebase/repair/version change. Keep merge held;
   a main push automatically publishes pending versions. GAIA-NEXTEST-PIPE
@@ -77,15 +78,22 @@ Triage order: correctness → architecture → verification → tightening → f
 
 
 <a id="GAIA-MOIRAI-09-COHERENCE"></a>
-## GAIA-MOIRAI-09-COHERENCE — Verify provider compatibility [patch]
+## GAIA-MOIRAI-09-COHERENCE — Verify current provider compatibility [patch]
 
-- status: todo
+- status: blocked
 - priority: correctness
-- outcome: Gaia and Metis resolve one Moirai 0.9 source through the existing scheduling API.
+- outcome: Fresh Gaia/Metis consumers resolve one coherent current Moirai
+  provider identity through the existing internal scheduling API.
 - scope: Cargo dependency contracts, standalone lock and version artifacts.
-- acceptance: Actual mesh/property suites and strict diagnostics pass against the published provider; unrelated pins remain unchanged.
-- basis: Metis's attempted locked 0.9 adoption rejects Gaia's `<0.9.0` bound.
-- next: Verify the protected Moirai merge, publish Gaia through normal gates, then verify the Metis consumer.
+- acceptance: Real mesh/property suites, fresh Git and normalized registry
+  consumers, package/API checks and strict diagnostics pass without downgrades.
+- basis: Moirai PR #625 advances default main to workspace 0.10.0 while Gaia
+  requires ^0.9.3. Both local and required hosted fresh-consumer checks fail
+  selection; the unchanged locked 0.9.3 graph and normalized registry consumer
+  still pass. The new Moirai release workflow is active under its existing owner.
+- next: Assess coherent latest-provider adoption separately, preserving the
+  geometry repair and other owners. Do not pin an older revision or bypass the
+  fresh-consumer gate; repeat exact-head gates/review after any integration.
 
 <a id="GAIA-NEXTEST-PIPE"></a>
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]
