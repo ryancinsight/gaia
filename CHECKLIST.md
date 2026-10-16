@@ -1,9 +1,23 @@
 # Checklist
 
-Active isolated correctness target: **0.6.6** (GAIA-031 finite slab ties).
-Prerequisite: PR #180 / 0.6.5 is published and source/archive/tag/CI/docs verified.
+Active isolated correctness target: **0.6.7** (GAIA-032 finite AABB centers).
+Prerequisite: PR #181 publishes 0.6.6 at 012fa6e1; source/archive/tag/CI/docs verify.
 
-- [ ] **GAIA-031: finite rounded slab ties [patch] — isolated 0.6.6**
+- [ ] **GAIA-032: finite AABB center range [patch] — isolated 0.6.7**
+    - [x] Audit ownership and reproduce four unchanged-baseline failures in
+      debug and standard level-2/3 clients, with four ordinary/invalid controls.
+    - [x] Recover only finite ordered-box overflow with exact native endpoint
+      halves; retain all original bits for nonfinite or inverted boxes.
+    - [x] Verify 30762 boxes per mode, 1224 native values/one existing skip,
+      57 doctests/one ignore and strict diagnostics under unchanged budgets.
+    - [x] Measure seven alternating pairs per standard level-2/3 direct,
+      opaque-wrapper and function-pointer context; record allocator samples.
+    - [ ] Complete clean normalized package/API/consumer and dry-run, normal
+      commit/push and all applicable hosted gates for the final head.
+    - [ ] Obtain independent exact-head review and fresh release-scope checks
+      before any normal 0.6.7 merge/publication; preserve all other holds.
+
+- [x] **GAIA-031: finite rounded slab ties [patch] — published 0.6.6**
     - [x] Check original/current intersection contracts and current ownership.
     - [x] Prove all 456 residual false hits; reproduce four saved failures on
       unchanged #180 in both build modes with genuine-contact controls.
@@ -15,8 +29,9 @@ Prerequisite: PR #180 / 0.6.5 is published and source/archive/tag/CI/docs verifi
       direct, opaque-wrapper and function-pointer callers without flag changes.
     - [x] Record paired latency/allocation samples and add the mixed-exponent
       finite true-contact controls; cheap contacts do not bound all tie costs.
-    - [ ] Require independent exact-head re-review of the performance repair and
-      all applicable gates/coherence/scope assessment before this followup ships.
+    - [x] Accept re-review at 6855803; normal merge 012fa6e1 has the same tree.
+      Sole 0.6.6 archive/all 421 Rust/manifest/VCS/tag/main CI/docs verify.
+      Preserve the sampled performance limits and excluded contracts.
 
 - [ ] **GAIA-026: full-exponent finite predicate signs [patch]**
     - [x] Preserve ownership and reproduce the unchanged 0.6.2 failures with

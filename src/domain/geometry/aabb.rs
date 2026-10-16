@@ -3,6 +3,31 @@
 use crate::domain::core::scalar::Scalar;
 use leto::geometry::Point3;
 
+// Keep exceptional endpoint scaling outside the ordinary vector midpoint.
+// Recover only finite, ordered boxes; other inputs retain the original
+// arithmetic result and input policy.
+#[cold]
+#[inline(never)]
+fn recover_center<T: Scalar>(bounds: &Aabb<T>, mut center: Point3<T>) -> Point3<T> {
+    if !(0..3).all(|axis| {
+        <T as eunomia::NumericElement>::is_finite(bounds.min[axis])
+            && <T as eunomia::NumericElement>::is_finite(bounds.max[axis])
+            && bounds.min[axis] <= bounds.max[axis]
+    }) {
+        return center;
+    }
+    let half = <T as Scalar>::from_f64(0.5);
+    for axis in 0..3 {
+        if !<T as eunomia::NumericElement>::is_finite(center[axis]) {
+            // An overflowing finite sum has same-sign normal endpoints.
+            // Halving each is exact, and their mean lies between the finite
+            // endpoints, so the final addition cannot overflow.
+            center.coords[axis] = bounds.min[axis] * half + bounds.max[axis] * half;
+        }
+    }
+    center
+}
+
 /// Axis-aligned bounding box generic over scalar precision.
 ///
 /// The default precision is `f64` so that all existing code that writes
@@ -141,14 +166,28 @@ impl<T: Scalar> Aabb<T> {
         )
     }
 
-    /// Centre point.
+    /// Centre point, preserving finite results for finite, ordered boxes.
+    ///
+    /// The native endpoint sum is used when finite. If that sum overflows,
+    /// exact endpoint halving recovers the representable midpoint. Nonfinite
+    /// or inverted bounds keep their existing arithmetic result; no checked
+    /// invalid-input result is added.
+    #[inline]
     pub fn center(&self) -> Point3<T> {
         let half = <T as Scalar>::from_f64(0.5);
-        Point3::new(
+        let center = Point3::new(
             (self.min.x + self.max.x) * half,
             (self.min.y + self.max.y) * half,
             (self.min.z + self.max.z) * half,
-        )
+        );
+        if <T as eunomia::NumericElement>::is_finite(center.x)
+            & <T as eunomia::NumericElement>::is_finite(center.y)
+            & <T as eunomia::NumericElement>::is_finite(center.z)
+        {
+            center
+        } else {
+            recover_center(self, center)
+        }
     }
 
     /// Enclosed volume.

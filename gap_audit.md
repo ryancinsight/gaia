@@ -1,5 +1,35 @@
 # Gaia provider compatibility audit
 
+## GAIA-032 finite AABB center range [patch]
+
+The documented arithmetic centre of a finite ordered box is bounded by its
+endpoints. A singleton at MAX therefore has center MAX, yet the unchanged
+native sum/half returns infinity. Positive-width extreme intervals fail too.
+Four analytical tests fail on unchanged 0.6.5 and accepted #181 in debug and
+standard opt2/3; four controls pass. The actual main integration 012fa6e1 has the
+identical #181 tree and AABB source. No active PR owns this subsystem.
+
+Keep native center bits whenever all coordinates are finite; otherwise recover
+only overflowing coordinates of fully finite, ordered boxes using exact halves
+of the large same-sign normal endpoints. Preserve the entire result if any
+bound is nonfinite or inverted. Always halving would lose least-subnormal
+singletons. The public inline hint keeps this generic hot path inlineable.
+No new invalid-input policy, widening, epsilon or dependency applies. Ordinary
+means are not promised universally correctly rounded. BVH, SSV-DAG, CSG and
+camera consumers gain only the primitive fix; no end-to-end claim follows.
+
+Local gates pass 1224 native values/one skip and 57 doctests/one ignore, strict
+diagnostics, supply chain and dependency hygiene. Each of three corpus modes
+checks 30762 boxes, repairs 5238 exact rounded overflow means and preserves 86472
+other finite coordinate bits plus 144 nonfinite and 48 inverted whole results.
+Ordinary paired overhead reaches 92.16% (0.645 ns absolute);
+observed ordinary head range 1.10-1.36 ns and overflow range
+3.06-3.86 ns across the tested caller contexts. All sampled paths allocate zero
+requested heap; these are warmed ARM64
+primitive samples, not formal bounds or whole-mesh throughput. Clean package,
+API/consumer/dry-run, normal hosted gates and independent exact-head review
+remain separate gates before any 0.6.7 lifecycle.
+
 ## GAIA-031 finite rounded ray/slab ties [patch]
 
 The ray/AABB method promises an intersection, with `None` for a miss. No

@@ -1,9 +1,49 @@
 # Backlog
 
+<a id="GAIA-032"></a>
+## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]
+
+- status: implemented; owner: Codex; target: 0.6.7; priority: correctness.
+- prerequisite: Independently accepted PR #181 integrates at
+  012fa6e118b0de4c3e248306c02754e912a5bbd4; sole 0.6.6 source/archive/tag,
+  main CI and automatic documentation verify. This separate fix bases there.
+- contract: The documented centre is the arithmetic midpoint, and inclusive
+  finite singleton/planar boxes are admitted. No magnitude exclusion applies.
+- evidence: `(MAX + MAX) * 0.5` returns infinity although the singleton center
+  is exactly MAX. Same-sign positive-width extreme intervals also overflow.
+  Four saved regressions fail on unchanged 0.6.5 and accepted #181 in debug and
+  standard level-2/3 clients; four ordinary/subnormal/inverted controls pass.
+  Actual main has the identical reviewed #181 tree and unchanged AABB bytes.
+- design: Keep original native sum/half bits when all center coordinates are
+  finite. A cold generic helper checks every bound is finite and ordered, then
+  recovers only overflowing coordinates. Overflow requires large normal
+  same-sign operands; their halves are exact and the final bounded mean is
+  finite. The public generic method carries an inline hint. No widening,
+  tolerance, dependency, public API or checked input-policy change is added.
+- boundary: Any nonfinite or inverted bound preserves the entire original
+  result. Ordinary native means are not promised universally correctly rounded;
+  this does not change Ray distance range policy or select GAIA-029 policy.
+- verification: 1224 native tests pass/one existing skip; 57 doctests pass/one
+  existing ignore; strict formatting, all-target/all-feature Clippy, rustdoc,
+  supply chain and dependency hygiene pass under unchanged limits. Each of
+  debug and level-2/3 exact corpora checks 30762 boxes: 5238 overflow coordinates
+  match Fraction/integer nearest-even means, 86472 other finite coordinates
+  retain bits, and whole results for 144 nonfinite and 48 inverted boxes match.
+- performance: Ordinary paired overhead reaches 92.16% (0.645 ns absolute);
+  observed ordinary head range 1.10-1.36 ns and overflow range
+  3.06-3.86 ns across the tested caller contexts.
+  All sampled paths allocate zero requested heap. Seven alternating pairs per
+  direct/opaque/indirect context use standard Rust 1.97 opt2/3, one million calls
+  per fixture; allocator samples use 32 calls. Warmed ARM64 primitive samples
+  exclude whole-mesh throughput, RSS/stack/caches and formal resource bounds.
+- next: Complete clean package/API/real consumer/dry-run and normal registered
+  push/hosted gates, then obtain independent exact-head review. No merge or
+  publication before acceptance and freshly assessed sole 0.6.7 release scope.
+
 <a id="GAIA-031"></a>
 ## GAIA-031 — Classify finite rounded slab ties [patch]
 
-- status: blocked; owner: Codex; target: 0.6.6; priority: correctness.
+- status: completed; owner: Codex; target: 0.6.6; priority: correctness.
 - prerequisite: PR #180 publishes 0.6.5 at
   0e2f98a22dca3911843fae27cd409807872b33c2; reviewed tree, actual archive,
   sole version, tag, main CI and docs verify. This followup bases on that merge.
@@ -56,8 +96,10 @@
   certificate cases pass in debug and both optimized client modes, with outputs
   bit-identical to the original #181 head; 48 nonfinite observations per mode
   are preserved. No numerical expression or classification certificate changes.
-- next: Freeze repaired exact-head package/API/oracle/performance evidence and
-  pass normal push/hosted gates; require independent re-review before release.
+- delivered: Independent re-review accepts 6855803 with no remaining findings.
+  Normal merge 012fa6e1 has the same tree; sole 0.6.6 archive/all 421 Rust/manifest/
+  VCS/checksum/tag/main CI/docs verify. Sampled ordinary overhead reaches 6.73%;
+  the contact costs and excluded contracts above still apply.
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]

@@ -1,6 +1,23 @@
 # Changelog
 
-## [0.6.6] - Unreleased
+## [0.6.7] - Unreleased
+
+### Fixed
+
+- [patch] Recover representable AABB centers when finite same-sign endpoints
+  overflow during addition. Keep the ordinary native sum/half path, including
+  least-subnormal values. A cold native helper uses exact endpoint halves only
+  for overflow coordinates of fully finite ordered boxes. Preserve the entire
+  original result for nonfinite or inverted bounds. Keep the public generic
+  method inlineable; no invalid-box or ray policy changes.
+
+### Sequencing
+
+PR #181 is accepted and integrates as 012fa6e118b0de4c3e248306c02754e912a5bbd4.
+This separate 0.6.7 candidate requires its own current gates, independent exact-head
+review and release-scope assessment before any merge or publication.
+
+## [0.6.6] - 2026-10-16
 
 ### Fixed
 
@@ -22,10 +39,13 @@
 
 ### Sequencing
 
-PR #180 publishes 0.6.5 at 0e2f98a22dca3911843fae27cd409807872b33c2.
-This isolated followup bases on that verified integration and requires its own
-independent exact-head review, applicable gates and current publication-scope
-assessment before any 0.6.6 merge or publication.
+PR #181 is independently accepted at 685580317928e89f7ca395cd2893574e70229b2f
+and merges at 012fa6e118b0de4c3e248306c02754e912a5bbd4 with the same tree.
+Only gaia-mesh 0.6.6 publishes; actual archive/all 421 Rust files/manifest/VCS/
+checksum/tag/main CI and authorized Pages verify. Independent ordinary overhead
+reaches 6.73% in sampled callers. Mixed-exponent finite contacts still take over
+a microsecond and allocate 35 temporaries in samples, with none retained.
+Cheap contacts do not bound all cases or establish whole-mesh throughput.
 
 ## [0.6.5] - 2026-10-16
 
