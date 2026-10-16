@@ -22,7 +22,11 @@
   CI profile passes 1200 tests with one existing skip, zero retries and no
   output leak. All 57 doctests pass with one existing ignore. Strict all-target/
   all-feature Clippy, warning-denied docs, formatting and exact ratio proof pass.
-- next: Complete exact-head validation and independent review. Keep draft and
+- review repair: Independent exact-head review reproduces ARM64 speculative
+  fallback divisions on the ordinary finite-product path. Outline only the
+  exceptional quotient into a cold, non-inlined generic helper; all operands,
+  branch decisions, native precision and regression expectations stay unchanged.
+- next: Complete exact-head validation and independent re-review. Keep draft and
   merge/publication held until review, gates, dependencies and scope are assessed.
 
 <a id="GAIA-029"></a>

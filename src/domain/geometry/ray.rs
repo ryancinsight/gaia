@@ -6,6 +6,14 @@ use core::fmt;
 use eunomia::{FloatElement, NumericElement, RealField};
 use leto::geometry::{Point3, UnitVector3, Vector3};
 
+// LLVM can speculate an inline floating division across a finite-product
+// selection. Keep this exceptional operation outside the ordinary slab path.
+#[cold]
+#[inline(never)]
+fn exceptional_slab_quotient<T: Scalar>(delta: T, direction: T) -> T {
+    delta / direction
+}
+
 /// Violation of the finite, non-degenerate ray construction contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -145,7 +153,7 @@ impl<T: Scalar> Ray<T> {
                         // can overflow even when delta/d is representable.
                         // Native division also preserves a zero boundary when
                         // the reciprocal is infinite (0 * infinity is NaN).
-                        delta / d
+                        exceptional_slab_quotient(delta, d)
                     }
                 };
                 let (mut t0, mut t1) = (distance(lo), distance(hi));

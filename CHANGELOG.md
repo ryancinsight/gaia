@@ -12,6 +12,9 @@
   contact at the origin. No direction floor, scalar widening or tolerance
   change is introduced. Distances outside the scalar range and NaN bounds
   remain a separate checked-contract design item (GAIA-029).
+- [patch] Keep the exceptional quotient in a cold, non-inlined generic helper,
+  preventing speculative fallback divisions on ordinary finite-product slabs.
+  Preserve every operand, selection decision and returned interval.
 
 ## [0.6.3] - 2026-10-16
 
