@@ -19,6 +19,14 @@
   expensive integer work when one projection is noisy but another resolves
   the triangle; cover the chosen path without timing-dependent assertions.
 
+- [patch] Restore fresh source consumers after Moirai PR #625 advances the
+  provider workspace to 0.10.0. Advance both internal runtime declarations and
+  their nine lock identities to the published current cohort; retain disabled
+  defaults and the parallel feature. No Gaia Rust source or public provider
+  identity changes. The normal published API comparison and stricter patch
+  diagnostic pass; identical external generic code retains the exposed
+  Eunomia 0.10 / Leto 0.46 contract in published and source consumers.
+
 ## [0.6.1] - Unreleased
 
 ### Fixed

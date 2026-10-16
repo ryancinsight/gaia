@@ -41,7 +41,8 @@
   No timing assertions, CPU-affinity or end-to-end throughput claim is added.
 - package: standard locked package, normalized registry consumer and publish
   dry-run pass; ordinary published 0.6.1 API resolution passes. Fresh source
-  resolution is now blocked by Moirai main 0.10.0; see GAIA-MOIRAI-09-COHERENCE.
+  resolution is restored by the current Moirai 0.10 candidate; see
+  GAIA-MOIRAI-09-COHERENCE for final integration verification.
 - next: normal push/hosted gates and independent exact-head review after
   this rebase/repair/version change. Keep merge held;
   a main push automatically publishes pending versions. GAIA-NEXTEST-PIPE
@@ -84,16 +85,24 @@ Triage order: correctness → architecture → verification → tightening → f
 - priority: correctness
 - outcome: Fresh Gaia/Metis consumers resolve one coherent current Moirai
   provider identity through the existing internal scheduling API.
-- scope: Cargo dependency contracts, standalone lock and version artifacts.
-- acceptance: Real mesh/property suites, fresh Git and normalized registry
-  consumers, package/API checks and strict diagnostics pass without downgrades.
-- basis: Moirai PR #625 advances default main to workspace 0.10.0 while Gaia
-  requires ^0.9.3. Both local and required hosted fresh-consumer checks fail
-  selection; the unchanged locked 0.9.3 graph and normalized registry consumer
-  still pass. The new Moirai release workflow is active under its existing owner.
-- next: Assess coherent latest-provider adoption separately, preserving the
-  geometry repair and other owners. Do not pin an older revision or bypass the
-  fresh-consumer gate; repeat exact-head gates/review after any integration.
+- scope: Internal runtime/development declarations and the nine-package lock cohort.
+- basis: Moirai PR #625 advances main to 0.10.0; Gaia's ^0.9.3 Git requirement
+  reproduces a local/hosted fresh-consumer resolution failure before repair.
+- candidate: Require current 0.10.0 in both declarations, preserving source URL,
+  disabled defaults and parallel feature. All nine actual provider archives
+  match registry checksums and the published commit. Other lock entries and all
+  reviewed Gaia Rust source remain unchanged; no downgrade or old pin is used.
+- classification: Moirai types occur only in implementation bodies/imports,
+  not Gaia public fields, signatures, bounds, aliases or reexports. Public
+  Eunomia/Leto identities are unchanged; normal 196/57 and stricter patch
+  223/30 API checks pass. Identical real external generic consumers retain the
+  inherited RealField bound and direct Point3/Vector3 types. Gaia stays 0.6.2.
+- local evidence: Fresh source 3MF consumer, 1169 native values/one skip, all 14
+  release plane tests, 57 doctests/one ignore, strict Clippy/docs, fmt, advisory
+  and hygiene checks pass on current 0.10.0 without changing geometry or limits.
+- next: Complete normalized package/public-type consumers, exact-head hosted
+  gates and independent review before integration/publication. Preserve the
+  general predicate and output-pipe followups and all unrelated owners' holds.
 
 <a id="GAIA-NEXTEST-PIPE"></a>
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]

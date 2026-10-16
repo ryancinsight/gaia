@@ -23,8 +23,12 @@ Active correctness target: **0.6.2**.
       computed-value checks, inputs, budgets or leak detection.
     - [x] Verify standard locked package, normalized registry consumer and
       publish dry-run without upload; these select ZIP 9.0.4.
-    - [ ] Restore fresh Git-consumer resolution after Moirai main advances
-      to 0.10.0; the required hosted gate now rejects the ^0.9.3 constraint.
+    - [x] Restore fresh Git-consumer resolution on current published Moirai
+      0.10.0; preserve all reviewed geometry source and unrelated lock entries.
+    - [x] Verify normal and stricter patch published API checks, plus direct
+      external generic Eunomia/Leto public-type consumers.
+    - [ ] Complete normalized 0.10 package/type consumers, final hosted gates
+      and exact-head independent review before merge/publication.
     - [ ] Complete normal push/hosted gates and independent exact-head review
       before merge; the reviewed geometry head remains held.
 
