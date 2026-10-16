@@ -3,7 +3,7 @@
 <a id="GAIA-024"></a>
 ## GAIA-024 — Finite, dimensionally consistent three-point planes [patch]
 
-- status: blocked; owner: Codex; target: 0.6.2; prerequisite: GAIA-025 done.
+- status: blocked; owner: Codex; target: 0.6.2; prerequisite: accepted PR #177.
 - outcome: resolved triangles construct finite unit-normal planes in native
   precision; invalid or unrepresentable arithmetic returns `None`.
 - priority: correctness; scope: `Plane::from_three_points` and its tests.
@@ -31,26 +31,12 @@
 - performance: unchanged reviewer driver, seven alternating ARM64 runs:
   4.14–4.48 ns/call, 1.15–1.26 times pre-collinearity construction, compared
   with the prior guard's 5.22–11.17 ns. No end-to-end throughput claim.
-- next: standard package/fresh-consumer/push/hosted gates and independent
-  exact-head review after this rebase/repair/version change. Keep merge held;
+- package: standard locked package, source/normalized fresh consumers and
+  publish dry-run pass; normal fresh published 0.6.1 API resolution passes.
+- next: normal push/hosted gates and independent exact-head review after
+  this rebase/repair/version change. Keep merge held;
   a main push automatically publishes pending versions. GAIA-NEXTEST-PIPE
   remains open; clean repeats do not establish an output-handle lifetime fix.
-
-<a id="GAIA-025"></a>
-## GAIA-025 — Restore fresh dependency resolution [patch]
-
-- status: done; priority: correctness; owner: Codex; delivery: PR #177 / 0.6.1.
-- outcome: Fresh and normalized consumers resolve ZIP 9.0.4 and verify actual
-  3MF geometry/OPC metadata, Deflate entries and CRCs without provider downgrades.
-- evidence: required CI, native/docs, strict diagnostics, supply-chain, lock,
-  package and dry-run gates pass. Exact-head independent review has no findings;
-  unchanged authentic locked API proof passes 196 checks (stricter patch: 223).
-- limitation: raw fresh published 0.6.0 API resolution remains inconclusive
-  because ZIP 2.x is yanked; workflow success is not a compatibility verdict.
-- publication: normal merge, actual 0.6.1 registry checksum/VCS/source receipt,
-  release tag and automatic Pages deployment verified. Only Gaia is selected.
-- scope: private 3MF ZIP dependency and required lock closure; 23 first-party
-  Git package identities and the public API remain unchanged.
 
 <a id="GAIA-026"></a>
 ## GAIA-026 — Bound adaptive-predicate exponent contracts [patch]

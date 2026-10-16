@@ -26,6 +26,16 @@
   provider identities remain unchanged. CI now resolves a lock-free external
   consumer and checks its real 3MF geometry with independent ZIP/XML readers.
 
+### Integration evidence — 2026-10-16
+
+GAIA-025 closes through PR #177 and gaia-mesh 0.6.1. The normal merge's tree
+matches the exact-head independent review and all required checks. The actual
+registry archive matches its index checksum and merge-commit VCS/source receipt;
+the release tag and authorized Pages deployment are verified. Only Gaia ships.
+The authentic unchanged locked API comparison passes independently (196 checks;
+stricter patch diagnostic 223). Raw fresh 0.6.0 baseline resolution remains
+inconclusive because ZIP 2.x is yanked; workflow tolerance is not an API verdict.
+
 ## [0.6.0] - Unreleased
 
 ### Breaking

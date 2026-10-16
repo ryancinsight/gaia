@@ -17,8 +17,10 @@ Active correctness target: **0.6.2**.
       dependency graph and pass normal fresh published-baseline API comparison.
     - [x] Measure the unchanged constructor benchmark; move exact work off
       the inline path without weakening computed-value checks or budgets.
-    - [ ] Verify standard package, normalized/source fresh consumers and normal push gates.
-    - [ ] Obtain final hosted gates and independent exact-head review before merge.
+    - [x] Verify standard locked package, normalized/source fresh consumers
+      and publish dry-run without upload; all select coherent ZIP 9.0.4.
+    - [ ] Complete normal push/hosted gates and independent exact-head review
+      before merge; the reviewed geometry head remains held.
 
 - [x] **GAIA-025: current ZIP compatibility [patch] — published 0.6.1**
     - [x] Exact-head independent review: no actionable findings; independently
