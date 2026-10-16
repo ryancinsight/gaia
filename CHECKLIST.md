@@ -1,5 +1,22 @@
 # Checklist
 
+Active correctness target: **0.6.1** (ZIP prerequisite for PR #176).
+
+- [ ] **GAIA-025: current ZIP compatibility [patch]**
+    - [x] Reproduce fresh-consumer resolution failure against the yanked 2.x range.
+    - [x] Verify current ZIP 9.0.4, its Rust 1.88 minimum and Deflate features.
+    - [x] Preserve the 3MF writer API, disable default features and update only
+      the required ZIP dependency graph; keep all first-party sources unchanged.
+    - [x] Resolve a lock-free real consumer and independently verify Deflate,
+      ZIP CRCs, OPC metadata, vertex coordinates and triangle indices.
+    - [x] Verify 1,159 native passes/one existing skip, 57 doctest passes/one
+      existing ignore, strict diagnostics/docs, supply chain, lock and hygiene.
+    - [x] Compare the unchanged main's locked Rustdoc API: 196 checks pass.
+    - [ ] Verify normalized package consumers and normal push gates on the final head.
+    - [ ] Resolve the canonical release probe's re-resolution of Gaia 0.6.0's
+      yanked ZIP baseline; the API comparison does not replace that gate.
+    - [ ] Obtain independent review and assess automatic crate-publication scope.
+
 - [ ] **Executable Gaia book gate [patch]**
     - [x] Confirm the direct `mdbook test` command was vacuous at `dbed97a`:
       the book contained zero Rust fences.

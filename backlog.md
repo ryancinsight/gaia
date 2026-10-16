@@ -1,20 +1,25 @@
 # Backlog
 
-<a id="GAIA-EUNOMIA-010"></a>
-## GAIA-EUNOMIA-010 — Version the current numeric provider boundary [major]
+<a id="GAIA-025"></a>
+## GAIA-025 — Restore fresh dependency resolution [patch]
 
-- status: in progress; priority: correctness; delivery: PR175.
-- outcome: Gaia 0.6 uses Eunomia 0.10 and Leto 0.46 at its public scalar/geometry boundary.
-- scope: versions, canonical lock, ADR0008 and a real external-consumer regression; geometry source is unchanged.
-- basis: PR175 at `273eb814` retained Gaia 0.5.3/Leto ^0.45 while admitting Eunomia 0.10.
-- package evidence: its standard dry-run fails with 149 errors from registry Leto 0.45.2/Eunomia 0.9.2; the 0.6/^0.46 proposal passes.
-- public regression: identical generic code builds/runs on published Gaia 0.5.3, then fails E0277 when the new Scalar no longer implies Eunomia 0.9's RealField.
-- reproduction: `cargo +1.97.0 publish --dry-run --locked -p gaia-mesh`, then `python3 scripts/check_provider_boundary.py`.
-- source contract: retain the existing Git URLs/features/defaults and all 166 registry records; no geometry kernel or compatibility alias changes.
-- acceptance oracle: full native CI profile, strict diagnostics/docs, supply-chain/hygiene, lock/ADR/API gates, standard package and the external probe on the final head.
-- local proposal evidence: 1,159 native passes/one existing skip; 57 doctest passes/one existing ignore; Clippy, docs, deny, machete and package pass.
-- API classification: the scanner passes 196 checks but misses external nominal trait identity; the executed consumer establishes the [major] pre-1.0 minor boundary.
-- next step: pass final-head CI/review before integration/publication; keep existing output-pipe investigations and their limits intact. Miri remains deferred locally.
+- status: blocked; priority: correctness; owner: Codex; target: 0.6.1.
+- outcome: fresh consumers and API probes resolve supported dependencies.
+- scope: private 3MF ZIP dependency, fresh-consumer CI regression and release artifacts.
+- basis: `c0db650`; current `zip = ^2.0` has no non-yanked eligible release.
+- evidence: the lock-free consumer fails before the migration and exports an
+  independently verified 3MF archive after updating to current ZIP 9.0.4.
+- contract: Rust 1.97 remains pinned (ZIP requires 1.88); default features stay
+  disabled; only Deflate is selected; first-party provider identities do not change.
+- acceptance: native, strict diagnostics/docs, supply-chain, fresh/normalized
+  consumers, API compatibility, package verification and normal push gates pass.
+- local evidence: 1,159 native and 57 doctest passes (one existing skip/ignore
+  each); strict Clippy/docs, deny, machete and standalone lock pass. The exact
+  unchanged main's locked Rustdoc API passes 196 compatibility checks.
+- release blocker: the standard `--baseline-version 0.6.0` SemVer probe still
+  freshly resolves the old release's yanked ZIP range; no gate is bypassed.
+- next: independent exact-head review and hosted gates before integration;
+  this prerequisite precedes geometry PR #176, which then needs a fresh version/head.
 
 Shared state and ownership board for `gaia-mesh` (import path `gaia`).
 This board is the ordered queue of open work. GAIA-022 folds the legacy
