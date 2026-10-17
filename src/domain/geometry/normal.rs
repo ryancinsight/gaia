@@ -3,6 +3,9 @@
 use crate::domain::core::scalar::Scalar;
 use leto::geometry::{Point3, Vector3};
 
+mod expansion;
+use expansion::NativeSum;
+
 /// Compute the face normal of a triangle (CCW winding → outward).
 ///
 /// Returns `None` if the triangle is degenerate.
@@ -159,22 +162,28 @@ fn recover_newell_normal<T: Scalar>(vertices: &[Point3<T>], original: Vector3<T>
     // remain the fast path. No temporary vertex collection is required.
     let origin = &vertices[0];
     let mut previous = compensated_difference(&vertices[1], origin);
-    let mut high = Vector3::<T>::zeros();
-    let mut low = Vector3::<T>::zeros();
+    let mut sums: [NativeSum<T, 8>; 3] = core::array::from_fn(|_| NativeSum::new());
     for vertex in &vertices[2..] {
         let current = compensated_difference(vertex, origin);
-        // Bilinearity retains the low parts of both translated edges.
-        for term in [
-            previous.0.cross(current.0),
-            previous.0.cross(current.1),
-            previous.1.cross(current.0),
-            previous.1.cross(current.1),
+        // Keep both signed products of each determinant separate. Reducing
+        // cross() first would discard its subtraction residual before summing.
+        for (u, v) in [
+            (previous.0, current.0),
+            (previous.0, current.1),
+            (previous.1, current.0),
+            (previous.1, current.1),
         ] {
-            compensated_add(&mut high, &mut low, term);
+            for (axis, sum) in sums.iter_mut().enumerate() {
+                let first = (axis + 1) % 3;
+                let second = (axis + 2) % 3;
+                if !sum.add_product(u[first], v[second]) || !sum.add_product(-u[second], v[first]) {
+                    return original;
+                }
+            }
         }
         previous = current;
     }
-    let normal = high + low;
+    let normal = Vector3::new(sums[0].estimate(), sums[1].estimate(), sums[2].estimate());
     if [normal.x, normal.y, normal.z]
         .into_iter()
         .all(<T as eunomia::NumericElement>::is_finite)
@@ -204,20 +213,6 @@ fn compensated_difference<T: Scalar>(
         residual(point.z, origin.z, high.z),
     );
     (high, low)
-}
-
-#[inline]
-fn compensated_add<T: Scalar>(high: &mut Vector3<T>, low: &mut Vector3<T>, term: Vector3<T>) {
-    for axis in 0..3 {
-        let sum = high[axis] + term[axis];
-        let virtual_term = sum - high[axis];
-        let error = (high[axis] - (sum - virtual_term)) + (term[axis] - virtual_term);
-        let correction = low[axis] + error;
-        let corrected = sum + correction;
-        let virtual_correction = corrected - sum;
-        low[axis] = (sum - (corrected - virtual_correction)) + (correction - virtual_correction);
-        high[axis] = corrected;
-    }
 }
 
 /// Compute vertex normal by averaging adjacent face normals.

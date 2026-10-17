@@ -50,7 +50,16 @@
   high/low differences and all four cross terms; six repaired tests cover
   cyclic origins, reverse winding, coordinate planes and retained/zero area
   cancellation. Renew repaired-head review and gates; no threshold weakening.
-- performance/memory: native f32/f64 triangle and 32-vertex slice callers are
+- second review: determinant subtraction inside cross() discards residuals
+  before the earlier TwoSum sees them, inventing a unit normal for exact zero
+  or reversing winding. Retain signed product terms and native fused residuals
+  in an adaptive grow expansion; no fixed two-word truncation. Ten further
+  regressions include all subloop orders/origins/axes, exact-zero/winding,
+  product roundoff and multiscale spill cases. Renew exact-head review.
+- resources: eight native inline components per axis; spill storage preserves
+  arithmetic instead of truncating it. New cold/resource measurements supersede
+  earlier-head zero-allocation claims; no universal allocation bound is asserted.
+- prior-head performance/memory: native f32/f64 triangle and 32-vertex slice callers are
   measured separately with seven alternating O2/O3 samples; no sampled allocation
   requests/bytes. Keep the contextual O3 f64 baseline anomaly and all limitations
   in `docs/verification/normal-range.md`; do not assert a general speedup.

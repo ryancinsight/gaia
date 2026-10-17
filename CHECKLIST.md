@@ -20,6 +20,9 @@ Active isolated correctness target: **0.6.9**, based on published 0.6.8.
       head, reviewer evidence and exact-zero controls. Renew repaired-head review.
     - [x] Bound three centroid prototypes and eight matched path placements;
       reject unverified improvements and retain the explicit performance hold.
+    - [x] Reproduce the second independent P2 at determinant subtraction;
+      retain signed product/fused residuals in adaptive native expansions and
+      broaden zero/winding, product-roundoff and spill cancellation controls.
     - [ ] Renew final package, fresh-consumer, hosted, numerical/published API
       and caller measurements; obtain independent exact-head review and
       performance acceptance before merge/publication.

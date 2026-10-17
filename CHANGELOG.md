@@ -15,6 +15,11 @@
   Preserve translated area and cancellation controls without widening or
   threshold changes. Centroid placement-sensitive performance acceptance stays
   held; no investigated centroid optimization is accepted.
+- [patch] Preserve determinant subtraction and product residuals before fan
+  accumulation. Adaptive native expansions retain all represented components
+  instead of truncating to two words; inline storage may spill. Add exact-zero,
+  negative-winding, product-roundoff and multiscale cancellation regressions.
+  Repaired-head correctness/resource review and centroid performance stay held.
 
 ### Dependency and acceptance
 

@@ -49,20 +49,39 @@ subtraction can erase an edge: (1,-L,H),(-1,1,H),(-1,0,H), for native L=2^24/2^5
 and H=2^127/2^1023, has exact vector area (0,0,2), yet L+1 rounds to L. Merely
 finding a finite fan result does not justify returning a degenerate normal.
 
-Recovery now retains each difference's high and low parts with native TwoDiff.
-For edges u=u_hi+u_lo and v=v_hi+v_lo, bilinearity gives all four cross terms:
-u_hi×v_hi, u_hi×v_lo, u_lo×v_hi and u_lo×v_lo. Native TwoSum accumulation and
-renormalization retain a low sum through cancellation of large terms. No vertex
-collection allocates, no arithmetic widens, and no threshold changes. Six new
-regressions exercise both reviewer fixtures in all coordinate planes, cyclic
-origins and reverse winding, plus L²+2-L² and exact-zero subloop cancellation.
-The prior head fails four expanded tests and passes two exact-zero controls.
+Recovery retains each difference's high and low parts with native TwoDiff.
+The next independent review finds that computing cross() before compensation
+still rounds L²-k to L². Subloops with areas 1,L²-1,-L² invent a positive unit
+normal for exact zero; using k=2 gives the wrong winding. Every individual
+product in that reviewer fixture is finite and exact.
 
-This two-term representation does not make native products exact or guarantee
-arbitrary ill-conditioned polygons. Product overflow/underflow and residual
-capacity still bound recovery. Unrepresentable final vectors retain the original
-result. The represented fixtures have finite products and analytically exact
-unit normals, well above the unchanged degeneracy threshold.
+Recovery now feeds both signed products of every determinant separately into
+a native grow-expansion accumulator. The native fused-multiply-add seam also
+retains representable product roundoff before accumulation. After the finite
+product guard, an exactly zero operand skips the exactly zero fused residual;
+nonzero operands with an underflowed product retain the fused path. All four high/low
+edge pairings remain. Finite TwoSum transforms retain each addition residual;
+there is no pre-rounded determinant or fixed two-word truncation. Eight inline
+components are a storage choice: an adaptive spill retains further components.
+No float widens and neither the ordinary loop nor degeneracy threshold changes.
+
+Ten additional regressions cover exact-zero/negative-area reviewer fixtures,
+k=0..4, all six subloop orders, cyclic origins, all coordinate planes and reverse
+winding. Nine separated scales exercise spill storage and retained/zero winding;
+L²-(L-1)(L+1)=1 checks fused product residuals. The prior translated-edge and
+L²+2-L²/exact-zero controls remain.
+
+Arithmetic still has native range limits. Nonfinite products, residuals or
+partial sums return the original result; residuals below the minimum subnormal
+cannot be represented. This is not a universal exact-product, arbitrary-range
+or correctly-rounded-normal guarantee. The represented reviewer fixtures and
+expanded cancellation cases have analytically determined normals above the
+unchanged threshold, or exact zero.
+
+The earlier allocation tables describe earlier heads. This repaired recovery
+uses inline expansion storage and may allocate on a spill. Renew separate
+ordinary, standard cold and multiscale spill allocation/timing measurements;
+do not carry forward an unconditional zero-allocation claim.
 
 Nonfinite input vertices preserve the original result. If native anchored
 arithmetic itself is nonfinite, retain the original result; this repair does
@@ -86,7 +105,7 @@ by at most gamma8*abs(mean)+2 minimum-subnormal units, gamma8=8u/(1-8u), with
 native u=2^-24 or 2^-53. This is an external rounding-analysis check, not a
 production tolerance or widening step. Finite samples do not prove all rounding.
 
-## Caller and allocation measurements
+## Preserved pre-integration caller and allocation measurements
 
 The external consumer links actual baseline/candidate libraries and computes
 in native f32/f64. Seven alternating samples per standard O2/O3 profile use
@@ -136,7 +155,8 @@ The O2 whole-point rows remain +32–36%, projected rows +5–8%, triangle Newel
 rows +8–10%, and 32-vertex rows +0.2–1.9% in the initial renewed samples.
 The earlier O3 f64 baseline Newell anomaly does not recur: 7.102 -> 7.675 ns.
 
-All renewed sampled allocation calls/bytes remain zero. Ordinary whole-point
+Those prior-head sampled allocation calls/bytes are zero; repaired expansion
+spill measurements renew separately. Ordinary whole-point
 code retains three finite guards, with cold calls guarded off for finite sums;
 projected code retains only the selected-axis guard/helper. The O3 f64 wrapper
 has 98 instructions and a 160-byte stack frame (O2: 95/160). These observations
@@ -146,8 +166,8 @@ before this performance blocker and independent exact-head review are resolved.
 
 ## Verification and holds
 
-Full native computation passes 1253 tests with one existing skip; doctests pass
-57 with one existing ignore. Twenty regressions pass debug/release. Strict
+The original range head passes 1253 native tests with one existing skip; doctests pass
+57 with one existing ignore. Its twenty regressions pass debug/release. Strict
 Clippy and patch API comparison against the coherent 0.6.8 source pass
 (223 applicable, 30 inapplicable). Repeat against the actual published archive
 after integration. Final normalized/fresh consumer, current hosted gates and
