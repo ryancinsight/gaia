@@ -40,7 +40,7 @@ Finite inputs outside these fixtures and matrix-vector overflow elsewhere
 remain subject to native arithmetic; the repair does not claim universal
 full-range rendering.
 
-## Cost and memory
+## Original author cost and memory
 
 The external measurement links actual unchanged 0.6.7 and candidate libraries
 in one consumer, with opaque function-pointer wrappers and complete black-boxed
@@ -62,3 +62,55 @@ against published 0.6.7 pass 223 applicable API checks (30 inapplicable).
 Normalized packaging, fresh-consumer/3MF, normal hosted gates and independent
 exact-head review remain acceptance checks before merge/publication. The
 GAIA-NEXTEST-PIPE follow-up remains open; a completed run does not close it.
+
+## Caller-cost renewal after independent review
+
+The original author caller above reports about 4.8–4.9% ordinary NDC overhead.
+The independent fixed caller reports 0.73–0.80 ns, about 33–38%, at the original
+reviewed head. Both contexts remain retained evidence; neither bounds other
+callers or whole-renderer throughput.
+
+Generated ARM64 code explains a concrete part of the difference: baseline NDC
+is inlined into the independent caller, while the reviewed head calls it out
+of line. An inline hint alone removes that call, but the cold helper returning
+`Option<Vector3>` still forces a 32-byte option temporary and a second vector
+copy in that caller. Returning a vector from the cold helper, with zero-w
+rejection in the public function, removes the temporary. The caller's frame
+returns from 112 to 80 bytes. A normal `#[inline]` exposes the small fast path;
+no forced inlining, LTO/CPU tuning, optimization threshold or gate changes occur.
+
+The denominator guard uses the IEEE binary64 exponent mask derived from the
+infinity bit pattern: exactly zero exponent bits mean signed zero or subnormal.
+Normal, infinity and NaN inputs take the same arithmetic path as before.
+No numerical expression or nonfinite rejection contract changes. The original
+4114 independent cases plus 12288 exponent/sign/significand probes produce
+byte-identical reviewed/new outputs at standard O2 and O3.
+
+New seven-sample alternating measurements link the exact same independent
+caller source and the exact original author source against baseline, reviewed
+and optimized libraries. Setup is excluded; complete outputs remain black-boxed.
+
+| Context | Profile | Baseline NDC ns | Reviewed NDC ns | Optimized NDC ns |
+|---|---|---:|---:|---:|
+| Independent fixed caller | O2 | 2.2402 | 2.9853 | 2.1892 |
+| Original author caller | O2 | 3.1641 | 3.3213 | 3.1642 |
+| Independent fixed caller | O3 | 2.1416 | 2.9487 | 2.1897 |
+| Original author caller | O3 | 3.0930 | 3.2564 | 3.0968 |
+
+The optimized independent caller differs from its co-measured baseline by
+-0.051/+0.048 ns at O2/O3; the author caller differs by +0.0001/+0.0038 ns.
+These are sampled medians, not an assertion of zero or unavoidable overhead.
+Cold correct-path costs remain context-dependent: author cold NDC medians rise
+3.107 -> 3.579 ns (O2) and 3.023 -> 3.449 ns (O3), while the independent caller
+measures 3.600 -> 2.635 ns and 2.955 -> 2.592 ns. Preserve these observations;
+incorrect baseline cold results are not throughput targets. Sampled allocation
+calls and bytes remain zero; RSS, universal stack and whole-product bounds are
+not established. This changed head requires renewed independent exact-head
+review and all current final gates before any merge/publication.
+
+## Miri scope
+
+The configured hosted Miri job executes only two GhostCell Send/Sync tests
+(1162 library tests filtered in the original review); it executes zero
+projection tests. Projection Miri coverage remains UNVERIFIED. Native numerical
+checks and hosted Miri success do not establish that missing coverage.

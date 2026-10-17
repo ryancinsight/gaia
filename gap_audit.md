@@ -1,5 +1,15 @@
 # Gaia provider compatibility audit
 
+## GAIA-034 caller-cost renewal [patch]
+
+Independent review at the original projection head has no actionable code
+finding but measures a larger NDC caller cost than the original author context.
+Keep that acceptance issue explicit. A normal inline hint, exact exponent-bit
+classification and vector-only cold return remove the observed option temporary
+and reduce the sampled ordinary gap in both preserved callers. No arithmetic,
+policy, gate or compiler threshold changes. Renew independent exact-head review
+before merge. Hosted Miri covers two GhostCell tests and zero projection tests.
+
 ## GAIA-033 / GAIA-034 — Renderer finite range [patch]
 
 The original bounded audit reproduces two valid finite-input failures on

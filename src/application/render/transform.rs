@@ -141,13 +141,19 @@ pub fn look_at(eye: &Point3r, target: &Point3r, up: &Vector3r) -> Option<Mat4> {
 /// Perspective divide: clip space to normalised device coordinates.
 ///
 /// Returns `None` for a point with `w == 0`, which has no projection.
+#[inline]
 #[must_use]
 pub fn to_ndc(v: &Vec4) -> Option<Vector3r> {
     let w = v[3];
-    // A normal denominator cannot overflow its reciprocal. Route zero and
-    // subnormals together so ordinary callers still need only one branch.
-    if w.abs() < Real::MIN_POSITIVE {
-        return divide_small_w(v, w);
+    // A normal denominator cannot overflow its reciprocal. In IEEE binary64,
+    // zero exponent bits identify exactly signed zero and subnormal values;
+    // the infinity representation supplies the exponent mask. Keep this
+    // classification in integer registers, without an extra FP comparison.
+    if w.to_bits() & Real::INFINITY.to_bits() == 0 {
+        if w == 0.0 {
+            return None;
+        }
+        return Some(divide_small_w(v, w));
     }
     let inv = 1.0 / w;
     Some(Vector3r::new(v[0] * inv, v[1] * inv, v[2] * inv))
@@ -156,16 +162,13 @@ pub fn to_ndc(v: &Vec4) -> Option<Vector3r> {
 /// Divide finite components directly when the reciprocal exceeds scalar range.
 #[cold]
 #[inline(never)]
-fn divide_small_w(v: &Vec4, w: Real) -> Option<Vector3r> {
-    if w == 0.0 {
-        return None;
-    }
+fn divide_small_w(v: &Vec4, w: Real) -> Vector3r {
     let inv = 1.0 / w;
     if inv.is_infinite() && v[0].is_finite() && v[1].is_finite() && v[2].is_finite() {
-        Some(Vector3r::new(v[0] / w, v[1] / w, v[2] / w))
+        Vector3r::new(v[0] / w, v[1] / w, v[2] / w)
     } else {
         // Finite reciprocals and nonfinite vectors retain original bits.
-        Some(Vector3r::new(v[0] * inv, v[1] * inv, v[2] * inv))
+        Vector3r::new(v[0] * inv, v[1] * inv, v[2] * inv)
     }
 }
 

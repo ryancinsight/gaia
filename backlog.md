@@ -33,10 +33,18 @@
   57 doctests pass/one existing ignore; strict Clippy/Rustdoc and real published
   0.6.7 patch API comparison pass (223 checks/30 inapplicable). Final package,
   hosted gates and independent review remain separate acceptance work.
-- cost: seven alternating old/new consumer samples per opt2/3 profile show
+- original author cost: seven alternating old/new consumer samples per opt2/3 profile show
   perspective median +0.76%/+1.49%, NDC +4.83%/+4.88%; all sampled paths
   allocate zero bytes. One ARM64 Mac/function-pointer caller; not a universal
   throughput/resource claim. Keep GAIA-NEXTEST-PIPE open.
+- caller renewal: independent review finds no actionable code defect but measures
+  33–38% ordinary NDC overhead in a different fixed caller. A normal inline hint,
+  exact exponent classification and vector-only cold return remove the observed
+  out-of-line call/option temporary. Both original and renewed contexts remain
+  in `docs/verification/projection-range.md`; sampled residual/cold overhead is
+  disclosed. Changed-head independent review and final acceptance remain held.
+- Miri scope: two hosted GhostCell tests only; zero projection tests. Projection
+  Miri remains UNVERIFIED; do not infer it from that hosted job's success.
 
 <a id="GAIA-032"></a>
 ## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]

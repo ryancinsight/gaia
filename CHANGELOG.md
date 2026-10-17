@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- [patch] Keep NDC's ordinary caller path inlineable and its cold return
+  vector-only, avoiding an Option temporary. Classify zero/subnormal w from
+  exact IEEE exponent bits. Preserve all arithmetic and nonfinite behavior;
+  record both author and independent caller contexts and remaining costs.
+
 - [patch] Recover perspective depth coefficients after avoidable product,
   sum or reciprocal overflow, or a zeroed product, when native reordered
   arithmetic can represent them. Preserve finite nonzero legacy coefficients.

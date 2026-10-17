@@ -11,6 +11,10 @@ Active isolated correctness target: **0.6.8** (GAIA-033/034 renderer projection)
       strict diagnostics and the real published 0.6.7 patch API comparison.
     - [x] Measure paired opt2/3 consumer latency and allocation requests;
       consolidate zero/subnormal handling to retain one ordinary NDC branch.
+    - [x] Reconcile the independent 33–38% caller result with the original
+      author sample; preserve both contexts and examine actual standard codegen.
+    - [x] Remove the cold Option temporary without changing numerical results;
+      disclose sampled ordinary/cold costs and the two-test GhostCell Miri scope.
     - [ ] Finish normalized package/fresh consumer, normal push and hosted gates.
     - [ ] Obtain independent exact-head review and publication-scope acceptance
       before merge/publication; GAIA-NEXTEST-PIPE and all other holds remain.
