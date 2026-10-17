@@ -40,10 +40,29 @@ Do not replace this with a shared whole-point fast guard that couples axes.
 Newell's raw vector equals the closed sum of consecutive vertex cross products.
 Translating all vertices by one origin leaves that sum invariant; equivalently,
 sum the anchored fan (v_i-o) cross (v_(i+1)-o). Retain the original loop and its
-bits whenever its accumulated vector is finite. For nonfinite accumulations
-with entirely finite input vertices, recompute that anchored sum without any
-temporary vertex allocation. Existing norm/tolerance handling then applies,
-including cancelling loops and tiny/subnormal triangles returning None.
+bits whenever its accumulated vector is finite. Only nonfinite accumulations
+with entirely finite input vertices use recovery. Existing norm/tolerance
+handling then applies, including cancelling loops and tiny/subnormal triangles.
+
+Independent review of the first implementation finds that a native first-origin
+subtraction can erase an edge: (1,-L,H),(-1,1,H),(-1,0,H), for native L=2^24/2^53
+and H=2^127/2^1023, has exact vector area (0,0,2), yet L+1 rounds to L. Merely
+finding a finite fan result does not justify returning a degenerate normal.
+
+Recovery now retains each difference's high and low parts with native TwoDiff.
+For edges u=u_hi+u_lo and v=v_hi+v_lo, bilinearity gives all four cross terms:
+u_hi×v_hi, u_hi×v_lo, u_lo×v_hi and u_lo×v_lo. Native TwoSum accumulation and
+renormalization retain a low sum through cancellation of large terms. No vertex
+collection allocates, no arithmetic widens, and no threshold changes. Six new
+regressions exercise both reviewer fixtures in all coordinate planes, cyclic
+origins and reverse winding, plus L²+2-L² and exact-zero subloop cancellation.
+The prior head fails four expanded tests and passes two exact-zero controls.
+
+This two-term representation does not make native products exact or guarantee
+arbitrary ill-conditioned polygons. Product overflow/underflow and residual
+capacity still bound recovery. Unrepresentable final vectors retain the original
+result. The represented fixtures have finite products and analytically exact
+unit normals, well above the unchanged degeneracy threshold.
 
 Nonfinite input vertices preserve the original result. If native anchored
 arithmetic itself is nonfinite, retain the original result; this repair does
@@ -136,3 +155,16 @@ independent exact-head review remain acceptance requirements.
 The configured Miri job runs two GhostCell tests, not these geometry or projection
 regressions. Their Miri coverage is UNVERIFIED. Keep GAIA-NEXTEST-PIPE and all
 publication, service and owner holds unchanged.
+
+### Bounded centroid investigation
+
+The frozen executable itself changes from about 3.9 to 20.1 ns when only its
+path length changes. Eight matched-path comparisons retain slow cases in both
+original and deferred-multiply binaries (about 21 ns). An equivalent finite
+predicate compiles to the same ordinary instructions; hoisting sums increases
+the frame and does not repair the slow case. No centroid prototype is accepted.
+The independent 3.005 -> 3.940 ns repeat and the retained 3 -> 20 ns samples
+therefore coexist as measured placement contexts. The hardware cause is not
+established; the 160-byte frame and conditional cold calls alone do not prove it.
+All sampled allocations remain zero. Keep the performance acceptance hold;
+this investigation neither dismisses the slowdown nor claims unavoidable cost.

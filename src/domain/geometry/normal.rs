@@ -157,14 +157,24 @@ fn recover_newell_normal<T: Scalar>(vertices: &[Point3<T>], original: Vector3<T>
     // origin leaves that sum invariant, equivalently summing an anchored fan.
     // Translation is removed before products; the original loop and its bits
     // remain the fast path. No temporary vertex collection is required.
-    let origin = vertices[0];
-    let mut previous = vertices[1] - origin;
-    let mut normal = Vector3::<T>::zeros();
+    let origin = &vertices[0];
+    let mut previous = compensated_difference(&vertices[1], origin);
+    let mut high = Vector3::<T>::zeros();
+    let mut low = Vector3::<T>::zeros();
     for vertex in &vertices[2..] {
-        let current = *vertex - origin;
-        normal += previous.cross(current);
+        let current = compensated_difference(vertex, origin);
+        // Bilinearity retains the low parts of both translated edges.
+        for term in [
+            previous.0.cross(current.0),
+            previous.0.cross(current.1),
+            previous.1.cross(current.0),
+            previous.1.cross(current.1),
+        ] {
+            compensated_add(&mut high, &mut low, term);
+        }
         previous = current;
     }
+    let normal = high + low;
     if [normal.x, normal.y, normal.z]
         .into_iter()
         .all(<T as eunomia::NumericElement>::is_finite)
@@ -173,6 +183,40 @@ fn recover_newell_normal<T: Scalar>(vertices: &[Point3<T>], original: Vector3<T>
     } else {
         // Unrepresentable anchored arithmetic has no new rejection policy.
         original
+    }
+}
+
+// TwoDiff retains the native rounding residual of a finite edge difference.
+// Unrepresentable arithmetic propagates to the existing final finite guard.
+#[inline]
+fn compensated_difference<T: Scalar>(
+    point: &Point3<T>,
+    origin: &Point3<T>,
+) -> (Vector3<T>, Vector3<T>) {
+    let high = *point - *origin;
+    let residual = |a: T, b: T, difference: T| {
+        let virtual_b = a - difference;
+        (a - (difference + virtual_b)) + (virtual_b - b)
+    };
+    let low = Vector3::new(
+        residual(point.x, origin.x, high.x),
+        residual(point.y, origin.y, high.y),
+        residual(point.z, origin.z, high.z),
+    );
+    (high, low)
+}
+
+#[inline]
+fn compensated_add<T: Scalar>(high: &mut Vector3<T>, low: &mut Vector3<T>, term: Vector3<T>) {
+    for axis in 0..3 {
+        let sum = high[axis] + term[axis];
+        let virtual_term = sum - high[axis];
+        let error = (high[axis] - (sum - virtual_term)) + (term[axis] - virtual_term);
+        let correction = low[axis] + error;
+        let corrected = sum + correction;
+        let virtual_correction = corrected - sum;
+        low[axis] = (sum - (corrected - virtual_correction)) + (correction - virtual_correction);
+        high[axis] = corrected;
     }
 }
 

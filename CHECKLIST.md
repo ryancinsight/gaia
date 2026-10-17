@@ -15,6 +15,11 @@ Active isolated correctness target: **0.6.9**, based on published 0.6.8.
       rebase onto #183's accepted integration 5eca6a6 (published 0.6.8).
     - [x] Rebuild the unchanged callers against actual 0.6.8; preserve the
       repeated O3 f64 whole-centroid 3 -> 20 ns performance blocker and codegen.
+    - [x] Reproduce the independent small-edge P2 and retained-area cancellation
+      failures before adding native TwoDiff/TwoSum recovery; preserve the old
+      head, reviewer evidence and exact-zero controls. Renew repaired-head review.
+    - [x] Bound three centroid prototypes and eight matched path placements;
+      reject unverified improvements and retain the explicit performance hold.
     - [ ] Renew final package, fresh-consumer, hosted, numerical/published API
       and caller measurements; obtain independent exact-head review and
       performance acceptance before merge/publication.

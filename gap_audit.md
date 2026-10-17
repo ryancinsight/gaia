@@ -7,7 +7,11 @@ Pre-integration source/evidence remain preserved; final gates and independent
 exact-head geometry/performance acceptance renew after rebasing. Finite
 centroid sum overflow is recovered with
 native sorted cancellation or same-sign median anchoring; Newell retries only
-nonfinite accumulations using an origin-relative fan for finite vertices.
+nonfinite accumulations using compensated origin-relative edges and fan terms
+for finite vertices. Independent P2 review exposes erased small edges in the
+first native fan; TwoDiff residuals and TwoSum accumulation retain those edges
+and L²+2-L² cancellation without changing thresholds. Six new regressions cover
+both precisions, winding/origin/axis changes and exact-zero cancellation.
 Ordinary bits, complete nonfinite results, tolerance and signed-zero/subnormal
 behavior remain covered. The 20 regressions, 2000 bounds-grid triples and
 8000 exact-rational records pass; source-parent patch API and native/docs gates

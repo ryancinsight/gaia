@@ -10,6 +10,11 @@
 - [patch] Recover Newell normals from a finite origin-relative fan when absolute
   coordinate arithmetic makes the original accumulator nonfinite. Preserve the
   ordinary loop, existing degeneracy threshold and nonfinite/range policies.
+- [patch] Retain native high/low edge differences and compensated cross-term
+  sums in Newell recovery after independent review exposes a small-edge loss.
+  Preserve translated area and cancellation controls without widening or
+  threshold changes. Centroid placement-sensitive performance acceptance stays
+  held; no investigated centroid optimization is accepted.
 
 ### Dependency and acceptance
 

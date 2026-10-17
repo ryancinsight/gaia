@@ -22,6 +22,10 @@
   the same binary repeats 2.996 -> 20.019 ns. This remains a performance
   acceptance blocker. Preserve all contexts and generated code; no root cause,
   unavoidable cost, general speedup or sampled heap allocation is claimed.
+  Bounded three-prototype investigation finds no accepted centroid change:
+  identical frozen bytes vary with path placement, and matched-path slow cases
+  remain about 21 ns in both prior/prototype. Independent 3.005 -> 3.940 ns
+  does not clear the retained 3 -> 20 ns state or establish its hardware cause.
 
 <a id="GAIA-036"></a>
 ## GAIA-036 — Finite Newell translation invariance [patch]
@@ -32,7 +36,8 @@
 - reproduced: translated finite coordinate-plane triangles return NaN normals
   even though their finite anchored cross products give exact unit normals.
 - correction: preserve finite original Newell accumulations. Only nonfinite
-  accumulations with entirely finite vertices retry an origin-relative fan;
+  accumulations with entirely finite vertices retry an origin-relative fan
+  retaining native TwoDiff edge residuals and TwoSum cross-term compensation;
   no vertex collection allocates. Keep existing tolerance, cancellation and
   nonfinite behavior, including tiny/subnormal controls. Unrepresentable anchored
   arithmetic retains its old result; no universal full-range normal claim.
@@ -40,6 +45,11 @@
   skip; 57 doctests pass/one ignore; strict Clippy and source-parent patch API
   223 pass/30 inapplicable. Renew final package, fresh-consumer, hosted,
   actual published-parent API and independent review after integration.
+- renewed review: P2 at the original #184 review head reproduces loss of the small translated edge.
+  Four expanded tests fail/two exact-zero controls pass before repair. Retain
+  high/low differences and all four cross terms; six repaired tests cover
+  cyclic origins, reverse winding, coordinate planes and retained/zero area
+  cancellation. Renew repaired-head review and gates; no threshold weakening.
 - performance/memory: native f32/f64 triangle and 32-vertex slice callers are
   measured separately with seven alternating O2/O3 samples; no sampled allocation
   requests/bytes. Keep the contextual O3 f64 baseline anomaly and all limitations
