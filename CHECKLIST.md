@@ -1,6 +1,22 @@
 # Checklist
 
-Active isolated correctness target: **0.6.8** (GAIA-033/034 renderer projection).
+Active isolated correctness target: **0.6.9**, stacked on #183's 0.6.8.
+
+- [ ] **GAIA-035 / GAIA-036: native centroid/Newell range [patch]**
+    - [x] Preserve both audit failures and controls; add cancellation,
+      signed-zero, small/subnormal and complete nonfinite-result regressions.
+    - [x] Implement cold native recovery, retaining finite legacy bits and
+      existing contracts without widening, clamping, dependency or gate changes.
+    - [x] Correct the equal-large-coordinate prototype failure and verify
+      the bounds grid and independent 8000-case exact-rational corpus.
+    - [x] Measure full/projected, triangle and runtime-polygon callers;
+      inspect unused-axis elimination and preserve remaining costs/limits.
+    - [ ] Rebase onto the renewed #183 parent and renew all final package,
+      fresh-consumer, hosted, numerical/API and independent-review gates.
+    - [ ] After #183 integration, retarget/rebase and repeat final acceptance;
+      no merge/publication before independent exact-head review and all gates.
+
+Prior isolated correctness target: **0.6.8** (GAIA-033/034 renderer projection).
 
 - [ ] **GAIA-033 / GAIA-034: finite projection range [patch]**
     - [x] Inspect current default, open PRs and backlog ownership; preserve

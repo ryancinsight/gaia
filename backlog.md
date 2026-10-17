@@ -1,5 +1,47 @@
 # Backlog
 
+<a id="GAIA-035"></a>
+## GAIA-035 — Representable finite triangle centroids [patch]
+
+- status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
+- dependency: stacked on projection PR #183 (0.6.8); do not merge first.
+  Rebase onto its accepted integration and renew exact-head gates/review.
+- reproduced: finite equal large x coordinates return infinity instead of
+  their exact mean, in f32/f64; preserve the original audit and expanded red tests.
+- correction: retain every finite original raw-sum result. Recover only finite
+  vertices using sorted cancellation or a same-sign median-relative mean.
+  Preserve the complete original result for nonfinite vertices and all ordinary
+  bits, signed zero and subnormal arithmetic. No widening/clamp/new policy.
+- evidence: twenty tests including cancellation permutations and a 1000-triple
+  bounds/legacy grid per precision; an independent 8000-case exact Fraction
+  corpus has 5753 identical ordinary records and 2247 bounded recovered results.
+  The failed first-prototype equal-coordinate case is retained, not suppressed.
+- cost: fixed finite-coordinate checks remove unused-axis recovery work from
+  projected callers. Whole-point tiny-call overhead remains about 31–36%; keep
+  that and all measured contexts explicit for independent performance acceptance.
+  No broad ordinary sorting/division path or sampled heap allocations occurs.
+
+<a id="GAIA-036"></a>
+## GAIA-036 — Finite Newell translation invariance [patch]
+
+- status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
+- dependency: the same separate 0.6.9 child of #183; all acceptance stays held.
+- reproduced: translated finite coordinate-plane triangles return NaN normals
+  even though their finite anchored cross products give exact unit normals.
+- correction: preserve finite original Newell accumulations. Only nonfinite
+  accumulations with entirely finite vertices retry an origin-relative fan;
+  no vertex collection allocates. Keep existing tolerance, cancellation and
+  nonfinite behavior, including tiny/subnormal controls. Unrepresentable anchored
+  arithmetic retains its old result; no universal full-range normal claim.
+- verification: twenty debug/release tests; full native 1253 pass/one existing
+  skip; 57 doctests pass/one ignore; strict Clippy and source-parent patch API
+  223 pass/30 inapplicable. Final package, fresh-consumer, hosted, exact-head
+  independent review and post-integration renewal remain acceptance work.
+- performance/memory: native f32/f64 triangle and 32-vertex slice callers are
+  measured separately with seven alternating O2/O3 samples; no sampled allocation
+  requests/bytes. Keep the contextual O3 f64 baseline anomaly and all limitations
+  in `docs/verification/normal-range.md`; do not assert a general speedup.
+
 <a id="GAIA-033"></a>
 ## GAIA-033 — Finite perspective depth range [patch]
 

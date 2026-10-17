@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.9] - Unreleased
+
+### Fixed
+
+- [patch] Recover finite triangle centroids after raw-sum overflow with native
+  sorted cancellation or median-relative same-sign arithmetic. Retain ordinary
+  result bits, subnormals and the full original result for nonfinite vertices.
+- [patch] Recover Newell normals from a finite origin-relative fan when absolute
+  coordinate arithmetic makes the original accumulator nonfinite. Preserve the
+  ordinary loop, existing degeneracy threshold and nonfinite/range policies.
+
+### Dependency and acceptance
+
+This separate draft stacks on projection PR #183 (0.6.8), including its caller
+optimization and renewed independent-review/performance hold. Rebase onto the
+accepted parent, then renew final gates after integration. Preserve measured
+whole-point centroid costs and independent exact-head review before any merge
+or publication. No release tag, upload, credential or service action occurs.
+
 ## [0.6.8] - Unreleased
 
 ### Fixed

@@ -1,5 +1,19 @@
 # Gaia provider compatibility audit
 
+## GAIA-035 / GAIA-036 — Native normal-range repair [patch]
+
+A separate 0.6.9 child of projection PR #183 preserves its parent's ownership
+and publication/review holds. Finite centroid sum overflow is recovered with
+native sorted cancellation or same-sign median anchoring; Newell retries only
+nonfinite accumulations using an origin-relative fan for finite vertices.
+Ordinary bits, complete nonfinite results, tolerance and signed-zero/subnormal
+behavior remain covered. The 20 regressions, 2000 bounds-grid triples and
+8000 exact-rational records pass; source-parent patch API and native/docs gates
+pass. Whole-point performance remains an explicit review concern. See
+`docs/verification/normal-range.md` for proof limits and all caller contexts.
+The configured two-test GhostCell Miri job does not cover these functions;
+geometry/projection Miri and GAIA-NEXTEST-PIPE remain unresolved scope.
+
 ## GAIA-034 caller-cost renewal [patch]
 
 Independent review at the original projection head has no actionable code
