@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.10] - Unreleased
+## [0.6.9] - Unreleased
 
 ### Fixed
 
@@ -11,12 +11,17 @@
 
 ### Base and acceptance
 
-This independent draft bases on published 0.6.8 without held #184 normal code.
-Provisional 0.6.10 avoids its declared 0.6.9; this does not reserve/approve the
-held release. Reconcile release ordering/version before merge. If #184 lands,
-rebase; otherwise reassess the candidate version explicitly. Renew exact-head
-review, all gates and release scope after any base/version change. No
-merge/publication, dependency downgrade, credential or service change occurs.
+This independent plane repair targets the next verified available patch, 0.6.9,
+from published 0.6.8, without held #184 normal/centroid code. Its earlier 0.6.10
+candidate is unpublished. The independent correctness review of that source
+reports no findings in verified scope; scoped ordinary cost acceptance covers
++0.118–0.143 ns/segment and zero sampled allocations in direct, indirect and
+streaming callers. No whole-mesh or universal performance guarantee follows.
+The equivalent-code optimization experiment is not adopted. Renumbering changes
+release metadata only; renew exact-head review, all gates, package identity and
+publication scope before merge. #184's version remains provisional and its
+centroid/performance/resource holds remain; it requires a future accepted-main
+rebase and then-current version. No merge/publication or dependency change occurs.
 
 ## [0.6.8] - Unreleased
 

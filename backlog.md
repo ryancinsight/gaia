@@ -3,7 +3,7 @@
 <a id="GAIA-037"></a>
 ## GAIA-037 — Finite plane/segment parameter range [patch]
 
-- status: blocked; owner: Codex; target: 0.6.10; priority: correctness.
+- status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
 - baseline: published 0.6.8 at 5eca6a6; no active PR owns plane/segment ratios.
   Four original failures/six controls pass; corrected expanded baseline has
   six failures/ten controls. Finite symmetric endpoints at native MAX or the
@@ -16,18 +16,23 @@
 - evidence: f32/f64 symmetric/asymmetric overflow, reverse directions and axes,
   close same-sign cancellation, minimum-subnormal crossings, endpoint/parallel
   controls and legacy NaN/infinity/invalid-epsilon behavior. Retain old failures.
-- base/version: independent main-based source, without held #184 normal changes.
-  Candidate 0.6.10 is provisional to avoid colliding with #184's declared 0.6.9;
-  it neither incorporates its code nor reserves/approves that held release.
-  Merge stays held for release-order reconciliation. If #184 lands, rebase and
-  renew all gates/review; otherwise reassess this candidate version explicitly.
-  Any base/version change renews exact-head review, archive and release scope.
-- sibling status: #184's independent correctness review reports no new issue
-  in verified scope; centroid/performance/resource acceptance remains held.
-  This does not approve its release or reconcile this provisional version.
-- acceptance: separate draft; representative caller/allocation measurements,
-  normalized/fresh consumers, patch API, hosted gates and independent exact-head
-  review required. Preserve #184 performance and all owner/service holds.
+- base/version: independent published-0.6.8 source without held #184 changes.
+  Target 0.6.9 is the next verified available patch; the earlier 0.6.10 candidate
+  is unpublished. #184's declaration is provisional, not a release reservation.
+  Leave its reviewed code unchanged and held. When independently eligible, it
+  must rebase onto accepted main and select its then-current release version.
+- correctness/performance: independent review of the prior candidate reports
+  no findings in verified scope. Scoped caller tradeoff is accepted: ordinary
+  +0.118–0.143 ns/segment, zero sampled allocations across direct/indirect/stream
+  contexts. No whole-mesh or universal bound. One equivalent predicate rewrite
+  produces identical codegen and no consistent benefit; it is not adopted.
+- sibling status: #184's completed correctness review grants no centroid,
+  performance/resource or release acceptance; all those holds remain intact.
+- acceptance: release metadata only changes in this renewal. Refresh all
+  applicable exact-head gates, normalized/fresh consumers, patch API, package
+  and publication scope, then obtain renewed independent review before merge.
+  Main merge can trigger automatic publication; no separate postmerge pause
+  is assumed. Preserve all owner/service and GAIA-NEXTEST-PIPE holds.
 
 <a id="GAIA-038"></a>
 ## GAIA-038 — Zero-epsilon parallel rejection policy [patch]

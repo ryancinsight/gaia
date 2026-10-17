@@ -1,10 +1,11 @@
 # Checklist
 
-Active independent correctness target: **0.6.10**, GAIA-037.
-Base: published 0.6.8 main; held #184 source is not included. Provisional 0.6.10
-avoids collision with its declared 0.6.9; it does not approve/reserve that release.
-Merge remains held for release-order/version reconciliation. Rebase and renew
-all gates/review after accepted main or version changes. All holds remain.
+Active independent correctness target: **0.6.9**, GAIA-037.
+Base: published 0.6.8 main; held #184 source is not included. This is the next
+verified available patch, independent of #184's provisional version declaration.
+Scoped caller cost is accepted; no whole-mesh/universal guarantee. Version-only
+renewal requires all exact-head gates, package and independent review before
+merge/publication. #184 and every owner/service hold remain.
 
 - [ ] **GAIA-037: native plane/segment ratio range [patch]**
     - [x] Preserve original four red cases/six controls and expand finite,
@@ -13,11 +14,14 @@ all gates/review after accepted main or version changes. All holds remain.
       halves, retaining ordinary bits, parallel threshold and invalid policies.
     - [x] Verify oracle, representative caller/allocation, source gates, fresh
       consumer, published patch API and complete-history conformance.
-    - [ ] Finish final normalized package, normal push and hosted gates.
+    - [x] Record the earlier independent correctness review and accepted scoped
+      direct/indirect/stream cost; reject the equivalent-code rewrite as no gain.
+    - [ ] Renew final normalized package, normal push and hosted gates for the
+      accepted release head, including any later review-driven change.
     - [x] Record separate unowned GAIA-038 custom-zero parallel policy gap;
       preserve its existing finite-denominator behavior in this repair.
-    - [ ] Obtain independent exact-head review and release-order/scope acceptance
-      before merge/publication; no silent held-#184 code dependency.
+    - [ ] Obtain renewed independent exact-head review of the 0.6.9 candidate
+      and final publication-scope acceptance before merge; no held-#184 code.
 
 Prior projection correctness target: **0.6.8** (GAIA-033/034 renderer projection).
 

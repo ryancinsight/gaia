@@ -1,12 +1,14 @@
 # Native plane/segment ratio range
 
-GAIA-037, provisional patch candidate 0.6.10, bases on published main 0.6.8 at
-5eca6a6779b062dacd752dfc756e63a384193a71. No held #184 normal source is included.
-The candidate version avoids collision with #184's declared 0.6.9; it does not
-reserve or approve that release. Merge/publication stay held for independent
-exact-head review, all gates and release-order/version reconciliation. Rebase
-onto any accepted newer main and renew review/gates/package after base/version
-changes. Preserve #184's centroid/resource and all other owner/service holds.
+GAIA-037 targets verified next patch 0.6.9 from published main 0.6.8 at
+5eca6a6779b062dacd752dfc756e63a384193a71. This release metadata renewal includes
+no held #184 normal/centroid source and no production/test change from the
+independently reviewed earlier candidate. Its unpublished 0.6.10 is renumbered;
+#184's version declaration remains provisional rather than a release reservation.
+Keep #184's reviewed code and centroid/performance/resource holds intact. It
+requires a future accepted-main rebase and then-current version when eligible.
+Renew all exact-head gates, package/dependency/publication scope and independent
+review before merge/publication; main merge can automatically publish a version.
 
 ## Contract and repair
 
@@ -93,8 +95,12 @@ Correct repaired cold medians across direct/indirect/stream contexts:
 
 The baseline's cold output is wrong and is not a throughput target. Every
 sampled caller requests zero allocation calls/bytes; setup is excluded. Ordinary
-costs are roughly 0.11–0.15 ns/segment (+8.5–12.3%) here and remain explicit for
-independent acceptance. No unavoidable, globally optimal, zero-overhead, RSS,
+costs are roughly 0.11–0.15 ns/segment (+8.5–12.3%) here. Independent repeats
+measure +0.118–0.143 ns (+9.2–11.7%) across all twelve ordinary comparisons.
+This scoped tradeoff is accepted with zero sampled allocations. One equivalent
+ordered-magnitude predicate emits identical instructions in all sixteen inspected
+caller/measurement functions per profile and changes medians by only -0.006 to
++0.007 ns without a consistent gain; that rewrite is not adopted. No unavoidable, globally optimal, zero-overhead, RSS,
 cache, universal stack or whole-mesh guarantee follows. Raw samples and standard
 disassembly are retained; no forced-inline, target-CPU, optimizer threshold,
 lint, test budget or suppression change is used.
@@ -112,7 +118,8 @@ behavior and does not claim to close that gap.
 
 Source/normalized/fresh-consumer, strict diagnostics, current supply-chain,
 published-0.6.8 patch API, complete-history conformance and hosted gates must
-pass on the final head. Independent review and release-order reconciliation
-remain mandatory before merge/publication. Hosted Miri selects only two
+pass on the final head. The prior source review and scoped performance acceptance
+do not approve the renumbered head: renewed independent review and final
+publication-scope acceptance remain mandatory before merge/publication. Hosted Miri selects only two
 GhostCell tests; plane/projection/normal coverage is UNVERIFIED. Keep
 GAIA-NEXTEST-PIPE, Horae first publication and all owner/service holds intact.
