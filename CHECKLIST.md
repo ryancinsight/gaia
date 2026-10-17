@@ -1,8 +1,35 @@
 # Checklist
 
-Active isolated correctness target: **0.6.8** (GAIA-033/034 renderer projection).
+Active isolated correctness target: **0.6.9**, based on published 0.6.8.
 
-- [ ] **GAIA-033 / GAIA-034: finite projection range [patch]**
+- [ ] **GAIA-035 / GAIA-036: native centroid/Newell range [patch]**
+    - [x] Preserve both audit failures and controls; add cancellation,
+      signed-zero, small/subnormal and complete nonfinite-result regressions.
+    - [x] Implement cold native recovery, retaining finite legacy bits and
+      existing contracts without widening, clamping, dependency or gate changes.
+    - [x] Correct the equal-large-coordinate prototype failure and verify
+      the bounds grid and independent 8000-case exact-rational corpus.
+    - [x] Measure full/projected, triangle and runtime-polygon callers;
+      inspect unused-axis elimination and preserve remaining costs/limits.
+    - [x] Preserve the pre-integration source/evidence, retarget to main and
+      rebase onto #183's accepted integration 5eca6a6 (published 0.6.8).
+    - [x] Rebuild the unchanged callers against actual 0.6.8; preserve the
+      repeated O3 f64 whole-centroid 3 -> 20 ns performance blocker and codegen.
+    - [x] Reproduce the independent small-edge P2 and retained-area cancellation
+      failures before adding native TwoDiff/TwoSum recovery; preserve the old
+      head, reviewer evidence and exact-zero controls. Renew repaired-head review.
+    - [x] Bound three centroid prototypes and eight matched path placements;
+      reject unverified improvements and retain the explicit performance hold.
+    - [x] Reproduce the second independent P2 at determinant subtraction;
+      retain signed product/fused residuals in adaptive native expansions and
+      broaden zero/winding, product-roundoff and spill cancellation controls.
+    - [ ] Renew final package, fresh-consumer, hosted, numerical/published API
+      and caller measurements; obtain independent exact-head review and
+      performance acceptance before merge/publication.
+
+Prior isolated correctness target: **0.6.8** (GAIA-033/034 renderer projection).
+
+- [x] **GAIA-033 / GAIA-034: finite projection range [patch]**
     - [x] Inspect current default, open PRs and backlog ownership; preserve
       the unchanged audit reproductions and all release/owner holds.
     - [x] Save unchanged-source failures before implementing native recovery;
@@ -15,9 +42,11 @@ Active isolated correctness target: **0.6.8** (GAIA-033/034 renderer projection)
       author sample; preserve both contexts and examine actual standard codegen.
     - [x] Remove the cold Option temporary without changing numerical results;
       disclose sampled ordinary/cold costs and the two-test GhostCell Miri scope.
-    - [ ] Finish normalized package/fresh consumer, normal push and hosted gates.
-    - [ ] Obtain independent exact-head review and publication-scope acceptance
-      before merge/publication; GAIA-NEXTEST-PIPE and all other holds remain.
+    - [x] Finish normalized package/fresh consumer, normal push and hosted gates.
+    - [x] Independently accept exact head 17068c5 and its scoped caller tradeoff;
+      merge normally as 5eca6a6 and publish only 0.6.8 through existing OIDC.
+      Verify registry archive/source/tag, main CI and automatic docs.
+      GAIA-NEXTEST-PIPE, projection Miri and all other holds remain.
 
 Prior isolated correctness target: **0.6.7** (GAIA-032 finite AABB centers).
 Prerequisite: PR #181 publishes 0.6.6 at 012fa6e1; source/archive/tag/CI/docs verify.

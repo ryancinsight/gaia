@@ -1,50 +1,68 @@
 # Backlog
 
-<a id="GAIA-033"></a>
-## GAIA-033 — Finite perspective depth range [patch]
+<a id="GAIA-035"></a>
+## GAIA-035 — Representable finite triangle centroids [patch]
 
-- status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
-- baseline: current main a9f3dd3. A valid near=2^512/far=2^513 frustum returns
-  negative-infinite NDC depth although the exact coefficients are -3/-2^514.
-  Expanded unchanged-source regressions also expose zeroed products and
-  overflowing reciprocals for tiny finite frusta (four red tests/five controls).
-- repair: retain finite nonzero original coefficients. A cold native helper
-  uses far/(far-near), bounded by floating-point spacing, before multiplying
-  near; it avoids unscaled distance products and tiny-difference reciprocals.
-  No widening, clamp, invalid-input policy, dependency or public API change.
-- evidence: all 2095 dyadic near exponents from the least subnormal through
-  2^1020 map both exact endpoints and coefficients; ordinary coefficient bits
-  and existing rejection/positive-infinite-aspect behavior remain covered.
-- acceptance: separate draft; current gates, package identity and independent
-  exact-head review are required before merge/publication. Existing holds stay.
+- status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
+- dependency: rebased onto #183's accepted integration 5eca6a6 and published
+  0.6.8. Preserve pre-integration evidence; renew exact-head gates/review.
+- reproduced: finite equal large x coordinates return infinity instead of
+  their exact mean, in f32/f64; preserve the original audit and expanded red tests.
+- correction: retain every finite original raw-sum result. Recover only finite
+  vertices using sorted cancellation or a same-sign median-relative mean.
+  Preserve the complete original result for nonfinite vertices and all ordinary
+  bits, signed zero and subnormal arithmetic. No widening/clamp/new policy.
+- evidence: twenty tests including cancellation permutations and a 1000-triple
+  bounds/legacy grid per precision; an independent 8000-case exact Fraction
+  corpus has 5753 identical ordinary records and 2247 bounded recovered results.
+  The failed first-prototype equal-coordinate case is retained, not suppressed.
+- cost: fixed finite-coordinate checks remove unused-axis recovery work from
+  projected callers. Pre-integration whole-point overhead is about 31–36%.
+  Renewal against actual 0.6.8 exposes O3 f64 3.018 -> 20.161 ns (+568%);
+  the same binary repeats 2.996 -> 20.019 ns. This remains a performance
+  acceptance blocker. Preserve all contexts and generated code; no root cause,
+  unavoidable cost, general speedup or sampled heap allocation is claimed.
+  Bounded three-prototype investigation finds no accepted centroid change:
+  identical frozen bytes vary with path placement, and matched-path slow cases
+  remain about 21 ns in both prior/prototype. Independent 3.005 -> 3.940 ns
+  does not clear the retained 3 -> 20 ns state or establish its hardware cause.
 
-<a id="GAIA-034"></a>
-## GAIA-034 — Representable perspective quotients [patch]
+<a id="GAIA-036"></a>
+## GAIA-036 — Finite Newell translation invariance [patch]
 
-- status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
-- baseline: w=2^-1074 and clip=(w,2w,0,w) produce (infinity,infinity,NaN)
-  although (1,2,0) is exact. Original debug/release failures remain saved.
-- repair: route zero/subnormal denominators to one cold helper. Reject signed
-  zero as before. Use native division only for finite vectors whose reciprocal
-  overflows; otherwise retain original multiplication, including nonfinite
-  vectors and subnormal w with a finite reciprocal. Ordinary callers keep one
-  branch, one division and three multiplies.
-- verification: nine focused tests; full native 1233 pass/one existing skip;
-  57 doctests pass/one existing ignore; strict Clippy/Rustdoc and real published
-  0.6.7 patch API comparison pass (223 checks/30 inapplicable). Final package,
-  hosted gates and independent review remain separate acceptance work.
-- original author cost: seven alternating old/new consumer samples per opt2/3 profile show
-  perspective median +0.76%/+1.49%, NDC +4.83%/+4.88%; all sampled paths
-  allocate zero bytes. One ARM64 Mac/function-pointer caller; not a universal
-  throughput/resource claim. Keep GAIA-NEXTEST-PIPE open.
-- caller renewal: independent review finds no actionable code defect but measures
-  33–38% ordinary NDC overhead in a different fixed caller. A normal inline hint,
-  exact exponent classification and vector-only cold return remove the observed
-  out-of-line call/option temporary. Both original and renewed contexts remain
-  in `docs/verification/projection-range.md`; sampled residual/cold overhead is
-  disclosed. Changed-head independent review and final acceptance remain held.
-- Miri scope: two hosted GhostCell tests only; zero projection tests. Projection
-  Miri remains UNVERIFIED; do not infer it from that hosted job's success.
+- status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
+- dependency: the same separate 0.6.9 draft based on accepted/published 0.6.8;
+  geometry exact-head review and performance acceptance stay held.
+- reproduced: translated finite coordinate-plane triangles return NaN normals
+  even though their finite anchored cross products give exact unit normals.
+- correction: preserve finite original Newell accumulations. Only nonfinite
+  accumulations with entirely finite vertices retry an origin-relative fan
+  retaining native TwoDiff edge residuals and TwoSum cross-term compensation;
+  no vertex collection allocates. Keep existing tolerance, cancellation and
+  nonfinite behavior, including tiny/subnormal controls. Unrepresentable anchored
+  arithmetic retains its old result; no universal full-range normal claim.
+- verification: twenty debug/release tests; full native 1253 pass/one existing
+  skip; 57 doctests pass/one ignore; strict Clippy and source-parent patch API
+  223 pass/30 inapplicable. Renew final package, fresh-consumer, hosted,
+  actual published-parent API and independent review after integration.
+- renewed review: P2 at the original #184 review head reproduces loss of the small translated edge.
+  Four expanded tests fail/two exact-zero controls pass before repair. Retain
+  high/low differences and all four cross terms; six repaired tests cover
+  cyclic origins, reverse winding, coordinate planes and retained/zero area
+  cancellation. Renew repaired-head review and gates; no threshold weakening.
+- second review: determinant subtraction inside cross() discards residuals
+  before the earlier TwoSum sees them, inventing a unit normal for exact zero
+  or reversing winding. Retain signed product terms and native fused residuals
+  in an adaptive grow expansion; no fixed two-word truncation. Ten further
+  regressions include all subloop orders/origins/axes, exact-zero/winding,
+  product roundoff and multiscale spill cases. Renew exact-head review.
+- resources: eight native inline components per axis; spill storage preserves
+  arithmetic instead of truncating it. New cold/resource measurements supersede
+  earlier-head zero-allocation claims; no universal allocation bound is asserted.
+- prior-head performance/memory: native f32/f64 triangle and 32-vertex slice callers are
+  measured separately with seven alternating O2/O3 samples; no sampled allocation
+  requests/bytes. Keep the contextual O3 f64 baseline anomaly and all limitations
+  in `docs/verification/normal-range.md`; do not assert a general speedup.
 
 <a id="GAIA-032"></a>
 ## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]

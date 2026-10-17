@@ -1,6 +1,34 @@
 # Changelog
 
-## [0.6.8] - Unreleased
+## [0.6.9] - Unreleased
+
+### Fixed
+
+- [patch] Recover finite triangle centroids after raw-sum overflow with native
+  sorted cancellation or median-relative same-sign arithmetic. Retain ordinary
+  result bits, subnormals and the full original result for nonfinite vertices.
+- [patch] Recover Newell normals from a finite origin-relative fan when absolute
+  coordinate arithmetic makes the original accumulator nonfinite. Preserve the
+  ordinary loop, existing degeneracy threshold and nonfinite/range policies.
+- [patch] Retain native high/low edge differences and compensated cross-term
+  sums in Newell recovery after independent review exposes a small-edge loss.
+  Preserve translated area and cancellation controls without widening or
+  threshold changes. Centroid placement-sensitive performance acceptance stays
+  held; no investigated centroid optimization is accepted.
+- [patch] Preserve determinant subtraction and product residuals before fan
+  accumulation. Adaptive native expansions retain all represented components
+  instead of truncating to two words; inline storage may spill. Add exact-zero,
+  negative-winding, product-roundoff and multiscale cancellation regressions.
+  Repaired-head correctness/resource review and centroid performance stay held.
+
+### Dependency and acceptance
+
+This separate draft rebases onto #183's accepted 0.6.8 integration, 5eca6a6.
+Preserve pre-integration evidence and renew final gates against the published
+parent. Whole-point centroid costs still require independent performance
+acceptance and exact-head review before any 0.6.9 merge or publication.
+
+## [0.6.8] - 2026-10-17
 
 ### Fixed
 
@@ -22,9 +50,11 @@
 
 ### Acceptance
 
-This separate draft requires independent exact-head review and final hosted,
-package and publication-scope checks. No merge, publication, release tag or
-service deployment is performed by this repair. GAIA-NEXTEST-PIPE stays open.
+Independent exact-head review at 17068c5 accepts the two frozen caller contexts
+and disclosed cold tradeoff. Normal merge 5eca6a6 retains that tree. Existing
+trusted publishing releases only gaia-mesh 0.6.8; registry archive/source,
+crate-gaia-mesh-v0.6.8 tag, post-merge CI and automatic docs verify.
+GAIA-NEXTEST-PIPE and projection Miri remain unresolved scope.
 
 ## [0.6.7] - Unreleased
 

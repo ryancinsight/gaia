@@ -1,5 +1,33 @@
 # Gaia provider compatibility audit
 
+## GAIA-035 / GAIA-036 — Native normal-range repair [patch]
+
+A separate 0.6.9 draft now bases on #183's accepted 0.6.8 integration, 5eca6a6.
+Pre-integration source/evidence remain preserved; final gates and independent
+exact-head geometry/performance acceptance renew after rebasing. Finite
+centroid sum overflow is recovered with
+native sorted cancellation or same-sign median anchoring; Newell retries only
+nonfinite accumulations using compensated origin-relative edges and fan terms
+for finite vertices. Independent P2 review exposes erased small edges in the
+first native fan; TwoDiff residuals and TwoSum accumulation retain those edges
+and L²+2-L² cancellation without changing thresholds. Six new regressions cover
+both precisions, winding/origin/axis changes and exact-zero cancellation.
+Ordinary bits, complete nonfinite results, tolerance and signed-zero/subnormal
+behavior remain covered. The 20 regressions, 2000 bounds-grid triples and
+8000 exact-rational records pass; source-parent patch API and native/docs gates
+pass. Post-integration O3 f64 whole-centroid cost is 3.018 -> 20.161 ns,
+repeated 2.996 -> 20.019 ns on the same binary; acceptance remains blocked.
+A second review exposes residual loss inside cross subtraction itself. Native
+signed products and their fused residuals now enter adaptive expansions before
+subtraction can erase them. Ten added tests broaden exact-zero, wrong winding,
+all subloop orders/origins/axes, product-roundoff and spill cancellation. Inline
+storage may spill; old zero-allocation observations do not describe every new
+cold case. Repaired-head review and resource acceptance renew.
+No root cause or unavoidable-cost claim follows from the preserved codegen. See
+`docs/verification/normal-range.md` for proof limits and all caller contexts.
+The configured two-test GhostCell Miri job does not cover these functions;
+geometry/projection Miri and GAIA-NEXTEST-PIPE remain unresolved scope.
+
 ## GAIA-034 caller-cost renewal [patch]
 
 Independent review at the original projection head has no actionable code
@@ -7,8 +35,11 @@ finding but measures a larger NDC caller cost than the original author context.
 Keep that acceptance issue explicit. A normal inline hint, exact exponent-bit
 classification and vector-only cold return remove the observed option temporary
 and reduce the sampled ordinary gap in both preserved callers. No arithmetic,
-policy, gate or compiler threshold changes. Renew independent exact-head review
-before merge. Hosted Miri covers two GhostCell tests and zero projection tests.
+policy, gate or compiler threshold changes. Independent exact-head renewal at
+17068c5 accepts both frozen caller contexts and the disclosed cold tradeoff.
+Normal merge 5eca6a6 has the identical reviewed tree; sole 0.6.8 registry source,
+archive/tag, main CI and automatic docs verify. Hosted Miri covers two GhostCell
+tests and zero projection tests; no broader performance or Miri claim follows.
 
 ## GAIA-033 / GAIA-034 — Renderer finite range [patch]
 
