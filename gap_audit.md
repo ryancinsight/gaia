@@ -17,7 +17,7 @@ widening, epsilon, dependency or API change applies. Ordinary means are not
 promised universally correctly rounded; whole-mesh callers require separate
 measurement.
 
-The independent review of 99223c4 finds P2 shared point-guard coupling and unused
+The independent review of the original draft finds P2 shared point-guard coupling and unused
 axis work. Check raw sums before scaling for the full-point fast return, then
 return independent scalar recovery results with normal inline hints. Strict
 infinity comparisons express finite/ordered eligibility. ARM64 f32/f64 x/y/z

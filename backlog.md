@@ -24,7 +24,7 @@
   nonfinite or inverted box. No widening, tolerance, dependency, public API or
   checked input-policy change is added; Ray/GAIA-029 policy remains separate.
 - review repair: The original shared point guard retains unused-axis work in
-  projections. Retain the independent P2 evidence at head 99223c4. The repair
+  projections. Retain the independent P2 evidence for the original draft. The repair
   uses normal inline hints and unchanged compiler/lint settings; inspected
   ARM64 f32/f64 x/y/z opt2/3 ordinary projections each load two endpoints and
   execute one add/one multiply without a recovery call or other-axis work.
@@ -146,7 +146,7 @@ Triage order: correctness → architecture → verification → tightening → f
   (1159 passes/one skip each) report no leak under unchanged capture/budgets.
   Read-only process/pipe snapshots are preserved; no owning writer/cause or
   production fix is established. These clean runs do not close this item.
-- review recurrence: At #182 head 99223c4, the independent native run reports
+- review recurrence: In the original #182 review, the independent native run reports
   1224 passes/one skip and one LEAK for
   `application::csg::coplanar::operations::tests::coplanar_buffers_preserve_packed_triangle_order`
   with exit zero. Preserve the raw report; ownership/cause remains unresolved.
