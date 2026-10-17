@@ -1,11 +1,12 @@
 # Native centroid and Newell range recovery
 
-Scope: GAIA-035/036, patch 0.6.9, stacked on projection PR #183 (0.6.8).
-The stack parent may change under its renewed independent performance review.
-Do not merge this child before that dependency integrates; rebase onto accepted
-main and renew exact-head numerical, API, package, hosted and publication-scope
-gates after integration. No merge/publication/credential/service action is part
-of this repair.
+Scope: GAIA-035/036, patch 0.6.9, based on the accepted projection PR #183.
+The 0.6.8 parent integrates at 5eca6a6779b062dacd752dfc756e63a384193a71,
+with exactly the independently reviewed tree. Its registry archive, source,
+crate-gaia-mesh-v0.6.8 tag, main CI and automatic docs verify. This draft is
+rebased onto that integration. Renew its numerical, published-baseline API,
+package, hosted and publication-scope gates; independent exact-head review and
+geometry performance acceptance remain required before merge/publication.
 
 ## Centroid decision
 
@@ -103,14 +104,16 @@ a much higher cost in this specific layout; do not infer a general Newell
 speedup from that row. 32-vertex slices provide a separate loop context.
 No universal timing, RSS/stack, allocation or whole-mesh throughput bound follows.
 No forced-inline, LTO/CPU tuning, optimizer-threshold, lint or budget changes occur.
-Final-head measurements and acceptance must renew after the stack integrates.
+The pre-integration measurements remain preserved. Renew final-head measurements
+against the actual 0.6.8 source after integration; acceptance remains independent.
 
 ## Verification and holds
 
 Full native computation passes 1253 tests with one existing skip; doctests pass
 57 with one existing ignore. Twenty regressions pass debug/release. Strict
-Clippy and patch API comparison against coherent 0.6.8 pass (223 applicable,
-30 inapplicable). Final normalized/fresh consumer, current hosted gates and
+Clippy and patch API comparison against the coherent 0.6.8 source pass
+(223 applicable, 30 inapplicable). Repeat against the actual published archive
+after integration. Final normalized/fresh consumer, current hosted gates and
 independent exact-head review remain acceptance requirements.
 The configured Miri job runs two GhostCell tests, not these geometry or projection
 regressions. Their Miri coverage is UNVERIFIED. Keep GAIA-NEXTEST-PIPE and all

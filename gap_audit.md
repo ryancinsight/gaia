@@ -2,8 +2,10 @@
 
 ## GAIA-035 / GAIA-036 — Native normal-range repair [patch]
 
-A separate 0.6.9 child of projection PR #183 preserves its parent's ownership
-and publication/review holds. Finite centroid sum overflow is recovered with
+A separate 0.6.9 draft now bases on #183's accepted 0.6.8 integration, 5eca6a6.
+Pre-integration source/evidence remain preserved; final gates and independent
+exact-head geometry/performance acceptance renew after rebasing. Finite
+centroid sum overflow is recovered with
 native sorted cancellation or same-sign median anchoring; Newell retries only
 nonfinite accumulations using an origin-relative fan for finite vertices.
 Ordinary bits, complete nonfinite results, tolerance and signed-zero/subnormal
@@ -21,8 +23,11 @@ finding but measures a larger NDC caller cost than the original author context.
 Keep that acceptance issue explicit. A normal inline hint, exact exponent-bit
 classification and vector-only cold return remove the observed option temporary
 and reduce the sampled ordinary gap in both preserved callers. No arithmetic,
-policy, gate or compiler threshold changes. Renew independent exact-head review
-before merge. Hosted Miri covers two GhostCell tests and zero projection tests.
+policy, gate or compiler threshold changes. Independent exact-head renewal at
+17068c5 accepts both frozen caller contexts and the disclosed cold tradeoff.
+Normal merge 5eca6a6 has the identical reviewed tree; sole 0.6.8 registry source,
+archive/tag, main CI and automatic docs verify. Hosted Miri covers two GhostCell
+tests and zero projection tests; no broader performance or Miri claim follows.
 
 ## GAIA-033 / GAIA-034 — Renderer finite range [patch]
 

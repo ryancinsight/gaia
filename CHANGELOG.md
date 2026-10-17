@@ -13,13 +13,12 @@
 
 ### Dependency and acceptance
 
-This separate draft stacks on projection PR #183 (0.6.8), including its caller
-optimization and renewed independent-review/performance hold. Rebase onto the
-accepted parent, then renew final gates after integration. Preserve measured
-whole-point centroid costs and independent exact-head review before any merge
-or publication. No release tag, upload, credential or service action occurs.
+This separate draft rebases onto #183's accepted 0.6.8 integration, 5eca6a6.
+Preserve pre-integration evidence and renew final gates against the published
+parent. Whole-point centroid costs still require independent performance
+acceptance and exact-head review before any 0.6.9 merge or publication.
 
-## [0.6.8] - Unreleased
+## [0.6.8] - 2026-10-17
 
 ### Fixed
 
@@ -41,9 +40,11 @@ or publication. No release tag, upload, credential or service action occurs.
 
 ### Acceptance
 
-This separate draft requires independent exact-head review and final hosted,
-package and publication-scope checks. No merge, publication, release tag or
-service deployment is performed by this repair. GAIA-NEXTEST-PIPE stays open.
+Independent exact-head review at 17068c5 accepts the two frozen caller contexts
+and disclosed cold tradeoff. Normal merge 5eca6a6 retains that tree. Existing
+trusted publishing releases only gaia-mesh 0.6.8; registry archive/source,
+crate-gaia-mesh-v0.6.8 tag, post-merge CI and automatic docs verify.
+GAIA-NEXTEST-PIPE and projection Miri remain unresolved scope.
 
 ## [0.6.7] - Unreleased
 
