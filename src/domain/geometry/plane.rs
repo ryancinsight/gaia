@@ -9,6 +9,7 @@ use eunomia::NumericElement;
 use leto::geometry::{Point3, Vector3};
 
 mod collinearity;
+mod segment;
 
 /// Classification of a point relative to a plane.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -147,7 +148,11 @@ impl<T: Scalar> Plane<T> {
         if denom.abs() < eps {
             return None;
         }
-        let t = da / denom;
+        let t = if <T as NumericElement>::is_finite(denom) {
+            da / denom
+        } else {
+            segment::overflow_parameter(da, db, denom, eps)
+        };
         // Clamp to `[0,1]` to avoid extrapolation from accumulated FP error
         Some(
             t.max(<T as NumericElement>::ZERO)

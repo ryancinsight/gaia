@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.10] - Unreleased
+
+### Fixed
+
+- [patch] Recover finite plane/segment intersection parameters when endpoint
+  distance subtraction overflows. Halve both distances only on the overflowing
+  path; retain ordinary bits, tiny/subnormal arithmetic, parallel thresholds,
+  extrapolation clamp and nonfinite-distance/invalid-epsilon policies.
+
+### Base and acceptance
+
+This independent draft bases on published 0.6.8 without held #184 normal code.
+Provisional 0.6.10 avoids its declared 0.6.9; this does not reserve/approve the
+held release. Reconcile release ordering/version before merge. If #184 lands,
+rebase; otherwise reassess the candidate version explicitly. Renew exact-head
+review, all gates and release scope after any base/version change. No
+merge/publication, dependency downgrade, credential or service change occurs.
+
 ## [0.6.8] - Unreleased
 
 ### Fixed

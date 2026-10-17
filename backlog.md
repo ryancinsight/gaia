@@ -1,5 +1,34 @@
 # Backlog
 
+<a id="GAIA-037"></a>
+## GAIA-037 — Finite plane/segment parameter range [patch]
+
+- status: blocked; owner: Codex; target: 0.6.10; priority: correctness.
+- baseline: published 0.6.8 at 5eca6a6; no active PR owns plane/segment ratios.
+  Four original failures/six controls pass; corrected expanded baseline has
+  six failures/ten controls. Finite symmetric endpoints at native MAX or the
+  largest power of two return t=0 instead of the exact midpoint t=1/2.
+- correction: retain the existing parallel test, every finite-denominator
+  division and the clamp. Only nonfinite denominators with finite distances
+  and finite nonnegative epsilon use native exact halves before subtraction.
+  Keep nonfinite-distance and invalid-epsilon arithmetic unchanged. No widening,
+  tolerance, public API, dependency or ordinary subnormal arithmetic change.
+- evidence: f32/f64 symmetric/asymmetric overflow, reverse directions and axes,
+  close same-sign cancellation, minimum-subnormal crossings, endpoint/parallel
+  controls and legacy NaN/infinity/invalid-epsilon behavior. Retain old failures.
+- base/version: independent main-based source, without held #184 normal changes.
+  Candidate 0.6.10 is provisional to avoid colliding with #184's declared 0.6.9;
+  it neither incorporates its code nor reserves/approves that held release.
+  Merge stays held for release-order reconciliation. If #184 lands, rebase and
+  renew all gates/review; otherwise reassess this candidate version explicitly.
+  Any base/version change renews exact-head review, archive and release scope.
+- sibling status: #184's independent correctness review reports no new issue
+  in verified scope; centroid/performance/resource acceptance remains held.
+  This does not approve its release or reconcile this provisional version.
+- acceptance: separate draft; representative caller/allocation measurements,
+  normalized/fresh consumers, patch API, hosted gates and independent exact-head
+  review required. Preserve #184 performance and all owner/service holds.
+
 <a id="GAIA-033"></a>
 ## GAIA-033 — Finite perspective depth range [patch]
 
