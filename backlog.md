@@ -1,63 +1,57 @@
 # Backlog
 
-<a id="GAIA-031"></a>
-## GAIA-031 — Classify finite rounded slab ties [patch]
+<a id="GAIA-032"></a>
+## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]
 
-- status: blocked; owner: Codex; target: 0.6.6; priority: correctness.
-- prerequisite: PR #180 publishes 0.6.5 at
-  0e2f98a22dca3911843fae27cd409807872b33c2; reviewed tree, actual archive,
-  sole version, tag, main CI and docs verify. This followup bases on that merge.
-- contract: The original and current public ray method promise `None` for a
-  miss; neither documents conservative candidate hits. Native distance rounding
-  does not justify reporting disjoint intervals as an actual intersection.
-- evidence: All 456 GAIA-030 residuals are proven finite false hits by exact
-  stored-coordinate Fraction clipping (216 binary32, 240 binary64). Of these,
-  228 have positive width on every axis. Equal-magnitude stored x/y directions
-  cannot reach disjoint x/y intervals, even at ordinary coordinates near 0.5.
-  Four saved miss tests fail on unchanged #180 in debug and release; genuine
-  contacts pass. The regressions cover point and positive-width slabs, signs
-  and axis permutations without tolerances.
-- outcome: Distinct exact finite slab intervals do not become a hit through
-  equal rounded finite endpoints; retain inclusive real boundary contact.
-- design: Extend the existing exact finite-box postfilter to native ties.
-  A contained origin supplies t=0; a cardinal ray has only one nonempty interval.
-  Canonicalize denominator signs exactly; same-origin/same-denominator ratio
-  ordering reduces to bound comparison. Other comparisons use the existing
-  exact predicate seam (ADRs 0005/0009), at most five calls per candidate.
-- boundary: True hits retain native distance bits, including infinity. Nonfinite
-  bounds retain the existing behavior; GAIA-029 selects no new policy here.
-  This does not promise correctly rounded or conservatively enclosed endpoints
-  or globally exact classification for native candidates with unequal bounds.
-- acceptance oracle: `scripts/regressions/check_ray_interval_oracle.py` uses
-  actual stored ray directions and Python Fraction clipping in debug/release;
-  all selected ties must match truth, with true-hit tuples and other candidates
-  unchanged. Report residual errors explicitly rather than counting them as passes.
-- performance repair: Independent review of the first head reports an ordinary
-  untied f64 axis case slowing from about 3.2 to 8.6 ns in a saved executable.
-  An inline hint alone is insufficient across contexts. Outline the entire
-  tie-only decision, retaining all certificates, and keep the public kernel
-  inlineable. Standard level-2/3 direct, opaque-wrapper and function-pointer
-  samples restore the observed method frame from 192 to 144 bytes and retain
-  three reciprocal divisions. Frame size is an observation, not a complete
-  explanation of artifact-sensitive timings. No compiler flags or gates change.
-- contact costs: Shared-origin contact samples near 12 ns are not a general
-  bound. The independently tested least-subnormal y-origin contact at x=0.5
-  requires exact mixed-exponent work: about 1.1-1.3 us in that review, with
-  35 temporary allocations and 384/2088 requested live bytes for f32/f64, zero
-  retained. Two permanent value regressions preserve this true hit and tuple.
-  Current paired timing/allocation/codegen evidence records each caller context;
-  warmed primitive samples do not establish whole-mesh or formal resource bounds.
-- local validation: 1216 native tests pass with one existing skip; 57 doctests
-  pass with one existing ignore. Strict Clippy, docs, formatting, supply chain
-  and dependency hygiene pass under unchanged limits. Ten saved regressions
-  pass in debug and level-2/3 clients; all four miss tests fail on unchanged
-  0.6.5 while all six true-contact controls pass.
-- retained coverage: The 13502 author, 16592 prior-review and 10224 fresh
-  certificate cases pass in debug and both optimized client modes, with outputs
-  bit-identical to the original #181 head; 48 nonfinite observations per mode
-  are preserved. No numerical expression or classification certificate changes.
-- next: Freeze repaired exact-head package/API/oracle/performance evidence and
-  pass normal push/hosted gates; require independent re-review before release.
+- status: blocked; owner: Codex; target: 0.6.7; priority: correctness.
+- blocked by: Independent exact-head review and fresh release gates before integration.
+- prerequisite: Independently accepted PR #181 integrates at
+  012fa6e118b0de4c3e248306c02754e912a5bbd4; sole 0.6.6 source/archive/tag,
+  main CI and automatic documentation verify. This separate fix bases there.
+- contract: The documented centre is the arithmetic midpoint, and inclusive
+  finite singleton/planar boxes are admitted. No magnitude exclusion applies.
+- evidence: `(MAX + MAX) * 0.5` returns infinity although the singleton center
+  is exactly MAX. Same-sign positive-width extreme intervals also overflow.
+  Four saved regressions fail on unchanged 0.6.5 and accepted #181 in debug and
+  standard level-2/3 clients; four ordinary/subnormal/inverted controls pass.
+  Actual main has the identical reviewed #181 tree and unchanged AABB bytes.
+- design: Check raw endpoint sums before scaling for a compact whole-point
+  fast return, then use independent scalar results so projected callers can
+  discard unused coordinates. A shared finite/ordered eligibility value is
+  consumed only on recovery; strict infinity bounds reject NaN/infinities.
+  For finite overflow, exact endpoint halves recover the bounded native mean.
+  Keep ordinary sum/half bits and the complete original result for any
+  nonfinite or inverted box. No widening, tolerance, dependency, public API or
+  checked input-policy change is added; Ray/GAIA-029 policy remains separate.
+- review repair: The original shared point guard retains unused-axis work in
+  projections. Retain the independent P2 evidence for the original draft. The repair
+  uses normal inline hints and unchanged compiler/lint settings; inspected
+  ARM64 f32/f64 x/y/z opt2/3 ordinary projections each load two endpoints and
+  execute one add/one multiply without a recovery call or other-axis work.
+- verification: Original eight regressions retain baseline four failures/four
+  controls; repaired debug/opt2/opt3 clients pass all eight. Each mode replays
+  60108 boxes (30762 author + 29346 independent-review inputs), preserving
+  old fixed-head whole-point and projected output bits. Exact author means,
+  subnormals, signed zero, nonfinite and inverted controls are retained.
+  Local 1224 native tests pass/one skip; 57 doctests pass/one ignore; strict
+  fmt/Clippy/rustdoc, supply chain and hygiene pass under unchanged limits.
+  Strict patch API checks pass 223/30 instrument skips against published
+  0.6.6 and the original #182 head. GAIA-NEXTEST-PIPE remains open after the
+  independent review reports one leak; computed passes do not certify output
+  handle cleanup or establish the cause.
+- performance: Seven alternating baseline/old/repair samples per standard
+  Rust 1.97 opt2/3 direct, opaque, indirect and streaming context use unchanged
+  compiler settings. Ordinary full-point overhead is at most 26.66%/0.184 ns
+  in these samples; repair range is 0.82-1.40 ns, overflow 2.94-3.48 ns.
+  Direct f64 opt3 is 0.82 ns versus old 1.38/base 0.77; f64 stream-axis is
+  0.41 versus old 0.83/base 0.40. Residual f32 stream-axis is 0.37 versus
+  old 0.78/base 0.20 ns (92% relative). All sampled paths allocate zero
+  requested heap. These warmed ARM64 primitive samples do not establish
+  universal latency, whole-mesh throughput or formal resource bounds.
+- next: Complete the final-head normalized package/consumer/dry-run and normal
+  push/hosted gates, then obtain independent exact-head re-review of correctness
+  and performance tradeoffs. No merge/publication before acceptance and a
+  freshly assessed sole 0.6.7 release scope.
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]
@@ -152,6 +146,12 @@ Triage order: correctness → architecture → verification → tightening → f
   (1159 passes/one skip each) report no leak under unchanged capture/budgets.
   Read-only process/pipe snapshots are preserved; no owning writer/cause or
   production fix is established. These clean runs do not close this item.
+- review recurrence: In the original #182 review, the independent native run reports
+  1224 passes/one skip and one LEAK for
+  `application::csg::coplanar::operations::tests::coplanar_buffers_preserve_packed_triangle_order`
+  with exit zero. Preserve the raw report; ownership/cause remains unresolved.
+  The component repair's local rerun has the same computed passes and no leak
+  line; that observation does not close this item or certify the suite clean.
 - next: Capture process/handle evidence around an actual reported leak, then correct the identified owner.
 
 

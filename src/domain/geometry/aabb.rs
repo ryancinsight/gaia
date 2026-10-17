@@ -3,6 +3,27 @@
 use crate::domain::core::scalar::Scalar;
 use leto::geometry::Point3;
 
+#[inline]
+fn center_component<T: Scalar>(lower: T, upper: T, sum: T, valid: bool) -> T {
+    let center = sum * <T as Scalar>::from_f64(0.5);
+    if <T as eunomia::NumericElement>::is_finite(sum) {
+        center
+    } else {
+        recover_center_component(lower, upper, center, valid)
+    }
+}
+
+#[cold]
+#[inline]
+fn recover_center_component<T: Scalar>(lower: T, upper: T, center: T, valid: bool) -> T {
+    let half = <T as Scalar>::from_f64(0.5);
+    if valid {
+        lower * half + upper * half
+    } else {
+        center
+    }
+}
+
 /// Axis-aligned bounding box generic over scalar precision.
 ///
 /// The default precision is `f64` so that all existing code that writes
@@ -141,13 +162,38 @@ impl<T: Scalar> Aabb<T> {
         )
     }
 
-    /// Centre point.
+    /// Centre point, preserving finite results for finite, ordered boxes.
+    ///
+    /// The native endpoint sum is used when finite. If that sum overflows,
+    /// exact endpoint halving recovers the representable midpoint. Nonfinite
+    /// or inverted bounds keep their existing arithmetic result; no checked
+    /// invalid-input result is added.
+    #[inline]
     pub fn center(&self) -> Point3<T> {
+        // Check sums before scaling to keep the full-point fast return compact.
+        // Scalar cold returns let projected callers discard unrelated axes.
+        let x = self.min.x + self.max.x;
+        let y = self.min.y + self.max.y;
+        let z = self.min.z + self.max.z;
         let half = <T as Scalar>::from_f64(0.5);
+        if <T as eunomia::NumericElement>::is_finite(x)
+            & <T as eunomia::NumericElement>::is_finite(y)
+            & <T as eunomia::NumericElement>::is_finite(z)
+        {
+            return Point3::new(x * half, y * half, z * half);
+        }
+        let valid_axis = |lower, upper| {
+            (-<T as eunomia::NumericElement>::INFINITY < lower)
+                && (lower <= upper)
+                && (upper < <T as eunomia::NumericElement>::INFINITY)
+        };
+        let valid = valid_axis(self.min.x, self.max.x)
+            & valid_axis(self.min.y, self.max.y)
+            & valid_axis(self.min.z, self.max.z);
         Point3::new(
-            (self.min.x + self.max.x) * half,
-            (self.min.y + self.max.y) * half,
-            (self.min.z + self.max.z) * half,
+            center_component(self.min.x, self.max.x, x, valid),
+            center_component(self.min.y, self.max.y, y, valid),
+            center_component(self.min.z, self.max.z, z, valid),
         )
     }
 

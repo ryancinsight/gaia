@@ -1,5 +1,54 @@
 # Gaia provider compatibility audit
 
+## GAIA-032 finite AABB center range [patch]
+
+The documented arithmetic centre of a finite ordered box is bounded by its
+endpoints. A singleton at MAX therefore has center MAX, yet the unchanged
+native sum/half returns infinity. Positive-width extreme intervals fail too.
+Four analytical tests fail on unchanged 0.6.5 and accepted #181 in debug and
+standard opt2/3; four controls pass. The actual main integration 012fa6e1 has the
+identical #181 tree and AABB source. No active PR owns this subsystem.
+
+Keep native sum/half bits on ordinary coordinates; recover only overflowing
+coordinates of fully finite ordered boxes using exact halves of large same-sign
+normal endpoints. Preserve the complete old result for nonfinite/inverted boxes.
+Always halving would lose least-subnormal singletons. No invalid-input policy,
+widening, epsilon, dependency or API change applies. Ordinary means are not
+promised universally correctly rounded; whole-mesh callers require separate
+measurement.
+
+The independent review of the original draft finds P2 shared point-guard coupling and unused
+axis work. Check raw sums before scaling for the full-point fast return, then
+return independent scalar recovery results with normal inline hints. Strict
+infinity comparisons express finite/ordered eligibility. ARM64 f32/f64 x/y/z
+ordinary projections at opt2/3 each load just two endpoints and execute one add
+and multiply without a call. Forced inlining fails the existing Clippy gate;
+no lint waiver or custom compiler threshold is used in the selected repair.
+
+The original eight tests preserve four baseline failures/four controls; all
+repaired debug/opt2/opt3 clients pass. Every mode replays 60108 boxes (30762 author
+and 29346 independent review cases) with whole-point and projected outputs
+bit-identical to the prior fixed head. Exact author overflow oracles, signed
+zero, subnormal, nonfinite and inverted coverage remain intact. Local computed
+results: 1224 native passes/one skip; 57 doctests/one ignore; strict diagnostics,
+supply-chain/hygiene and patch API checks against published 0.6.6 and old #182
+pass (223/30 instrument skips each). The independent native run reports one
+output-handle LEAK despite exit zero; retain its named-test/log evidence under
+GAIA-NEXTEST-PIPE. A subsequent no-leak-line run does not establish a cause or
+close that followup; do not describe the entire native run as clean.
+
+Seven alternating baseline/old/repair samples use standard Rust 1.97 opt2/3,
+direct/opaque/indirect callers and axis/full-point streams. Ordinary full-point
+repair range is 0.82-1.40 ns; maximum paired baseline overhead is 26.66%/0.184 ns,
+versus the original roughly 0.65 ns overhead. Direct f64 opt3 is 0.82 ns versus
+old 1.38/base 0.77; f64 stream-axis is 0.41 versus old 0.83/base 0.40. The f32
+stream-axis tradeoff remains 0.37 versus old 0.78/base 0.20 ns (92% relative).
+Cold repair range is 2.94-3.48 ns. All sampled paths allocate zero requested heap;
+these are warmed ARM64 primitive samples, not universal latency, RSS/stack/cache,
+whole-mesh or formal resource bounds. Final package/normalized consumer/dry-run,
+normal push/hosted gates and independent exact-head re-review remain required
+before a fresh sole-0.6.7 lifecycle assessment.
+
 ## GAIA-031 finite rounded ray/slab ties [patch]
 
 The ray/AABB method promises an intersection, with `None` for a miss. No
