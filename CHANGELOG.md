@@ -9,7 +9,11 @@
   least-subnormal values. A cold native helper uses exact endpoint halves only
   for overflow coordinates of fully finite ordered boxes. Preserve the entire
   original result for nonfinite or inverted bounds. Keep the public generic
-  method inlineable; no invalid-box or ray policy changes.
+  method inlineable; no invalid-box or ray policy changes. Raw-sum whole-point
+  guards and independent scalar recovery results let projected callers discard
+  unrelated axes under standard opt2/3 without forced inlining or lint changes.
+  Record direct/streaming/cold performance tradeoffs and retain the independent
+  nextest output-pipe recurrence as unresolved verification work.
 
 ### Sequencing
 

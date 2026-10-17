@@ -8,13 +8,19 @@ Prerequisite: PR #181 publishes 0.6.6 at 012fa6e1; source/archive/tag/CI/docs ve
       debug and standard level-2/3 clients, with four ordinary/invalid controls.
     - [x] Recover only finite ordered-box overflow with exact native endpoint
       halves; retain all original bits for nonfinite or inverted boxes.
-    - [x] Verify 30762 boxes per mode, 1224 native values/one existing skip,
-      57 doctests/one ignore and strict diagnostics under unchanged budgets.
-    - [x] Measure seven alternating pairs per standard level-2/3 direct,
-      opaque-wrapper and function-pointer context; record allocator samples.
-    - [ ] Complete clean normalized package/API/consumer and dry-run, normal
-      commit/push and all applicable hosted gates for the final head.
-    - [ ] Obtain independent exact-head review and fresh release-scope checks
+    - [x] Replay 60108 author/reviewer boxes per debug/opt2/opt3 mode with
+      identical old-fixed-head whole-point and independent-projection results.
+    - [x] Repair shared-guard projection coupling with normal inline hints;
+      inspect f32/f64 x/y/z opt2/3 ordinary codegen for selected-axis-only work.
+    - [x] Verify 1224 native passes/one skip, 57 doctests/one ignore, strict
+      diagnostics and published/original-head patch API checks (223/30 each).
+      Retain the independent native output-pipe recurrence under GAIA-NEXTEST-PIPE.
+    - [x] Measure seven alternating triples per opt2/3 direct, opaque, indirect
+      and streaming context, including cold paths and zero-allocation samples.
+      Disclose residual f32 stream-axis overhead and primitive measurement limits.
+    - [ ] Complete final-head clean normalized package/consumer/dry-run, normal
+      commit/push and all applicable hosted gates under unchanged settings.
+    - [ ] Obtain independent exact-head re-review and fresh release-scope checks
       before any normal 0.6.7 merge/publication; preserve all other holds.
 
 - [x] **GAIA-031: finite rounded slab ties [patch] — published 0.6.6**

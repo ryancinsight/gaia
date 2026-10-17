@@ -15,31 +15,43 @@
   Four saved regressions fail on unchanged 0.6.5 and accepted #181 in debug and
   standard level-2/3 clients; four ordinary/subnormal/inverted controls pass.
   Actual main has the identical reviewed #181 tree and unchanged AABB bytes.
-- design: Keep original native sum/half bits when all center coordinates are
-  finite. A cold generic helper checks every bound is finite and ordered, then
-  recovers only overflowing coordinates. Overflow requires large normal
-  same-sign operands; their halves are exact and the final bounded mean is
-  finite. The public generic method carries an inline hint. No widening,
-  tolerance, dependency, public API or checked input-policy change is added.
-- boundary: Any nonfinite or inverted bound preserves the entire original
-  result. Ordinary native means are not promised universally correctly rounded;
-  this does not change Ray distance range policy or select GAIA-029 policy.
-- verification: 1224 native tests pass/one existing skip; 57 doctests pass/one
-  existing ignore; strict formatting, all-target/all-feature Clippy, rustdoc,
-  supply chain and dependency hygiene pass under unchanged limits. Each of
-  debug and level-2/3 exact corpora checks 30762 boxes: 5238 overflow coordinates
-  match Fraction/integer nearest-even means, 86472 other finite coordinates
-  retain bits, and whole results for 144 nonfinite and 48 inverted boxes match.
-- performance: Ordinary paired overhead reaches 92.16% (0.645 ns absolute);
-  observed ordinary head range 1.10-1.36 ns and overflow range
-  3.06-3.86 ns across the tested caller contexts.
-  All sampled paths allocate zero requested heap. Seven alternating pairs per
-  direct/opaque/indirect context use standard Rust 1.97 opt2/3, one million calls
-  per fixture; allocator samples use 32 calls. Warmed ARM64 primitive samples
-  exclude whole-mesh throughput, RSS/stack/caches and formal resource bounds.
-- next: Complete clean package/API/real consumer/dry-run and normal registered
-  push/hosted gates, then obtain independent exact-head review. No merge or
-  publication before acceptance and freshly assessed sole 0.6.7 release scope.
+- design: Check raw endpoint sums before scaling for a compact whole-point
+  fast return, then use independent scalar results so projected callers can
+  discard unused coordinates. A shared finite/ordered eligibility value is
+  consumed only on recovery; strict infinity bounds reject NaN/infinities.
+  For finite overflow, exact endpoint halves recover the bounded native mean.
+  Keep ordinary sum/half bits and the complete original result for any
+  nonfinite or inverted box. No widening, tolerance, dependency, public API or
+  checked input-policy change is added; Ray/GAIA-029 policy remains separate.
+- review repair: The original shared point guard retains unused-axis work in
+  projections. Retain the independent P2 evidence at head 99223c4. The repair
+  uses normal inline hints and unchanged compiler/lint settings; inspected
+  ARM64 f32/f64 x/y/z opt2/3 ordinary projections each load two endpoints and
+  execute one add/one multiply without a recovery call or other-axis work.
+- verification: Original eight regressions retain baseline four failures/four
+  controls; repaired debug/opt2/opt3 clients pass all eight. Each mode replays
+  60108 boxes (30762 author + 29346 independent-review inputs), preserving
+  old fixed-head whole-point and projected output bits. Exact author means,
+  subnormals, signed zero, nonfinite and inverted controls are retained.
+  Local 1224 native tests pass/one skip; 57 doctests pass/one ignore; strict
+  fmt/Clippy/rustdoc, supply chain and hygiene pass under unchanged limits.
+  Strict patch API checks pass 223/30 instrument skips against published
+  0.6.6 and the original #182 head. GAIA-NEXTEST-PIPE remains open after the
+  independent review reports one leak; computed passes do not certify output
+  handle cleanup or establish the cause.
+- performance: Seven alternating baseline/old/repair samples per standard
+  Rust 1.97 opt2/3 direct, opaque, indirect and streaming context use unchanged
+  compiler settings. Ordinary full-point overhead is at most 26.66%/0.184 ns
+  in these samples; repair range is 0.82-1.40 ns, overflow 2.94-3.48 ns.
+  Direct f64 opt3 is 0.82 ns versus old 1.38/base 0.77; f64 stream-axis is
+  0.41 versus old 0.83/base 0.40. Residual f32 stream-axis is 0.37 versus
+  old 0.78/base 0.20 ns (92% relative). All sampled paths allocate zero
+  requested heap. These warmed ARM64 primitive samples do not establish
+  universal latency, whole-mesh throughput or formal resource bounds.
+- next: Complete the final-head normalized package/consumer/dry-run and normal
+  push/hosted gates, then obtain independent exact-head re-review of correctness
+  and performance tradeoffs. No merge/publication before acceptance and a
+  freshly assessed sole 0.6.7 release scope.
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]
@@ -134,6 +146,12 @@ Triage order: correctness → architecture → verification → tightening → f
   (1159 passes/one skip each) report no leak under unchanged capture/budgets.
   Read-only process/pipe snapshots are preserved; no owning writer/cause or
   production fix is established. These clean runs do not close this item.
+- review recurrence: At #182 head 99223c4, the independent native run reports
+  1224 passes/one skip and one LEAK for
+  `application::csg::coplanar::operations::tests::coplanar_buffers_preserve_packed_triangle_order`
+  with exit zero. Preserve the raw report; ownership/cause remains unresolved.
+  The component repair's local rerun has the same computed passes and no leak
+  line; that observation does not close this item or certify the suite clean.
 - next: Capture process/handle evidence around an actual reported leak, then correct the identified owner.
 
 
