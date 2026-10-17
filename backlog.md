@@ -1,5 +1,52 @@
 # Backlog
 
+<a id="GAIA-037"></a>
+## GAIA-037 — Finite plane/segment parameter range [patch]
+
+- status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
+- baseline: published 0.6.8 at 5eca6a6; no active PR owns plane/segment ratios.
+  Four original failures/six controls pass; corrected expanded baseline has
+  six failures/ten controls. Finite symmetric endpoints at native MAX or the
+  largest power of two return t=0 instead of the exact midpoint t=1/2.
+- correction: retain the existing parallel test, every finite-denominator
+  division and the clamp. Only nonfinite denominators with finite distances
+  and finite nonnegative epsilon use native exact halves before subtraction.
+  Keep nonfinite-distance and invalid-epsilon arithmetic unchanged. No widening,
+  tolerance, public API, dependency or ordinary subnormal arithmetic change.
+- evidence: f32/f64 symmetric/asymmetric overflow, reverse directions and axes,
+  close same-sign cancellation, minimum-subnormal crossings, endpoint/parallel
+  controls and legacy NaN/infinity/invalid-epsilon behavior. Retain old failures.
+- base/version: independent published-0.6.8 source without held #184 changes.
+  Target 0.6.9 is the next verified available patch; the earlier 0.6.10 candidate
+  is unpublished. #184's declaration is provisional, not a release reservation.
+  Leave its reviewed code unchanged and held. When independently eligible, it
+  must rebase onto accepted main and select its then-current release version.
+- correctness/performance: independent review of the prior candidate reports
+  no findings in verified scope. Scoped caller tradeoff is accepted: ordinary
+  +0.118–0.143 ns/segment, zero sampled allocations across direct/indirect/stream
+  contexts. No whole-mesh or universal bound. One equivalent predicate rewrite
+  produces identical codegen and no consistent benefit; it is not adopted.
+- sibling status: #184's completed correctness review grants no centroid,
+  performance/resource or release acceptance; all those holds remain intact.
+- acceptance: release metadata only changes in this renewal. Refresh all
+  applicable exact-head gates, normalized/fresh consumers, patch API, package
+  and publication scope, then obtain renewed independent review before merge.
+  Main merge can trigger automatic publication; no separate postmerge pause
+  is assumed. Preserve all owner/service and GAIA-NEXTEST-PIPE holds.
+
+<a id="GAIA-038"></a>
+## GAIA-038 — Zero-epsilon parallel rejection policy [patch]
+
+- status: blocked; owner: unassigned; target: unassigned; priority: correctness.
+- evidence: unit-normal x=0 plane, equal off-plane signed distances +1/+1
+  or -1/-1, custom eps=0, f32/f64. Both unchanged 0.6.8 and GAIA-037 return
+  Some(1) or Some(0), rather than parallel rejection: abs(0)<0 is false.
+- contract: the default entry point documents None for parallel segments;
+  establish the custom-zero-epsilon policy explicitly before a separate repair.
+  Keep exact zero distinct from minimum-subnormal nonparallel crossings.
+- scope: pre-existing finite-denominator behavior, intentionally preserved by
+  GAIA-037. No fix or acceptance is claimed by its overflow recovery draft.
+
 <a id="GAIA-033"></a>
 ## GAIA-033 — Finite perspective depth range [patch]
 

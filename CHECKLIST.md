@@ -1,6 +1,29 @@
 # Checklist
 
-Active isolated correctness target: **0.6.8** (GAIA-033/034 renderer projection).
+Active independent correctness target: **0.6.9**, GAIA-037.
+Base: published 0.6.8 main; held #184 source is not included. This is the next
+verified available patch, independent of #184's provisional version declaration.
+Scoped caller cost is accepted; no whole-mesh/universal guarantee. Version-only
+renewal requires all exact-head gates, package and independent review before
+merge/publication. #184 and every owner/service hold remain.
+
+- [ ] **GAIA-037: native plane/segment ratio range [patch]**
+    - [x] Preserve original four red cases/six controls and expand finite,
+      asymmetric, cancellation/subnormal and nonfinite-policy coverage.
+    - [x] Repair only finite-distance subtraction overflow with exact native
+      halves, retaining ordinary bits, parallel threshold and invalid policies.
+    - [x] Verify oracle, representative caller/allocation, source gates, fresh
+      consumer, published patch API and complete-history conformance.
+    - [x] Record the earlier independent correctness review and accepted scoped
+      direct/indirect/stream cost; reject the equivalent-code rewrite as no gain.
+    - [ ] Renew final normalized package, normal push and hosted gates for the
+      accepted release head, including any later review-driven change.
+    - [x] Record separate unowned GAIA-038 custom-zero parallel policy gap;
+      preserve its existing finite-denominator behavior in this repair.
+    - [ ] Obtain renewed independent exact-head review of the 0.6.9 candidate
+      and final publication-scope acceptance before merge; no held-#184 code.
+
+Prior projection correctness target: **0.6.8** (GAIA-033/034 renderer projection).
 
 - [ ] **GAIA-033 / GAIA-034: finite projection range [patch]**
     - [x] Inspect current default, open PRs and backlog ownership; preserve

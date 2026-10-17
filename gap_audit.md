@@ -1,5 +1,22 @@
 # Gaia provider compatibility audit
 
+## GAIA-037 — Finite plane/segment ratio range [patch]
+
+On published 0.6.8, finite opposite distances can overflow da-db, causing
+representable segment midpoint t=1/2 to collapse to zero. The independent plane
+repair recovers only this finite-distance overflow with exact native halves;
+ordinary bits, subnormals, parallel thresholds and invalid policies remain.
+Independent review of its earlier candidate reports no findings in verified
+scope. Scoped caller cost acceptance covers +0.118–0.143 ns/segment with zero
+sampled allocations; no whole-mesh/universal guarantee. A single equivalent
+predicate experiment gives identical codegen and no consistent gain, so its
+source is not adopted. Release metadata now targets verified next patch 0.6.9
+from published 0.6.8; no held #184 source is included. Renew every applicable
+exact-head gate, normalized package, dependency/publication scope and independent
+review before merge. #184's declaration is provisional; its reviewed code and
+centroid/performance/resource holds remain untouched. Main merge may publish the
+new version automatically. See `docs/verification/plane-segment-range.md`.
+
 ## GAIA-034 caller-cost renewal [patch]
 
 Independent review at the original projection head has no actionable code
