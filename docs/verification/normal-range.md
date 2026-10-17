@@ -107,6 +107,24 @@ No forced-inline, LTO/CPU tuning, optimizer-threshold, lint or budget changes oc
 The pre-integration measurements remain preserved. Renew final-head measurements
 against the actual 0.6.8 source after integration; acceptance remains independent.
 
+### Post-integration performance blocker
+
+The unchanged harness rebuilt against the actual 0.6.8 source exposes a larger
+O3 f64 whole-centroid regression: 3.018 -> 20.161 ns (+568%). A second run of
+that same immutable executable repeats 2.996 -> 20.019 ns. Preserve both raw
+runs; this is a performance acceptance blocker, not an accepted tradeoff.
+The O2 whole-point rows remain +32–36%, projected rows +5–8%, triangle Newell
+rows +8–10%, and 32-vertex rows +0.2–1.9% in the initial renewed samples.
+The earlier O3 f64 baseline Newell anomaly does not recur: 7.102 -> 7.675 ns.
+
+All renewed sampled allocation calls/bytes remain zero. Ordinary whole-point
+code retains three finite guards, with cold calls guarded off for finite sums;
+projected code retains only the selected-axis guard/helper. The O3 f64 wrapper
+has 98 instructions and a 160-byte stack frame (O2: 95/160). These observations
+do not establish the latency's root cause. Keep the exact binary, disassembly,
+repeat and earlier contexts for independent review. Do not merge/publish 0.6.9
+before this performance blocker and independent exact-head review are resolved.
+
 ## Verification and holds
 
 Full native computation passes 1253 tests with one existing skip; doctests pass

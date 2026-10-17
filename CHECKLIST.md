@@ -13,6 +13,8 @@ Active isolated correctness target: **0.6.9**, based on published 0.6.8.
       inspect unused-axis elimination and preserve remaining costs/limits.
     - [x] Preserve the pre-integration source/evidence, retarget to main and
       rebase onto #183's accepted integration 5eca6a6 (published 0.6.8).
+    - [x] Rebuild the unchanged callers against actual 0.6.8; preserve the
+      repeated O3 f64 whole-centroid 3 -> 20 ns performance blocker and codegen.
     - [ ] Renew final package, fresh-consumer, hosted, numerical/published API
       and caller measurements; obtain independent exact-head review and
       performance acceptance before merge/publication.

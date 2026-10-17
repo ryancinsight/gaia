@@ -11,7 +11,9 @@ nonfinite accumulations using an origin-relative fan for finite vertices.
 Ordinary bits, complete nonfinite results, tolerance and signed-zero/subnormal
 behavior remain covered. The 20 regressions, 2000 bounds-grid triples and
 8000 exact-rational records pass; source-parent patch API and native/docs gates
-pass. Whole-point performance remains an explicit review concern. See
+pass. Post-integration O3 f64 whole-centroid cost is 3.018 -> 20.161 ns,
+repeated 2.996 -> 20.019 ns on the same binary; acceptance remains blocked.
+No root cause or unavoidable-cost claim follows from the preserved codegen. See
 `docs/verification/normal-range.md` for proof limits and all caller contexts.
 The configured two-test GhostCell Miri job does not cover these functions;
 geometry/projection Miri and GAIA-NEXTEST-PIPE remain unresolved scope.

@@ -17,9 +17,11 @@
   corpus has 5753 identical ordinary records and 2247 bounded recovered results.
   The failed first-prototype equal-coordinate case is retained, not suppressed.
 - cost: fixed finite-coordinate checks remove unused-axis recovery work from
-  projected callers. Whole-point tiny-call overhead remains about 31–36%; keep
-  that and all measured contexts explicit for independent performance acceptance.
-  No broad ordinary sorting/division path or sampled heap allocations occurs.
+  projected callers. Pre-integration whole-point overhead is about 31–36%.
+  Renewal against actual 0.6.8 exposes O3 f64 3.018 -> 20.161 ns (+568%);
+  the same binary repeats 2.996 -> 20.019 ns. This remains a performance
+  acceptance blocker. Preserve all contexts and generated code; no root cause,
+  unavoidable cost, general speedup or sampled heap allocation is claimed.
 
 <a id="GAIA-036"></a>
 ## GAIA-036 — Finite Newell translation invariance [patch]
