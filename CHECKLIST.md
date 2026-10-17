@@ -11,8 +11,11 @@ all gates/review after accepted main or version changes. All holds remain.
       asymmetric, cancellation/subnormal and nonfinite-policy coverage.
     - [x] Repair only finite-distance subtraction overflow with exact native
       halves, retaining ordinary bits, parallel threshold and invalid policies.
-    - [ ] Finish oracle, representative caller/allocation, normalized package,
-      fresh consumer, patch API, complete-history conformance and hosted gates.
+    - [x] Verify oracle, representative caller/allocation, source gates, fresh
+      consumer, published patch API and complete-history conformance.
+    - [ ] Finish final normalized package, normal push and hosted gates.
+    - [x] Record separate unowned GAIA-038 custom-zero parallel policy gap;
+      preserve its existing finite-denominator behavior in this repair.
     - [ ] Obtain independent exact-head review and release-order/scope acceptance
       before merge/publication; no silent held-#184 code dependency.
 

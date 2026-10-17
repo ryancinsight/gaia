@@ -29,6 +29,19 @@
   normalized/fresh consumers, patch API, hosted gates and independent exact-head
   review required. Preserve #184 performance and all owner/service holds.
 
+<a id="GAIA-038"></a>
+## GAIA-038 — Zero-epsilon parallel rejection policy [patch]
+
+- status: blocked; owner: unassigned; target: unassigned; priority: correctness.
+- evidence: unit-normal x=0 plane, equal off-plane signed distances +1/+1
+  or -1/-1, custom eps=0, f32/f64. Both unchanged 0.6.8 and GAIA-037 return
+  Some(1) or Some(0), rather than parallel rejection: abs(0)<0 is false.
+- contract: the default entry point documents None for parallel segments;
+  establish the custom-zero-epsilon policy explicitly before a separate repair.
+  Keep exact zero distinct from minimum-subnormal nonparallel crossings.
+- scope: pre-existing finite-denominator behavior, intentionally preserved by
+  GAIA-037. No fix or acceptance is claimed by its overflow recovery draft.
+
 <a id="GAIA-033"></a>
 ## GAIA-033 — Finite perspective depth range [patch]
 

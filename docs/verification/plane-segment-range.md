@@ -99,6 +99,15 @@ cache, universal stack or whole-mesh guarantee follows. Raw samples and standard
 disassembly are retained; no forced-inline, target-CPU, optimizer threshold,
 lint, test budget or suppression change is used.
 
+## Separate parallel-policy follow-up
+
+GAIA-038 records existing custom eps=0 behavior: equal off-plane signed
+values +1/+1 or -1/-1 in f32/f64 yield Some(1) or Some(0), since abs(0)<0
+is false. Actual old/new caller probes reproduce all four. The default entry
+point documents parallel rejection; the custom-zero policy needs explicit
+resolution in a separate repair. GAIA-037 preserves this finite-denominator
+behavior and does not claim to close that gap.
+
 ## Final acceptance
 
 Source/normalized/fresh-consumer, strict diagnostics, current supply-chain,
