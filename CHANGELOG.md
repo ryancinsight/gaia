@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.8] - Unreleased
+
+### Fixed
+
+- [patch] Keep NDC's ordinary caller path inlineable and its cold return
+  vector-only, avoiding an Option temporary. Classify zero/subnormal w from
+  exact IEEE exponent bits. Preserve all arithmetic and nonfinite behavior;
+  record both author and independent caller contexts and remaining costs.
+
+- [patch] Recover perspective depth coefficients after avoidable product,
+  sum or reciprocal overflow, or a zeroed product, when native reordered
+  arithmetic can represent them. Preserve finite nonzero legacy coefficients.
+  Recover finite clip-coordinate quotients when a nonzero subnormal w has an
+  overflowing reciprocal. Preserve ordinary bits, signed-zero rejection,
+  nonfinite-vector behavior and existing frustum acceptance policies.
+- Keep zero/subnormal w handling in a cold helper behind one ordinary-path
+  branch. Sampled external consumer overhead is recorded in
+  `docs/verification/projection-range.md`; no heap allocation requests are
+  observed. All providers, compiler/test limits and existing tests remain.
+
+### Acceptance
+
+This separate draft requires independent exact-head review and final hosted,
+package and publication-scope checks. No merge, publication, release tag or
+service deployment is performed by this repair. GAIA-NEXTEST-PIPE stays open.
+
 ## [0.6.7] - Unreleased
 
 ### Fixed

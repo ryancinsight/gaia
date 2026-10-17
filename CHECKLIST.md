@@ -1,6 +1,25 @@
 # Checklist
 
-Active isolated correctness target: **0.6.7** (GAIA-032 finite AABB centers).
+Active isolated correctness target: **0.6.8** (GAIA-033/034 renderer projection).
+
+- [ ] **GAIA-033 / GAIA-034: finite projection range [patch]**
+    - [x] Inspect current default, open PRs and backlog ownership; preserve
+      the unchanged audit reproductions and all release/owner holds.
+    - [x] Save unchanged-source failures before implementing native recovery;
+      preserve ordinary bits, signed zero and existing nonfinite policies.
+    - [x] Verify 2095 dyadic frusta, nine focused tests, full native/docs,
+      strict diagnostics and the real published 0.6.7 patch API comparison.
+    - [x] Measure paired opt2/3 consumer latency and allocation requests;
+      consolidate zero/subnormal handling to retain one ordinary NDC branch.
+    - [x] Reconcile the independent 33–38% caller result with the original
+      author sample; preserve both contexts and examine actual standard codegen.
+    - [x] Remove the cold Option temporary without changing numerical results;
+      disclose sampled ordinary/cold costs and the two-test GhostCell Miri scope.
+    - [ ] Finish normalized package/fresh consumer, normal push and hosted gates.
+    - [ ] Obtain independent exact-head review and publication-scope acceptance
+      before merge/publication; GAIA-NEXTEST-PIPE and all other holds remain.
+
+Prior isolated correctness target: **0.6.7** (GAIA-032 finite AABB centers).
 Prerequisite: PR #181 publishes 0.6.6 at 012fa6e1; source/archive/tag/CI/docs verify.
 
 - [ ] **GAIA-032: finite AABB center range [patch] — isolated 0.6.7**
