@@ -76,12 +76,42 @@ pub fn perspective(fov_y: Real, aspect: Real, near: Real, far: Real) -> Option<M
         return None;
     }
     let range = 1.0 / (near - far);
+    let depth_scale = (far + near) * range;
+    let depth_offset = 2.0 * far * near * range;
+    let (depth_scale, depth_offset) =
+        if depth_scale.is_finite() && depth_offset.is_finite() && depth_offset != 0.0 {
+            (depth_scale, depth_offset)
+        } else {
+            recover_depth_coefficients(near, far, depth_scale, depth_offset)
+        };
     Some(Mat4::from_rows([
         [f / aspect, 0.0, 0.0, 0.0],
         [0.0, f, 0.0, 0.0],
-        [0.0, 0.0, (far + near) * range, 2.0 * far * near * range],
+        [0.0, 0.0, depth_scale, depth_offset],
         [0.0, 0.0, -1.0, 0.0],
     ]))
+}
+
+/// Recover only collapsed depth coefficients, retaining ordinary result bits.
+#[cold]
+#[inline(never)]
+fn recover_depth_coefficients(near: Real, far: Real, scale: Real, offset: Real) -> (Real, Real) {
+    // The guards prove finite 0 < near < far. Their positive difference is
+    // representable, and far/(far-near) is bounded by floating-point spacing.
+    // Scale before multiplying distances: neither a reciprocal of a tiny
+    // difference nor the unscaled far*near product is needed.
+    let ratio = far / (far - near);
+    let scale = if scale.is_finite() {
+        scale
+    } else {
+        1.0 - 2.0 * ratio
+    };
+    let offset = if offset.is_finite() && offset != 0.0 {
+        offset
+    } else {
+        -2.0 * (near * ratio)
+    };
+    (scale, offset)
 }
 
 /// Build a right-handed view matrix looking from `eye` at `target`.
@@ -114,11 +144,29 @@ pub fn look_at(eye: &Point3r, target: &Point3r, up: &Vector3r) -> Option<Mat4> {
 #[must_use]
 pub fn to_ndc(v: &Vec4) -> Option<Vector3r> {
     let w = v[3];
+    // A normal denominator cannot overflow its reciprocal. Route zero and
+    // subnormals together so ordinary callers still need only one branch.
+    if w.abs() < Real::MIN_POSITIVE {
+        return divide_small_w(v, w);
+    }
+    let inv = 1.0 / w;
+    Some(Vector3r::new(v[0] * inv, v[1] * inv, v[2] * inv))
+}
+
+/// Divide finite components directly when the reciprocal exceeds scalar range.
+#[cold]
+#[inline(never)]
+fn divide_small_w(v: &Vec4, w: Real) -> Option<Vector3r> {
     if w == 0.0 {
         return None;
     }
     let inv = 1.0 / w;
-    Some(Vector3r::new(v[0] * inv, v[1] * inv, v[2] * inv))
+    if inv.is_infinite() && v[0].is_finite() && v[1].is_finite() && v[2].is_finite() {
+        Some(Vector3r::new(v[0] / w, v[1] / w, v[2] / w))
+    } else {
+        // Finite reciprocals and nonfinite vectors retain original bits.
+        Some(Vector3r::new(v[0] * inv, v[1] * inv, v[2] * inv))
+    }
 }
 
 /// Linear blend of two homogeneous vectors.

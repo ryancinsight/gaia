@@ -1,5 +1,17 @@
 # Gaia provider compatibility audit
 
+## GAIA-033 / GAIA-034 — Renderer finite range [patch]
+
+The original bounded audit reproduces two valid finite-input failures on
+unchanged main. This separate 0.6.8 repair retains finite nonzero perspective
+coefficient bits and ordinary reciprocal/multiplication results, recovering
+only collapsed/overflowed depth coefficients and finite-vector quotients after
+reciprocal overflow. Zero and nonfinite input behavior remains unchanged.
+The mathematical fixture, native bounds, measured costs and remaining scope
+are recorded in `docs/verification/projection-range.md`. Full native values
+pass 1233/one skip; docs pass 57/one ignore. These completions do not resolve
+GAIA-NEXTEST-PIPE or establish universal numerical/resource behavior.
+
 ## GAIA-032 finite AABB center range [patch]
 
 The documented arithmetic centre of a finite ordered box is bounded by its

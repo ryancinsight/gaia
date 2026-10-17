@@ -1,5 +1,43 @@
 # Backlog
 
+<a id="GAIA-033"></a>
+## GAIA-033 — Finite perspective depth range [patch]
+
+- status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
+- baseline: current main a9f3dd3. A valid near=2^512/far=2^513 frustum returns
+  negative-infinite NDC depth although the exact coefficients are -3/-2^514.
+  Expanded unchanged-source regressions also expose zeroed products and
+  overflowing reciprocals for tiny finite frusta (four red tests/five controls).
+- repair: retain finite nonzero original coefficients. A cold native helper
+  uses far/(far-near), bounded by floating-point spacing, before multiplying
+  near; it avoids unscaled distance products and tiny-difference reciprocals.
+  No widening, clamp, invalid-input policy, dependency or public API change.
+- evidence: all 2095 dyadic near exponents from the least subnormal through
+  2^1020 map both exact endpoints and coefficients; ordinary coefficient bits
+  and existing rejection/positive-infinite-aspect behavior remain covered.
+- acceptance: separate draft; current gates, package identity and independent
+  exact-head review are required before merge/publication. Existing holds stay.
+
+<a id="GAIA-034"></a>
+## GAIA-034 — Representable perspective quotients [patch]
+
+- status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
+- baseline: w=2^-1074 and clip=(w,2w,0,w) produce (infinity,infinity,NaN)
+  although (1,2,0) is exact. Original debug/release failures remain saved.
+- repair: route zero/subnormal denominators to one cold helper. Reject signed
+  zero as before. Use native division only for finite vectors whose reciprocal
+  overflows; otherwise retain original multiplication, including nonfinite
+  vectors and subnormal w with a finite reciprocal. Ordinary callers keep one
+  branch, one division and three multiplies.
+- verification: nine focused tests; full native 1233 pass/one existing skip;
+  57 doctests pass/one existing ignore; strict Clippy/Rustdoc and real published
+  0.6.7 patch API comparison pass (223 checks/30 inapplicable). Final package,
+  hosted gates and independent review remain separate acceptance work.
+- cost: seven alternating old/new consumer samples per opt2/3 profile show
+  perspective median +0.76%/+1.49%, NDC +4.83%/+4.88%; all sampled paths
+  allocate zero bytes. One ARM64 Mac/function-pointer caller; not a universal
+  throughput/resource claim. Keep GAIA-NEXTEST-PIPE open.
+
 <a id="GAIA-032"></a>
 ## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]
 
