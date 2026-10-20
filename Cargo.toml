@@ -9,7 +9,7 @@ resolver = "3"
 # `gaia = { package = "gaia-mesh", version = "0.5.0" }` and every `use gaia::…`
 # is unchanged.
 name = "gaia-mesh"
-version = "0.6.9"
+version = "0.6.10"
 edition = "2024"
 rust-version = "1.97"
 authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
@@ -69,7 +69,7 @@ serde_json = "1.0"
 hashbrown = "0.17"
 
 # 3MF export
-zip = { version = "9.0.4", default-features = false, features = ["deflate"] }
+consus-zip = { version = "0.4.0", git = "https://github.com/ryancinsight/consus.git" }
 
 # Logging
 tracing = "0.1"

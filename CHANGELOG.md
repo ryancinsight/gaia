@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.10] - Unreleased
+
+### Changed
+
+- [patch] Write 3MF packages through the first-party `consus-zip` container
+  instead of the `zip` crate, so the dependency graph no longer carries `zip`
+  and its extraction surface (consus ADR0007). The 3MF parts, their names and
+  DEFLATE compression are unchanged; `write_3mf` keeps its signature and maps
+  container I/O failures to `MeshError::Io`.
+
 ## [0.6.9] - Unreleased
 
 ### Fixed

@@ -7,44 +7,41 @@ use hashbrown::HashMap;
 use std::fmt::Write as _;
 use std::io::{Seek, Write};
 
+use consus_zip::{Method, ZipWriter};
+
 use crate::domain::core::error::{MeshError, MeshResult};
 use crate::domain::mesh::IndexedMesh;
 
 /// Write an [`IndexedMesh`] as a 3MF archive.
 ///
 /// The output is a ZIP archive containing the required content types and
-/// relationships files, plus the `3D/3dmodel.model` XML payload.
+/// relationships files, plus the `3D/3dmodel.model` XML payload, each as a
+/// DEFLATE member.
 ///
 /// # Errors
 ///
-/// Returns [`MeshError::Io`] if a ZIP member payload cannot be written, or
-/// [`MeshError::Other`] if starting or finishing a ZIP entry fails.
+/// Returns [`MeshError::Io`] if the writer fails, or [`MeshError::Other`] if
+/// the ZIP container rejects a member.
 pub fn write_3mf<W: Write + Seek>(writer: W, mesh: &IndexedMesh) -> MeshResult<()> {
-    let mut zip = zip::ZipWriter::new(writer);
-    let options = zip::write::SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated);
-
-    // [Content_Types].xml
-    zip.start_file("[Content_Types].xml", options)
-        .map_err(|e| MeshError::Other(format!("ZIP error: {e}")))?;
-    zip.write_all(CONTENT_TYPES_XML.as_bytes())
-        .map_err(MeshError::Io)?;
-
-    // _rels/.rels
-    zip.start_file("_rels/.rels", options)
-        .map_err(|e| MeshError::Other(format!("ZIP error: {e}")))?;
-    zip.write_all(RELS_XML.as_bytes()).map_err(MeshError::Io)?;
-
-    // 3D/3dmodel.model
-    zip.start_file("3D/3dmodel.model", options)
-        .map_err(|e| MeshError::Other(format!("ZIP error: {e}")))?;
-
+    let mut zip = ZipWriter::new(writer);
     let model_xml = build_model_xml(mesh);
-    zip.write_all(model_xml.as_bytes()).map_err(MeshError::Io)?;
-
-    zip.finish()
-        .map_err(|e| MeshError::Other(format!("ZIP error: {e}")))?;
+    for (name, payload) in [
+        ("[Content_Types].xml", CONTENT_TYPES_XML),
+        ("_rels/.rels", RELS_XML),
+        ("3D/3dmodel.model", model_xml.as_str()),
+    ] {
+        zip.add_entry(name, payload.as_bytes(), Method::Deflated)
+            .map_err(zip_error)?;
+    }
+    zip.finish().map_err(zip_error)?;
     Ok(())
+}
+
+fn zip_error(error: consus_zip::Error) -> MeshError {
+    match error {
+        consus_zip::Error::Io(io) => MeshError::Io(io),
+        other => MeshError::Other(format!("ZIP error: {other}")),
+    }
 }
 
 fn build_model_xml(mesh: &IndexedMesh) -> String {
@@ -148,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    fn write_3mf_produces_zip_archive() {
+    fn write_3mf_archive_holds_the_three_package_parts() {
         let mut mesh = IndexedMesh::new();
         let v0 = mesh.add_vertex_pos(Point3r::new(0.0, 0.0, 0.0));
         let v1 = mesh.add_vertex_pos(Point3r::new(1.0, 0.0, 0.0));
@@ -157,11 +154,27 @@ mod tests {
 
         let mut cursor = std::io::Cursor::new(Vec::new());
         write_3mf(&mut cursor, &mesh).expect("3MF export should succeed");
-        let bytes = cursor.into_inner();
-
-        assert_eq!(&bytes[..4], b"PK\x03\x04");
-        assert!(bytes
-            .windows("3D/3dmodel.model".len())
-            .any(|window| { window == b"3D/3dmodel.model" }));
+        let mut archive = consus_zip::ZipReader::new(std::io::Cursor::new(cursor.into_inner()))
+            .expect("3MF output is a ZIP archive");
+        let names: Vec<&str> = archive
+            .entries()
+            .iter()
+            .map(consus_zip::Entry::name)
+            .collect();
+        assert_eq!(
+            names,
+            ["[Content_Types].xml", "_rels/.rels", "3D/3dmodel.model"]
+        );
+        assert_eq!(
+            archive.read_by_name("[Content_Types].xml").unwrap(),
+            CONTENT_TYPES_XML.as_bytes()
+        );
+        assert_eq!(
+            archive.read_by_name("_rels/.rels").unwrap(),
+            RELS_XML.as_bytes()
+        );
+        let model = String::from_utf8(archive.read_by_name("3D/3dmodel.model").unwrap()).unwrap();
+        assert_eq!(model, build_model_xml(&mesh));
+        assert!(model.contains("<triangle v1=\"0\" v2=\"1\" v3=\"2\" />"));
     }
 }

@@ -2,7 +2,9 @@
 """Resolve a lock-free Gaia consumer and verify its real 3MF archive.
 
 The consumer lives outside Atlas's development overlay and starts without a
-lockfile. Python's independent ZIP/XML readers check the exported model.
+lockfile. Python's independent ZIP/XML readers check the exported model, and
+the resolved graph must carry the first-party `consus-zip` container and no
+third-party `zip` crate.
 The same probe accepts a normalized `cargo package` directory as its input.
 """
 
@@ -95,9 +97,13 @@ def main():
             cargo + ["metadata", "--locked", "--format-version=1"],
             cwd=root, env=env, timeout=60,
         ))
-        resolved = [p["version"] for p in metadata["packages"] if p["name"] == "zip"]
-        assert len(resolved) == 1, resolved
-        print(f"Fresh consumer and independent 3MF payload checks pass with ZIP {resolved[0]}.")
+        versions = {}
+        for package in metadata["packages"]:
+            versions.setdefault(package["name"], []).append(package["version"])
+        assert "zip" not in versions, versions["zip"]
+        container = versions.get("consus-zip", [])
+        assert len(container) == 1, container
+        print(f"Fresh consumer and independent 3MF payload checks pass with consus-zip {container[0]}.")
 
 
 if __name__ == "__main__":
