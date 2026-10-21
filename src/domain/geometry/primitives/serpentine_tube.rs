@@ -86,8 +86,9 @@
 use eunomia::FloatElement;
 use std::f64::consts::{PI, TAU};
 
+use super::rings::{add_ring_end_cap, add_ring_wall_quads, CapWinding, VertexRings};
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::index::{RegionId, VertexId};
+use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -212,30 +213,6 @@ fn build_serpentine_stations(st: &SerpentineTube) -> Vec<Station> {
     stations
 }
 
-/// Add one circular end cap at the current start or end station.
-fn add_tube_cap(
-    mesh: &mut IndexedMesh,
-    station: &Station,
-    ring: &[VertexId],
-    region: RegionId,
-    invert_normal: bool,
-) {
-    let cap_normal = if invert_normal {
-        -station.tangent
-    } else {
-        station.tangent
-    };
-    let center = mesh.add_vertex(station.centre, cap_normal);
-    for ib in 0..ring.len() {
-        let ib1 = (ib + 1) % ring.len();
-        if invert_normal {
-            mesh.add_face_with_region(center, ring[ib1], ring[ib], region);
-        } else {
-            mesh.add_face_with_region(center, ring[ib], ring[ib1], region);
-        }
-    }
-}
-
 fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
     // ── Parameter validation ──────────────────────────────────────────────────
     if st.tube_radius <= 0.0 {
@@ -290,44 +267,39 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
     // Cross-section surface normal: n_out(beta) = cos(beta)·N + sin(beta)·B
     let b_fixed = Vector3r::y();
     let n_stations = all_stations.len();
-    let mut rings: Vec<Vec<VertexId>> = Vec::with_capacity(n_stations);
+    let mut rings = VertexRings::with_rows(n_stations, ns)?;
 
-    for station in &all_stations {
+    for (ia, station) in all_stations.iter().enumerate() {
         let n_frame = frame_normal(station.tangent);
-        let row: Vec<VertexId> = (0..ns)
-            .map(|ib| {
-                let beta = f64::from_count(ib) / f64::from_count(ns) * TAU;
-                let n_out = n_frame * beta.cos() + b_fixed * beta.sin();
-                let pos = station.centre + n_out * r;
-                mesh.add_vertex(pos, n_out)
-            })
-            .collect();
-        rings.push(row);
+        rings.fill_ring(ia, |ib| {
+            let beta = f64::from_count(ib) / f64::from_count(ns) * TAU;
+            let n_out = n_frame * beta.cos() + b_fixed * beta.sin();
+            let pos = station.centre + n_out * r;
+            mesh.add_vertex(pos, n_out)
+        });
     }
 
     // ── Lateral tube wall ─────────────────────────────────────────────────────
-    for ia in 0..n_stations - 1 {
-        for ib in 0..ns {
-            let ib1 = (ib + 1) % ns;
-            let v00 = rings[ia][ib];
-            let v10 = rings[ia + 1][ib];
-            let v11 = rings[ia + 1][ib1];
-            let v01 = rings[ia][ib1];
-            mesh.add_face_with_region(v00, v01, v11, wall_region);
-            mesh.add_face_with_region(v00, v11, v10, wall_region);
-        }
-    }
+    add_ring_wall_quads(&mut mesh, &rings, wall_region);
 
     // ── Inlet cap (station 0, outward normal = −T₀) ───────────────────────────
-    add_tube_cap(&mut mesh, &all_stations[0], &rings[0], inlet_region, true);
+    add_ring_end_cap(
+        &mut mesh,
+        rings.ring(0),
+        all_stations[0].centre,
+        -all_stations[0].tangent,
+        inlet_region,
+        CapWinding::Reversed,
+    );
 
     // ── Outlet cap (last station, outward normal = +T_last) ───────────────────
-    add_tube_cap(
+    add_ring_end_cap(
         &mut mesh,
-        &all_stations[n_stations - 1],
-        &rings[n_stations - 1],
+        rings.ring(n_stations - 1),
+        all_stations[n_stations - 1].centre,
+        all_stations[n_stations - 1].tangent,
         outlet_region,
-        false,
+        CapWinding::Forward,
     );
 
     Ok(mesh)

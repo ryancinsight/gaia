@@ -84,6 +84,10 @@ pub mod octahedron;
 pub mod pipe;
 pub mod pyramid;
 pub mod revolution_sweep;
+// The cross-section ring table and the face builders that consume it. The
+// module is crate-internal: the ring table is a layout detail of the swept
+// primitives, not a surface a consumer names.
+pub(crate) mod rings;
 pub mod rounded_cube;
 pub mod schwarz_d_sphere;
 pub mod schwarz_p_sphere;
