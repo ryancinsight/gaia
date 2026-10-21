@@ -253,6 +253,22 @@ mod tests {
     }
 
     #[test]
+    fn elbow_refuses_an_arc_count_that_cannot_name_a_ring_table() {
+        let result = Elbow {
+            arc_segments: usize::MAX,
+            ..Elbow::default()
+        }
+        .build();
+        let Err(error) = result else {
+            panic!("an arc count that cannot name a ring table must be refused");
+        };
+        assert!(
+            matches!(error, PrimitiveError::InvalidParam(_)),
+            "got {error:?}"
+        );
+    }
+
+    #[test]
     fn elbow_full_torus_is_genus1() {
         // A full 360° elbow is topologically a torus: euler = 0
         let mesh = Elbow {

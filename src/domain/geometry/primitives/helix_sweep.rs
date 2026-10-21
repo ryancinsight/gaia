@@ -168,13 +168,11 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
     };
 
     // Pre-build ring vertex arrays for shared edge connectivity
-    let ring_count = na.checked_add(1).ok_or_else(|| {
-        PrimitiveError::InvalidParam(format!(
-            "arc_segments_per_turn must be below {}, got {na}",
-            usize::MAX
-        ))
-    })?;
-    let mut rings = VertexRings::with_rows(ring_count, ns)?;
+    //
+    // `na` counts every arc segment of the whole sweep, so it is bounded by
+    // the turn count times the per-turn count; the ring table's own guard
+    // refuses a table that cannot be addressed.
+    let mut rings = VertexRings::with_rows(na + 1, ns)?;
     for ia in 0..=na {
         let theta = f64::from_count(ia) / f64::from_count(na) * theta_max;
         rings.fill_ring(ia, |ib| {
