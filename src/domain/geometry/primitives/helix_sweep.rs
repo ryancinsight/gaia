@@ -3,8 +3,9 @@
 use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
+use super::rings::{add_ring_end_cap, add_ring_wall_quads, VertexRings};
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::index::{RegionId, VertexId};
+use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -76,50 +77,6 @@ impl Default for HelixSweep {
 impl PrimitiveMesh for HelixSweep {
     fn build(&self) -> Result<IndexedMesh, PrimitiveError> {
         build(self)
-    }
-}
-
-/// Connect adjacent helix rings with outward-oriented wall quads.
-fn add_helix_ring_quads(
-    mesh: &mut IndexedMesh,
-    rings: &[Vec<VertexId>],
-    ns: usize,
-    region: RegionId,
-) {
-    for ia in 0..rings.len() - 1 {
-        for ib in 0..ns {
-            let ib1 = (ib + 1) % ns;
-            let v00 = rings[ia][ib];
-            let v10 = rings[ia + 1][ib];
-            let v11 = rings[ia + 1][ib1];
-            let v01 = rings[ia][ib1];
-            mesh.add_face_with_region(v00, v01, v11, region);
-            mesh.add_face_with_region(v00, v11, v10, region);
-        }
-    }
-}
-
-/// Add a fan-cap (flat disc) closing one end of the tube.
-///
-/// `ring` is the ring of boundary `VertexId`s at the open end, and `normal`
-/// is the outward-facing unit vector for the cap face.
-fn add_tube_endcap(
-    mesh: &mut IndexedMesh,
-    ring: &[VertexId],
-    center: Point3r,
-    normal: Vector3r,
-    region: RegionId,
-    inward: bool,
-) {
-    let vc = mesh.add_vertex(center, normal);
-    let ns = ring.len();
-    for ib in 0..ns {
-        let ib1 = (ib + 1) % ns;
-        if inward {
-            mesh.add_face_with_region(vc, ring[ib1], ring[ib], region);
-        } else {
-            mesh.add_face_with_region(vc, ring[ib], ring[ib1], region);
-        }
     }
 }
 
@@ -211,30 +168,27 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
     };
 
     // Pre-build ring vertex arrays for shared edge connectivity
-    let mut rings: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(na + 1);
+    let mut rings = VertexRings::with_rows(na + 1, ns);
     for ia in 0..=na {
         let theta = f64::from_count(ia) / f64::from_count(na) * theta_max;
-        let row: Vec<_> = (0..ns)
-            .map(|ib| {
-                let beta = f64::from_count(ib) / f64::from_count(ns) * TAU;
-                let (p, n) = tube_vertex(theta, beta);
-                mesh.add_vertex(p, n)
-            })
-            .collect();
-        rings.push(row);
+        rings.fill_ring(ia, |ib| {
+            let beta = f64::from_count(ib) / f64::from_count(ns) * TAU;
+            let (p, n) = tube_vertex(theta, beta);
+            mesh.add_vertex(p, n)
+        });
     }
 
-    add_helix_ring_quads(&mut mesh, &rings, ns, wall_region);
+    add_ring_wall_quads(&mut mesh, &rings, wall_region);
 
     // Inlet cap (theta = 0): inward fan, normal = -T(0)
     let (t0, _, _, centre0) = helix_frame(0.0);
-    add_tube_endcap(&mut mesh, &rings[0], centre0, -t0, inlet_region, true);
+    add_ring_end_cap(&mut mesh, rings.ring(0), centre0, -t0, inlet_region, true);
 
     // Outlet cap (theta = theta_max): outward fan, normal = +T(theta_max)
     let (t_end, _, _, centre_end) = helix_frame(theta_max);
-    add_tube_endcap(
+    add_ring_end_cap(
         &mut mesh,
-        &rings[na],
+        rings.ring(na),
         centre_end,
         t_end,
         outlet_region,

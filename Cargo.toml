@@ -183,6 +183,15 @@ name = "topology_performance"
 path = "benches/topology_performance.rs"
 harness = false
 
+# ATLAS-ARCH-008 sub-slice: the swept primitives' cross-section ring table
+# against the pre-conversion per-station `Vec<Vec<_>>`. Run with
+# `cargo bench -p gaia-mesh --bench primitive_ring_layout`; single-iteration
+# smoke via `-- --test`.
+[[bench]]
+name = "primitive_ring_layout"
+path = "benches/primitive_ring_layout.rs"
+harness = false
+
 # ── Primitive validation examples ─────────────────────────────────────────────
 
 [[example]]

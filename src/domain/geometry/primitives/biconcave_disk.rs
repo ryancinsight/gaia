@@ -3,6 +3,7 @@
 use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
+use super::rings::VertexRings;
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::{Point3r, Vector3r};
@@ -179,26 +180,26 @@ fn add_disk_surface(
     };
     let apex = mesh.add_vertex(Point3r::new(center.x, apex_y, center.z), apex_normal);
 
-    let mut ring_ids: Vec<Vec<VertexId>> = Vec::with_capacity(nr);
+    let mut ring_ids = VertexRings::with_rows(nr, ns);
     for k in 1..=nr {
         let rho = f64::from_count(k) / f64::from_count(nr);
-        let ids = if k == nr {
-            rim_ids.to_vec()
+        if k == nr {
+            ring_ids.fill_ring(k - 1, |i| rim_ids[i]);
         } else {
-            disk_ring_vertices(center, ns, r, c0, c1, c2, rho, is_upper)
-                .iter()
-                .map(|(position, normal)| mesh.add_vertex(*position, *normal))
-                .collect()
-        };
-        ring_ids.push(ids);
+            let positions = disk_ring_vertices(center, ns, r, c0, c1, c2, rho, is_upper);
+            ring_ids.fill_ring(k - 1, |i| {
+                let (position, normal) = positions[i];
+                mesh.add_vertex(position, normal)
+            });
+        }
     }
 
     for i in 0..ns {
         let j = (i + 1) % ns;
         if is_upper {
-            mesh.add_face_with_region(apex, ring_ids[0][j], ring_ids[0][i], region);
+            mesh.add_face_with_region(apex, ring_ids.ring(0)[j], ring_ids.ring(0)[i], region);
         } else {
-            mesh.add_face_with_region(apex, ring_ids[0][i], ring_ids[0][j], region);
+            mesh.add_face_with_region(apex, ring_ids.ring(0)[i], ring_ids.ring(0)[j], region);
         }
     }
 
@@ -207,28 +208,28 @@ fn add_disk_surface(
             let j = (i + 1) % ns;
             if is_upper {
                 mesh.add_face_with_region(
-                    ring_ids[k][i],
-                    ring_ids[k][j],
-                    ring_ids[k + 1][j],
+                    ring_ids.ring(k)[i],
+                    ring_ids.ring(k)[j],
+                    ring_ids.ring(k + 1)[j],
                     region,
                 );
                 mesh.add_face_with_region(
-                    ring_ids[k][i],
-                    ring_ids[k + 1][j],
-                    ring_ids[k + 1][i],
+                    ring_ids.ring(k)[i],
+                    ring_ids.ring(k + 1)[j],
+                    ring_ids.ring(k + 1)[i],
                     region,
                 );
             } else {
                 mesh.add_face_with_region(
-                    ring_ids[k][j],
-                    ring_ids[k][i],
-                    ring_ids[k + 1][i],
+                    ring_ids.ring(k)[j],
+                    ring_ids.ring(k)[i],
+                    ring_ids.ring(k + 1)[i],
                     region,
                 );
                 mesh.add_face_with_region(
-                    ring_ids[k][j],
-                    ring_ids[k + 1][i],
-                    ring_ids[k + 1][j],
+                    ring_ids.ring(k)[j],
+                    ring_ids.ring(k + 1)[i],
+                    ring_ids.ring(k + 1)[j],
                     region,
                 );
             }

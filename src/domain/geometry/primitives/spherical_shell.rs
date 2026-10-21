@@ -4,8 +4,9 @@ use eunomia::FloatElement;
 use std::f64::consts::PI;
 use std::f64::consts::TAU;
 
+use super::rings::VertexRings;
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::index::{RegionId, VertexId};
+use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -76,62 +77,60 @@ fn build_shell_rings(
     ns: usize,
     nk: usize,
     is_outer: bool,
-) -> Vec<Vec<VertexId>> {
+) -> VertexRings {
     let segments = f64::from_count(ns);
     let stacks = f64::from_count(nk);
 
-    (0..nk - 1)
-        .map(|k| {
-            let phi = f64::from_count(k + 1) / stacks * PI;
-            let sp = phi.sin();
-            let cp = phi.cos();
-            let y = center.y + r * cp;
+    let mut rings = VertexRings::with_rows(nk - 1, ns);
+    for k in 0..nk - 1 {
+        let phi = f64::from_count(k + 1) / stacks * PI;
+        let sp = phi.sin();
+        let cp = phi.cos();
+        let y = center.y + r * cp;
 
-            (0..ns)
-                .map(|j| {
-                    let theta = f64::from_count(j) / segments * TAU;
-                    let ct = theta.cos();
-                    let st = theta.sin();
-                    let position = Point3r::new(center.x + r * sp * ct, y, center.z + r * sp * st);
-                    let normal = if is_outer {
-                        Vector3r::new(sp * ct, cp, sp * st)
-                    } else {
-                        Vector3r::new(-sp * ct, -cp, -sp * st)
-                    };
-                    mesh.add_vertex(position, normal)
-                })
-                .collect()
-        })
-        .collect()
+        rings.fill_ring(k, |j| {
+            let theta = f64::from_count(j) / segments * TAU;
+            let ct = theta.cos();
+            let st = theta.sin();
+            let position = Point3r::new(center.x + r * sp * ct, y, center.z + r * sp * st);
+            let normal = if is_outer {
+                Vector3r::new(sp * ct, cp, sp * st)
+            } else {
+                Vector3r::new(-sp * ct, -cp, -sp * st)
+            };
+            mesh.add_vertex(position, normal)
+        });
+    }
+    rings
 }
 
 /// Add the outer and inner ring bands between adjacent shell latitudes.
 fn add_shell_bands(
     mesh: &mut IndexedMesh,
-    outer_rings: &[Vec<VertexId>],
-    inner_rings: &[Vec<VertexId>],
+    outer_rings: &VertexRings,
+    inner_rings: &VertexRings,
     ns: usize,
     region: RegionId,
 ) {
-    for k in 0..outer_rings.len() - 1 {
+    for k in 0..outer_rings.rows() - 1 {
         for j in 0..ns {
             let j1 = (j + 1) % ns;
-            let vu0 = outer_rings[k][j];
-            let vu1 = outer_rings[k][j1];
-            let vl0 = outer_rings[k + 1][j];
-            let vl1 = outer_rings[k + 1][j1];
+            let vu0 = outer_rings.ring(k)[j];
+            let vu1 = outer_rings.ring(k)[j1];
+            let vl0 = outer_rings.ring(k + 1)[j];
+            let vl1 = outer_rings.ring(k + 1)[j1];
             mesh.add_face_with_region(vu0, vl0, vl1, region);
             mesh.add_face_with_region(vu0, vl1, vu1, region);
         }
     }
 
-    for k in 0..inner_rings.len() - 1 {
+    for k in 0..inner_rings.rows() - 1 {
         for j in 0..ns {
             let j1 = (j + 1) % ns;
-            let vu0 = inner_rings[k][j];
-            let vu1 = inner_rings[k][j1];
-            let vl0 = inner_rings[k + 1][j];
-            let vl1 = inner_rings[k + 1][j1];
+            let vu0 = inner_rings.ring(k)[j];
+            let vu1 = inner_rings.ring(k)[j1];
+            let vl0 = inner_rings.ring(k + 1)[j];
+            let vl1 = inner_rings.ring(k + 1)[j1];
             mesh.add_face_with_region(vu0, vu1, vl1, region);
             mesh.add_face_with_region(vu0, vl1, vl0, region);
         }
@@ -141,29 +140,29 @@ fn add_shell_bands(
 /// Add the annular polar caps that connect the shell surfaces.
 fn add_shell_caps(
     mesh: &mut IndexedMesh,
-    outer_rings: &[Vec<VertexId>],
-    inner_rings: &[Vec<VertexId>],
+    outer_rings: &VertexRings,
+    inner_rings: &VertexRings,
     ns: usize,
     region: RegionId,
 ) {
     for j in 0..ns {
         let j1 = (j + 1) % ns;
-        let oi = outer_rings[0][j];
-        let oi1 = outer_rings[0][j1];
-        let ii = inner_rings[0][j];
-        let ii1 = inner_rings[0][j1];
+        let oi = outer_rings.ring(0)[j];
+        let oi1 = outer_rings.ring(0)[j1];
+        let ii = inner_rings.ring(0)[j];
+        let ii1 = inner_rings.ring(0)[j1];
         mesh.add_face_with_region(oi, ii1, ii, region);
         mesh.add_face_with_region(oi, oi1, ii1, region);
     }
 
-    let outer_last = outer_rings.len() - 1;
-    let inner_last = inner_rings.len() - 1;
+    let outer_last = outer_rings.rows() - 1;
+    let inner_last = inner_rings.rows() - 1;
     for j in 0..ns {
         let j1 = (j + 1) % ns;
-        let oi = outer_rings[outer_last][j];
-        let oi1 = outer_rings[outer_last][j1];
-        let ii = inner_rings[inner_last][j];
-        let ii1 = inner_rings[inner_last][j1];
+        let oi = outer_rings.ring(outer_last)[j];
+        let oi1 = outer_rings.ring(outer_last)[j1];
+        let ii = inner_rings.ring(inner_last)[j];
+        let ii1 = inner_rings.ring(inner_last)[j1];
         mesh.add_face_with_region(ii, ii1, oi1, region);
         mesh.add_face_with_region(ii, oi1, oi, region);
     }

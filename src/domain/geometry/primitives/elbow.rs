@@ -3,8 +3,9 @@
 use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
+use super::rings::{add_ring_end_cap, add_ring_wall_quads, VertexRings};
 use super::{PrimitiveError, PrimitiveMesh};
-use crate::domain::core::index::{RegionId, VertexId};
+use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
@@ -81,26 +82,6 @@ impl PrimitiveMesh for Elbow {
     }
 }
 
-/// Connect adjacent elbow rings with outward-oriented wall quads.
-fn add_elbow_ring_quads(
-    mesh: &mut IndexedMesh,
-    rings: &[Vec<VertexId>],
-    ns: usize,
-    region: RegionId,
-) {
-    for ia in 0..rings.len() - 1 {
-        for ib in 0..ns {
-            let ib1 = (ib + 1) % ns;
-            let v00 = rings[ia][ib];
-            let v10 = rings[ia + 1][ib];
-            let v11 = rings[ia + 1][ib1];
-            let v01 = rings[ia][ib1];
-            mesh.add_face_with_region(v00, v01, v11, region);
-            mesh.add_face_with_region(v00, v11, v10, region);
-        }
-    }
-}
-
 fn build(el: &Elbow) -> Result<IndexedMesh, PrimitiveError> {
     if el.tube_radius <= 0.0 {
         return Err(PrimitiveError::InvalidParam(format!(
@@ -168,20 +149,17 @@ fn build(el: &Elbow) -> Result<IndexedMesh, PrimitiveError> {
     // Pre-build ring vertex arrays for shared edge connectivity
     // rings[ia][ib] = VertexId at arc station ia, tube angle ib.
     // Caps reuse rings[0] and rings[na] so wall/cap edges are topologically shared.
-    let mut rings: Vec<Vec<crate::domain::core::index::VertexId>> = Vec::with_capacity(na + 1);
+    let mut rings = VertexRings::with_rows(na + 1, ns);
     for ia in 0..=na {
         let alpha = f64::from_count(ia) / f64::from_count(na) * ba;
-        let row: Vec<_> = (0..ns)
-            .map(|ib| {
-                let beta = f64::from_count(ib) / f64::from_count(ns) * TAU;
-                let (p, n) = tube_vertex(alpha, beta);
-                mesh.add_vertex(p, n)
-            })
-            .collect();
-        rings.push(row);
+        rings.fill_ring(ia, |ib| {
+            let beta = f64::from_count(ib) / f64::from_count(ns) * TAU;
+            let (p, n) = tube_vertex(alpha, beta);
+            mesh.add_vertex(p, n)
+        });
     }
 
-    add_elbow_ring_quads(&mut mesh, &rings, ns, wall_region);
+    add_ring_wall_quads(&mut mesh, &rings, wall_region);
 
     // Inlet and outlet caps: only add for partial bends (not full 360 torus).
     // For a full circle, rings[0] == rings[na] and the lateral wall already closes itself.
@@ -193,14 +171,8 @@ fn build(el: &Elbow) -> Result<IndexedMesh, PrimitiveError> {
             let (t0, _, _) = frenet(0.0);
             let n_cap = -t0;
             let center = centre_at(0.0);
-            let vc = mesh.add_vertex(center, n_cap);
-            for ib in 0..ns {
-                let ib1 = (ib + 1) % ns;
-                let vr0 = rings[0][ib];
-                let vr1 = rings[0][ib1];
-                // CCW from outside (-T direction): centre -> r_{i+1} -> r_i
-                mesh.add_face_with_region(vc, vr1, vr0, inlet_region);
-            }
+            // CCW from outside (-T direction): centre -> r_{i+1} -> r_i
+            add_ring_end_cap(&mut mesh, rings.ring(0), center, n_cap, inlet_region, true);
         }
 
         // Outlet cap (alpha = bend_angle, outward normal = +T(bend_angle))
@@ -209,14 +181,15 @@ fn build(el: &Elbow) -> Result<IndexedMesh, PrimitiveError> {
             let (t_end, _, _) = frenet(ba);
             let n_cap = t_end;
             let center = centre_at(ba);
-            let vc = mesh.add_vertex(center, n_cap);
-            for ib in 0..ns {
-                let ib1 = (ib + 1) % ns;
-                let vr0 = rings[na][ib];
-                let vr1 = rings[na][ib1];
-                // CCW from outside (+T direction): centre -> r_i -> r_{i+1}
-                mesh.add_face_with_region(vc, vr0, vr1, outlet_region);
-            }
+            // CCW from outside (+T direction): centre -> r_i -> r_{i+1}
+            add_ring_end_cap(
+                &mut mesh,
+                rings.ring(na),
+                center,
+                n_cap,
+                outlet_region,
+                false,
+            );
         }
     }
 
