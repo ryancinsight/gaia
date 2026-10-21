@@ -149,7 +149,13 @@ fn build(el: &Elbow) -> Result<IndexedMesh, PrimitiveError> {
     // Pre-build ring vertex arrays for shared edge connectivity
     // rings[ia][ib] = VertexId at arc station ia, tube angle ib.
     // Caps reuse rings[0] and rings[na] so wall/cap edges are topologically shared.
-    let mut rings = VertexRings::with_rows(na + 1, ns)?;
+    let ring_count = na.checked_add(1).ok_or_else(|| {
+        PrimitiveError::InvalidParam(format!(
+            "arc_segments must be below {}, got {na}",
+            usize::MAX
+        ))
+    })?;
+    let mut rings = VertexRings::with_rows(ring_count, ns)?;
     for ia in 0..=na {
         let alpha = f64::from_count(ia) / f64::from_count(na) * ba;
         rings.fill_ring(ia, |ib| {

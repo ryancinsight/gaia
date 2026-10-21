@@ -144,6 +144,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn an_oversized_ring_table_is_an_invalid_parameter() {
+        let error = VertexRings::with_rows(usize::MAX / 2 + 1, 4)
+            .expect_err("a table that cannot be addressed is refused");
+        assert!(
+            matches!(error, PrimitiveError::InvalidParam(_)),
+            "got {error:?}"
+        );
+    }
+
+    #[test]
     fn the_ring_table_is_one_contiguous_buffer() {
         let mut rings = VertexRings::with_rows(3, 4).expect("a three-ring table fits");
         assert_eq!(rings.rows(), 3);
