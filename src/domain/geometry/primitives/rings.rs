@@ -10,6 +10,7 @@
 //! primitives each carried their own copy of the same wall-quad and end-cap
 //! loops; one owner keeps their winding conventions in step.
 
+use super::PrimitiveError;
 use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
@@ -44,15 +45,24 @@ pub(crate) struct VertexRings {
 
 impl VertexRings {
     /// A table of `rows` rings, each `stride` vertices long.
-    pub(crate) fn with_rows(rows: usize, stride: usize) -> Self {
-        let cells = rows
-            .checked_mul(stride)
-            .expect("invariant: a ring table's cell count fits a usize");
-        Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PrimitiveError::InvalidParam`] when the table's cell count
+    /// exceeds the addressable range. The ring counts come from the
+    /// primitive's own parameters, so an overflowing table is an invalid
+    /// request rather than a defect.
+    pub(crate) fn with_rows(rows: usize, stride: usize) -> Result<Self, PrimitiveError> {
+        let cells = rows.checked_mul(stride).ok_or_else(|| {
+            PrimitiveError::InvalidParam(format!(
+                "a ring table of {rows} rings of {stride} vertices exceeds the addressable range"
+            ))
+        })?;
+        Ok(Self {
             vertices: vec![VertexId::default(); cells],
             rows,
             stride,
-        }
+        })
     }
 
     /// The number of rings in the table.
@@ -135,7 +145,7 @@ mod tests {
 
     #[test]
     fn the_ring_table_is_one_contiguous_buffer() {
-        let mut rings = VertexRings::with_rows(3, 4);
+        let mut rings = VertexRings::with_rows(3, 4).expect("a three-ring table fits");
         assert_eq!(rings.rows(), 3);
         assert_eq!(rings.stride(), 4);
 

@@ -267,7 +267,7 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
     // Cross-section surface normal: n_out(beta) = cos(beta)·N + sin(beta)·B
     let b_fixed = Vector3r::y();
     let n_stations = all_stations.len();
-    let mut rings = VertexRings::with_rows(n_stations, ns);
+    let mut rings = VertexRings::with_rows(n_stations, ns)?;
 
     for (ia, station) in all_stations.iter().enumerate() {
         let n_frame = frame_normal(station.tangent);

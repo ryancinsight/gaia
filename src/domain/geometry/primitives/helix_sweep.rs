@@ -168,7 +168,7 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
     };
 
     // Pre-build ring vertex arrays for shared edge connectivity
-    let mut rings = VertexRings::with_rows(na + 1, ns);
+    let mut rings = VertexRings::with_rows(na + 1, ns)?;
     for ia in 0..=na {
         let theta = f64::from_count(ia) / f64::from_count(na) * theta_max;
         rings.fill_ring(ia, |ib| {

@@ -77,11 +77,11 @@ fn build_shell_rings(
     ns: usize,
     nk: usize,
     is_outer: bool,
-) -> VertexRings {
+) -> Result<VertexRings, PrimitiveError> {
     let segments = f64::from_count(ns);
     let stacks = f64::from_count(nk);
 
-    let mut rings = VertexRings::with_rows(nk - 1, ns);
+    let mut rings = VertexRings::with_rows(nk - 1, ns)?;
     for k in 0..nk - 1 {
         let phi = f64::from_count(k + 1) / stacks * PI;
         let sp = phi.sin();
@@ -101,7 +101,7 @@ fn build_shell_rings(
             mesh.add_vertex(position, normal)
         });
     }
-    rings
+    Ok(rings)
 }
 
 /// Add the outer and inner ring bands between adjacent shell latitudes.
@@ -199,8 +199,8 @@ fn build(s: &SphericalShell) -> Result<IndexedMesh, PrimitiveError> {
     let ns = s.segments;
     let nk = s.stacks;
     let center = Point3r::new(cx, cy, cz);
-    let outer_rings = build_shell_rings(&mut mesh, ro, center, ns, nk, true);
-    let inner_rings = build_shell_rings(&mut mesh, ri, center, ns, nk, false);
+    let outer_rings = build_shell_rings(&mut mesh, ro, center, ns, nk, true)?;
+    let inner_rings = build_shell_rings(&mut mesh, ri, center, ns, nk, false)?;
     add_shell_bands(&mut mesh, &outer_rings, &inner_rings, ns, region);
     add_shell_caps(&mut mesh, &outer_rings, &inner_rings, ns, region);
 

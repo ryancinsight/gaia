@@ -167,7 +167,7 @@ fn add_disk_surface(
     c2: f64,
     is_upper: bool,
     region: RegionId,
-) {
+) -> Result<(), PrimitiveError> {
     let apex_y = if is_upper {
         center.y + evans_fung_height(r, 0.0, c0, c1, c2)
     } else {
@@ -180,7 +180,7 @@ fn add_disk_surface(
     };
     let apex = mesh.add_vertex(Point3r::new(center.x, apex_y, center.z), apex_normal);
 
-    let mut ring_ids = VertexRings::with_rows(nr, ns);
+    let mut ring_ids = VertexRings::with_rows(nr, ns)?;
     for k in 1..=nr {
         let rho = f64::from_count(k) / f64::from_count(nr);
         if k == nr {
@@ -235,6 +235,7 @@ fn add_disk_surface(
             }
         }
     }
+    Ok(())
 }
 
 fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
@@ -306,7 +307,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
         c2,
         true,
         upper_region,
-    );
+    )?;
     add_disk_surface(
         &mut mesh,
         bd.center,
@@ -319,7 +320,7 @@ fn build(bd: &BiconcaveDisk) -> Result<IndexedMesh, PrimitiveError> {
         c2,
         false,
         lower_region,
-    );
+    )?;
 
     Ok(mesh)
 }
