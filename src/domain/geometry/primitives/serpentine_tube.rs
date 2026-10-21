@@ -86,7 +86,7 @@
 use eunomia::FloatElement;
 use std::f64::consts::{PI, TAU};
 
-use super::rings::{add_ring_end_cap, add_ring_wall_quads, VertexRings};
+use super::rings::{add_ring_end_cap, add_ring_wall_quads, CapWinding, VertexRings};
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
@@ -289,7 +289,7 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
         all_stations[0].centre,
         -all_stations[0].tangent,
         inlet_region,
-        true,
+        CapWinding::Reversed,
     );
 
     // ── Outlet cap (last station, outward normal = +T_last) ───────────────────
@@ -299,7 +299,7 @@ fn build(st: &SerpentineTube) -> Result<IndexedMesh, PrimitiveError> {
         all_stations[n_stations - 1].centre,
         all_stations[n_stations - 1].tangent,
         outlet_region,
-        false,
+        CapWinding::Forward,
     );
 
     Ok(mesh)

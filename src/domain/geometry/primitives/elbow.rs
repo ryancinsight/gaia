@@ -3,7 +3,7 @@
 use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
-use super::rings::{add_ring_end_cap, add_ring_wall_quads, VertexRings};
+use super::rings::{add_ring_end_cap, add_ring_wall_quads, CapWinding, VertexRings};
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
@@ -172,7 +172,14 @@ fn build(el: &Elbow) -> Result<IndexedMesh, PrimitiveError> {
             let n_cap = -t0;
             let center = centre_at(0.0);
             // CCW from outside (-T direction): centre -> r_{i+1} -> r_i
-            add_ring_end_cap(&mut mesh, rings.ring(0), center, n_cap, inlet_region, true);
+            add_ring_end_cap(
+                &mut mesh,
+                rings.ring(0),
+                center,
+                n_cap,
+                inlet_region,
+                CapWinding::Reversed,
+            );
         }
 
         // Outlet cap (alpha = bend_angle, outward normal = +T(bend_angle))
@@ -188,7 +195,7 @@ fn build(el: &Elbow) -> Result<IndexedMesh, PrimitiveError> {
                 center,
                 n_cap,
                 outlet_region,
-                false,
+                CapWinding::Forward,
             );
         }
     }

@@ -14,6 +14,19 @@ use crate::domain::core::index::{RegionId, VertexId};
 use crate::domain::core::scalar::{Point3r, Vector3r};
 use crate::domain::mesh::IndexedMesh;
 
+/// The direction a cap's fan winds around its ring.
+///
+/// The two variants exist because a cap's fan runs one way around the tube's
+/// inlet and the other around its outlet, and the choice flips the cap's
+/// normal; a bare flag at the call site hid which of the two a call wanted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CapWinding {
+    /// The fan visits the ring's vertices in the order the ring lists them.
+    Forward,
+    /// The fan visits the ring's vertices in the reverse of that order.
+    Reversed,
+}
+
 /// A table of equal-length vertex rings in one contiguous buffer.
 ///
 /// Ring `r` holds `stride` vertices at `vertices[r * stride..][..stride]`, so
@@ -32,8 +45,11 @@ pub(crate) struct VertexRings {
 impl VertexRings {
     /// A table of `rows` rings, each `stride` vertices long.
     pub(crate) fn with_rows(rows: usize, stride: usize) -> Self {
+        let cells = rows
+            .checked_mul(stride)
+            .expect("invariant: a ring table's cell count fits a usize");
         Self {
-            vertices: vec![VertexId::default(); rows * stride],
+            vertices: vec![VertexId::default(); cells],
             rows,
             stride,
         }
@@ -51,11 +67,13 @@ impl VertexRings {
 
     /// The vertices of ring `index`.
     pub(crate) fn ring(&self, index: usize) -> &[VertexId] {
+        debug_assert!(index < self.rows, "ring index within the table");
         &self.vertices[index * self.stride..(index + 1) * self.stride]
     }
 
     /// Fill ring `ring` with the vertex `fill` returns for each of its slots.
     pub(crate) fn fill_ring(&mut self, ring: usize, mut fill: impl FnMut(usize) -> VertexId) {
+        debug_assert!(ring < self.rows, "ring index within the table");
         let start = ring * self.stride;
         for slot in 0..self.stride {
             self.vertices[start + slot] = fill(slot);
@@ -86,24 +104,27 @@ pub(crate) fn add_ring_wall_quads(mesh: &mut IndexedMesh, rings: &VertexRings, r
 
 /// Close one end of a ring with a fan cap.
 ///
-/// `center` is the cap centre and `normal` its outward normal. `inward`
-/// orients the fan for the tube's start end, whose cap faces against the
-/// sweep direction.
+/// `center` is the cap centre and `normal` its outward normal. `winding`
+/// selects the direction the fan runs around the ring, which is what fixes
+/// the cap's face normal against the tube's direction of travel.
 pub(crate) fn add_ring_end_cap(
     mesh: &mut IndexedMesh,
     ring: &[VertexId],
     center: Point3r,
     normal: Vector3r,
     region: RegionId,
-    inward: bool,
+    winding: CapWinding,
 ) {
     let vc = mesh.add_vertex(center, normal);
     for slot in 0..ring.len() {
         let next = (slot + 1) % ring.len();
-        if inward {
-            mesh.add_face_with_region(vc, ring[next], ring[slot], region);
-        } else {
-            mesh.add_face_with_region(vc, ring[slot], ring[next], region);
+        match winding {
+            CapWinding::Forward => {
+                mesh.add_face_with_region(vc, ring[slot], ring[next], region);
+            }
+            CapWinding::Reversed => {
+                mesh.add_face_with_region(vc, ring[next], ring[slot], region);
+            }
         }
     }
 }

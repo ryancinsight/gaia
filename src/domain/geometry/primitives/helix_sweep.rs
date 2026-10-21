@@ -3,7 +3,7 @@
 use eunomia::FloatElement;
 use std::f64::consts::TAU;
 
-use super::rings::{add_ring_end_cap, add_ring_wall_quads, VertexRings};
+use super::rings::{add_ring_end_cap, add_ring_wall_quads, CapWinding, VertexRings};
 use super::{PrimitiveError, PrimitiveMesh};
 use crate::domain::core::index::RegionId;
 use crate::domain::core::scalar::{Point3r, Vector3r};
@@ -182,7 +182,14 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
 
     // Inlet cap (theta = 0): inward fan, normal = -T(0)
     let (t0, _, _, centre0) = helix_frame(0.0);
-    add_ring_end_cap(&mut mesh, rings.ring(0), centre0, -t0, inlet_region, true);
+    add_ring_end_cap(
+        &mut mesh,
+        rings.ring(0),
+        centre0,
+        -t0,
+        inlet_region,
+        CapWinding::Reversed,
+    );
 
     // Outlet cap (theta = theta_max): outward fan, normal = +T(theta_max)
     let (t_end, _, _, centre_end) = helix_frame(theta_max);
@@ -192,7 +199,7 @@ fn build(hs: &HelixSweep) -> Result<IndexedMesh, PrimitiveError> {
         centre_end,
         t_end,
         outlet_region,
-        false,
+        CapWinding::Forward,
     );
 
     Ok(mesh)
