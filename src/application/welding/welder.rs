@@ -4,6 +4,7 @@
 
 use hashbrown::HashMap;
 
+use super::incidence::VertexFaceIncidence;
 use crate::application::welding::spatial_hash::SpatialHashGrid;
 use crate::domain::core::index::VertexId;
 use crate::domain::core::scalar::{Point3r, Real, TOLERANCE};
@@ -18,29 +19,6 @@ pub struct WeldResult {
     pub vertices_merged: usize,
     /// Number of faces updated to point to the new canonical vertices.
     pub faces_updated: usize,
-}
-
-/// Build vertex-to-face adjacency and per-face vertex snapshot from a `FaceStore`.
-///
-/// Returns `(v_faces, cur_face_verts)` where `v_faces[i]` contains the raw
-/// face IDs incident to vertex `i`, and `cur_face_verts[f]` is the current
-/// (post-merge-update) triple of raw vertex IDs for face `f`.
-fn build_vertex_face_adjacency(n: usize, face_store: &FaceStore) -> (Vec<Vec<u32>>, Vec<[u32; 3]>) {
-    let mut v_faces: Vec<Vec<u32>> = vec![Vec::new(); n];
-    for (f_id, face) in face_store.iter_enumerated() {
-        for v in face.vertices {
-            push_unique_face(&mut v_faces[v.raw() as usize], f_id.0);
-        }
-    }
-    let mut cur_face_verts: Vec<[u32; 3]> = vec![[0; 3]; face_store.len()];
-    for (f_id, face) in face_store.iter_enumerated() {
-        cur_face_verts[f_id.0 as usize] = [
-            face.vertices[0].raw(),
-            face.vertices[1].raw(),
-            face.vertices[2].raw(),
-        ];
-    }
-    (v_faces, cur_face_verts)
 }
 
 /// Pack the canonical positions into a `WeldResult` and update face vertex IDs.
@@ -126,8 +104,8 @@ impl MeshWelder {
             };
         }
 
-        let (mut v_faces, mut cur_face_verts) = build_vertex_face_adjacency(n, face_store);
-        let old_active_count = v_faces.iter().filter(|f| !f.is_empty()).count();
+        let (mut incidence, mut cur_face_verts) = VertexFaceIncidence::build(n, face_store);
+        let old_active_count = incidence.active_count();
 
         // Build a SpatialHashGrid containing all original positions.
         let mut grid = SpatialHashGrid::new(self.tolerance * 2.0);
@@ -149,7 +127,7 @@ impl MeshWelder {
             if remap[usize::try_from(i).expect("vertex index fits in usize")] != i {
                 continue;
             }
-            if v_faces[usize::try_from(i).expect("vertex index fits in usize")].is_empty() {
+            if incidence.is_empty(i) {
                 continue;
             }
 
@@ -172,7 +150,7 @@ impl MeshWelder {
                     continue;
                 }
 
-                if v_faces[usize::try_from(c).expect("vertex index fits in usize")].is_empty() {
+                if incidence.is_empty(c) {
                     continue;
                 }
 
@@ -180,8 +158,7 @@ impl MeshWelder {
                 if Self::is_safe_to_merge(
                     i,
                     c,
-                    &v_faces[usize::try_from(i).expect("vertex index fits in usize")],
-                    &v_faces[usize::try_from(c).expect("vertex index fits in usize")],
+                    &incidence,
                     &cur_face_verts,
                     &mut dst_scratch,
                     &mut src_scratch,
@@ -189,12 +166,8 @@ impl MeshWelder {
                     // SAFE! Merge c into i.
                     remap[usize::try_from(c).expect("vertex index fits in usize")] = i;
 
-                    // Update dynamic topology.
-                    // Move all faces from c to i.
-                    let faces_of_c = std::mem::take(
-                        &mut v_faces[usize::try_from(c).expect("vertex index fits in usize")],
-                    );
-                    for f_id in faces_of_c {
+                    // Update dynamic topology: move all faces from c to i.
+                    for f_id in incidence.faces(c) {
                         // Update cur_face_verts
                         if let Some(verts) = cur_face_verts
                             .get_mut(usize::try_from(f_id).expect("face index fits in usize"))
@@ -205,11 +178,10 @@ impl MeshWelder {
                                 }
                             }
                         }
-                        push_unique_face(
-                            &mut v_faces[usize::try_from(i).expect("vertex index fits in usize")],
-                            f_id,
-                        );
                     }
+                    // Condition 1 of is_safe_to_merge guarantees the two
+                    // chains are disjoint, so the splice needs no scan.
+                    incidence.absorb(i, c);
                 }
             }
         }
@@ -224,17 +196,16 @@ impl MeshWelder {
     fn is_safe_to_merge(
         dst: u32,
         src: u32,
-        dst_faces: &[u32],
-        src_faces: &[u32],
+        incidence: &VertexFaceIncidence,
         cur_face_verts: &[[u32; 3]],
         dst_scratch: &mut Vec<(u32, u32)>,
         src_scratch: &mut Vec<(u32, u32)>,
     ) -> bool {
         // Condition 1: Shared Face Check (Degenerate Prevention)
-        // O(|dst| * |src|), but valence is small and Vec adjacency avoids a
-        // per-vertex hash table allocation.
-        for &f_id in src_faces {
-            if dst_faces.contains(&f_id) {
+        // O(|dst| * |src|), but valence is small and the chained adjacency
+        // keeps both walks on contiguous runs.
+        for f_id in incidence.faces(src) {
+            if incidence.faces(dst).any(|f| f == f_id) {
                 return false;
             }
         }
@@ -242,7 +213,7 @@ impl MeshWelder {
         // Condition 2: Non-Manifold Edge Prevention
         // Reuse pre-allocated scratch buffers — clear here rather than allocating.
         dst_scratch.clear();
-        for &f_id in dst_faces {
+        for f_id in incidence.faces(dst) {
             if let Some(verts) =
                 cur_face_verts.get(usize::try_from(f_id).expect("face index fits in usize"))
             {
@@ -259,7 +230,7 @@ impl MeshWelder {
         }
 
         src_scratch.clear();
-        for &f_id in src_faces {
+        for f_id in incidence.faces(src) {
             if let Some(verts) =
                 cur_face_verts.get(usize::try_from(f_id).expect("face index fits in usize"))
             {
@@ -285,13 +256,6 @@ impl MeshWelder {
         }
 
         true
-    }
-}
-
-#[inline]
-fn push_unique_face(faces: &mut Vec<u32>, face_id: u32) {
-    if !faces.contains(&face_id) {
-        faces.push(face_id);
     }
 }
 

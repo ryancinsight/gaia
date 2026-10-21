@@ -14,6 +14,7 @@
 //! - [`SpatialHashGrid`] — point-set dedup only (no coordinate snapping).
 //! - [`MeshWelder`] — batch vertex welding for existing `IndexedMesh`es.
 
+mod incidence;
 pub mod snap;
 pub mod spatial_hash;
 pub mod welder;
