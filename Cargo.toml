@@ -169,6 +169,11 @@ path = "benches/hex_to_tet_performance.rs"
 harness = false
 
 [[bench]]
+name = "welding_performance"
+path = "benches/welding_performance.rs"
+harness = false
+
+[[bench]]
 name = "tpms_performance"
 path = "benches/tpms_performance.rs"
 harness = false
