@@ -75,17 +75,7 @@ mod private {
 /// assert_eq!(mean(6.0_f32, 3), 2.0);
 /// assert_eq!(f64::from_integer(-7), -7.0);
 /// ```
-pub trait Scalar:
-    eunomia::RealField
-    + Copy
-    + Default
-    + std::fmt::Debug
-    + std::fmt::Display
-    + Send
-    + Sync
-    + 'static
-    + private::Sealed
-{
+pub trait Scalar: eunomia::RealField + std::fmt::Display + private::Sealed {
     /// Absolute geometry tolerance appropriate for this precision.
     ///
     /// - `f64` → `1 × 10⁻⁹` m  (sub-nanometer; millifluidic mm-scale geometry)
