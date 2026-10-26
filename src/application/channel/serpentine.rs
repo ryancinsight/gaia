@@ -132,12 +132,19 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> IndexedMesh {
     let mut ring_offsets: Vec<usize> = Vec::with_capacity(n_ax + 1);
     ring_offsets.push(0);
     for &(cx, cy, cz) in &spine {
+        // Spine slope y_c'(z) = A * (2pi/lambda) * cos(2pi*z/lambda). For the tube
+        // (x^2 + (y - y_c(z))^2 = r^2) the outward unit normal is proportional to
+        // (cos t, sin t, -y_c'(z) * sin t); (cos t, sin t, 0) is only correct
+        // where the spine is flat.
+        let spine_slope = b.amplitude
+            * (std::f64::consts::TAU / b.wavelength)
+            * (std::f64::consts::TAU * cz / b.wavelength).cos();
         for ia in 0..n_ang {
             let theta = std::f64::consts::TAU * f64::from_count(ia) / f64::from_count(n_ang);
             let (sin_t, cos_t) = theta.sin_cos();
             ring_values.push(mesh.add_vertex(
                 Point3r::new(cx + r * cos_t, cy + r * sin_t, cz),
-                Vector3r::new(cos_t, sin_t, 0.0),
+                Vector3r::new(cos_t, sin_t, -spine_slope * sin_t).normalize(),
             ));
         }
         ring_offsets.push(ring_values.len());
@@ -154,8 +161,15 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> IndexedMesh {
         }
     }
 
+    // End-cap normals follow the spine tangent (0, y_c', 1): at z = 0 and z = L
+    // the slope is maximal (|cos| = 1), so (0, 0, -/+1) can be tens of degrees off.
+    let cap_slope = b.amplitude * (std::f64::consts::TAU / b.wavelength);
+    let cap_norm = (cap_slope * cap_slope + 1.0).sqrt();
     let (icx, icy, icz) = spine[0];
-    let ic = mesh.add_vertex(Point3r::new(icx, icy, icz), Vector3r::new(0.0, 0.0, -1.0));
+    let ic = mesh.add_vertex(
+        Point3r::new(icx, icy, icz),
+        Vector3r::new(0.0, -cap_slope / cap_norm, -1.0 / cap_norm),
+    );
     for ia in 0..n_ang {
         let ia1 = (ia + 1) % n_ang;
         mesh.add_face_with_region(ic, rings[0][ia1], rings[0][ia], inlet_region);
@@ -163,7 +177,10 @@ fn build_serpentine_surface(b: &SerpentineMeshBuilder) -> IndexedMesh {
 
     let last = n_ax - 1;
     let (ocx, ocy, ocz) = spine[last];
-    let oc = mesh.add_vertex(Point3r::new(ocx, ocy, ocz), Vector3r::new(0.0, 0.0, 1.0));
+    let oc = mesh.add_vertex(
+        Point3r::new(ocx, ocy, ocz),
+        Vector3r::new(0.0, cap_slope / cap_norm, 1.0 / cap_norm),
+    );
     for ia in 0..n_ang {
         let ia1 = (ia + 1) % n_ang;
         mesh.add_face_with_region(oc, rings[last][ia], rings[last][ia1], outlet_region);
@@ -183,6 +200,34 @@ mod tests {
     /// enters), and the first wall quad references the expected vertex ids
     /// in construction order. The `PackedRows` storage swap must not reorder
     /// or drop rows, so this must hold unchanged before and after it.
+    // Wall normals carry the spine slope: for the tube around
+    // y_c(z) = A sin(2pi z/lambda) the outward unit normal is proportional
+    // to (cos t, sin t, -y_c'(z) sin t); end caps follow the spine tangent.
+    // Ring 0 sits at z = 0 where y_c' = A*2pi/lambda = 0.5*pi (A = 5 mm,
+    // lambda = 20 mm), so angle pi/2 has normal (0, 1, -pi/2)/|(1, pi/2)|
+    // and the inlet cap is (0, -pi/2, -1)/|(1, pi/2)|.
+    #[test]
+    fn serpentine_normals_carry_spine_slope() {
+        let mesh = SerpentineMeshBuilder::new(0.002, 0.005, 0.020)
+            .with_periods(1)
+            .with_resolution(4, 2)
+            .build_surface()
+            .expect("should succeed");
+        let n_ang = 8usize;
+        let slope = 0.5 * std::f64::consts::PI;
+        let inv = (1.0 + slope * slope).sqrt().recip();
+        // Ring 0, angle pi/2 (ia = 2): (cos, sin) = (0, 1).
+        let n = mesh.vertices.normal(VertexId::from_usize(2)).data;
+        assert!(n[0].abs() < 1e-12, "nx = {}", n[0]);
+        assert!((n[1] - inv).abs() < 1e-12, "ny = {}", n[1]);
+        assert!((n[2] + slope * inv).abs() < 1e-12, "nz = {}", n[2]);
+        // Inlet cap vertex (index n_ax * n_ang = 32): -tangent.
+        let c = mesh.vertices.normal(VertexId::from_usize(4 * n_ang)).data;
+        assert!(c[0].abs() < 1e-12, "cx = {}", c[0]);
+        assert!((c[1] + slope * inv).abs() < 1e-12, "cy = {}", c[1]);
+        assert!((c[2] + inv).abs() < 1e-12, "cz = {}", c[2]);
+    }
+
     #[test]
     fn serpentine_ring_topology_is_pinned() {
         let mesh = SerpentineMeshBuilder::new(0.002, 0.005, 0.020)

@@ -199,6 +199,29 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> IndexedMesh {
         }
     };
 
+    // Axial slope of the wall profile. For a surface of revolution r(z)
+    // the outward unit normal is (cos t, sin t, -dr/dz) / sqrt(1 + (dr/dz)^2);
+    // storing (cos t, sin t, 0) tilts the normal off-surface in the
+    // convergent/divergent sections.
+    let slope_at = |z: Real| -> Real {
+        let (r_in, r_th) = (d_in / 2.0, d_th / 2.0);
+        let (z1, z2, z3, z4) = (
+            inlet_length,
+            inlet_length + convergent_length,
+            inlet_length + convergent_length + throat_length,
+            inlet_length + convergent_length + throat_length + divergent_length,
+        );
+        if z <= z1 || z >= z4 {
+            0.0
+        } else if z <= z2 {
+            (r_th - r_in) / convergent_length
+        } else if z <= z3 {
+            0.0
+        } else {
+            (r_in - r_th) / divergent_length
+        }
+    };
+
     let mut mesh = IndexedMesh::new();
     let mut ring_values: Vec<crate::domain::core::index::VertexId> = Vec::with_capacity(nx * n_ang);
     let mut ring_offsets: Vec<usize> = Vec::with_capacity(nx + 1);
@@ -209,9 +232,10 @@ fn build_venturi_surface(b: &VenturiMeshBuilder) -> IndexedMesh {
         for ia in 0..n_ang {
             let theta = std::f64::consts::TAU * Real::from_count(ia) / Real::from_count(n_ang);
             let (sin_t, cos_t) = theta.sin_cos();
+            let slope = slope_at(z);
             ring_values.push(mesh.add_vertex(
                 Point3r::new(r * cos_t, r * sin_t, z),
-                Vector3r::new(cos_t, sin_t, 0.0),
+                Vector3r::new(cos_t, sin_t, -slope).normalize(),
             ));
         }
         ring_offsets.push(ring_values.len());
@@ -312,6 +336,32 @@ mod tests {
                 VertexId::from_usize(n_ang),
             ]
         );
+    }
+
+    // Wall normals carry the profile slope: for a surface of revolution
+    // r(z) the outward unit normal is (cos t, sin t, -dr/dz)/|(1, dr/dz)|.
+    // Ring 2 of this mesh sits at z = 0.13*2/7 in the convergent section,
+    // where dr/dz = (0.002 - 0.005)/0.04 = -0.075 exactly.
+    #[test]
+    fn venturi_wall_normals_carry_profile_slope() {
+        let mesh = VenturiMeshBuilder::new(0.010, 0.004, 0.020, 0.040, 0.010, 0.060, 0.020)
+            .with_resolution(8, 2)
+            .build_surface()
+            .expect("should succeed");
+        let n_ang = 8usize;
+        // Every wall normal is unit length.
+        for v in 0..8 * n_ang {
+            let n = mesh.vertices.normal(VertexId::from_usize(v)).data;
+            let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
+            assert!((len - 1.0).abs() < 1e-12, "vertex {v}: |n| = {len}");
+        }
+        // Ring 2, angle 0: (1, 0, 0.075)/sqrt(1 + 0.075^2).
+        let slope = -0.075_f64;
+        let inv = (1.0 + slope * slope).sqrt().recip();
+        let n = mesh.vertices.normal(VertexId::from_usize(2 * n_ang)).data;
+        assert!((n[0] - inv).abs() < 1e-12, "nx = {}", n[0]);
+        assert!(n[1].abs() < 1e-12, "ny = {}", n[1]);
+        assert!((n[2] + slope * inv).abs() < 1e-12, "nz = {}", n[2]);
     }
 
     #[test]
