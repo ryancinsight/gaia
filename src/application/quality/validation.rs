@@ -43,7 +43,7 @@ impl QualityThresholds {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```rust
     /// use gaia::application::quality::validation::QualityThresholds;
     /// use aequitas::systems::si::quantities::{Angle, Dimensionless};
     ///
@@ -53,6 +53,10 @@ impl QualityThresholds {
     ///     Dimensionless::from_base(0.85),  // max skewness
     ///     Dimensionless::from_base(0.05),  // min edge ratio
     /// );
+    /// assert_eq!(thresholds.max_aspect_ratio, 10.0);
+    /// assert_eq!(thresholds.min_angle, 15_f64.to_radians());
+    /// assert_eq!(thresholds.max_skewness, 0.85);
+    /// assert_eq!(thresholds.min_edge_ratio, 0.05);
     /// ```
     #[must_use]
     pub fn from_typed(
