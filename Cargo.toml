@@ -54,7 +54,7 @@ thiserror = "2.0"
 # Data structures
 slotmap = "1.0"
 leto = { version = "0.46.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
-eunomia = { version = "0.10.0", git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
+eunomia = { version = "0.11.0", git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
 aequitas = { version = "0.3.0", git = "https://github.com/ryancinsight/aequitas", default-features = false, features = ["std"] }
 melinoe = { version = "0.10.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false, features = ["alloc"] }
 
