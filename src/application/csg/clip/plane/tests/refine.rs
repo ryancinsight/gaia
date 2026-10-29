@@ -2,10 +2,10 @@
 
 #[cfg(test)]
 mod tests {
-    use super::super::common::csg_pool;
-    use super::super::common::face_from_pts;
-    use super::super::common::n_up;
-    use super::super::common::p;
+    use super::super::fixtures::csg_pool;
+    use super::super::fixtures::face_from_pts;
+    use super::super::fixtures::n_up;
+    use super::super::fixtures::p;
     use crate::application::csg::clip::plane::refine_faces_with_plane;
     use crate::application::csg::clip::plane::PlaneEquation;
     use crate::domain::core::index::RegionId;

@@ -2,9 +2,9 @@
 
 #[cfg(test)]
 mod tests {
-    use super::super::common::csg_pool;
-    use super::super::common::n_up;
-    use super::super::common::p;
+    use super::super::fixtures::csg_pool;
+    use super::super::fixtures::n_up;
+    use super::super::fixtures::p;
     use crate::application::csg::clip::plane::PlaneEquation;
     use crate::domain::core::index::RegionId;
     use crate::domain::geometry::predicates::Orientation;

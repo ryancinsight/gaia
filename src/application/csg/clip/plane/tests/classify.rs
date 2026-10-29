@@ -2,8 +2,8 @@
 
 #[cfg(test)]
 mod tests {
-    use super::super::common::face_from_pts;
-    use super::super::common::p;
+    use super::super::fixtures::face_from_pts;
+    use super::super::fixtures::p;
     use crate::application::csg::clip::plane::classify_face;
     use crate::application::csg::clip::plane::FacePlaneClass;
     use crate::application::csg::clip::plane::PlaneEquation;
