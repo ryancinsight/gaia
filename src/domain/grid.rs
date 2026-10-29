@@ -24,30 +24,109 @@ impl std::fmt::Display for GridError {
 
 impl std::error::Error for GridError {}
 
-/// Builds a structured hexahedral grid over the unit cube.
+/// Per-cell tetrahedral decomposition for [`StructuredGridBuilder`].
+///
+/// Both splits are conforming on translation-invariant lattices (shared faces
+/// triangulate identically), so the assembled volume is watertight either way.
+/// The choice is a consumer contract, not a quality default: kwavers' FEM
+/// convergence proof is calibrated on the six-tet body-diagonal split
+/// (shape-regularity κ ≤ √3), while the five-tet alternating split uses
+/// fewer cells per hex.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TetDecomposition {
+    /// Alternating five-tetrahedra split (conforming faces by parity).
+    #[default]
+    FiveTetAlternating,
+    /// Six tetrahedra sharing the cell body diagonal `v000 → v111`.
+    SixTetBodyDiagonal,
+}
+
+/// Builds a structured hexahedral grid as validated tetrahedral cells.
 ///
 /// `nx`, `ny`, `nz` are the number of *cells* (not nodes) along each axis.
+/// By default the grid covers the unit cube `[0,1]`³ with the alternating
+/// five-tet split — the historical behavior. [`Self::with_origin`],
+/// [`Self::with_spacing`], and [`Self::with_decomposition`] parameterize the
+/// placement and the per-cell split without changing the default output.
 pub struct StructuredGridBuilder {
     nx: usize,
     ny: usize,
     nz: usize,
+    origin: [f64; 3],
+    spacing: Option<[f64; 3]>,
+    decomposition: TetDecomposition,
 }
 
 impl StructuredGridBuilder {
     /// Create a builder with `nx × ny × nz` cells.
     #[must_use]
     pub fn new(nx: usize, ny: usize, nz: usize) -> Self {
-        Self { nx, ny, nz }
+        Self {
+            nx,
+            ny,
+            nz,
+            origin: [0.0; 3],
+            spacing: None,
+            decomposition: TetDecomposition::default(),
+        }
+    }
+
+    /// Place the grid minimum corner at `origin` (default `[0, 0, 0]`).
+    #[must_use]
+    pub fn with_origin(mut self, origin: [f64; 3]) -> Self {
+        self.origin = origin;
+        self
+    }
+
+    /// Use explicit per-axis vertex spacing (default: unit-cube `1/n`).
+    ///
+    /// [`Self::build`] rejects non-finite or non-positive spacing with a
+    /// [`GridError`]; the unit-cube default path is untouched.
+    #[must_use]
+    pub fn with_spacing(mut self, spacing: [f64; 3]) -> Self {
+        self.spacing = Some(spacing);
+        self
+    }
+
+    /// Select the per-cell tetrahedral split (default alternating five-tet).
+    #[must_use]
+    pub fn with_decomposition(mut self, decomposition: TetDecomposition) -> Self {
+        self.decomposition = decomposition;
+        self
     }
 
     /// Build the mesh.
     ///
+    /// Boundary faces carry geometric labels (`inlet` at the minimum-z plane,
+    /// `outlet` at maximum-z, `wall` elsewhere) against the actual grid box,
+    /// and every cell is orientation-normalized by [`TetrahedralMeshBuilder`].
+    ///
     /// # Errors
     ///
-    /// Returns [`GridError`] if the internal tetrahedral decomposition
-    /// produces an invalid cell while assembling the structured grid.
+    /// Returns [`GridError`] for non-finite origin, non-finite/non-positive
+    /// spacing, or if the tetrahedral decomposition produces an invalid cell.
     pub fn build(self) -> Result<IndexedMesh<f64>, GridError> {
-        build_structured_grid(self.nx, self.ny, self.nz)
+        if self.origin.iter().any(|c| !c.is_finite()) {
+            return Err(GridError(format!(
+                "structured grid origin must be finite, got {:?}",
+                self.origin
+            )));
+        }
+        if let Some(spacing) = self.spacing
+            && spacing.iter().any(|s| !s.is_finite() || *s <= 0.0)
+        {
+            return Err(GridError(format!(
+                "structured grid spacing must be finite and positive, got {spacing:?}"
+            )));
+        }
+        build_structured_grid(
+            self.nx,
+            self.ny,
+            self.nz,
+            self.origin,
+            self.spacing,
+            self.decomposition,
+        )
     }
 }
 
@@ -137,7 +216,21 @@ fn build_structured_hex_grid(nx: usize, ny: usize, nz: usize) -> IndexedMesh<f64
     mesh
 }
 
-fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<f64>, GridError> {
+/// Shared construction for [`StructuredGridBuilder`]: regular vertex lattice
+/// over `[origin, origin + cells * spacing]`, per-cell tetrahedral split per
+/// `decomposition`, geometric boundary labels against the actual grid box.
+///
+/// `spacing = None` reproduces the historical unit-cube lattice bit-for-bit
+/// (division by the cell count); `Some` places vertices at
+/// `origin + index * spacing`.
+fn build_structured_grid(
+    nx: usize,
+    ny: usize,
+    nz: usize,
+    origin: [f64; 3],
+    spacing: Option<[f64; 3]>,
+    decomposition: TetDecomposition,
+) -> Result<IndexedMesh<f64>, GridError> {
     let nx = nx.max(1);
     let ny = ny.max(1);
     let nz = nz.max(1);
@@ -146,17 +239,28 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     let vny = ny + 1;
     let vnz = nz + 1;
 
+    let tets_per_cell = match decomposition {
+        TetDecomposition::FiveTetAlternating => 5,
+        TetDecomposition::SixTetBodyDiagonal => 6,
+    };
     let mut builder =
-        TetrahedralMeshBuilder::<f64>::with_capacity(vnx * vny * vnz, nx * ny * nz * 5);
+        TetrahedralMeshBuilder::<f64>::with_capacity(vnx * vny * vnz, nx * ny * nz * tets_per_cell);
     let mut v_ids = Vec::with_capacity(vnx * vny * vnz);
+
+    // Axis coordinate: historical division path when spacing is defaulted so
+    // existing outputs are unchanged; affine placement otherwise.
+    let axis_coord = |origin: f64, index: usize, cells: usize, spacing: Option<f64>| match spacing {
+        None => f64::from_count(index) / f64::from_count(cells),
+        Some(step) => f64::from_count(index).mul_add(step, origin),
+    };
 
     // Create corner vertices on a regular grid.
     for iz in 0..vnz {
         for iy in 0..vny {
             for ix in 0..vnx {
-                let x = f64::from_count(ix) / f64::from_count(nx);
-                let y = f64::from_count(iy) / f64::from_count(ny);
-                let z = f64::from_count(iz) / f64::from_count(nz);
+                let x = axis_coord(origin[0], ix, nx, spacing.map(|s| s[0]));
+                let y = axis_coord(origin[1], iy, ny, spacing.map(|s| s[1]));
+                let z = axis_coord(origin[2], iz, nz, spacing.map(|s| s[2]));
                 v_ids.push(builder.vertex_array([x, y, z]));
             }
         }
@@ -164,7 +268,6 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
 
     let vertex_id_at = |ix: usize, iy: usize, iz: usize| v_ids[iz * vny * vnx + iy * vnx + ix];
 
-    // Create cells: each hex cell is split into 5 tetrahedra.
     for iz in 0..nz {
         for iy in 0..ny {
             for ix in 0..nx {
@@ -180,32 +283,51 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
                     vertex_id_at(ix, iy + 1, iz + 1),
                 ];
 
-                // Alternating 5-tet decomposition to ensure conforming faces.
-                if (ix + iy + iz) % 2 == 0 {
-                    let tets_a: [[VertexId; 4]; 5] = [
-                        [v[0], v[1], v[3], v[4]],
-                        [v[1], v[2], v[3], v[6]],
-                        [v[4], v[5], v[1], v[6]], // Swapped v6 and v1
-                        [v[4], v[7], v[6], v[3]],
-                        [v[1], v[3], v[4], v[6]],
-                    ];
-                    for tet in tets_a {
-                        builder
-                            .tetrahedron(tet)
-                            .map_err(|error| GridError(error.to_string()))?;
+                match decomposition {
+                    TetDecomposition::FiveTetAlternating => {
+                        // Alternating 5-tet decomposition to ensure conforming faces.
+                        let tets: [[VertexId; 4]; 5] = if (ix + iy + iz) % 2 == 0 {
+                            [
+                                [v[0], v[1], v[3], v[4]],
+                                [v[1], v[2], v[3], v[6]],
+                                [v[4], v[5], v[1], v[6]], // Swapped v6 and v1
+                                [v[4], v[7], v[6], v[3]],
+                                [v[1], v[3], v[4], v[6]],
+                            ]
+                        } else {
+                            [
+                                [v[1], v[0], v[5], v[2]], // Swapped v2 and v5
+                                [v[3], v[0], v[2], v[7]],
+                                [v[4], v[0], v[7], v[5]], // Swapped v5 and v7
+                                [v[6], v[2], v[5], v[7]],
+                                [v[0], v[2], v[7], v[5]], // Swapped v5 and v7
+                            ]
+                        };
+                        for tet in tets {
+                            builder
+                                .tetrahedron(tet)
+                                .map_err(|error| GridError(error.to_string()))?;
+                        }
                     }
-                } else {
-                    let tets_b: [[VertexId; 4]; 5] = [
-                        [v[1], v[0], v[5], v[2]], // Swapped v2 and v5
-                        [v[3], v[0], v[2], v[7]],
-                        [v[4], v[0], v[7], v[5]], // Swapped v5 and v7
-                        [v[6], v[2], v[5], v[7]],
-                        [v[0], v[2], v[7], v[5]], // Swapped v5 and v7
-                    ];
-                    for tet in tets_b {
-                        builder
-                            .tetrahedron(tet)
-                            .map_err(|error| GridError(error.to_string()))?;
+                    TetDecomposition::SixTetBodyDiagonal => {
+                        // Six tetrahedra sharing the body diagonal v000 → v111.
+                        // The pattern is translation-invariant, so shared faces
+                        // triangulate identically and the volume stays conforming.
+                        // Corners: c000=v[0], c100=v[1], c110=v[2], c010=v[3],
+                        // c001=v[4], c101=v[5], c111=v[6], c011=v[7].
+                        let tets: [[VertexId; 4]; 6] = [
+                            [v[0], v[1], v[2], v[6]],
+                            [v[0], v[1], v[5], v[6]],
+                            [v[0], v[3], v[2], v[6]],
+                            [v[0], v[3], v[7], v[6]],
+                            [v[0], v[4], v[5], v[6]],
+                            [v[0], v[4], v[7], v[6]],
+                        ];
+                        for tet in tets {
+                            builder
+                                .tetrahedron(tet)
+                                .map_err(|error| GridError(error.to_string()))?;
+                        }
                     }
                 }
             }
@@ -213,8 +335,37 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     }
 
     let mut mesh = builder.build();
+    label_grid_boundaries(&mut mesh, origin, [nx, ny, nz], spacing);
 
-    // Label boundary faces.
+    Ok(mesh)
+}
+
+/// Label boundary faces against the actual grid box.
+///
+/// `inlet` at the minimum-z plane, `outlet` at maximum-z, `wall` elsewhere.
+/// Tolerance scales with the largest box extent (unit cube: `1e-9`, matching
+/// the historical literal comparisons).
+fn label_grid_boundaries(
+    mesh: &mut IndexedMesh<f64>,
+    origin: [f64; 3],
+    cells: [usize; 3],
+    spacing: Option<[f64; 3]>,
+) {
+    let extent = |axis: usize| match spacing {
+        None => 1.0,
+        Some(step) => f64::from_count(cells[axis]) * step[axis],
+    };
+    let max_extent = extent(0).max(extent(1)).max(extent(2));
+    let eps = 1e-9 * max_extent;
+    let lo = origin;
+    let hi = [
+        origin[0] + extent(0),
+        origin[1] + extent(1),
+        origin[2] + extent(2),
+    ];
+    let on_lo = |p: f64, axis: usize| (p - lo[axis]).abs() <= eps;
+    let on_hi = |p: f64, axis: usize| (p - hi[axis]).abs() <= eps;
+
     let mut boundary_updates = Vec::with_capacity(mesh.faces.len());
     for f_idx in mesh.boundary_faces() {
         let face = mesh.faces.get(f_idx);
@@ -223,12 +374,12 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
         let p1 = mesh.vertices.position(v1);
         let p2 = mesh.vertices.position(v2);
 
-        let all_bottom = p0.z < 1e-9 && p1.z < 1e-9 && p2.z < 1e-9;
-        let all_top = p0.z > 1.0 - 1e-9 && p1.z > 1.0 - 1e-9 && p2.z > 1.0 - 1e-9;
-        let all_front = p0.y < 1e-9 && p1.y < 1e-9 && p2.y < 1e-9;
-        let all_back = p0.y > 1.0 - 1e-9 && p1.y > 1.0 - 1e-9 && p2.y > 1.0 - 1e-9;
-        let all_left = p0.x < 1e-9 && p1.x < 1e-9 && p2.x < 1e-9;
-        let all_right = p0.x > 1.0 - 1e-9 && p1.x > 1.0 - 1e-9 && p2.x > 1.0 - 1e-9;
+        let all_bottom = on_lo(p0.z, 2) && on_lo(p1.z, 2) && on_lo(p2.z, 2);
+        let all_top = on_hi(p0.z, 2) && on_hi(p1.z, 2) && on_hi(p2.z, 2);
+        let all_front = on_lo(p0.y, 1) && on_lo(p1.y, 1) && on_lo(p2.y, 1);
+        let all_back = on_hi(p0.y, 1) && on_hi(p1.y, 1) && on_hi(p2.y, 1);
+        let all_left = on_lo(p0.x, 0) && on_lo(p1.x, 0) && on_lo(p2.x, 0);
+        let all_right = on_hi(p0.x, 0) && on_hi(p1.x, 0) && on_hi(p2.x, 0);
         if all_bottom {
             boundary_updates.push((f_idx, "inlet"));
         } else if all_top {
@@ -240,6 +391,79 @@ fn build_structured_grid(nx: usize, ny: usize, nz: usize) -> Result<IndexedMesh<
     for (f_idx, label) in boundary_updates {
         mesh.mark_boundary(f_idx, label);
     }
+}
 
-    Ok(mesh)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Cell-sum volume: `signed_volume()` sums boundary faces, which is not
+    /// the volume of a tetrahedral partition — sum the canonical per-cell
+    /// measurements instead (all cells must measure finite and positive).
+    fn total_cell_volume(mesh: &IndexedMesh<f64>) -> f64 {
+        use crate::application::quality::tetrahedron::cell_tetrahedron_quality;
+        let mut total = 0.0;
+        for cell in mesh.cells() {
+            let quality =
+                cell_tetrahedron_quality(mesh, cell).expect("structured-grid cell measures finite");
+            assert!(quality.volume > 0.0);
+            total += quality.volume;
+        }
+        total
+    }
+
+    #[test]
+    fn default_builder_preserves_unit_cube_five_tet_contract() {
+        let mesh = StructuredGridBuilder::new(2, 2, 2).build().unwrap();
+        assert_eq!(mesh.cell_count(), 2 * 2 * 2 * 5);
+        assert_eq!(mesh.vertex_count(), 27);
+        assert!((total_cell_volume(&mesh) - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn six_tet_body_diagonal_covers_arbitrary_box() {
+        let mesh = StructuredGridBuilder::new(2, 1, 1)
+            .with_origin([1.0, 2.0, 3.0])
+            .with_spacing([0.5, 2.0, 3.0])
+            .with_decomposition(TetDecomposition::SixTetBodyDiagonal)
+            .build()
+            .unwrap();
+        // 2 cells × 6 tets; 3 × 2 × 2 vertices; volume 2·(0.5·2·3) = 6.
+        assert_eq!(mesh.cell_count(), 12);
+        assert_eq!(mesh.vertex_count(), 12);
+        assert!((total_cell_volume(&mesh) - 6.0).abs() < 1e-9);
+        // Every cell is a valid tetrahedron over four distinct vertices.
+        for cell in mesh.cells() {
+            assert_eq!(cell.element_type, ElementType::Tetrahedron);
+            assert_eq!(cell.vertex_ids.len(), 4);
+        }
+        // Geometric boundary labels against the actual box.
+        let mut labels: Vec<&str> = mesh
+            .boundary_labels
+            .values()
+            .map(std::borrow::Cow::as_ref)
+            .collect();
+        labels.sort_unstable();
+        labels.dedup();
+        assert!(labels.contains(&"inlet"));
+        assert!(labels.contains(&"outlet"));
+        assert!(labels.contains(&"wall"));
+    }
+
+    #[test]
+    fn rejects_non_positive_spacing_and_non_finite_origin() {
+        // `unwrap_err` would need `IndexedMesh: Debug`; assert on `err()`.
+        let bad_spacing = StructuredGridBuilder::new(1, 1, 1)
+            .with_spacing([1.0, 0.0, 1.0])
+            .build()
+            .err()
+            .expect("zero spacing is rejected");
+        assert!(bad_spacing.to_string().contains("spacing"));
+        let bad_origin = StructuredGridBuilder::new(1, 1, 1)
+            .with_origin([f64::NAN, 0.0, 0.0])
+            .build()
+            .err()
+            .expect("NaN origin is rejected");
+        assert!(bad_origin.to_string().contains("origin"));
+    }
 }

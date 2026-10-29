@@ -1,185 +1,15 @@
-﻿//! Constraint edge enforcement — turning a Delaunay triangulation into a CDT.
-//!
-//! # Algorithm — Edge-Flip Constraint Recovery
-//!
-//! Given a Delaunay triangulation and a constraint segment `(a, b)`:
-//!
-//! 1. If the edge `(a, b)` already exists in the triangulation, mark it as
-//!    constrained and return.
-//! 2. Otherwise, collect all edges that cross the segment `(a, b)`.
-//! 3. Iteratively flip crossing edges.  After each flip, the new diagonal
-//!    either no longer crosses `(a, b)` (progress) or it crosses but with a
-//!    shorter intersection (bounded by the geometry).
-//! 4. When the flipping sequence terminates, the edge `(a, b)` exists in the
-//!    triangulation.  Mark it as constrained.
-//!
-//! # Theorem — Constraint Recovery Termination
-//!
-//! **Statement**: For a set of non-crossing constraint segments, the iterative
-//! flip-based constraint recovery terminates in $O(n^2)$ flips in the worst
-//! case, and $O(n)$ flips on average for well-distributed inputs.
-//!
-//! **Proof sketch**: Each flip replaces a crossing edge with a non-crossing
-//! one relative to the constraint segment.  Since the number of possible
-//! triangulations is finite and we make monotone progress (the set of
-//! crossing edges shrinks), the process terminates.
-//!
-//! # Hole Removal
-//!
-//! After all constraints are enforced, triangles inside hole regions (identified
-//! by flood-fill from hole seed points) are removed.
+//! Flip-based constraint recovery: crossing collection, flips, and repair.
 
-use std::collections::VecDeque;
-
-use hashbrown::HashSet;
-use leto::geometry::Point2;
-
-use crate::application::delaunay::core::{
-    canonical_edge, segment_cross_point, segments_cross_proper,
-};
+use super::Cdt;
+use crate::application::delaunay::core::{canonical_edge, segment_cross_point};
+use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
+use crate::application::delaunay::dim2::triangulation::triangle::{TriangleId, GHOST_TRIANGLE};
 use crate::domain::core::scalar::Real;
 use crate::domain::geometry::predicates::{orient_2d, Orientation};
-
-use crate::application::delaunay::dim2::pslg::graph::Pslg;
-use crate::application::delaunay::dim2::pslg::graph::PslgValidationError;
-use crate::application::delaunay::dim2::pslg::vertex::PslgVertexId;
-use crate::application::delaunay::dim2::triangulation::adjacency::Adjacency;
-use crate::application::delaunay::dim2::triangulation::bowyer_watson::DelaunayTriangulation;
-use crate::application::delaunay::dim2::triangulation::triangle::{TriangleId, GHOST_TRIANGLE};
-
-/// Constrained Delaunay Triangulation.
-///
-/// Wraps a [`DelaunayTriangulation`] with enforced constraint edges from a PSLG.
-///
-/// # Theorem — CDT Uniqueness
-///
-/// **Statement**: Given a valid PSLG (no crossing segments), the CDT is unique
-/// up to co-circular degeneracies.  That is, if no four input points are
-/// co-circular, the CDT is the unique triangulation that:
-/// 1. Contains all constraint segments as edges.
-/// 2. Maximises the minimum angle among all such triangulations.
-///
-/// **Proof sketch**: Among all triangulations containing the constraints, the
-/// CDT is obtained by making every non-constrained edge locally Delaunay.
-/// The Delaunay criterion (maximize minimum angle) has a unique optimum when
-/// no four points are co-circular.
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use gaia::application::delaunay::{Pslg, Cdt};
-///
-/// let mut pslg = Pslg::new();
-/// let a = pslg.add_vertex(0.0, 0.0);
-/// let b = pslg.add_vertex(1.0, 0.0);
-/// let c = pslg.add_vertex(0.5, 1.0);
-/// pslg.add_segment(a, b);
-/// pslg.add_segment(b, c);
-/// pslg.add_segment(c, a);
-///
-/// let cdt = Cdt::from_pslg(&pslg);
-/// assert!(cdt.triangulation().is_delaunay());
-/// ```
-pub struct Cdt {
-    /// The underlying triangulation.
-    dt: DelaunayTriangulation,
-    /// The set of constrained edges (canonical vertex pairs).
-    constrained_edges: HashSet<(PslgVertexId, PslgVertexId)>,
-}
+use leto::geometry::Point2;
+use std::collections::VecDeque;
 
 impl Cdt {
-    #[inline]
-    fn edge_matches_endpoints(
-        edge_start: PslgVertexId,
-        edge_end: PslgVertexId,
-        a: PslgVertexId,
-        b: PslgVertexId,
-    ) -> bool {
-        (edge_start == a && edge_end == b) || (edge_start == b && edge_end == a)
-    }
-
-    #[inline]
-    fn edge_touches_constraint_endpoint(
-        edge_start: PslgVertexId,
-        edge_end: PslgVertexId,
-        constraint_start: PslgVertexId,
-        constraint_end: PslgVertexId,
-    ) -> bool {
-        edge_start == constraint_start
-            || edge_start == constraint_end
-            || edge_end == constraint_start
-            || edge_end == constraint_end
-    }
-
-    #[inline]
-    fn edge_crosses_segment(
-        &self,
-        seg_start: &Point2<Real>,
-        seg_end: &Point2<Real>,
-        edge_start: PslgVertexId,
-        edge_end: PslgVertexId,
-    ) -> bool {
-        let edge_a = self.dt.vertex(edge_start).to_point2();
-        let edge_b = self.dt.vertex(edge_end).to_point2();
-        segments_cross_proper(seg_start, seg_end, &edge_a, &edge_b)
-    }
-
-    /// Build a CDT from a PSLG.
-    ///
-    /// 1. Inserts all PSLG vertices into a Delaunay triangulation.
-    /// 2. Enforces all constraint segments.
-    /// 3. Removes triangles in hole regions.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the PSLG contains degenerate/duplicate segments,
-    /// out-of-range endpoints, or segment intersections. Use
-    /// [`try_from_pslg`](Self::try_from_pslg) for fallible construction.
-    #[must_use]
-    #[track_caller]
-    pub fn from_pslg(pslg: &Pslg) -> Self {
-        Self::try_from_pslg(pslg)
-            .unwrap_or_else(|err| panic!("Invalid PSLG for CDT construction: {err}"))
-    }
-
-    /// Build a CDT from a PSLG with validation.
-    ///
-    /// Returns an error if the PSLG contains degenerate/duplicate segments,
-    /// out-of-range segment endpoints, or segment intersections.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`PslgValidationError::NonFiniteVertex`] if any vertex
-    /// coordinate is NaN or infinite, [`PslgValidationError::CoincidentVertices`]
-    /// if two vertices collapse within tolerance, and the corresponding
-    /// segment validation variants for out-of-range endpoints, degenerate
-    /// segments, duplicate segments, or intersecting constraints.
-    pub fn try_from_pslg(pslg: &Pslg) -> Result<Self, PslgValidationError> {
-        pslg.validate()?;
-
-        // Build the Delaunay triangulation from the PSLG vertices.
-        let points: Vec<(Real, Real)> = pslg.vertices().iter().map(|v| (v.x, v.y)).collect();
-
-        let dt = DelaunayTriangulation::from_points(&points);
-
-        let mut cdt = Self {
-            dt,
-            constrained_edges: HashSet::with_capacity(pslg.segments().len()),
-        };
-
-        // Enforce each constraint segment.
-        for seg in pslg.segments() {
-            cdt.enforce_constraint(seg.start, seg.end);
-        }
-
-        // Remove hole triangles.
-        for hole in pslg.holes() {
-            cdt.remove_hole_triangles(hole.x, hole.y);
-        }
-
-        Ok(cdt)
-    }
-
     /// Enforce a constraint edge between vertices `a` and `b`.
     ///
     /// # Algorithm — Single-Constraint Recovery (Sloan 1993)
@@ -204,7 +34,7 @@ impl Cdt {
     /// length is bounded by the quad diagonal, which is shorter than
     /// the sum of the two triangles' diameters.  Combined with the
     /// finite triangulation, this ensures termination.  ∎
-    fn enforce_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
+    pub(super) fn enforce_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
         // Record the constraint.
         let canonical = canonical_edge(a, b);
         self.constrained_edges.insert(canonical);
@@ -229,7 +59,7 @@ impl Cdt {
     /// Check if an edge between vertices `a` and `b` exists in the triangulation.
     ///
     /// Uses vertex-star walk: O(deg(a)) ≈ O(6) instead of O(T).
-    fn edge_exists(&self, a: PslgVertexId, b: PslgVertexId) -> bool {
+    pub(super) fn edge_exists(&self, a: PslgVertexId, b: PslgVertexId) -> bool {
         self.dt.edge_exists_fast(a, b)
     }
 
@@ -249,7 +79,7 @@ impl Cdt {
     ///
     /// Steiner point insertion is only used as a last-resort fallback when a
     /// full pass through the queue makes zero progress.
-    fn flip_to_enforce(&mut self, a: PslgVertexId, b: PslgVertexId) {
+    pub(super) fn flip_to_enforce(&mut self, a: PslgVertexId, b: PslgVertexId) {
         // Collect all crossing edges into a work queue.
         let mut queue: VecDeque<(TriangleId, usize)> = VecDeque::with_capacity(32);
         self.collect_crossing_edges(a, b, &mut queue);
@@ -564,7 +394,12 @@ impl Cdt {
     ///
     /// Uses vertex-star walk: O(deg(a)) ≈ O(6) instead of O(T).
     #[inline]
-    fn set_edge_constraint_flag(&mut self, a: PslgVertexId, b: PslgVertexId, constrained: bool) {
+    pub(super) fn set_edge_constraint_flag(
+        &mut self,
+        a: PslgVertexId,
+        b: PslgVertexId,
+        constrained: bool,
+    ) {
         let tris = self.dt.triangles_around_vertex(a);
         for tid in tris {
             let tri = self.dt.triangle_mut(tid);
@@ -577,7 +412,7 @@ impl Cdt {
         }
     }
 
-    fn mark_edge_constrained(&mut self, a: PslgVertexId, b: PslgVertexId) {
+    pub(super) fn mark_edge_constrained(&mut self, a: PslgVertexId, b: PslgVertexId) {
         self.set_edge_constraint_flag(a, b, true);
     }
 
@@ -603,7 +438,7 @@ impl Cdt {
     /// $O(k)$ expected for $k$ flips, where $k$ is bounded by the number
     /// of non-constrained edges in the 2-ring of the constraint.  Worst
     /// case $O(n)$.
-    fn restore_delaunay_near_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
+    pub(super) fn restore_delaunay_near_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
         // Seed the stack with all non-constrained edges around both endpoints.
         let mut stack: Vec<(TriangleId, usize)> = Vec::with_capacity(24);
         for &v in &[a, b] {
@@ -625,151 +460,5 @@ impl Cdt {
             }
         }
         self.dt.restore_delaunay_edges(stack);
-    }
-
-    /// Remove triangles that are inside a hole region via flood-fill.
-    fn remove_hole_triangles(&mut self, hx: Real, hy: Real) {
-        // Find the triangle containing the hole seed.
-        let start = {
-            let first_alive = self
-                .dt
-                .triangles_slice()
-                .iter()
-                .position(|t| t.alive)
-                .map(TriangleId::from_usize);
-
-            match first_alive {
-                Some(s) => s,
-                None => return,
-            }
-        };
-
-        let loc = self.dt.locate_point(start, hx, hy);
-        let Some(
-            crate::application::delaunay::dim2::triangulation::locate::Location::Inside(seed_tid)
-            | crate::application::delaunay::dim2::triangulation::locate::Location::OnEdge(
-                seed_tid,
-                _,
-            )
-            | crate::application::delaunay::dim2::triangulation::locate::Location::OnVertex(
-                seed_tid,
-                _,
-            ),
-        ) = loc
-        else {
-            return;
-        };
-
-        // Flood-fill from the seed, stopping at constrained edges.
-        //
-        // # Dense Visited Buffer
-        //
-        // Triangle IDs are dense pool indices.  A `Vec<bool>` eliminates
-        // hash overhead of `HashSet<TriangleId>` and gives cache-friendly
-        // sequential access during the adjacency-patching pass.
-        let pool_len = self.dt.triangles_slice().len();
-        let mut queue = VecDeque::with_capacity(32);
-        let mut visited = vec![false; pool_len];
-        queue.push_back(seed_tid);
-        visited[seed_tid.idx()] = true;
-
-        while let Some(tid) = queue.pop_front() {
-            let tri = *self.dt.triangle(tid);
-            self.dt.triangle_mut(tid).alive = false;
-
-            for edge in 0..3 {
-                if tri.constrained[edge] {
-                    continue; // Don't cross constraint edges.
-                }
-                let nbr = tri.adj[edge];
-                if nbr != GHOST_TRIANGLE && !visited[nbr.idx()] && self.dt.triangle(nbr).alive {
-                    visited[nbr.idx()] = true;
-                    queue.push_back(nbr);
-                }
-            }
-        }
-
-        // Patch adjacency: alive triangles on the hole boundary still have
-        // adjacency links pointing to the now-dead hole triangles.  Set
-        // those links to GHOST_TRIANGLE to maintain the symmetric-adjacency
-        // invariant.
-        //
-        // Theorem — Adjacency Consistency After Hole Removal
-        //
-        // Statement: After flood-fill hole removal, setting adj[e] =
-        // GHOST_TRIANGLE for every alive triangle whose neighbor across
-        // edge e was killed restores the symmetric-adjacency invariant.
-        //
-        // Proof: Let T_alive be an alive boundary triangle and T_dead its
-        // killed neighbor across edge e.  Before removal, T_alive.adj[e] =
-        // T_dead and T_dead.adj[e'] = T_alive for some e'.  After killing
-        // T_dead, T_dead is no longer alive so T_alive.adj[e] is a dangling
-        // reference.  Setting T_alive.adj[e] = GHOST_TRIANGLE makes the
-        // boundary edge a hull edge, consistent with the invariant that
-        // GHOST_TRIANGLE neighbours are not checked for symmetry.  ∎
-        for (i, &is_dead) in visited.iter().enumerate() {
-            if !is_dead {
-                continue;
-            }
-            let tid = TriangleId::from_usize(i);
-            let tri = *self.dt.triangle(tid);
-            for edge in 0..3 {
-                let nbr = tri.adj[edge];
-                if nbr == GHOST_TRIANGLE || visited[nbr.idx()] {
-                    continue;
-                }
-                // nbr is alive — patch its adjacency back to GHOST.
-                if let Some(back_edge) = Adjacency::find_edge(self.dt.triangles_slice(), nbr, tid) {
-                    Adjacency::link_one(self.dt.triangles_mut(), nbr, back_edge, GHOST_TRIANGLE);
-                }
-            }
-        }
-    }
-
-    // ── Public API ────────────────────────────────────────────────────────
-
-    /// Access the underlying triangulation.
-    #[must_use]
-    pub fn triangulation(&self) -> &DelaunayTriangulation {
-        &self.dt
-    }
-
-    /// Consume the CDT, returning the underlying triangulation.
-    #[must_use]
-    pub fn into_triangulation(self) -> DelaunayTriangulation {
-        self.dt
-    }
-
-    /// Mutable access to the underlying triangulation.
-    pub(crate) fn triangulation_mut(&mut self) -> &mut DelaunayTriangulation {
-        &mut self.dt
-    }
-
-    /// Check if an edge is constrained.
-    #[must_use]
-    pub fn is_constrained(&self, a: PslgVertexId, b: PslgVertexId) -> bool {
-        let canonical = canonical_edge(a, b);
-        self.constrained_edges.contains(&canonical)
-    }
-
-    /// The set of all constrained edges.
-    #[must_use]
-    pub fn constrained_edges(&self) -> &HashSet<(PslgVertexId, PslgVertexId)> {
-        &self.constrained_edges
-    }
-
-    /// Insert a new constraint edge (used by refinement after segment splits).
-    pub(crate) fn add_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
-        self.enforce_constraint(a, b);
-    }
-
-    /// Remove a constraint edge (used when splitting a segment).
-    ///
-    /// Uses vertex-star walk: O(deg(a)) instead of O(T).
-    pub(crate) fn remove_constraint(&mut self, a: PslgVertexId, b: PslgVertexId) {
-        let canonical = canonical_edge(a, b);
-        self.constrained_edges.remove(&canonical);
-        // Unmark the edge in the triangulation (it may no longer exist).
-        self.set_edge_constraint_flag(a, b, false);
     }
 }
