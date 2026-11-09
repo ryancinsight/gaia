@@ -52,8 +52,8 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "aequitas"
-version = "0.3.1"
-source = "git+https://github.com/ryancinsight/aequitas#c636bb84efda17784b6b5ba0c03933292f37a8cf"
+version = "0.3.2"
+source = "git+https://github.com/ryancinsight/aequitas#aa9e89fb317f1e2e734a34c173e3b5135351a4bc"
 dependencies = [
  "eunomia",
  "typenum",
@@ -396,8 +396,8 @@ dependencies = [
 
 [[package]]
 name = "eunomia"
-version = "0.11.0"
-source = "git+https://github.com/ryancinsight/eunomia#d8ee31abf9e10c3aaa4efd67ed5912a612086115"
+version = "0.12.0"
+source = "git+https://github.com/ryancinsight/eunomia#acb3f3a7fa37ae6e6b345dfa967674cf4dc34b7a"
 dependencies = [
  "bytemuck",
  "eunomia-derive",
@@ -406,8 +406,8 @@ dependencies = [
 
 [[package]]
 name = "eunomia-derive"
-version = "0.11.0"
-source = "git+https://github.com/ryancinsight/eunomia#d8ee31abf9e10c3aaa4efd67ed5912a612086115"
+version = "0.12.0"
+source = "git+https://github.com/ryancinsight/eunomia#acb3f3a7fa37ae6e6b345dfa967674cf4dc34b7a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -699,8 +699,8 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leto"
-version = "0.46.5"
-source = "git+https://github.com/ryancinsight/leto.git#4a0796124613ab012eb56e47ea314fdceb08ba6d"
+version = "0.47.1"
+source = "git+https://github.com/ryancinsight/leto.git#37e1016368c747b804afd8aa8c9a50d09b7a824d"
 dependencies = [
  "aequitas",
  "eunomia",
