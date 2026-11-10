@@ -699,8 +699,8 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leto"
-version = "0.47.1"
-source = "git+https://github.com/ryancinsight/leto.git#37e1016368c747b804afd8aa8c9a50d09b7a824d"
+version = "0.48.0"
+source = "git+https://github.com/ryancinsight/leto.git#d432a4e7ef1530f4b0ae49be5d203ddd5b92937a"
 dependencies = [
  "aequitas",
  "eunomia",

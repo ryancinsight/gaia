@@ -9,7 +9,9 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-gaia = { path = ".." }
+gaia = { package = "gaia-mesh", path = ".." }
+
+[workspace]
 
 [[bin]]
 name = "fuzz_read_stl"
