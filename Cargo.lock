@@ -259,8 +259,8 @@ checksum = "1c133bc6a41be0d194c306b5506d15e6feeea7b1d6604bd3f8310dfb2ca96486"
 
 [[package]]
 name = "consus-compression"
-version = "0.4.0"
-source = "git+https://github.com/ryancinsight/consus.git#5bcaf33d4e8a86ef49319f1427a5a22c7f477d03"
+version = "0.4.1"
+source = "git+https://github.com/ryancinsight/consus.git#bddeeb839aa34aa55c3d79d0e3988ed69cc24c62"
 dependencies = [
  "byteorder",
  "consus-core",
@@ -269,8 +269,8 @@ dependencies = [
 
 [[package]]
 name = "consus-core"
-version = "0.4.0"
-source = "git+https://github.com/ryancinsight/consus.git#5bcaf33d4e8a86ef49319f1427a5a22c7f477d03"
+version = "0.4.1"
+source = "git+https://github.com/ryancinsight/consus.git#bddeeb839aa34aa55c3d79d0e3988ed69cc24c62"
 dependencies = [
  "byteorder",
  "smallvec",
@@ -279,8 +279,8 @@ dependencies = [
 
 [[package]]
 name = "consus-zip"
-version = "0.4.0"
-source = "git+https://github.com/ryancinsight/consus.git#5bcaf33d4e8a86ef49319f1427a5a22c7f477d03"
+version = "0.4.1"
+source = "git+https://github.com/ryancinsight/consus.git#bddeeb839aa34aa55c3d79d0e3988ed69cc24c62"
 dependencies = [
  "consus-compression",
  "consus-core",
@@ -763,7 +763,7 @@ dependencies = [
 [[package]]
 name = "melinoe"
 version = "0.10.0"
-source = "git+https://github.com/ryancinsight/melinoe.git#690ff5f840d24eb1bf88af74507006e708d59784"
+source = "git+https://github.com/ryancinsight/melinoe.git#7109f29192847ac1100290cbfa984a2fabf3d696"
 
 [[package]]
 name = "memchr"
@@ -1636,8 +1636,8 @@ dependencies = [
 
 [[package]]
 name = "themis-topology"
-version = "0.11.3"
-source = "git+https://github.com/ryancinsight/themis#a421be512bf93c459cc9e6047d7bda466c3beb6e"
+version = "0.11.5"
+source = "git+https://github.com/ryancinsight/themis#db7c831168eba93744fd1497fd7feee4b9980c7b"
 dependencies = [
  "libc",
  "melinoe",
