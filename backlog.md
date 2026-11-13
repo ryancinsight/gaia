@@ -664,11 +664,11 @@ never in an optimization pass. The audit's finding still holds.
 - outcome: unformatted code cannot reach `main`.
 - priority: correctness
 - needs: none
-- scope: `.githooks/pre-push` (line 1123: `SKIP_LOCAL_GATE=1` exits the push phase before its fmt check; hook install is opt-in via `scripts/atlas-lock-form.py install-hooks`); `main` branch protection.
+- scope: `.githooks/pre-push` (line 1123: `SKIP_LOCAL_GATE=1` exits the push phase before its fmt check; hook install is opt-in via the atlas stack script `scripts/atlas-lock-form.py install-hooks`, an atlas repository path); `main` branch protection.
 - acceptance: a recorded decision on the enforcement mechanism, and a check showing an unformatted push or merge to `main` is rejected.
-- evidence (2026-11-13, measured at `a0ecea2`): `gh api repos/ryancinsight/gaia/branches/main/protection` reports `enforce_admins` false, no required pull-request reviews, `strict` false; `gh api repos/ryancinsight/gaia/rulesets` is empty. First-parent commits with no PR (`gh api repos/ryancinsight/gaia/commits/<sha>/pulls` is empty): `541ba01` (2026-10-29), `447adeb` (2026-10-06), `532577e` (2026-10-05). The fmt job is a required context, yet those three commits reached `main` without a PR.
+- evidence (2026-11-13, measured at `a0ecea2`): `gh api repos/ryancinsight/gaia/branches/main/protection` reports `enforce_admins` false, no required pull-request reviews, `strict` false; `gh api repos/ryancinsight/gaia/rulesets` is empty. Of the 42 first-parent commits in `532577e^..a0ecea2` (2026-10-05 onward), 5 have an empty `gh api repos/ryancinsight/gaia/commits/<sha>/pulls` (the other 37 return a PR): `532577e`, `f85f185`, `447adeb`, `dc56f42` (a merge), `541ba01`. The required contexts include "fmt + clippy + supply-chain + nextest + doctests + doc"; while `enforce_admins` is false, an admin push bypasses them (read 2026-11-13; when that context became required is not established).
 - basis: `a0ecea2` (current main).
-- next: decide between enforcing admins, requiring a PR, and removing the skip in the atlas-owned hook; implement that decision upstream and add the rejection check.
+- next: decide between enforcing admins, requiring a PR, and removing the skip in the atlas-owned hook (`scripts/git-hooks/pre-push` in the atlas repository); no atlas item carries that upstream change at atlas `2b000c51b`, so it is filed at the next atlas filing sweep.
 
 <a id="GAIA-RESCUE-QUEUE"></a>
 ## GAIA-RESCUE-QUEUE — Complete or close the open rescue PRs
