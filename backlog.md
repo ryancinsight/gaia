@@ -657,18 +657,18 @@ never in an optimization pass. The audit's finding still holds.
 - next: compare each unchecked entry with the current tree, backlog, and PRs.
 
 
-<a id="GAIA-023"></a>
-## GAIA-023 — Unformatted landings outpace fmt fixes; enforce the gate on the pushing side
+<a id="GAIA-039"></a>
+## GAIA-039 — Unformatted code can still reach main
 
 - status: todo
-- outcome: `main` stays green on `cargo fmt --check` for longer than one landing cycle, because unformatted code cannot reach it.
+- outcome: unformatted code cannot reach `main`.
 - priority: correctness
 - needs: none
-- scope: `.githooks/pre-push` installation and bypass discipline; no source changes.
-- acceptance: three consecutive `main` pushes each pass the fmt job with no fmt-fix commit between them.
-- basis: `eb98a58` (current main).
-- evidence (2026-09-30, measured): `main` flip-flopped green 15:31 -> red 15:36 on fresh `Diff in` lines (`multi_mesh_resolution.rs:377`, `merge.rs:100/150/320/328/353`) from code landed in between; an earlier round (tube/collapse/merge/welder/constants) was fixed the same way and superseded within the hour. A file-level fmt PR cannot converge while landings outpace it — closed gaia#130 unmerged for exactly this reason after verifying its content was correct but stale. The hook carries a documented `SKIP_LOCAL_GATE=1` escape and installs opt-in per checkout (`install-hooks`), so either path lets unformatted code through.
-- next: decide the enforcement (mandatory hook install via the setup path, removing or gating the skip, or a required fmt status check that blocks merge rather than reporting after it) and implement that decision; do not open another file-level fmt PR.
+- scope: `.githooks/pre-push` (line 1123: `SKIP_LOCAL_GATE=1` exits the push phase before its fmt check; hook install is opt-in via `scripts/atlas-lock-form.py install-hooks`); `main` branch protection.
+- acceptance: a recorded decision on the enforcement mechanism, and a check showing an unformatted push or merge to `main` is rejected.
+- evidence (2026-11-13, measured at `a0ecea2`): `gh api repos/ryancinsight/gaia/branches/main/protection` reports `enforce_admins` false, no required pull-request reviews, `strict` false; `gh api repos/ryancinsight/gaia/rulesets` is empty. First-parent commits with no PR (`gh api repos/ryancinsight/gaia/commits/<sha>/pulls` is empty): `541ba01` (2026-10-29), `447adeb` (2026-10-06), `532577e` (2026-10-05). The fmt job is a required context, yet those three commits reached `main` without a PR.
+- basis: `a0ecea2` (current main).
+- next: decide between enforcing admins, requiring a PR, and removing the skip in the atlas-owned hook; implement that decision upstream and add the rejection check.
 
 <a id="GAIA-RESCUE-QUEUE"></a>
 ## GAIA-RESCUE-QUEUE — Complete or close the open rescue PRs
