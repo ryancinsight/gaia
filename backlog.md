@@ -679,10 +679,15 @@ never in an optimization pass. The audit's finding still holds.
 - needs: none
 - scope: the rescue head refs below; the board of this repository.
 - acceptance: no open `rescue/` PR in `ryancinsight/gaia` remains unaccounted for.
-- basis: `07611f2` (current main).
-- queue (draft parking records, none a claim):
-  - `ryancinsight/gaia#134` (`rescue/audit-gaia-20260928`): one commit splitting oversized modules and extracting test bodies; 98 files, +13284/-13215, code (csg, delaunay, geometry, quality, storage); fails `cargo fmt --check`.
-  - `ryancinsight/gaia#120` (`rescue/gaia-audit-20260929`): tracked and untracked work from a detached audit tree plus the rescue-only pre-push exception; 97 files, +13287/-13204, near-identical file set to #134; resolve against #134 first.
-  - `ryancinsight/gaia#121` (`rescue/gaia-arch008-20260929`): ARCH008 branch tip plus dirty backlog and repair hunks; 3 files, +12/-16 (`.githooks/pre-push`, `backlog.md`, `csg/boolean/indexed/repair/vertices.rs`).
-  - `ryancinsight/gaia#123` (`rescue/gaia-manifest-parallel-20260929`): `moirai-runtime` dependency enables `parallel`; 2 files, +1/-1 (`Cargo.toml`, `csg/arrangement.rs`); verification blocked by a Moirai/Mnemosyne API mismatch.
-- next: classify #123 and #121 first (small), then diff #134 against #120 and port the surviving union onto main.
+- basis: `5d91f77` (current main).
+- queue (the PRs are closed; heads stay at `refs/pull/<N>/head`): `ryancinsight/gaia#134`
+  (`rescue/audit-gaia-20260928`, 98 files, base `9d382c4`) is the only surviving source;
+  #120, #121 and #123 resolve against main (witnesses in PR #209). Main has moved 296
+  commits since its base and `git merge-tree` reports 30 conflicted paths (5 modify/delete),
+  so it ports file by file. Extractions use `<mod>/tests.rs`, the layout main uses; the
+  `partN.rs` and `tests_<x>.rs` layout does not port. 26 of its files that exist on main
+  still exceed 500 lines after #209 ports `openfoam.rs`, `edge_store.rs` and `adjacency.rs`.
+- decision for the lead: whether `partN` slicing of the three 1000+ line test files
+  (`adversarial_tests.rs`, `tests.rs`, `indexed_tests.rs`) is acceptable under GAIA-013's
+  cohesion non-goal, or each is re-split by operation family.
+- next: port the remaining #134 files leaf-first, each file at or under 500 lines.
