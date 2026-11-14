@@ -679,15 +679,21 @@ never in an optimization pass. The audit's finding still holds.
 - needs: none
 - scope: the rescue head refs below; the board of this repository.
 - acceptance: no open `rescue/` PR in `ryancinsight/gaia` remains unaccounted for.
-- basis: `5d91f77` (current main).
-- queue (the PRs are closed; heads stay at `refs/pull/<N>/head`): `ryancinsight/gaia#134`
-  (`rescue/audit-gaia-20260928`, 98 files, base `9d382c4`) is the only surviving source;
-  #120, #121 and #123 resolve against main (witnesses in PR #209). Main has moved 296
-  commits since its base and `git merge-tree` reports 30 conflicted paths (5 modify/delete),
-  so it ports file by file. Extractions use `<mod>/tests.rs`, the layout main uses; the
-  `partN.rs` and `tests_<x>.rs` layout does not port. 26 of its files that exist on main
-  still exceed 500 lines after #209 ports `openfoam.rs`, `edge_store.rs` and `adjacency.rs`.
-- decision for the lead: whether `partN` slicing of the three 1000+ line test files
-  (`adversarial_tests.rs`, `tests.rs`, `indexed_tests.rs`) is acceptable under GAIA-013's
-  cohesion non-goal, or each is re-split by operation family.
-- next: port the remaining #134 files leaf-first, each file at or under 500 lines.
+- basis: `c582974` (current main).
+- queue: `ryancinsight/gaia#134` (`rescue/audit-gaia-20260928`, 98 files, base `9d382c4`) is the only surviving source; its work is kept at `refs/pull/134/head`. #121 and #123 resolve against main (witnesses in the bodies of #209 and #210). #120 is subsumed by #134 plus a rescue-hook hunk that main's classifier dispatch supersedes and mid-edit defects read from its diff, not compiled (an orphaned doc comment in `bowyer_watson.rs`, a dropped `DelaunayTriangulation` import in `bowyer_watson/{access,repair}.rs`, stale imports in `lattice.rs`, `mod data;` dropped but still re-exported in `vertex_pool.rs`); its work is kept at `refs/pull/120/head`.
+- port plan: main has moved 300 commits since #134's base and `git merge-tree` reports 30 conflicted paths (5 modify/delete), so it ports file by file, leaf-first. Extractions use `<mod>/tests.rs`, the layout main uses; the `partN.rs` and `tests_<x>.rs` layout does not port. Drop #134's two case-only renames (`CHECKLIST.md` to `checklist.md`, `agents.md` to `AGENTS.md`): main keeps the original names. 26 of the 34 `.rs` paths #134 changes that exist on main still exceed 500 lines; `openfoam.rs`, `edge_store.rs` and `adjacency.rs` are already ported (#210).
+- decision for the lead: whether `partN` slicing of the three 1000+ line test files (`adversarial_tests.rs`, `tests.rs`, `indexed_tests.rs`) is acceptable under GAIA-013's cohesion non-goal, or each is re-split by operation family.
+- next: port the remaining #134 files, each file at or under 500 lines.
+
+<a id="GAIA-040"></a>
+## GAIA-040 — OpenFOAM writer tests share fixed temp paths
+
+- status: todo
+- outcome: the `openfoam` tests write only under per-test temporary directories, so no test reads or overwrites another run's output.
+- priority: verification
+- needs: none
+- scope: `src/infrastructure/io/openfoam/tests.rs`; `Cargo.toml` `[dev-dependencies]` only if a tempdir crate is chosen (none is declared today).
+- acceptance: no test derives a path from a fixed name under `std::env::temp_dir()`; the six `infrastructure::io::openfoam::tests` pass under parallel `cargo nextest run -p gaia-mesh`, and a failing assertion leaves no directory behind.
+- evidence (read at `c582974`, `tests.rs:23-123`): the tests join `gaia_of_test_five`, `_vcount`, `_fcount`, `_boundary`, `_named` and `_empty` onto `std::env::temp_dir()`; the five that write call `remove_dir_all` only after their last assertion, so a failed assertion leaves residue, and any two runs sharing the OS temp directory (peer trees) write the same paths.
+- basis: `c582974` (current main).
+- next: give each test a unique directory removed by a drop guard; reuse std unless adding a tempdir dev-dependency is accepted.
