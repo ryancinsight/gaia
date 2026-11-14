@@ -671,17 +671,17 @@ never in an optimization pass. The audit's finding still holds.
 - next: decide between enforcing admins, requiring a PR, and removing the skip in the atlas-owned hook (`scripts/git-hooks/pre-push` in the atlas repository); no atlas item carries that upstream change at atlas `2b000c51b`, so it is filed at the next atlas filing sweep.
 
 <a id="GAIA-RESCUE-QUEUE"></a>
-## GAIA-RESCUE-QUEUE — Complete or close the open rescue PRs
+## GAIA-RESCUE-QUEUE — Port the rescue branch's file splits onto main
 
 - status: todo
-- outcome: each listed rescue PR is completed onto current main (ported, verified, merged) or closed once its diff resolves empty against main.
+- outcome: the file splits and test-module extractions of rescue branch #134 are ported onto current main, each file at or under 500 lines, or recorded as a GAIA-013 cohesion exception.
 - priority: correctness
 - needs: none
-- scope: the rescue head refs below; the board of this repository.
-- acceptance: no open `rescue/` PR in `ryancinsight/gaia` remains unaccounted for.
-- basis: `c582974` (current main).
+- scope: the `.rs` paths #134 changes (kept at `refs/pull/134/head`); the board of this repository.
+- acceptance: every `.rs` path #134 changes that exists on main is at or under 500 lines, or is recorded as a cohesion exception; the `cargo nextest list` names of ported modules are unchanged.
+- basis: `f3f5e68` (current main).
 - queue: `ryancinsight/gaia#134` (`rescue/audit-gaia-20260928`, 98 files, base `9d382c4`) is the only surviving source; its work is kept at `refs/pull/134/head`. #121 and #123 resolve against main (witnesses in the bodies of #209 and #210). #120 is subsumed by #134 plus a rescue-hook hunk that main's classifier dispatch supersedes and mid-edit defects read from its diff, not compiled (an orphaned doc comment in `bowyer_watson.rs`, a dropped `DelaunayTriangulation` import in `bowyer_watson/{access,repair}.rs`, stale imports in `lattice.rs`, `mod data;` dropped but still re-exported in `vertex_pool.rs`); its work is kept at `refs/pull/120/head`.
-- port plan: main has moved 300 commits since #134's base and `git merge-tree` reports 30 conflicted paths (5 modify/delete), so it ports file by file, leaf-first. Extractions use `<mod>/tests.rs`, the layout main uses; the `partN.rs` and `tests_<x>.rs` layout does not port. Drop #134's two case-only renames (`CHECKLIST.md` to `checklist.md`, `agents.md` to `AGENTS.md`): main keeps the original names. 26 of the 34 `.rs` paths #134 changes that exist on main still exceed 500 lines; `openfoam.rs`, `edge_store.rs` and `adjacency.rs` are already ported (#210).
+- port plan: main has moved 300 commits since #134's base and `git merge-tree` reports 30 conflicted paths (5 modify/delete), so it ports file by file, leaf-first. Extractions use `<mod>/tests.rs`, the layout main uses; the `partN.rs` and `tests_<x>.rs` layout does not port. Drop #134's two case-only renames (`CHECKLIST.md` to `checklist.md`, `agents.md` to `AGENTS.md`): main keeps the original names. 24 of the `.rs` paths #134 changes that exist on main still exceed 500 lines; `openfoam.rs`, `edge_store.rs`, `adjacency.rs`, `arrangement/stitch.rs` and `arrangement/snap_round.rs` are already ported.
 - decision for the lead: whether `partN` slicing of the three 1000+ line test files (`adversarial_tests.rs`, `tests.rs`, `indexed_tests.rs`) is acceptable under GAIA-013's cohesion non-goal, or each is re-split by operation family.
 - next: port the remaining #134 files, each file at or under 500 lines.
 
