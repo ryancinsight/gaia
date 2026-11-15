@@ -163,8 +163,9 @@ cargo test --doc --all-features
 $env:RUSTDOCFLAGS = "-D warnings"; cargo doc --no-deps --all-features
 ```
 
-The fresh-consumer gate starts without a lockfile, resolves Gaia from its public
-dependency requirements, and checks a real exported 3MF archive with Python's
+The fresh-consumer gate builds a new crate that depends on Gaia, starting from
+Gaia's committed `Cargo.lock`. It fails if the build resolves any package
+outside that lock. It then checks a real exported 3MF archive with Python's
 independent ZIP/XML readers (Python 3.11 or later):
 
 ```sh
