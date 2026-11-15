@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Resolve a lock-free Gaia consumer and verify its real 3MF archive.
+"""Build a fresh Gaia consumer and verify its real 3MF archive.
 
-The consumer lives outside Atlas's development overlay and starts without a
-lockfile. Python's independent ZIP/XML readers check the exported model, and
-the resolved graph must carry the first-party `consus-zip` container and no
-third-party `zip` crate.
-The same probe accepts a normalized `cargo package` directory as its input.
+The consumer lives outside Atlas's development overlay. It starts from Gaia's
+committed `Cargo.lock`, and every package it resolves must keep that lock's
+name, version and source, so moving first-party git branches cannot change
+the graph under test. Requirement lag against those branches belongs to the
+stack co-evolution sweep. Python's independent ZIP/XML readers check the
+exported model, and the resolved graph must carry the first-party
+`consus-zip` container and no third-party `zip` crate.
+The same probe accepts a normalized `cargo package` directory, which carries
+its `Cargo.lock`, as its input.
 """
 
 import argparse
@@ -69,6 +73,22 @@ def verify_archive(path):
         assert model.find(f"{model_ns}build/{model_ns}item").attrib == {"objectid": "1"}
 
 
+def locked_packages(lock):
+    return {
+        (package["name"], package["version"], package.get("source"))
+        for package in tomllib.loads(lock.read_text())["package"]
+    }
+
+
+def assert_pins_held(committed, resolved):
+    """Every resolved package except the consumer is pinned by `committed`."""
+    drift = {
+        package for package in locked_packages(resolved) - locked_packages(committed)
+        if package[0] != "gaia-fresh-consumer"
+    }
+    assert not drift, f"consumer resolution left the committed lock: {sorted(drift, key=str)}"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest-path", type=Path, default=Path("Cargo.toml"))
@@ -87,10 +107,13 @@ def main():
             'gaia = { package = "gaia-mesh", path = ' + json.dumps(str(manifest.parent)) + ' }\n'
         )
         (root / "src/main.rs").write_text(CONSUMER)
+        committed_lock = manifest.parent / "Cargo.lock"
+        (root / "Cargo.lock").write_bytes(committed_lock.read_bytes())
         output = root / "triangle.3mf"
         subprocess.run(cargo + ["run", "--quiet", "--", str(output)], cwd=root,
                        env=env, check=True, timeout=300)
         verify_archive(output)
+        assert_pins_held(committed_lock, root / "Cargo.lock")
         metadata = json.loads(subprocess.check_output(
             # Metadata includes dependencies for targets the native run did
             # not build, so a cold runner may still need their sources.
