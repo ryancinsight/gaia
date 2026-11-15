@@ -12,7 +12,7 @@
 - exit: decided architecture has ADRs, the book derives the theory, refinement/remeshing delivered or declared a non-goal, checklist consolidated.
 ## M-debt: file-size and lint debt burns down — needs: none
 - exit: every source file at or under the 500-line target or a recorded cohesion exception; ratchet counts monotone decreasing.
-## M-1.0 (1.0.0): stable geometry release (authority-gated) — needs: M-robustness, M-seam, M-coherence, M-gates, M-docs, M-debt
+## Milestone M-1.0 (1.0.0): stable geometry release (authority-gated) — needs: M-robustness, M-seam, M-coherence, M-gates, M-docs, M-debt
 - exit: `cargo semver-checks`, publish dry-run, `cargo doc`, full nextest/doctest/Miri green, zero open correctness items. Veto: release authority sets the API-freeze contents; never forces `publish = true` without it.
 ## M-ecosystem: consumer-owned migrations (ares, CFDrs, kwavers) — needs: M-1.0
 - exit: consumer receipts on their own boards; does not gate 1.0.
