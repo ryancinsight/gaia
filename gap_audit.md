@@ -195,3 +195,9 @@ work lives in [backlog.md](backlog.md#gaia-moirai-09-coherence).
 The merged-provider rerun passes all 1,159 computed tests in 12.989 seconds
 without a reported pipe leak; strict all-target Clippy passes. This observation
 does not establish the earlier leaks' cause, so their investigation stays open.
+
+<a id="GAIA-GAP-TARGET-FORK-2026-11-16"></a>
+## GAIA-GAP-TARGET-FORK-2026-11-16 — A repo-local cargo target exists in the gaia tree
+- risk: `D:/atlas/repos/gaia/target` is a second build cache next to the shared target; the pre-push hook reports host row `target_forks` 0 -> 1 for gaia (gaia#225 residual). It is derived and machine-local; its writer is unidentified, presumably a cargo run without the shared `CARGO_TARGET_DIR`.
+- evidence: the path holds `CACHEDIR.TAG` (mtime 2026-11-09) and `debug/`, read 2026-11-16 at origin/main `bbd8f08`.
+- re-open trigger: the writer is found and the tree deleted, then a hook run reports `target_forks` 0 for gaia.

@@ -1,19 +1,27 @@
 # Backlog
 
+<a id="M-robustness"></a>
 ## M-robustness: exact-predicate and range correctness defects are repaired — needs: none
 - exit: each item's acceptance oracle passes at head with renewed independent review; no open correctness item in the predicate surface.
+<a id="M-seam"></a>
 ## M-seam: the `T: Scalar` precision contract completes — needs: none
 - exit: zero internal `Real` sites outside the intentional f64 boundary, cast ratchets at zero, NURBS error variants typed and migration-documented.
+<a id="M-coherence"></a>
 ## M-coherence: provider coherence and test hygiene hold — needs: none
 - exit: fresh consumers resolve one coherent provider set, the suite exits without leaked pipes, no test shares a fixed temp path.
+<a id="M-gates"></a>
 ## M-gates: verification gates are mechanized — needs: none
 - exit: doctests runnable, Miri covers the `unsafe` items, supply-chain/semver/float-comparison/bench budgets run in CI, unformatted code cannot reach main.
+<a id="M-docs"></a>
 ## M-docs: the architecture is recorded and taught — needs: none
 - exit: decided architecture has ADRs, the book derives the theory, refinement/remeshing delivered or declared a non-goal, checklist consolidated.
+<a id="M-debt"></a>
 ## M-debt: file-size and lint debt burns down — needs: none
 - exit: every source file at or under the 500-line target or a recorded cohesion exception; ratchet counts monotone decreasing.
-## Milestone M-1.0 (1.0.0): stable geometry release (authority-gated) — needs: M-robustness, M-seam, M-coherence, M-gates, M-docs, M-debt
+<a id="M-1.0"></a>
+## M-1.0 (1.0.0): stable geometry release (authority-gated) — needs: M-robustness, M-seam, M-coherence, M-gates, M-docs, M-debt
 - exit: `cargo semver-checks`, publish dry-run, `cargo doc`, full nextest/doctest/Miri green, zero open correctness items. Veto: release authority sets the API-freeze contents; never forces `publish = true` without it.
+<a id="M-ecosystem"></a>
 ## M-ecosystem: consumer-owned migrations (ares, CFDrs, kwavers) — needs: M-1.0
 - exit: consumer receipts on their own boards; does not gate 1.0.
 - ladder: [ADR 0010](docs/adr/0010-release-scope-1-0.md); every open item below carries exactly one `milestone:`.
@@ -21,7 +29,6 @@
 <a id="GAIA-037"></a>
 ## GAIA-037 — Finite plane/segment parameter range [patch]
 - milestone: M-robustness.
-
 - status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
 - baseline: published 0.6.8 at 5eca6a6; no active PR owns plane/segment ratios.
   Four original failures/six controls pass; corrected expanded baseline has
@@ -56,7 +63,6 @@
 <a id="GAIA-038"></a>
 ## GAIA-038 — Zero-epsilon parallel rejection policy [patch]
 - milestone: M-robustness.
-
 - status: blocked; owner: unassigned; target: unassigned; priority: correctness.
 - evidence: unit-normal x=0 plane, equal off-plane signed distances +1/+1
   or -1/-1, custom eps=0, f32/f64. Both unchanged 0.6.8 and GAIA-037 return
@@ -70,7 +76,6 @@
 <a id="GAIA-033"></a>
 ## GAIA-033 — Finite perspective depth range [patch]
 - milestone: M-robustness.
-
 - status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
 - baseline: current main a9f3dd3. A valid near=2^512/far=2^513 frustum returns
   negative-infinite NDC depth although the exact coefficients are -3/-2^514.
@@ -89,7 +94,6 @@
 <a id="GAIA-034"></a>
 ## GAIA-034 — Representable perspective quotients [patch]
 - milestone: M-robustness.
-
 - status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
 - baseline: w=2^-1074 and clip=(w,2w,0,w) produce (infinity,infinity,NaN)
   although (1,2,0) is exact. Original debug/release failures remain saved.
@@ -118,7 +122,6 @@
 <a id="GAIA-032"></a>
 ## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]
 - milestone: M-robustness.
-
 - status: blocked; owner: Codex; target: 0.6.7; priority: correctness.
 - blocked by: Independent exact-head review and fresh release gates before integration.
 - prerequisite: Independently accepted PR #181 integrates at
@@ -172,7 +175,6 @@
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]
 - milestone: M-robustness.
-
 - status: blocked; owner: unclaimed; priority: correctness.
 - outcome: A checked contract distinguishes an actual miss from an
   unrepresentable distance or invalid NaN box bound.
@@ -190,7 +192,6 @@
 <a id="GAIA-027"></a>
 ## GAIA-027 — Specify invalid predicate inputs [minor]
 - milestone: M-robustness.
-
 - status: blocked; owner: unclaimed; priority: correctness.
 - outcome: Invalid/nonfinite input is distinguished from exact degeneracy.
 - scope: Orientation::from_det, Sign::from_exact_f64 and predicate callers.
@@ -218,7 +219,6 @@ Triage order: correctness → architecture → verification → tightening → f
 <a id="GAIA-MOIRAI-09-COHERENCE"></a>
 ## GAIA-MOIRAI-09-COHERENCE — Verify current provider compatibility [patch]
 - milestone: M-coherence.
-
 - status: blocked
 - priority: correctness
 - outcome: Fresh Gaia/Metis consumers resolve one coherent current Moirai
@@ -253,7 +253,6 @@ Triage order: correctness → architecture → verification → tightening → f
 <a id="GAIA-NEXTEST-PIPE"></a>
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]
 - milestone: M-coherence.
-
 - status: todo
 - priority: verification
 - outcome: Every completed test releases its actual output handles.
@@ -280,7 +279,6 @@ Triage order: correctness → architecture → verification → tightening → f
 <a id="GAIA-003"></a>
 ## GAIA-003 — Collapse the `Real` alias onto the `Scalar` seam
 - milestone: M-seam.
-
 - status: todo
 
 - outcome: `T: Scalar` is the internal precision contract; `Real` remains only
@@ -490,7 +488,6 @@ type-checking, so no bench body has ever been executed by a gate.
 <a id="GAIA-013"></a>
 ## GAIA-013 — GAIA-LINT-1 ratchet burn-down and file-size debt
 - milestone: M-debt.
-
 - **Outcome**: the counted allow-list in `Cargo.toml` shrinks monotonically and
   the source files past the 500-line target are split along operation-family
   lines.
@@ -549,7 +546,6 @@ ratchet baseline auto-tightened 2→0 on push.
 <a id="GAIA-014"></a>
 ## GAIA-014 — Edition 2024
 - milestone: M-debt.
-
 - **Outcome**: the crate builds on edition 2024, gaining
   `unsafe_op_in_unsafe_fn`, let-chains, and the current resolver behaviour the
   stack's other members already assume.
@@ -599,14 +595,12 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-016"></a>
 ## GAIA-016 — Pin exact floating-point test values
 - milestone: M-gates.
-
 - Status: todo. Delivered Phase 13 (test assertions) + Phase 17 (full discharge). `float_cmp = "allow"` removed from ratchet; 5 production sites carry `#[expect]` with documented reasons (tie-breaking, identity check, edge guard, convex hull pivot); test-code sites covered by `#![cfg_attr(test, expect(clippy::float_cmp))]` in lib.rs. Count: 44 → 25 (P13) → 0 (P17). **Owner**: root.
 - priority: verification
 
 <a id="GAIA-017"></a>
 ## GAIA-017 — Parse float-comparison diagnostics
 - milestone: M-gates.
-
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
 - outcome: Cargo JSON diagnostics become validated records with workspace-local
@@ -622,7 +616,6 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-018"></a>
 ## GAIA-018 — Reject hidden float-comparison diagnostics
 - milestone: M-gates.
-
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
 - outcome: Rust lint attributes cannot conceal the measured diagnostic class.
@@ -637,7 +630,6 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-019"></a>
 ## GAIA-019 — Enforce the float-comparison ceiling
 - milestone: M-gates.
-
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
 - outcome: the manifest ceiling is machine-checked against diagnostics and its
@@ -653,7 +645,6 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-020"></a>
 ## GAIA-020 — Gate float-comparison growth in CI
 - milestone: M-gates.
-
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
 - outcome: the repository gate runs strict Clippy once and rejects diagnostic or
@@ -670,7 +661,6 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-021"></a>
 ## GAIA-021 — Validate finite rational NURBS weights
 - milestone: M-seam.
-
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
 - outcome: rational curves and surfaces reject non-finite weights at their
@@ -688,7 +678,6 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-022"></a>
 ## GAIA-022 — Consolidate the legacy execution checklist
 - milestone: M-docs.
-
 - status: todo
 - outcome: every open deliverable has one complete record in this queue.
 - priority: verification
@@ -704,7 +693,6 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-039"></a>
 ## GAIA-039 — Unformatted code can still reach main
 - milestone: M-gates.
-
 - status: todo
 - outcome: unformatted code cannot reach `main`.
 - priority: correctness
@@ -718,7 +706,6 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-RESCUE-QUEUE"></a>
 ## GAIA-RESCUE-QUEUE — Port the rescue branch's file splits onto main
 - milestone: M-debt.
-
 - status: todo
 - outcome: the file splits and test-module extractions of rescue branch #134 are ported onto current main, each file at or under 500 lines, or recorded as a GAIA-013 cohesion exception.
 - priority: correctness
@@ -734,7 +721,6 @@ never in an optimization pass. The audit's finding still holds.
 <a id="GAIA-040"></a>
 ## GAIA-040 — OpenFOAM writer tests share fixed temp paths
 - milestone: M-coherence.
-
 - status: todo
 - outcome: the `openfoam` tests write only under per-test temporary directories, so no test reads or overwrites another run's output.
 - priority: verification
@@ -744,3 +730,63 @@ never in an optimization pass. The audit's finding still holds.
 - evidence (read at `c582974`, `tests.rs:23-123`): the tests join `gaia_of_test_five`, `_vcount`, `_fcount`, `_boundary`, `_named` and `_empty` onto `std::env::temp_dir()`; the five that write call `remove_dir_all` only after their last assertion, so a failed assertion leaves residue, and any two runs sharing the OS temp directory (peer trees) write the same paths.
 - basis: `c582974` (current main).
 - next: give each test a unique directory removed by a drop guard; reuse std unless adding a tempdir dev-dependency is accepted.
+
+<a id="GAIA-ADR0008-PROVIDER-BOUND"></a>
+## GAIA-ADR0008-PROVIDER-BOUND — Revise the stale Leto bound in ADR 0008 and gap_audit.md [patch]
+- status: todo
+- priority: verification
+- milestone: M-docs
+- outcome: ADR 0008 and `gap_audit.md` state the Leto bound the manifest admits, and every cross-reference in them resolves.
+- acceptance: `git grep -n 'Leto \^0.46'` matches only a dated revision note in ADR 0008 naming `>=0.49.0, <0.51.0` and the commits that moved it; `gap_audit.md` has no link to `backlog.md#gaia-eunomia-010`; its section "Eunomia 0.10 / Leto 0.46 public boundary" is deleted in favor of the ADR or rewritten to match it; `docs/adr/README.md` agrees.
+- evidence (origin/main `bbd8f08`): `docs/adr/0008-eunomia-010-provider-boundary.md:22` says "require Leto ^0.46"; `Cargo.toml:56-57` require leto `>=0.49.0, <0.51.0` and eunomia `0.12.0`, advanced from 0.46/0.10 since `a84fe68`; `gap_audit.md:169` links `backlog.md#gaia-eunomia-010`, an anchor `backlog.md` does not define; `gap_audit.md:137-170` repeats the same decision. Sources: gaia#225 verdict 1 F1, verdict 2 N2, verdict 3 F12.
+- scope: `docs/adr/0008-eunomia-010-provider-boundary.md`, `docs/adr/README.md`, `gap_audit.md`.
+- next step: rewrite the ADR 0008 Decision in place with the revision note (what, why, evidence), then delete the duplicate `gap_audit.md` section.
+- basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
+
+<a id="GAIA-RELEASE-CLASS-0610"></a>
+## GAIA-RELEASE-CLASS-0610 — Classify the next release against published 0.6.9 [patch]
+- status: todo
+- priority: correctness
+- milestone: M-coherence
+- outcome: the next release's version, CHANGELOG class and ADR 0008 agree with the provider identities `gaia-mesh` exposes publicly, and 0.6.9 is recorded as released.
+- acceptance: `cargo semver-checks` against published `gaia-mesh` 0.6.9 and `scripts/check_provider_boundary.py` at head classify the candidate. If the Leto 0.49-0.50 / Eunomia 0.12 identities are public breaks, `Cargo.toml` version and the CHANGELOG heading and class are the pre-1.0 minor ADR 0008 prescribes (0.7.0). `## [0.6.9]` carries its release date; no heading says `Unreleased` for a tagged version.
+- evidence (`bbd8f08`): crates.io lists 0.6.9 (`cargo search gaia-mesh`, 2026-11-16); tag `crate-gaia-mesh-v0.6.9` requires leto 0.46.0 and eunomia 0.10.0 (`Cargo.toml:56-57` at the tag); the head requires leto `>=0.49.0, <0.51.0`, eunomia 0.12.0, version 0.6.10; `CHANGELOG.md` records only `[patch]` entries under `[0.6.10]` and heads `[0.6.9]` "Unreleased". Sources: gaia#225 verdict F2, F3.
+- scope: `Cargo.toml` version, `CHANGELOG.md`, `docs/adr/0008-eunomia-010-provider-boundary.md`; no tag or publish (release authority stays with the user).
+- next step: run both checks at head and record the class before any version change.
+- basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
+
+<a id="GAIA-FUZZ-TARGETS"></a>
+## GAIA-FUZZ-TARGETS — Delete the inert fuzz target and run `fuzz/` in bounded CI [patch]
+- status: todo
+- priority: verification
+- milestone: M-gates
+- outcome: `fuzz/` holds only registered targets, and a bounded job builds and runs each parser target.
+- acceptance: `fuzz/fuzz_targets/fuzz_read_stl_he.rs` is deleted and the `agents.md` I/O row names only registered targets; a scheduled or dedicated-nightly job builds and runs every `[[bin]]` in `fuzz/Cargo.toml` for a finite derived budget, so `git grep -n -i fuzz -- .github` is nonempty.
+- evidence (`bbd8f08`): `fuzz/Cargo.toml` registers `fuzz_read_stl`, `fuzz_read_obj`, `fuzz_read_ply`; the tracked `fuzz_read_stl_he.rs` begins "REMOVED" and instructs `git rm`; `agents.md:706` still lists `fuzz_read_stl_he`; `git grep -n -i fuzz origin/main -- .github` is empty. Source: gaia#225 verdict F8.
+- scope: `fuzz/`, `agents.md`, `.github/workflows/`.
+- next step: `git rm` the file and fix the `agents.md` row, then add the dedicated-nightly job.
+- basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
+
+<a id="GAIA-INDEX-EXPECT-INVARIANT"></a>
+## GAIA-INDEX-EXPECT-INVARIANT — Make `raw_from_usize` state its invariant or return a typed error [patch]
+- status: todo
+- priority: verification
+- milestone: M-debt
+- outcome: `src/domain/core/index.rs` has no `expect` whose message lacks the `invariant:` prefix, and an index above `u32::MAX` is not an unexplained panic.
+- acceptance: `raw_from_usize` either returns a typed error on overflow with its callers updated, or its `expect` message begins `invariant:` and names why overflow is unreachable at every caller; a test asserts the overflow behavior by value.
+- evidence (`bbd8f08`): `index.rs:115` is `u32::try_from(n).expect("Index exceeds u32::MAX")`, a message that narrates the failure; the symbol appears in `index.rs` and `storage/vertex_pool.rs` (9 line references). Source: gaia#223 judge F3 (merged `639e20e`).
+- scope: `src/domain/core/index.rs`, `src/infrastructure/storage/vertex_pool.rs`.
+- next step: read the callers, then choose the typed error or the proven invariant.
+- basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
+
+<a id="GAIA-BOARD-ITEM-FORM"></a>
+## GAIA-BOARD-ITEM-FORM — Bring open items to the 15-line schema with anchors [patch]
+- status: todo
+- priority: verification
+- milestone: M-docs
+- outcome: every open item is about 15 lines or fewer and has an `<a id>` anchor immediately before its heading.
+- acceptance: heading-to-heading line count (anchor excluded) is at most 15 for every `## GAIA-` item and an anchor precedes each; long delivery narrative moves to commits, PRs or ADRs.
+- evidence (`bbd8f08`): 19 of 29 `## GAIA-` items exceed 15 lines (GAIA-013 57, GAIA-003 56, GAIA-032 52, GAIA-037 33, GAIA-MOIRAI-09-COHERENCE 32, GAIA-034 27, GAIA-010 27, ...); GAIA-005, -007, -008, -010, -011, -012 and -015 have no anchor. `atlas-artifact-budget.py` reports item length only for per-item files and never gates it, so no check sees this. Sources: gaia#221/#222 residuals (recounted: 29 items, not 30).
+- scope: `backlog.md` only.
+- next step: compact GAIA-013, GAIA-003 and GAIA-032 first, then anchor the seven anchorless items.
+- basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
