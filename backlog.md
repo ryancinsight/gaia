@@ -19,7 +19,7 @@
 ## M-debt: file-size and lint debt burns down — needs: none
 - exit: every source file at or under the 500-line target or a recorded cohesion exception; ratchet counts monotone decreasing.
 <a id="M-1.0"></a>
-## M-1.0 (1.0.0): stable geometry release (authority-gated) — needs: M-robustness, M-seam, M-coherence, M-gates, M-docs, M-debt
+## Milestone M-1.0 (1.0.0): stable geometry release (authority-gated) — needs: M-robustness, M-seam, M-coherence, M-gates, M-docs, M-debt
 - exit: `cargo semver-checks`, publish dry-run, `cargo doc`, full nextest/doctest/Miri green, zero open correctness items. Veto: release authority sets the API-freeze contents; never forces `publish = true` without it.
 <a id="M-ecosystem"></a>
 ## M-ecosystem: consumer-owned migrations (ares, CFDrs, kwavers) — needs: M-1.0
