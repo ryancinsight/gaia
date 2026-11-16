@@ -4,6 +4,11 @@
 
 ### Changed
 
+- [patch] Admit Leto 0.50.0 and widen the workspace requirement from `0.49.0`
+  to `>=0.49.0, <0.51.0`. The workspace and fuzz locks move only Leto (0.49.0
+  to 0.50.0, source `bd349c5e` to `6483eac3`); Leto 0.50 removes the unsafe
+  `VecStorage::uninit`, which Gaia does not call, and no Gaia signature
+  changes.
 - [patch] Write 3MF packages through the first-party `consus-zip` container
   instead of the `zip` crate, so the dependency graph no longer carries `zip`
   and its extraction surface (consus ADR0007). The 3MF parts, their names and
