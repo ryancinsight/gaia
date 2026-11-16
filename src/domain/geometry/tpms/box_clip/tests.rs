@@ -53,7 +53,7 @@ fn box_clip_all_vertices_within_bounds() {
     let mesh = build_tpms_box(&Gyroid, &params).expect("should succeed");
     let eps = params.period / f64::from_count(params.resolution); // one voxel tolerance
     for vid in 0..mesh.vertex_count() {
-        let p = mesh.vertices.position(VertexId(vid as u32));
+        let p = mesh.vertices.position(VertexId::from_usize(vid));
         assert!(
             p.x >= -3.0 - eps && p.x <= 4.0 + eps,
             "vertex x={} out of bounds",
