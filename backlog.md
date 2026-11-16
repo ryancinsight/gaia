@@ -19,8 +19,9 @@
 - ladder: [ADR 0010](docs/adr/0010-release-scope-1-0.md); every open item below carries exactly one `milestone:`.
 
 <a id="GAIA-037"></a>
-- milestone: M-robustness.
 ## GAIA-037 — Finite plane/segment parameter range [patch]
+
+- milestone: M-robustness.
 
 - status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
 - baseline: published 0.6.8 at 5eca6a6; no active PR owns plane/segment ratios.
@@ -54,8 +55,9 @@
   is assumed. Preserve all owner/service and GAIA-NEXTEST-PIPE holds.
 
 <a id="GAIA-038"></a>
-- milestone: M-robustness.
 ## GAIA-038 — Zero-epsilon parallel rejection policy [patch]
+
+- milestone: M-robustness.
 
 - status: blocked; owner: unassigned; target: unassigned; priority: correctness.
 - evidence: unit-normal x=0 plane, equal off-plane signed distances +1/+1
@@ -68,8 +70,9 @@
   GAIA-037. No fix or acceptance is claimed by its overflow recovery draft.
 
 <a id="GAIA-033"></a>
-- milestone: M-robustness.
 ## GAIA-033 — Finite perspective depth range [patch]
+
+- milestone: M-robustness.
 
 - status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
 - baseline: current main a9f3dd3. A valid near=2^512/far=2^513 frustum returns
@@ -87,8 +90,9 @@
   exact-head review are required before merge/publication. Existing holds stay.
 
 <a id="GAIA-034"></a>
-- milestone: M-robustness.
 ## GAIA-034 — Representable perspective quotients [patch]
+
+- milestone: M-robustness.
 
 - status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
 - baseline: w=2^-1074 and clip=(w,2w,0,w) produce (infinity,infinity,NaN)
@@ -116,8 +120,9 @@
   Miri remains UNVERIFIED; do not infer it from that hosted job's success.
 
 <a id="GAIA-032"></a>
-- milestone: M-robustness.
 ## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]
+
+- milestone: M-robustness.
 
 - status: blocked; owner: Codex; target: 0.6.7; priority: correctness.
 - blocked by: Independent exact-head review and fresh release gates before integration.
@@ -170,8 +175,9 @@
   freshly assessed sole 0.6.7 release scope.
 
 <a id="GAIA-029"></a>
-- milestone: M-robustness.
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]
+
+- milestone: M-robustness.
 
 - status: blocked; owner: unclaimed; priority: correctness.
 - outcome: A checked contract distinguishes an actual miss from an
@@ -188,8 +194,9 @@
   an ordinary miss merely to make returned values finite.
 
 <a id="GAIA-027"></a>
-- milestone: M-robustness.
 ## GAIA-027 — Specify invalid predicate inputs [minor]
+
+- milestone: M-robustness.
 
 - status: blocked; owner: unclaimed; priority: correctness.
 - outcome: Invalid/nonfinite input is distinguished from exact degeneracy.
@@ -216,8 +223,9 @@ Triage order: correctness → architecture → verification → tightening → f
 
 
 <a id="GAIA-MOIRAI-09-COHERENCE"></a>
-- milestone: M-coherence.
 ## GAIA-MOIRAI-09-COHERENCE — Verify current provider compatibility [patch]
+
+- milestone: M-coherence.
 
 - status: blocked
 - priority: correctness
@@ -251,8 +259,9 @@ Triage order: correctness → architecture → verification → tightening → f
 
 
 <a id="GAIA-NEXTEST-PIPE"></a>
-- milestone: M-coherence.
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]
+
+- milestone: M-coherence.
 
 - status: todo
 - priority: verification
@@ -278,8 +287,9 @@ Triage order: correctness → architecture → verification → tightening → f
 ---
 
 <a id="GAIA-003"></a>
-- milestone: M-seam.
 ## GAIA-003 — Collapse the `Real` alias onto the `Scalar` seam
+
+- milestone: M-seam.
 
 - status: todo
 
@@ -488,8 +498,9 @@ type-checking, so no bench body has ever been executed by a gate.
 ---
 
 <a id="GAIA-013"></a>
-- milestone: M-debt.
 ## GAIA-013 — GAIA-LINT-1 ratchet burn-down and file-size debt
+
+- milestone: M-debt.
 
 - **Outcome**: the counted allow-list in `Cargo.toml` shrinks monotonically and
   the source files past the 500-line target are split along operation-family
@@ -547,8 +558,9 @@ ratchet baseline auto-tightened 2→0 on push.
 ---
 
 <a id="GAIA-014"></a>
-- milestone: M-debt.
 ## GAIA-014 — Edition 2024
+
+- milestone: M-debt.
 
 - **Outcome**: the crate builds on edition 2024, gaining
   `unsafe_op_in_unsafe_fn`, let-chains, and the current resolver behaviour the
@@ -597,15 +609,17 @@ never in an optimization pass. The audit's finding still holds.
 ---
 
 <a id="GAIA-016"></a>
-- milestone: M-gates.
 ## GAIA-016 — Pin exact floating-point test values
+
+- milestone: M-gates.
 
 - Status: todo. Delivered Phase 13 (test assertions) + Phase 17 (full discharge). `float_cmp = "allow"` removed from ratchet; 5 production sites carry `#[expect]` with documented reasons (tie-breaking, identity check, edge guard, convex hull pivot); test-code sites covered by `#![cfg_attr(test, expect(clippy::float_cmp))]` in lib.rs. Count: 44 → 25 (P13) → 0 (P17). **Owner**: root.
 - priority: verification
 
 <a id="GAIA-017"></a>
-- milestone: M-gates.
 ## GAIA-017 — Parse float-comparison diagnostics
+
+- milestone: M-gates.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
@@ -620,8 +634,9 @@ never in an optimization pass. The audit's finding still holds.
 - next: implement the parser and its value-semantic tests under 400 changed lines.
 
 <a id="GAIA-018"></a>
-- milestone: M-gates.
 ## GAIA-018 — Reject hidden float-comparison diagnostics
+
+- milestone: M-gates.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
@@ -635,8 +650,9 @@ never in an optimization pass. The audit's finding still holds.
 - next: implement the scanner and adversarial lexical cases under 400 lines.
 
 <a id="GAIA-019"></a>
-- milestone: M-gates.
 ## GAIA-019 — Enforce the float-comparison ceiling
+
+- milestone: M-gates.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
@@ -651,8 +667,9 @@ never in an optimization pass. The audit's finding still holds.
 - next: implement the pure budget rules and CLI-free tests under 400 lines.
 
 <a id="GAIA-020"></a>
-- milestone: M-gates.
 ## GAIA-020 — Gate float-comparison growth in CI
+
+- milestone: M-gates.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
@@ -668,8 +685,9 @@ never in an optimization pass. The audit's finding still holds.
 - next: integrate the runner and workflow under 400 changed lines.
 
 <a id="GAIA-021"></a>
-- milestone: M-seam.
 ## GAIA-021 — Validate finite rational NURBS weights
+
+- milestone: M-seam.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
 
@@ -686,8 +704,9 @@ never in an optimization pass. The audit's finding still holds.
 - next: specify the public error migration before implementation.
 
 <a id="GAIA-022"></a>
-- milestone: M-docs.
 ## GAIA-022 — Consolidate the legacy execution checklist
+
+- milestone: M-docs.
 
 - status: todo
 - outcome: every open deliverable has one complete record in this queue.
@@ -702,8 +721,9 @@ never in an optimization pass. The audit's finding still holds.
 
 
 <a id="GAIA-039"></a>
-- milestone: M-gates.
 ## GAIA-039 — Unformatted code can still reach main
+
+- milestone: M-gates.
 
 - status: todo
 - outcome: unformatted code cannot reach `main`.
@@ -716,8 +736,9 @@ never in an optimization pass. The audit's finding still holds.
 - next: decide between enforcing admins, requiring a PR, and removing the skip in the atlas-owned hook (`scripts/git-hooks/pre-push` in the atlas repository); no atlas item carries that upstream change at atlas `2b000c51b`, so it is filed at the next atlas filing sweep.
 
 <a id="GAIA-RESCUE-QUEUE"></a>
-- milestone: M-debt.
 ## GAIA-RESCUE-QUEUE — Port the rescue branch's file splits onto main
+
+- milestone: M-debt.
 
 - status: todo
 - outcome: the file splits and test-module extractions of rescue branch #134 are ported onto current main, each file at or under 500 lines, or recorded as a GAIA-013 cohesion exception.
@@ -725,15 +746,16 @@ never in an optimization pass. The audit's finding still holds.
 - needs: none
 - scope: the `.rs` paths #134 changes (kept at `refs/pull/134/head`); the board of this repository.
 - acceptance: every `.rs` path #134 changes that exists on main is at or under 500 lines, or is recorded as a cohesion exception; the `cargo nextest list` names of ported modules are unchanged.
-- basis: `e36d620` (current main).
+- basis: `4c12e0d` (current main).
 - queue: `ryancinsight/gaia#134` (`rescue/audit-gaia-20260928`, 98 files, base `9d382c4`) is the only surviving source; its work is kept at `refs/pull/134/head`. #121 and #123 resolve against main (witnesses in the bodies of #209 and #210). #120 is subsumed by #134 plus a rescue-hook hunk that main's classifier dispatch supersedes and mid-edit defects read from its diff, not compiled (an orphaned doc comment in `bowyer_watson.rs`, a dropped `DelaunayTriangulation` import in `bowyer_watson/{access,repair}.rs`, stale imports in `lattice.rs`, `mod data;` dropped but still re-exported in `vertex_pool.rs`); its work is kept at `refs/pull/120/head`.
-- port plan: main has moved 308 commits since #134's base and `git merge-tree` reports 31 conflicted paths (5 modify/delete), so it ports file by file, leaf-first. Extractions use `<mod>/tests.rs`, the layout main uses; the `partN.rs` and `tests_<x>.rs` layout does not port. Drop #134's two case-only renames (`CHECKLIST.md` to `checklist.md`, `agents.md` to `AGENTS.md`): main keeps the original names. 23 of the `.rs` paths #134 changes that exist on main still exceed 500 lines; `openfoam.rs`, `edge_store.rs`, `adjacency.rs`, `arrangement/stitch.rs`, `arrangement/snap_round.rs` and `arrangement/planar.rs` are already ported.
+- port plan: main has moved 308 commits since #134's base and `git merge-tree` reports 31 conflicted paths (5 modify/delete), so it ports file by file, leaf-first. Extractions use `<mod>/tests.rs`, the layout main uses; the `partN.rs` and `tests_<x>.rs` layout does not port. Drop #134's two case-only renames (`CHECKLIST.md` to `checklist.md`, `agents.md` to `AGENTS.md`): main keeps the original names. 21 of the `.rs` paths #134 changes that exist on main still exceed 500 lines; `openfoam.rs`, `edge_store.rs`, `adjacency.rs`, `arrangement/stitch.rs`, `arrangement/snap_round.rs`, `arrangement/planar.rs`, `quality/normals.rs` and `primitives/revolution_sweep.rs` are already ported.
 - decision for the lead: whether `partN` slicing of the three 1000+ line test files (`adversarial_tests.rs`, `tests.rs`, `indexed_tests.rs`) is acceptable under GAIA-013's cohesion non-goal, or each is re-split by operation family.
 - next: port the remaining #134 files, each file at or under 500 lines.
 
 <a id="GAIA-040"></a>
-- milestone: M-coherence.
 ## GAIA-040 — OpenFOAM writer tests share fixed temp paths
+
+- milestone: M-coherence.
 
 - status: todo
 - outcome: the `openfoam` tests write only under per-test temporary directories, so no test reads or overwrites another run's output.
