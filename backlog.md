@@ -736,9 +736,10 @@ never in an optimization pass. The audit's finding still holds.
 - status: todo
 - priority: verification
 - milestone: M-docs
+- needs: none
 - outcome: ADR 0008 and `gap_audit.md` state the Leto bound the manifest admits, and every cross-reference in them resolves.
 - acceptance: `git grep -n 'Leto \^0.46'` matches only a dated revision note in ADR 0008 naming `>=0.49.0, <0.51.0` and the commits that moved it; `gap_audit.md` has no link to `backlog.md#gaia-eunomia-010`; its section "Eunomia 0.10 / Leto 0.46 public boundary" is deleted in favor of the ADR or rewritten to match it; `docs/adr/README.md` agrees.
-- evidence (origin/main `bbd8f08`): `docs/adr/0008-eunomia-010-provider-boundary.md:22` says "require Leto ^0.46"; `Cargo.toml:56-57` require leto `>=0.49.0, <0.51.0` and eunomia `0.12.0`, advanced from 0.46/0.10 since `a84fe68`; `gap_audit.md:169` links `backlog.md#gaia-eunomia-010`, an anchor `backlog.md` does not define; `gap_audit.md:137-170` repeats the same decision. Sources: gaia#225 verdict 1 F1, verdict 2 N2, verdict 3 F12.
+- evidence (origin/main `bbd8f08`): `docs/adr/0008-eunomia-010-provider-boundary.md:22` says "require Leto ^0.46"; `Cargo.toml:56-57` require leto `>=0.49.0, <0.51.0` and eunomia `0.12.0`, moved since the ADR (eunomia 0.10 to 0.11 at `92c8d11` and to 0.12 at `a84fe68`; leto 0.46 to 0.47.1 at `a84fe68`, 0.48 at `64a1098`, 0.49 at `f62d219`, then the current range); `gap_audit.md:169` links `backlog.md#gaia-eunomia-010`, an anchor `backlog.md` does not define; `gap_audit.md:137-170` repeats the same decision. Sources: gaia#225 verdict 1 F1, verdict 2 N2, verdict 3 F12.
 - scope: `docs/adr/0008-eunomia-010-provider-boundary.md`, `docs/adr/README.md`, `gap_audit.md`.
 - next step: rewrite the ADR 0008 Decision in place with the revision note (what, why, evidence), then delete the duplicate `gap_audit.md` section.
 - basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
@@ -748,6 +749,7 @@ never in an optimization pass. The audit's finding still holds.
 - status: todo
 - priority: correctness
 - milestone: M-coherence
+- needs: none
 - outcome: the next release's version, CHANGELOG class and ADR 0008 agree with the provider identities `gaia-mesh` exposes publicly, and 0.6.9 is recorded as released.
 - acceptance: `cargo semver-checks` against published `gaia-mesh` 0.6.9 and `scripts/check_provider_boundary.py` at head classify the candidate. If the Leto 0.49-0.50 / Eunomia 0.12 identities are public breaks, `Cargo.toml` version and the CHANGELOG heading and class are the pre-1.0 minor ADR 0008 prescribes (0.7.0). `## [0.6.9]` carries its release date; no heading says `Unreleased` for a tagged version.
 - evidence (`bbd8f08`): crates.io lists 0.6.9 (`cargo search gaia-mesh`, 2026-11-16); tag `crate-gaia-mesh-v0.6.9` requires leto 0.46.0 and eunomia 0.10.0 (`Cargo.toml:56-57` at the tag); the head requires leto `>=0.49.0, <0.51.0`, eunomia 0.12.0, version 0.6.10; `CHANGELOG.md` records only `[patch]` entries under `[0.6.10]` and heads `[0.6.9]` "Unreleased". Sources: gaia#225 verdict F2, F3.
@@ -760,6 +762,7 @@ never in an optimization pass. The audit's finding still holds.
 - status: todo
 - priority: verification
 - milestone: M-gates
+- needs: none
 - outcome: `fuzz/` holds only registered targets, and a bounded job builds and runs each parser target.
 - acceptance: `fuzz/fuzz_targets/fuzz_read_stl_he.rs` is deleted and the `agents.md` I/O row names only registered targets; a scheduled or dedicated-nightly job builds and runs every `[[bin]]` in `fuzz/Cargo.toml` for a finite derived budget, so `git grep -n -i fuzz -- .github` is nonempty.
 - evidence (`bbd8f08`): `fuzz/Cargo.toml` registers `fuzz_read_stl`, `fuzz_read_obj`, `fuzz_read_ply`; the tracked `fuzz_read_stl_he.rs` begins "REMOVED" and instructs `git rm`; `agents.md:706` still lists `fuzz_read_stl_he`; `git grep -n -i fuzz origin/main -- .github` is empty. Source: gaia#225 verdict F8.
@@ -772,9 +775,10 @@ never in an optimization pass. The audit's finding still holds.
 - status: todo
 - priority: verification
 - milestone: M-debt
+- needs: none
 - outcome: `src/domain/core/index.rs` has no `expect` whose message lacks the `invariant:` prefix, and an index above `u32::MAX` is not an unexplained panic.
 - acceptance: `raw_from_usize` either returns a typed error on overflow with its callers updated, or its `expect` message begins `invariant:` and names why overflow is unreachable at every caller; a test asserts the overflow behavior by value.
-- evidence (`bbd8f08`): `index.rs:115` is `u32::try_from(n).expect("Index exceeds u32::MAX")`, a message that narrates the failure; the symbol appears in `index.rs` and `storage/vertex_pool.rs` (9 line references). Source: gaia#223 judge F3 (merged `639e20e`).
+- evidence (`bbd8f08`): `index.rs:115` is `u32::try_from(n).expect("Index exceeds u32::MAX")`, a message that narrates the failure; the symbol appears in `index.rs` and `storage/vertex_pool.rs` (9 line references). Source: gaia#223 judge F3 (`639e20e`).
 - scope: `src/domain/core/index.rs`, `src/infrastructure/storage/vertex_pool.rs`.
 - next step: read the callers, then choose the typed error or the proven invariant.
 - basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
@@ -784,6 +788,7 @@ never in an optimization pass. The audit's finding still holds.
 - status: todo
 - priority: verification
 - milestone: M-docs
+- needs: none
 - outcome: every open item is about 15 lines or fewer and has an `<a id>` anchor immediately before its heading.
 - acceptance: heading-to-heading line count (anchor excluded) is at most 15 for every `## GAIA-` item and an anchor precedes each; long delivery narrative moves to commits, PRs or ADRs.
 - evidence (`bbd8f08`): 19 of 29 `## GAIA-` items exceed 15 lines (GAIA-013 57, GAIA-003 56, GAIA-032 52, GAIA-037 33, GAIA-MOIRAI-09-COHERENCE 32, GAIA-034 27, GAIA-010 27, ...); GAIA-005, -007, -008, -010, -011, -012 and -015 have no anchor. `atlas-artifact-budget.py` reports item length only for per-item files and never gates it, so no check sees this. Sources: gaia#221/#222 residuals (recounted: 29 items, not 30).
