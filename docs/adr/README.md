@@ -18,3 +18,4 @@
 | [0007](0007-scalar-precision-seam.md) | Native-Precision Scalar Seam (`T: Scalar`) | Accepted |
 | [0008](0008-eunomia-010-provider-boundary.md) | Admit the Eunomia 0.10 numeric contract | Accepted |
 | [0009](0009-full-exponent-predicate-signs.md) | Preserve finite predicate signs across the binary64 exponent range | Accepted |
+| [0010](0010-release-scope-1-0.md) | Gaia release scope for 1.0 | Accepted |
