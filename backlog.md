@@ -20,7 +20,6 @@
 
 <a id="GAIA-037"></a>
 ## GAIA-037 — Finite plane/segment parameter range [patch]
-
 - milestone: M-robustness.
 
 - status: blocked; owner: Codex; target: 0.6.9; priority: correctness.
@@ -56,7 +55,6 @@
 
 <a id="GAIA-038"></a>
 ## GAIA-038 — Zero-epsilon parallel rejection policy [patch]
-
 - milestone: M-robustness.
 
 - status: blocked; owner: unassigned; target: unassigned; priority: correctness.
@@ -71,7 +69,6 @@
 
 <a id="GAIA-033"></a>
 ## GAIA-033 — Finite perspective depth range [patch]
-
 - milestone: M-robustness.
 
 - status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
@@ -91,7 +88,6 @@
 
 <a id="GAIA-034"></a>
 ## GAIA-034 — Representable perspective quotients [patch]
-
 - milestone: M-robustness.
 
 - status: blocked; owner: Codex; target: 0.6.8; priority: correctness.
@@ -121,7 +117,6 @@
 
 <a id="GAIA-032"></a>
 ## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]
-
 - milestone: M-robustness.
 
 - status: blocked; owner: Codex; target: 0.6.7; priority: correctness.
@@ -176,7 +171,6 @@
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]
-
 - milestone: M-robustness.
 
 - status: blocked; owner: unclaimed; priority: correctness.
@@ -195,7 +189,6 @@
 
 <a id="GAIA-027"></a>
 ## GAIA-027 — Specify invalid predicate inputs [minor]
-
 - milestone: M-robustness.
 
 - status: blocked; owner: unclaimed; priority: correctness.
@@ -224,7 +217,6 @@ Triage order: correctness → architecture → verification → tightening → f
 
 <a id="GAIA-MOIRAI-09-COHERENCE"></a>
 ## GAIA-MOIRAI-09-COHERENCE — Verify current provider compatibility [patch]
-
 - milestone: M-coherence.
 
 - status: blocked
@@ -260,7 +252,6 @@ Triage order: correctness → architecture → verification → tightening → f
 
 <a id="GAIA-NEXTEST-PIPE"></a>
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]
-
 - milestone: M-coherence.
 
 - status: todo
@@ -288,7 +279,6 @@ Triage order: correctness → architecture → verification → tightening → f
 
 <a id="GAIA-003"></a>
 ## GAIA-003 — Collapse the `Real` alias onto the `Scalar` seam
-
 - milestone: M-seam.
 
 - status: todo
@@ -499,7 +489,6 @@ type-checking, so no bench body has ever been executed by a gate.
 
 <a id="GAIA-013"></a>
 ## GAIA-013 — GAIA-LINT-1 ratchet burn-down and file-size debt
-
 - milestone: M-debt.
 
 - **Outcome**: the counted allow-list in `Cargo.toml` shrinks monotonically and
@@ -559,7 +548,6 @@ ratchet baseline auto-tightened 2→0 on push.
 
 <a id="GAIA-014"></a>
 ## GAIA-014 — Edition 2024
-
 - milestone: M-debt.
 
 - **Outcome**: the crate builds on edition 2024, gaining
@@ -610,7 +598,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-016"></a>
 ## GAIA-016 — Pin exact floating-point test values
-
 - milestone: M-gates.
 
 - Status: todo. Delivered Phase 13 (test assertions) + Phase 17 (full discharge). `float_cmp = "allow"` removed from ratchet; 5 production sites carry `#[expect]` with documented reasons (tie-breaking, identity check, edge guard, convex hull pivot); test-code sites covered by `#![cfg_attr(test, expect(clippy::float_cmp))]` in lib.rs. Count: 44 → 25 (P13) → 0 (P17). **Owner**: root.
@@ -618,7 +605,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-017"></a>
 ## GAIA-017 — Parse float-comparison diagnostics
-
 - milestone: M-gates.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
@@ -635,7 +621,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-018"></a>
 ## GAIA-018 — Reject hidden float-comparison diagnostics
-
 - milestone: M-gates.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
@@ -651,7 +636,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-019"></a>
 ## GAIA-019 — Enforce the float-comparison ceiling
-
 - milestone: M-gates.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
@@ -668,7 +652,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-020"></a>
 ## GAIA-020 — Gate float-comparison growth in CI
-
 - milestone: M-gates.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
@@ -686,7 +669,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-021"></a>
 ## GAIA-021 — Validate finite rational NURBS weights
-
 - milestone: M-seam.
 
 - Status: todo; priority: P1; integrator: unclaimed; last-update: 2026-09-24.
@@ -705,7 +687,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-022"></a>
 ## GAIA-022 — Consolidate the legacy execution checklist
-
 - milestone: M-docs.
 
 - status: todo
@@ -722,7 +703,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-039"></a>
 ## GAIA-039 — Unformatted code can still reach main
-
 - milestone: M-gates.
 
 - status: todo
@@ -737,7 +717,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-RESCUE-QUEUE"></a>
 ## GAIA-RESCUE-QUEUE — Port the rescue branch's file splits onto main
-
 - milestone: M-debt.
 
 - status: todo
@@ -754,7 +733,6 @@ never in an optimization pass. The audit's finding still holds.
 
 <a id="GAIA-040"></a>
 ## GAIA-040 — OpenFOAM writer tests share fixed temp paths
-
 - milestone: M-coherence.
 
 - status: todo
