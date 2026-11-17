@@ -118,6 +118,65 @@ fn boundary_file_named_patches_respected() {
 }
 
 #[test]
+fn patch_bucketing_keeps_face_order_and_patch_ranges() {
+    use crate::domain::mesh::IndexedMesh;
+
+    let mut mesh = IndexedMesh::new();
+    let coords = [
+        (0.0, 0.0, 0.0),
+        (1.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0),
+        (0.0, 0.0, 1.0),
+        (1.0, 1.0, 1.0),
+    ];
+    let mut vs = Vec::new();
+    for (x, y, z) in coords {
+        vs.push(mesh.add_vertex_pos(Point3r::new(x, y, z)));
+    }
+    let r0 = RegionId::from_usize(0);
+    let r1 = RegionId::from_usize(1);
+    // Regions interleave so that patch bucketing must reorder the faces.
+    mesh.add_face_with_region(vs[0], vs[1], vs[2], r0);
+    mesh.add_face_with_region(vs[0], vs[2], vs[3], r1);
+    mesh.add_face_with_region(vs[0], vs[3], vs[4], r0);
+    mesh.add_face_with_region(vs[1], vs[2], vs[3], r1);
+    mesh.add_face_with_region(vs[2], vs[3], vs[4], r0);
+
+    let dir = std::env::temp_dir().join("gaia_of_test_order");
+    write_openfoam_polymesh(
+        &mesh,
+        &dir,
+        &[
+            (r0, "inlet", PatchType::Inlet),
+            (r1, "outlet", PatchType::Outlet),
+        ],
+    )
+    .unwrap();
+
+    let faces = std::fs::read_to_string(dir.join("faces")).unwrap();
+    let boundary = std::fs::read_to_string(dir.join("boundary")).unwrap();
+    std::fs::remove_dir_all(&dir).ok();
+
+    // Captured from the per-patch `Vec` build this replaced: the three inlet
+    // faces in face order, then the two outlet faces.
+    let expected_body =
+        "5\n(\n    3(0 1 2)\n    3(0 3 4)\n    3(2 3 4)\n    3(0 2 3)\n    3(1 2 3)\n)\n";
+    assert!(
+        faces.contains(expected_body),
+        "faces body changed:\n{faces}"
+    );
+
+    for (patch, n_faces, start_face) in [("inlet", "3", "0"), ("outlet", "2", "3")] {
+        let block =
+            format!("        nFaces          {n_faces};\n        startFace       {start_face};");
+        assert!(
+            boundary.contains(&block),
+            "patch {patch} range changed:\n{boundary}"
+        );
+    }
+}
+
+#[test]
 fn empty_mesh_returns_error() {
     let mesh = IndexedMesh::new();
     let dir = std::env::temp_dir().join("gaia_of_test_empty");
