@@ -193,39 +193,42 @@ pub fn write_openfoam_polymesh(
         .map(|(index, (region, _, _))| (*region, index))
         .collect();
 
-    // Assign each face to a patch bucket. The count pass gives each bucket an
-    // exact capacity and avoids O(face_count * patch_count) linear lookup.
+    // Assign each face to a patch bucket. The count pass gives every patch an
+    // exact run of one flat face buffer, so the face list is filled in place
+    // with no per-patch `Vec`, and the writer reads one contiguous block.
     let default_idx = patch_map.len();
-    let mut bucket_counts = vec![0usize; patch_map.len() + 1]; // +1 for default
+    let mut bucket_offsets = vec![0usize; patch_map.len() + 2]; // +1 default, +1 end
     for (_, face) in mesh.faces.iter_enumerated() {
         let bucket = patch_indices
             .get(&face.region)
             .copied()
             .unwrap_or(default_idx);
-        bucket_counts[bucket] += 1;
+        bucket_offsets[bucket + 1] += 1;
     }
-    let mut buckets: Vec<Vec<[u32; 3]>> = bucket_counts
-        .iter()
-        .map(|count| Vec::with_capacity(*count))
-        .collect();
+    for bucket in 0..=default_idx {
+        bucket_offsets[bucket + 1] += bucket_offsets[bucket];
+    }
 
+    let mut faces_by_patch = vec![[0u32; 3]; bucket_offsets[default_idx + 1]];
+    let mut bucket_fill = bucket_offsets[..=default_idx].to_vec();
     for (_, face) in mesh.faces.iter_enumerated() {
         let bucket = patch_indices
             .get(&face.region)
             .copied()
             .unwrap_or(default_idx);
-        buckets[bucket].push([
+        faces_by_patch[bucket_fill[bucket]] = [
             face.vertices[0].raw(),
             face.vertices[1].raw(),
             face.vertices[2].raw(),
-        ]);
+        ];
+        bucket_fill[bucket] += 1;
     }
 
     // Build PatchSpec list (skip empty patches unless it is the default)
     let mut specs: Vec<PatchSpec> = Vec::new();
     let mut cursor = 0usize;
     for (i, (_, name, pt)) in patch_map.iter().enumerate() {
-        let n = buckets[i].len();
+        let n = bucket_offsets[i + 1] - bucket_offsets[i];
         if n > 0 {
             specs.push(PatchSpec {
                 name: name.clone(),
@@ -236,20 +239,20 @@ pub fn write_openfoam_polymesh(
             cursor += n;
         }
     }
-    if !buckets[default_idx].is_empty() {
-        let n = buckets[default_idx].len();
+    let default_faces = bucket_offsets[default_idx + 1] - bucket_offsets[default_idx];
+    if default_faces > 0 {
         specs.push(PatchSpec {
             name: "defaultFaces".into(),
             patch_type: PatchType::Wall,
             start_face: cursor,
-            n_faces: n,
+            n_faces: default_faces,
         });
         // No cursor advance needed; this is the last bucket.
     }
 
     // ── Write all five polyMesh files ─────────────────────────────────────
     write_points_file(dir, mesh.vertices.positions().copied(), mesh.vertex_count())?;
-    write_faces_file(dir, &buckets, mesh.face_count())?;
+    write_faces_file(dir, &faces_by_patch, mesh.face_count())?;
     write_owner_file(dir, mesh.face_count())?;
     write_neighbour_file(dir)?;
     write_boundary_file(dir, &specs)?;
@@ -282,17 +285,15 @@ fn write_points_file(
     Ok(())
 }
 
-fn write_faces_file(dir: &Path, buckets: &[Vec<[u32; 3]>], n_faces: usize) -> MeshResult<()> {
+fn write_faces_file(dir: &Path, faces: &[[u32; 3]], n_faces: usize) -> MeshResult<()> {
     let path = dir.join("faces");
     let mut file = std::io::BufWriter::new(std::fs::File::create(&path).map_err(MeshError::Io)?);
     write_foam_header(&mut file, "faceList", "constant/polyMesh", "faces")
         .map_err(MeshError::Io)?;
     writeln!(file, "{n_faces}").map_err(MeshError::Io)?;
     writeln!(file, "(").map_err(MeshError::Io)?;
-    for bucket in buckets {
-        for [v0, v1, v2] in bucket {
-            writeln!(file, "    3({v0} {v1} {v2})").map_err(MeshError::Io)?;
-        }
+    for [v0, v1, v2] in faces {
+        writeln!(file, "    3({v0} {v1} {v2})").map_err(MeshError::Io)?;
     }
     writeln!(file, ")").map_err(MeshError::Io)?;
     writeln!(
