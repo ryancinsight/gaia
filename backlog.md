@@ -745,17 +745,15 @@ never in an optimization pass. The audit's finding still holds.
 - basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
 
 <a id="GAIA-RELEASE-CLASS-0610"></a>
-## GAIA-RELEASE-CLASS-0610 — Classify the next release against published 0.6.9 [patch]
+## GAIA-RELEASE-CLASS-0610 — Release the Leto 0.51 geometry boundary in Gaia 0.7.0 [major]
 - status: todo
 - priority: correctness
 - milestone: M-coherence
 - needs: none
-- outcome: the next release's version, CHANGELOG class and ADR 0008 agree with the provider identities `gaia-mesh` exposes publicly, and 0.6.9 is recorded as released.
-- acceptance: `cargo semver-checks` against published `gaia-mesh` 0.6.9 and `scripts/check_provider_boundary.py` at head classify the candidate. If the Leto 0.49-0.50 / Eunomia 0.12 identities are public breaks, `Cargo.toml` version and the CHANGELOG heading and class are the pre-1.0 minor ADR 0008 prescribes (0.7.0). `## [0.6.9]` carries its release date; no heading says `Unreleased` for a tagged version.
-- evidence (`bbd8f08`): crates.io lists 0.6.9 (`cargo search gaia-mesh`, 2026-11-16); tag `crate-gaia-mesh-v0.6.9` requires leto 0.46.0 and eunomia 0.10.0 (`Cargo.toml:56-57` at the tag); the head requires leto `>=0.49.0, <0.51.0`, eunomia 0.12.0, version 0.6.10; `CHANGELOG.md` records only `[patch]` entries under `[0.6.10]` and heads `[0.6.9]` "Unreleased". Sources: gaia#225 verdict F2, F3.
-- scope: `Cargo.toml` version, `CHANGELOG.md`, `docs/adr/0008-eunomia-010-provider-boundary.md`; no tag or publish (release authority stays with the user).
-- next step: run both checks at head and record the class before any version change.
-- basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
+- outcome: Gaia receives the same Leto 0.51 geometry values as its consumers under the published Aequitas and Eunomia requirements.
+- acceptance: release gate against 0.6.10, exact-head CI, normalized package build, and a fresh registry consumer exercising typed geometry and 3MF export.
+- evidence: the published 0.6.10 API rejects a caller's Leto 0.51 points and vectors. The merged Gaia and Leto source pair returns exact plane offset −3. [ADR 0011](docs/adr/0011-published-provider-boundary.md) records the release decision.
+- next step: verify the 0.7.0 candidate and record the registry receipt.
 
 <a id="GAIA-FUZZ-TARGETS"></a>
 ## GAIA-FUZZ-TARGETS — Delete the inert fuzz target and run `fuzz/` in bounded CI [patch]

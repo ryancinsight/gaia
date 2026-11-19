@@ -1,6 +1,15 @@
 # Changelog
 
-## [0.6.10] - Unreleased
+## [0.7.0] - Unreleased
+
+### Breaking
+
+- [major] Use Leto 0.51.0 for public points, vectors, and other geometry
+  values, Aequitas 0.4.0 for quantities, and Eunomia 0.12.1 for scalar
+  bounds. Update these dependencies together in consumers that exchange
+  their values with Gaia. See [ADR 0011](docs/adr/0011-published-provider-boundary.md).
+
+## [0.6.10] - 2026-11-19
 
 ### Changed
 
@@ -15,7 +24,7 @@
   DEFLATE compression are unchanged; `write_3mf` keeps its signature and maps
   container I/O failures to `MeshError::Io`.
 
-## [0.6.9] - Unreleased
+## [0.6.9] - 2026-10-17
 
 ### Fixed
 
