@@ -176,8 +176,8 @@ dependencies = [
 
 [[package]]
 name = "consus-compression"
-version = "0.4.1"
-source = "git+https://github.com/ryancinsight/consus.git#bddeeb839aa34aa55c3d79d0e3988ed69cc24c62"
+version = "0.5.0"
+source = "git+https://github.com/ryancinsight/consus.git#2193675bd5e1fbb726cb9f6b324feb91167311b4"
 dependencies = [
  "byteorder",
  "consus-core",
@@ -186,8 +186,8 @@ dependencies = [
 
 [[package]]
 name = "consus-core"
-version = "0.4.1"
-source = "git+https://github.com/ryancinsight/consus.git#bddeeb839aa34aa55c3d79d0e3988ed69cc24c62"
+version = "0.5.0"
+source = "git+https://github.com/ryancinsight/consus.git#2193675bd5e1fbb726cb9f6b324feb91167311b4"
 dependencies = [
  "byteorder",
  "smallvec",
@@ -196,8 +196,8 @@ dependencies = [
 
 [[package]]
 name = "consus-zip"
-version = "0.4.1"
-source = "git+https://github.com/ryancinsight/consus.git#bddeeb839aa34aa55c3d79d0e3988ed69cc24c62"
+version = "0.5.0"
+source = "git+https://github.com/ryancinsight/consus.git#2193675bd5e1fbb726cb9f6b324feb91167311b4"
 dependencies = [
  "consus-compression",
  "consus-core",
