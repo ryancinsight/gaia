@@ -53,9 +53,9 @@ thiserror = "2.0"
 
 # Data structures
 slotmap = "1.0"
-leto = { version = ">=0.49.0, <0.51.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
-eunomia = { version = "0.12.0", git = "https://github.com/ryancinsight/eunomia", default-features = false, features = ["std"] }
-aequitas = { version = "0.3.0", git = "https://github.com/ryancinsight/aequitas", default-features = false, features = ["std"] }
+leto = { version = "0.51.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
+eunomia = { version = "0.12.1", default-features = false, features = ["std"] }
+aequitas = { version = "0.4.0", default-features = false, features = ["std"] }
 melinoe = { version = "0.10.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false, features = ["alloc"] }
 
 # Mesh / geometry — state-of-the-art kernel
