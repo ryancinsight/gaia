@@ -30,3 +30,11 @@ Compare with the published 0.6.10 API using cargo-semver-checks. Verify
 the clean package and the existing native, documentation, and Miri
 checks. After publishing, resolve the exact registry versions in a new
 Cargo project and rerun the plane construction and 3MF archive checks.
+
+## Aequitas 0.5 registry revision
+
+Gaia 0.8 carries the Leto 0.52 and Aequitas 0.5 identities already selected
+by the integrated source. The original 0.7 registry archive retains its
+published requirements. RITK and other registry consumers advance to 0.8
+for the single-provider graph. Geometry, file formats, and numerical
+acceptance tests follow the same contracts.
