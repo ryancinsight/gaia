@@ -541,7 +541,7 @@ dependencies = [
 
 [[package]]
 name = "gaia-mesh"
-version = "0.6.10"
+version = "0.7.0"
 dependencies = [
  "aequitas",
  "consus-zip",
@@ -702,8 +702,8 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
 name = "leto"
-version = "0.51.0"
-source = "git+https://github.com/ryancinsight/leto.git#65a1d8b2c501c6bbaf5790e07d760815cb6d8ea8"
+version = "0.52.0"
+source = "git+https://github.com/ryancinsight/leto.git#31334bd0428b6363b7b94a2f5abd58616a80b3bd"
 dependencies = [
  "aequitas",
  "eunomia",

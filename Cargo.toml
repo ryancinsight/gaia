@@ -6,10 +6,10 @@ resolver = "3"
 # third-party crate, so this publishes as `gaia-mesh` while `[lib] name` keeps
 # the import path `gaia` — the same split the stack uses for `moirai-runtime`,
 # `mnemosyne-memory`, `themis-topology`, and `iris-viz`. Consumers write
-# `gaia = { package = "gaia-mesh", version = "0.5.0" }` and every `use gaia::…`
+# `gaia = { package = "gaia-mesh", version = "0.7.0" }` and every `use gaia::…`
 # is unchanged.
 name = "gaia-mesh"
-version = "0.6.10"
+version = "0.7.0"
 edition = "2024"
 rust-version = "1.97"
 authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
@@ -53,7 +53,7 @@ thiserror = "2.0"
 
 # Data structures
 slotmap = "1.0"
-leto = { version = "0.51.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
+leto = { version = "0.52.0", git = "https://github.com/ryancinsight/leto.git", default-features = false, features = ["std", "serde"] }
 eunomia = { version = "0.12.1", default-features = false, features = ["std"] }
 aequitas = { version = "0.5.0", default-features = false, features = ["std"] }
 melinoe = { version = "0.10.0", git = "https://github.com/ryancinsight/melinoe.git", default-features = false, features = ["alloc"] }
