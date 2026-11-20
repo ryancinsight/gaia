@@ -9,6 +9,9 @@
 <a id="M-coherence"></a>
 ## M-coherence: provider coherence and test hygiene hold — needs: none
 - exit: fresh consumers resolve one coherent provider set, the suite exits without leaked pipes, no test shares a fixed temp path.
+
+- [patch] The source lock selects Mnemosyne Arena 0.7.2 and Memory 0.10.2
+  for the published Gaia 0.8 provider cohort.
 <a id="M-gates"></a>
 ## M-gates: verification gates are mechanized — needs: none
 - exit: doctests runnable, Miri covers the `unsafe` items, supply-chain/semver/float-comparison/bench budgets run in CI, unformatted code cannot reach main.

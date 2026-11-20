@@ -11,12 +11,12 @@ import path stays `gaia` via the `[lib] name`, so rename the dependency and no
 
 ```toml
 [dependencies]
-gaia = { package = "gaia-mesh", version = "0.7.0" }
+gaia = { package = "gaia-mesh", version = "0.8.0" }
 ```
 
-Gaia 0.7 exposes geometry types from Leto 0.51 and requires
-Aequitas 0.4 and Eunomia 0.12.1. Applications that pass points or vectors
-into Gaia need the same Leto version and source. Gaia 0.7 uses Moirai 0.12
+Gaia 0.8 exposes geometry types from Leto 0.52 and requires
+Aequitas 0.5 and Eunomia 0.12.1. Applications that pass points or vectors
+into Gaia need the same Leto version and source. Gaia 0.8 uses Moirai 0.12
 for scheduling and Consus 0.5 to write 3MF archives.
 
 The crate has no cargo features: every format module and the moirai-backed

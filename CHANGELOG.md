@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.8.0] - Aequitas 0.5 provider migration
+## [0.8.0] - 2026-11-20
 
 ### Breaking
 
