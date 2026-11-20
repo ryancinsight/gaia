@@ -1,5 +1,15 @@
 # Gaia provider compatibility audit
 
+## Gaia 0.8 release and source lock [patch]
+
+The crates.io archive matches the sparse index checksum and records source
+`bdac6214249fbe9791b0140ee204de13ef7717ba`. Gaia 0.8 uses Leto 0.52 and
+Aequitas 0.5 at the public geometry boundary. The development lock selects
+Mnemosyne Arena 0.7.2 and Memory 0.10.2. Cargo also refreshes their shared
+Melinoe and Themis revisions, and resolves Windows compatibility dependencies
+within their existing requirements. The local locked nextest suite passes
+1,256 tests with one existing skip.
+
 ## GAIA-037 — Finite plane/segment ratio range [patch]
 
 On published 0.6.8, finite opposite distances can overflow da-db, causing
