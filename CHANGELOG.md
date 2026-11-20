@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0] - Aequitas 0.5 provider migration
+
+### Breaking
+
+- [major] Update public geometry and quantity identities to Leto 0.52 and
+  Aequitas 0.5. Move both providers together when exchanging points, vectors,
+  or quantities with Gaia. See [ADR 0011](docs/adr/0011-published-provider-boundary.md).
+
 ## [0.7.0] - Unreleased
 
 ### Breaking
