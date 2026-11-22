@@ -1,5 +1,14 @@
 # Checklist
 
+## Stable release checklist
+
+Basis `19146d24ced6`, representative manifest `gaia-mesh 0.8.0`. Target 1.0.0. [Backlog item](backlog.md#gaia-stable-qualification).
+
+- [ ] [patch] Re-run GAIA-037 on the 0.8.0 baseline, including symmetric finite endpoints whose exact parameter is one half. Check parallel rejection and adjacent representable inputs before carrying a fix forward.
+- [ ] [arch] Complete the scalar seam, typed NURBS errors and migration review in M-seam. Prove the predicate and construction results on a consuming mesh, including degenerate inputs.
+- [ ] [major] Close coherence, gates, docs and debt milestones. Verify the public mesh API and its standalone provider graph, keeping consumer-owned migrations on their own boards.
+- [ ] [patch] Run the [release scope](docs/adr/0010-release-scope-1-0.md) exits and attach reviewed, exact-revision evidence for this member’s [Atlas qualification criteria](https://github.com/ryancinsight/atlas/blob/17b0124a7548ad81e817284afc5cb115c1d1bc78/docs/parity/repositories.json).
+
 Active independent correctness target: **0.6.9**, GAIA-037.
 Base: published 0.6.8 main; held #184 source is not included. This is the next
 verified available patch, independent of #184's provisional version declaration.

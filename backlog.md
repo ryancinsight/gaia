@@ -1,5 +1,11 @@
 # Backlog
 
+<a id="gaia-stable-qualification"></a>
+## GAIA-STABLE-QUALIFICATION — gaia stable-release qualification [patch] — todo
+- priority: verification; milestone: M-robustness; basis: `19146d24ced6`.
+- Outcome: Reproduce the plane–segment midpoint error on the current geometry release. Follow the [release scope](docs/adr/0010-release-scope-1-0.md) and `M-robustness`.
+- Acceptance and sequence: [stable-release checklist](CHECKLIST.md#stable-release-checklist).
+
 <a id="M-robustness"></a>
 ## M-robustness: exact-predicate and range correctness defects are repaired — needs: none
 - exit: each item's acceptance oracle passes at head with renewed independent review; no open correctness item in the predicate surface.
