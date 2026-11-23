@@ -1,5 +1,13 @@
 # Gaia provider compatibility audit
 
+## Incremental release baseline
+
+Reviewed [gaia-mesh 0.8.0](Cargo.toml) at [ce7513c375ff](https://github.com/ryancinsight/gaia/tree/ce7513c375ff4709e9863667635a4044d72ce4b1). The exact version appears in the [registry](https://crates.io/crates/gaia-mesh/0.8.0).
+
+The next [patch] checkpoint uses [plane segment range audit](tests/plane_segment_range_audit.rs). [Target version and acceptance criteria](CHECKLIST.md#stable-release-checklist).
+
+The Atlas board check reports 5 existing schema findings, including `GAIA-017`. Verify each item against its delivery evidence, archive completed work and rerun the board check before the freeze.
+
 ## Gaia 0.8 release and source lock [patch]
 
 The crates.io archive matches the sparse index checksum and records source

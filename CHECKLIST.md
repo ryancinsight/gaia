@@ -2,12 +2,14 @@
 
 ## Stable release checklist
 
-Basis `19146d24ced6`, representative manifest `gaia-mesh 0.8.0`. Target 1.0.0. [Backlog item](backlog.md#gaia-stable-qualification).
+Basis `ce7513c375ff`, representative manifest `gaia-mesh 0.8.0`. Target 1.0.0. [Backlog item](backlog.md#gaia-stable-qualification).
 
 - [ ] [patch] Re-run GAIA-037 on the 0.8.0 baseline, including symmetric finite endpoints whose exact parameter is one half. Check parallel rejection and adjacent representable inputs before carrying a fix forward.
 - [ ] [arch] Complete the scalar seam, typed NURBS errors and migration review in M-seam. Prove the predicate and construction results on a consuming mesh, including degenerate inputs.
 - [ ] [major] Close coherence, gates, docs and debt milestones. Verify the public mesh API and its standalone provider graph, keeping consumer-owned migrations on their own boards.
-- [ ] [patch] Run the [release scope](docs/adr/0010-release-scope-1-0.md) exits and attach reviewed, exact-revision evidence for this member’s [Atlas qualification criteria](https://github.com/ryancinsight/atlas/blob/17b0124a7548ad81e817284afc5cb115c1d1bc78/docs/parity/repositories.json).
+- [ ] [patch] **0.8.1.** Compare the plane intersection of symmetric finite endpoints to the exact midpoint. Swap endpoints, include a parallel segment and verify the documented result in each case. [Source and baseline](gap_audit.md#incremental-release-baseline).
+- [ ] [major] **0.9.0 proposed for the scalar seam.** Review the typed geometry errors and migrate the mesh consumer before freezing the seam. Verify a degenerate construction and a nondegenerate mesh through that public boundary.
+- [ ] [major] **1.0.0-beta.1 → 1.0.0-rc.1 → 1.0.0.** Freeze the supported surface at beta. The mesh consumer passes predicate, construction and serialization checks against the packaged crate on the reviewed scalar graph. Repeat the applicable exits on the exact RC before stable promotion. Run the [release scope](docs/adr/0010-release-scope-1-0.md) exits and attach reviewed, exact-revision evidence for this member’s [Atlas qualification criteria](https://github.com/ryancinsight/atlas/blob/17b0124a7548ad81e817284afc5cb115c1d1bc78/docs/parity/repositories.json).
 
 Active independent correctness target: **0.6.9**, GAIA-037.
 Base: published 0.6.8 main; held #184 source is not included. This is the next
