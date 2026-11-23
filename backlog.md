@@ -2,8 +2,8 @@
 
 <a id="gaia-stable-qualification"></a>
 ## GAIA-STABLE-QUALIFICATION — gaia stable-release qualification [patch] — todo
-- priority: verification; milestone: M-robustness; basis: `19146d24ced6`.
-- Outcome: Reproduce the plane–segment midpoint error on the current geometry release. Follow the [release scope](docs/adr/0010-release-scope-1-0.md) and `M-robustness`.
+- priority: verification; milestone: M-robustness; basis: `ce7513c375ff`.
+- Outcome: Reproduce the plane–segment midpoint error on the current geometry release. Follow the [release scope](docs/adr/0010-release-scope-1-0.md) and `M-robustness`. Planning targets for `gaia-mesh` are 0.8.1, then 0.9.0 proposed for the scalar seam, then 1.0.0. Verification alone can advance the current version.
 - Acceptance and sequence: [stable-release checklist](CHECKLIST.md#stable-release-checklist).
 
 <a id="M-robustness"></a>
