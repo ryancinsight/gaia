@@ -59,7 +59,7 @@ fn assert_same<T: Scalar>(actual: T, expected: T) {
     );
 }
 
-fn verify_centroid_cancellation<T: Scalar>(large: T, maximum: T, ulp: T) {
+fn verify_centroid_cancellation<T: Scalar + Into<f64>>(large: T, maximum: T, ulp: T) {
     let third = <T as Scalar>::from_f64(1.0 / 3.0);
     for sign in [T::from_int(1), T::from_int(-1)] {
         // The original first sum overflows, but cancellation leaves large.
@@ -69,10 +69,6 @@ fn verify_centroid_cancellation<T: Scalar>(large: T, maximum: T, ulp: T) {
         );
         // Cancel MAX with -MAX before the much smaller residual is scaled.
         let values = [maximum * sign, ulp * sign, -maximum * sign];
-        // Half of ulp is a tie for sums near MAX. Where the original left to
-        // right sum is finite its bits are kept (and may round the residual
-        // away); where it overflows, recovery must preserve the residual.
-        let tie = [maximum * sign, ulp / T::from_int(2) * sign, -maximum * sign];
         for permutation in [
             [0, 1, 2],
             [0, 2, 1],
@@ -85,17 +81,75 @@ fn verify_centroid_cancellation<T: Scalar>(large: T, maximum: T, ulp: T) {
                 coordinate_mean(permutation.map(|i| values[i])),
                 ulp * sign * third,
             );
-            let tied = permutation.map(|i| tie[i]);
-            if !<T as eunomia::NumericElement>::is_finite(tied[0] + tied[1] + tied[2]) {
-                assert_same(coordinate_mean(tied), ulp / T::from_int(2) * sign * third);
-            }
+        }
+        // Half an ulp is a tie near MAX; only the overflowing order recovers.
+        let tie = [maximum * sign, ulp / T::from_int(2) * sign, -maximum * sign];
+        if !<T as eunomia::NumericElement>::is_finite(tie[0] + tie[1] + tie[2]) {
+            assert_recovery_bound(tie, maximum);
         }
         // A constant-coordinate mean must retain the endpoint itself.
         assert_same(coordinate_mean([maximum * sign; 3]), maximum * sign);
     }
 }
 
-fn verify_recovered_mean_bounds<T: Scalar>(maximum: T, tiny: T) {
+/// Sign, mantissa and exponent with `|x| = mantissa * 2^exponent`.
+fn decompose(x: f64) -> (bool, u128, i32) {
+    let bits = x.to_bits();
+    let field = i32::try_from((bits >> 52) & 0x7ff).expect("invariant: 11-bit field");
+    let fraction = u128::from(bits & ((1 << 52) - 1));
+    match field {
+        0 => (bits >> 63 == 1, fraction, -1074),
+        _ => (bits >> 63 == 1, fraction | 1 << 52, field - 1075),
+    }
+}
+
+/// Integer image of `x` in units of `2^unit_exp`, truncated toward zero.
+fn fixed_point<T: Into<f64>>(x: T, unit_exp: i32) -> i128 {
+    let (negative, mantissa, exponent) = decompose(x.into());
+    let shift = exponent - unit_exp;
+    let magnitude = if shift >= 0 {
+        mantissa << shift
+    } else {
+        mantissa >> shift.unsigned_abs().min(127)
+    };
+    let sign: i128 = if negative { -1 } else { 1 };
+    sign * i128::try_from(magnitude).expect("invariant: below 2^118 units")
+}
+
+/// Asserts the Rustdoc bounds (times 3, since `3 mean = s`) against the exact
+/// sum `s` in integer units of `2^(e - 118)`, `2^e > MAX`: same sign `4u|s|`,
+/// mixed signs `u(|lo + hi| + 3|s|)`, overflowing tail `3u|s|`, with
+/// `u = 2^-p` applied as a right shift. The 3 units of slack are the
+/// truncation of the three coordinates, below `2^-60` of the smallest
+/// overflowing `|s|` (`ulp(MAX) / 2`), so it is bookkeeping, not a tolerance.
+fn assert_recovery_bound<T: Scalar + Into<f64>>(triple: [T; 3], maximum: T) {
+    let (_, max_mantissa, max_exponent) = decompose(maximum.into());
+    let width = u128::BITS - max_mantissa.leading_zeros();
+    let precision = width - max_mantissa.trailing_zeros();
+    let unit_exp = max_exponent + i32::try_from(width).expect("invariant: width") - 118;
+    let mut sorted = triple;
+    sorted.sort_by(Scalar::total_cmp);
+    let [lo, mid, hi] = sorted;
+    let units = |x: T| fixed_point(x, unit_exp);
+    let exact_sum = units(lo) + units(mid) + units(hi);
+    let actual = coordinate_mean(triple);
+    let error = (3 * units(actual) - exact_sum).abs();
+    let ceil_shift = |n: i128| (n + (1_i128 << precision) - 1) >> precision;
+    let bound = if lo >= T::from_int(0) || hi <= T::from_int(0) {
+        ceil_shift(4 * exact_sum.abs())
+    } else if <T as eunomia::NumericElement>::is_finite((lo + hi) + mid) {
+        ceil_shift((units(lo) + units(hi)).abs() + 3 * exact_sum.abs())
+    } else {
+        ceil_shift(3 * exact_sum.abs())
+    };
+    assert!(
+        error <= bound + 3,
+        "{triple:?} -> {actual:?}: |3 result - sum| = {error} units, bound {bound}"
+    );
+    assert!(actual >= lo && actual <= hi, "{triple:?} -> {actual:?}");
+}
+
+fn verify_recovered_mean_bounds<T: Scalar + Into<f64>>(maximum: T, tiny: T) {
     let zero = T::from_int(0);
     let half = maximum / T::from_int(2);
     let values = [
@@ -122,15 +176,7 @@ fn verify_recovered_mean_bounds<T: Scalar>(maximum: T, tiny: T) {
                         <T as eunomia::NumericElement>::is_finite(actual),
                         "{triple:?} -> {actual:?}"
                     );
-                    let lo = triple
-                        .into_iter()
-                        .reduce(|x, y| if x < y { x } else { y })
-                        .expect("three values");
-                    let hi = triple
-                        .into_iter()
-                        .reduce(|x, y| if x > y { x } else { y })
-                        .expect("three values");
-                    assert!(actual >= lo && actual <= hi, "{triple:?} -> {actual:?}");
+                    assert_recovery_bound(triple, maximum);
                 }
             }
         }
@@ -188,16 +234,24 @@ fn nonfinite_coordinate_keeps_legacy_centroid() {
     verify_nonfinite_coordinate::<f64>();
 }
 
+/// Each of the nine coordinates poisoned in turn keeps every axis legacy.
 fn verify_nonfinite_vertex<T: Scalar>(large: T) {
     for invalid in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-        let mut points = translated_triangle(large);
-        points[0].y = <T as Scalar>::from_f64(invalid);
-        let actual = triangle_centroid(&points[0], &points[1], &points[2]);
-        for axis in 0..3 {
-            assert_same(
-                actual[axis],
-                legacy_centroid([points[0][axis], points[1][axis], points[2][axis]]),
-            );
+        for (vertex, axis) in (0..9).map(|k| (k / 3, k % 3)) {
+            let mut points = [Point3::new(large, large, large); 3];
+            let poison = <T as Scalar>::from_f64(invalid);
+            match axis {
+                0 => points[vertex].x = poison,
+                1 => points[vertex].y = poison,
+                _ => points[vertex].z = poison,
+            }
+            let actual = triangle_centroid(&points[0], &points[1], &points[2]);
+            for other in 0..3 {
+                assert_same(
+                    actual[other],
+                    legacy_centroid([points[0][other], points[1][other], points[2][other]]),
+                );
+            }
         }
     }
 }

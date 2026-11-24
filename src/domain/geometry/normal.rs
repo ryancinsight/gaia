@@ -53,27 +53,36 @@ pub fn triangle_area_normal<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<
 /// - When any input vertex is nonfinite, every coordinate keeps the legacy
 ///   result, including NaN and infinity propagation.
 ///
-/// Three equal coordinates give that coordinate exactly. When the mean is not
-/// representable no result is claimed to be the correctly rounded mean; the
-/// bounds below apply instead.
+/// On the overflow path, three equal coordinates give that coordinate exactly;
+/// on the finite-sum path the legacy `(3x) * (1/3)` rounding applies and may
+/// differ from `x` by one ulp. No result is claimed to be the correctly rounded
+/// mean: the bounds below apply, and some results are one ulp from it.
 ///
 /// # Recovery error bound
 ///
 /// Sort the coordinate as `lo <= m <= hi`. Each operation `x op y` is modelled
-/// as `(x op y)(1 + d)` with `|d| <= u`, valid for the correctly rounded
-/// IEEE 754 operations when no result is subnormal or overflows; terms of
-/// order `u^2` are dropped. An overflowing sum has magnitude above `MAX`, so
-/// `|mean| > MAX / 3` and subnormal absolute errors are negligible against it.
-/// No error-free transformation is used here.
+/// as `(x op y)(1 + d)` with `|d| <= u` for correctly rounded IEEE 754
+/// operations that neither overflow nor underflow; terms of order `u^2` are
+/// dropped. No error-free transformation is used here.
+///
+/// Size of the mean. Let `p`, `q`, `r` be the coordinates in addition order and
+/// `ulp` the spacing just below `MAX`. Round-to-nearest overflows only when
+/// the exact result has magnitude at least `MAX + ulp / 2`. If `p + q`
+/// overflows, `|p + q| >= MAX + ulp / 2` and `|r| <= MAX`, so
+/// `|p + q + r| >= ulp / 2`. Otherwise `t = fl(p + q)` is finite, the sum
+/// `t + r` overflows, and `|t - (p + q)| <= ulp / 2`, so
+/// `|p + q + r| >= MAX`. Hence `|mean| >= ulp / 6` whenever the sum overflows
+/// (above `2^101` for `f32`, `2^968` for `f64`), so half a smallest subnormal
+/// of underflow error is negligible against the bounds below.
 ///
 /// - Same sign (`lo >= 0` or `hi <= 0`): the result is
 ///   `m + ((lo - m) + (hi - m)) / 3`. The two differences have opposite signs,
 ///   so neither they nor their sum overflow. Their rounding errors, the sum
 ///   and the division by 3 each contribute at most `u (hi - lo) / 3`
 ///   (`|lo - m| + |hi - m| = hi - lo`), and the final addition adds
-///   `u |mean|`. For same-sign coordinates `hi - lo <= max(|lo|, |hi|) <= 3 |mean|`,
-///   giving `|result - mean| <= 4u |mean|` to first
-///   order. Equal coordinates give zero differences and the exact result `m`.
+///   `u |mean|`. For same-sign coordinates `hi - lo <= max(|lo|, |hi|) <=
+///   3 |mean|`, giving `|result - mean| <= 4u |mean|`. Equal coordinates give
+///   zero differences and the exact result `m`.
 /// - Mixed signs (`lo < 0 < hi`): `lo + hi` cannot overflow, so it is formed
 ///   first and cancels large opposite coordinates before scaling. If adding
 ///   `m` stays finite the result is that sum times the rounded `1/3`, with
