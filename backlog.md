@@ -562,7 +562,7 @@ never in an optimization pass. The audit's finding still holds.
 - outcome: `fuzz/` holds only registered targets, and a bounded job builds and runs each parser target.
 - acceptance: `fuzz/fuzz_targets/fuzz_read_stl_he.rs` is deleted and the `agents.md` I/O row names only registered targets; a scheduled or dedicated-nightly job builds and runs every `[[bin]]` in `fuzz/Cargo.toml` for a finite derived budget, so `git grep -n -i fuzz -- .github` is nonempty.
 - evidence (`bbd8f08`): `fuzz/Cargo.toml` registers `fuzz_read_stl`, `fuzz_read_obj`, `fuzz_read_ply`; the tracked `fuzz_read_stl_he.rs` begins "REMOVED" and instructs `git rm`; `agents.md:706` still lists `fuzz_read_stl_he`; `git grep -n -i fuzz origin/main -- .github` is empty. Source: gaia#225 verdict F8.
-- evidence (`9daa782`): after the rand 0.9 update `fuzz/Cargo.lock` was merged textually and no hosted job resolves it: `git grep -n -i fuzz -- .github` is empty. It also moves quinn-udp's windows-sys to 0.61.2 while the root lock keeps 0.52.0. The job here must run `cargo metadata --locked --manifest-path fuzz/Cargo.toml` or build under `--locked`. Source: gaia#242 verdict F2, F8.
+- evidence (`9daa782`): after the rand 0.9 update `fuzz/Cargo.lock` was merged textually and no hosted job resolves it: `git grep -n -i fuzz -- .github` is empty. At `d4986c9`, `fuzz/Cargo.lock` resolves quinn-udp against windows-sys 0.61.2 while the root lock keeps 0.52.0. The job here must run `cargo metadata --locked --manifest-path fuzz/Cargo.toml` or build under `--locked`. Source: gaia#242 verdict F2, F8.
 - scope: `fuzz/`, `agents.md`, `.github/workflows/`.
 - next step: `git rm` the file and fix the `agents.md` row, then add the dedicated-nightly job.
 - basis: `bbd8f08730f16c4fca4e73039fd90b39280d87d1`
@@ -587,11 +587,11 @@ never in an optimization pass. The audit's finding still holds.
 - milestone: M-coherence
 - needs: none
 - outcome: The tracked SDF tetrahedral volume figure and its manifest row are known to match `SdfMesher` output under rand 0.9; CI fails when a regenerated book figure differs from the tracked copy; a test pins the seeded stream so the next rand change shows; the CHANGELOG states that seeded output changed.
-- acceptance: `cargo run --locked --quiet --bin book_mesh_gallery -- docs/book` followed by `git status --porcelain docs/book` prints nothing, or the regenerated figure and `docs/book/figure_manifest.md` row (158 vertices, 1058 cells, 451 at the basis) are committed (not run at the basis: unsettled); `git grep -n 'diff --exit-code' -- .github` prints a step after the gallery run (prints nothing at the basis); a test asserts exact output for `SdfMesher::new(0.8)` on the unit `SphereSdf` as a regression pin, since `lattice_tests.rs:38-48` compares two runs only; `git grep -n -w rand -- CHANGELOG.md` prints a [patch] entry (nothing at the basis).
+- acceptance: `cargo run --locked --quiet --bin book_mesh_gallery -- docs/book` followed by `git status --porcelain docs/book` prints nothing, or the regenerated figure and `docs/book/figure_manifest.md` row (158 vertices, 1058 faces, 451 cells at the basis) are committed (not run at the basis: unsettled); `git grep -n 'diff --exit-code' -- .github` prints a step after the gallery run (prints nothing at the basis); a test asserts exact output for `SdfMesher::new(0.8)` on the unit `SphereSdf` as a regression pin, since `lattice_tests.rs:38-48` compares two runs only; `git grep -n -w rand -- CHANGELOG.md` prints a [patch] entry (nothing at the basis).
 - evidence (`9daa782`): `lattice.rs:277` seeds `StdRng`, then `shuffle` (:293, :297) and three `random_range` per point (:303-305); the judge of gaia#242 read rand 0.8.8 `seq/mod.rs:586-591` (downward, one draw per element) against 0.9.5 `seq/slice.rs:373-410` (upward, packed draws), so the permutation and jitter differ for a fixed seed. `book-pages.yml:75` regenerates the figures and nothing diffs them.
 - scope: `src/application/delaunay/dim3/lattice_tests.rs`, `docs/book/figures/models/topology/sdf-tetrahedral-volume.svg`, `docs/book/figure_manifest.md`, `.github/workflows/book-pages.yml`, `CHANGELOG.md`.
 - next step: run the gallery at the basis and diff; then add the diff step and the pin.
-- basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
+- basis: `d4986c9c2a7d0b7dbef240ec1e23fbfa334438ba`
 
 <a id="GAIA-BOARD-ITEM-FORM"></a>
 ## GAIA-BOARD-ITEM-FORM — Bring open items to the 15-line schema with anchors [patch]
