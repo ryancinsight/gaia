@@ -38,16 +38,126 @@ pub fn triangle_area_normal<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<
 /// Centroid (arithmetic mean) of a triangle.
 ///
 /// Canonical SSOT implementation — used by CSG classify, GWN, and channel builders.
-/// Avoids the O(1) `to_f64()` cast chain found in duplicate implementations.
+///
+/// # Contract
+///
+/// Let `u` be the unit roundoff of `T` (`2^-24` for `f32`, `2^-53` for `f64`;
+/// IEEE 754 round-to-nearest) and let `mean` be the real-number mean of the
+/// three stored coordinates. Per coordinate:
+///
+/// - When the raw sum `(a + b) + c` is finite, the result is that sum times
+///   the rounded `1/3`, bit for bit as before. No accuracy claim is added.
+/// - When the raw sum overflows and every coordinate of all three vertices is
+///   finite, the result is finite instead of infinity and obeys the bound
+///   below. The tests also check it stays within the range of the inputs.
+/// - When any input vertex is nonfinite, every coordinate keeps the legacy
+///   result, including NaN and infinity propagation.
+///
+/// Three equal coordinates give that coordinate exactly. When the mean is not
+/// representable no result is claimed to be the correctly rounded mean; the
+/// bounds below apply instead.
+///
+/// # Recovery error bound
+///
+/// Sort the coordinate as `lo <= m <= hi`. Each operation `x op y` is modelled
+/// as `(x op y)(1 + d)` with `|d| <= u`, valid for the correctly rounded
+/// IEEE 754 operations when no result is subnormal or overflows; terms of
+/// order `u^2` are dropped. An overflowing sum has magnitude above `MAX`, so
+/// `|mean| > MAX / 3` and subnormal absolute errors are negligible against it.
+/// No error-free transformation is used here.
+///
+/// - Same sign (`lo >= 0` or `hi <= 0`): the result is
+///   `m + ((lo - m) + (hi - m)) / 3`. The two differences have opposite signs,
+///   so neither they nor their sum overflow. Their rounding errors, the sum
+///   and the division by 3 each contribute at most `u (hi - lo) / 3`
+///   (`|lo - m| + |hi - m| = hi - lo`), and the final addition adds
+///   `u |mean|`. For same-sign coordinates `hi - lo <= max(|lo|, |hi|) <= 3 |mean|`,
+///   giving `|result - mean| <= 4u |mean|` to first
+///   order. Equal coordinates give zero differences and the exact result `m`.
+/// - Mixed signs (`lo < 0 < hi`): `lo + hi` cannot overflow, so it is formed
+///   first and cancels large opposite coordinates before scaling. If adding
+///   `m` stays finite the result is that sum times the rounded `1/3`, with
+///   `|result - mean| <= u (|lo + hi| / 3 + 3 |mean|)`. Otherwise `lo + hi` and
+///   `m` share a sign and `(lo + hi) / 3 + m / 3` gives
+///   `|result - mean| <= 3u |mean|`.
+///
+/// The cold path is entered only after the plain sum is nonfinite, so ordinary
+/// inputs pay one finiteness test per coordinate.
 #[inline]
 #[must_use]
 pub fn triangle_centroid<T: Scalar>(a: &Point3<T>, b: &Point3<T>, c: &Point3<T>) -> Point3<T> {
     let third = <T as Scalar>::from_f64(1.0 / 3.0);
     Point3::new(
-        (a.x + b.x + c.x) * third,
-        (a.y + b.y + c.y) * third,
-        (a.z + b.z + c.z) * third,
+        centroid_component::<T, 0>(a, b, c, third),
+        centroid_component::<T, 1>(a, b, c, third),
+        centroid_component::<T, 2>(a, b, c, third),
     )
+}
+
+#[inline]
+fn centroid_component<T: Scalar, const AXIS: usize>(
+    a: &Point3<T>,
+    b: &Point3<T>,
+    c: &Point3<T>,
+    third: T,
+) -> T {
+    let sum = a[AXIS] + b[AXIS] + c[AXIS];
+    let center = sum * third;
+    if <T as eunomia::NumericElement>::is_finite(sum) {
+        center
+    } else {
+        recover_centroid_component::<T, AXIS>(a, b, c, center, third)
+    }
+}
+
+#[cold]
+#[inline]
+fn recover_centroid_component<T: Scalar, const AXIS: usize>(
+    a: &Point3<T>,
+    b: &Point3<T>,
+    c: &Point3<T>,
+    center: T,
+    third: T,
+) -> T {
+    if !(finite_point(a) & finite_point(b) & finite_point(c)) {
+        return center;
+    }
+    let (mut a, mut b, mut c) = (a[AXIS], b[AXIS], c[AXIS]);
+    if a > b {
+        core::mem::swap(&mut a, &mut b);
+    }
+    if b > c {
+        core::mem::swap(&mut b, &mut c);
+    }
+    if a > b {
+        core::mem::swap(&mut a, &mut b);
+    }
+    let three = T::from_int(3);
+    let zero = T::from_int(0);
+    if a >= zero || c <= zero {
+        // Same-sign endpoints have finite median-relative differences with
+        // opposite signs. Recentring also retains an equal-coordinate mean
+        // exactly, instead of rounding three individually divided endpoints.
+        return b + ((a - b) + (c - b)) / three;
+    }
+    // Opposite extremes cannot overflow when added.
+    let extremes = a + c;
+    // Cancel opposite extremes before scaling, preserving small residuals.
+    let ordered_sum = extremes + b;
+    if <T as eunomia::NumericElement>::is_finite(ordered_sum) {
+        ordered_sum * third
+    } else {
+        // Only two same-sign finite terms remain. Their divided sum is
+        // bounded by 2*MAX/3 and neither can be a tiny cancellation term.
+        extremes / three + b / three
+    }
+}
+
+#[inline]
+fn finite_point<T: Scalar>(point: &Point3<T>) -> bool {
+    <T as eunomia::NumericElement>::is_finite(point.x)
+        & <T as eunomia::NumericElement>::is_finite(point.y)
+        & <T as eunomia::NumericElement>::is_finite(point.z)
 }
 
 /// Newell's method for computing the normal of a polygon with ≥3 vertices.

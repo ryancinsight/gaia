@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- [patch] `triangle_centroid` returns a finite coordinate when the raw sum of
+  three finite coordinates overflows, such as three equal `f32` coordinates of
+  `2^127`, which previously gave infinity. Finite-sum bits and nonfinite-input
+  results are unchanged.
+
 ## [0.8.0] - 2026-11-20
 
 ### Breaking
