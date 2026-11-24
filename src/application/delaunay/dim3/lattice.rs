@@ -300,9 +300,9 @@ fn weld_and_order_points<T: Scalar>(points: Vec<Point3<T>>, h: T) -> Vec<Point3<
 
     let jitter_magnitude = <T as Scalar>::from_f64(1e-7) * h;
     for p in &mut ordered_points {
-        p.x += <T as Scalar>::from_f64(rng.gen_range(-1.0..1.0)) * jitter_magnitude;
-        p.y += <T as Scalar>::from_f64(rng.gen_range(-1.0..1.0)) * jitter_magnitude;
-        p.z += <T as Scalar>::from_f64(rng.gen_range(-1.0..1.0)) * jitter_magnitude;
+        p.x += <T as Scalar>::from_f64(rng.random_range(-1.0..1.0)) * jitter_magnitude;
+        p.y += <T as Scalar>::from_f64(rng.random_range(-1.0..1.0)) * jitter_magnitude;
+        p.z += <T as Scalar>::from_f64(rng.random_range(-1.0..1.0)) * jitter_magnitude;
     }
 
     ordered_points
