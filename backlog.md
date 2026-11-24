@@ -36,17 +36,18 @@
 - ladder: [ADR 0010](docs/adr/0010-release-scope-1-0.md); every open item below carries exactly one `milestone:`.
 
 <a id="GAIA-037"></a>
-## GAIA-037 — Finite plane/segment parameter range [patch]
-- status: todo
-- priority: correctness
-- milestone: M-robustness
-- needs: none
-- outcome: `Plane::intersect_segment` returns the exact parameter when the endpoint-distance subtraction overflows; symmetric finite endpoints at native MAX give t=1/2.
-- acceptance: `tests/plane_segment_range_audit.rs` (f32 and f64: symmetric, asymmetric, cancellation and subnormal crossings, parallel and nonfinite controls) passes at head, and a renewed independent exact-head review records no finding.
-- evidence (`e8ee1d2`): landed in PR #185 (merged; CHANGELOG 0.6.9); the test file is in the tree and `CI` on main passes at `e8ee1d2`. The measured costs and design are in `docs/verification/plane-segment-range.md`; the removed delivery narrative is in `git show e8ee1d2:backlog.md`.
-- scope: `src/domain/geometry/plane.rs`, `src/domain/geometry/plane/segment.rs`, `tests/plane_segment_range_audit.rs`.
-- next step: run the independent review at current main (the stable checklist's "Re-run GAIA-037" step), then delete this block citing it. GAIA-038 owns the custom-zero-epsilon policy; the GAIA-NEXTEST-PIPE hold stays.
-- basis: `e8ee1d223d49ec63edb32bc6570797b17af0903a`
+## GAIA-037 — Review the merged finite-range repairs (GAIA-032, GAIA-033, GAIA-034, GAIA-037) [patch]
+- status: todo; priority: verification; milestone: M-robustness; needs: none
+- outcome: the AABB-center (GAIA-032), perspective-depth (GAIA-033), perspective-quotient (GAIA-034) and plane-segment-parameter (GAIA-037) repairs merged without independent exact-head review, which the M-robustness exit requires. Each repair adds no widening, tolerance, dependency or public API change.
+- acceptance: an independent judge posts a verdict per head with the cases each item names; findings are fixed forward. Heads: #182 `240a245` (GAIA-032), #183 `17068c5` (GAIA-033, GAIA-034), #185 `ba78874` (GAIA-037).
+- cases GAIA-032: `tests/aabb_center_range.rs` singleton at MAX and positive-width extremes (f32, f64), ordinary, subnormal and inverted controls; the four regressions fail on 0.6.5 and the 0.6.6 source (oracle `scripts/regressions/check_aabb_center_oracle.py`); sampled full-point cost at most 26.66%/0.184 ns, residual f32 stream-axis 0.37 ns against a 0.20 ns baseline.
+- cases GAIA-033: depth tests in `tests/projection_range_audit.rs`; near=2^512, far=2^513 gives -3/-2^514 and all 2095 dyadic near exponents map both endpoints and coefficients; ordinary coefficient bits and the existing rejection policy are unchanged.
+- cases GAIA-034: `small_w_division_preserves_exact_values_and_signed_zero`, `nonzero_subnormal_perspective_divide_retains_representable_values` and `ordinary_ndc_and_nonfinite_components_keep_original_results` in the same file (w=2^-1074, clip=(w,2w,0,w) gives (1,2,0)); ordinary-caller cost (+0.76% to +4.88% by the author, 33-38% in one independent caller; `docs/verification/projection-range.md`); projection Miri coverage UNVERIFIED, the hosted job runs two GhostCell tests.
+- cases GAIA-037: `tests/plane_segment_range_audit.rs` symmetric finite endpoints at native MAX give t=1/2, plus asymmetric, cancellation, subnormal, parallel and nonfinite controls; parallel test, finite-denominator division and clamp unchanged; cost in `docs/verification/plane-segment-range.md`.
+- evidence (`9daa782`): #182 `a9f3dd3`, #183 `5eca6a6` and #185 `ea7411d` are merged ancestors of main; the three test files are in the tree; `CI` on main succeeds at `9daa782`; `gh pr view` shows zero reviews and `gh api .../statuses` zero statuses on each head.
+- scope: `src/domain/geometry/aabb.rs`, `src/domain/geometry/plane.rs`, `src/application/render/transform.rs`, `tests/aabb_center_range.rs`, `tests/projection_range_audit.rs`, `tests/plane_segment_range_audit.rs`.
+- next step: dispatch the judge at current main with the cases above. `CHECKLIST.md:7` owns the GAIA-037 re-run on the 0.8.0 baseline; GAIA-038 owns the custom-zero-epsilon policy; GAIA-NEXTEST-PIPE stays open.
+- basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
 
 <a id="GAIA-038"></a>
 ## GAIA-038 — Zero-epsilon parallel rejection policy [patch]
@@ -61,44 +62,15 @@
 - scope: pre-existing finite-denominator behavior, intentionally preserved by
   GAIA-037. No fix or acceptance is claimed by its overflow recovery draft.
 
-<a id="GAIA-033"></a>
-## GAIA-033 — Finite perspective depth range [patch]
-- status: todo
-- priority: correctness
-- milestone: M-robustness
-- needs: none
-- outcome: perspective depth coefficients stay finite and exact when products or reciprocals overflow: a near=2^512, far=2^513 frustum gives -3/-2^514, not negative infinity.
-- acceptance: the depth tests in `tests/projection_range_audit.rs` pass at head (all 2095 dyadic near exponents from the least subnormal through 2^1020 map both endpoints and coefficients; ordinary coefficient bits and the existing rejection policy are unchanged), and a renewed independent exact-head review records no finding.
-- evidence (`e8ee1d2`): landed in PR #183 (merged; CHANGELOG 0.6.8) together with GAIA-034; `CI` on main passes at `e8ee1d2`. Verification record: `docs/verification/projection-range.md`.
-- scope: `src/application/render/transform.rs`, `tests/projection_range_audit.rs`.
-- next step: run the independent review at current main, then delete this block citing it; the GAIA-NEXTEST-PIPE hold stays.
-- basis: `e8ee1d223d49ec63edb32bc6570797b17af0903a`
-
-<a id="GAIA-034"></a>
-## GAIA-034 — Representable perspective quotients [patch]
-- status: todo
-- priority: correctness
-- milestone: M-robustness
-- needs: none
-- outcome: perspective division returns the representable quotient when w is zero-adjacent: w=2^-1074 with clip=(w,2w,0,w) gives (1,2,0), not (infinity,infinity,NaN); signed-zero rejection and nonfinite behavior are unchanged.
-- acceptance: `small_w_division_preserves_exact_values_and_signed_zero`, `nonzero_subnormal_perspective_divide_retains_representable_values` and `ordinary_ndc_and_nonfinite_components_keep_original_results` in `tests/projection_range_audit.rs` pass at head; a renewed independent review records no finding on the ordinary-caller cost (sampled +0.76% to +4.88% by the author, 33-38% in one independent fixed caller before the inline-hint renewal; both in `docs/verification/projection-range.md`).
-- evidence (`e8ee1d2`): landed in PR #183 (merged) with GAIA-033. Projection Miri coverage stays UNVERIFIED: the hosted Miri job runs two GhostCell tests and zero projection tests.
-- scope: `src/application/render/transform.rs`, `tests/projection_range_audit.rs`.
-- next step: run the independent review at current main, then delete this block citing it; the GAIA-NEXTEST-PIPE hold stays.
-- basis: `e8ee1d223d49ec63edb32bc6570797b17af0903a`
-
-<a id="GAIA-032"></a>
-## GAIA-032 — Recover finite AABB centers after endpoint-sum overflow [patch]
-- status: todo
-- priority: correctness
-- milestone: M-robustness
-- needs: none
-- outcome: `Aabb::center` is the arithmetic midpoint for finite ordered boxes, including a singleton at MAX and same-sign positive-width extreme intervals; nonfinite and inverted boxes keep the complete original result; no widening, tolerance or API change.
-- acceptance: `tests/aabb_center_range.rs` (f32 and f64: singleton and positive-width extremes, ordinary and subnormal controls, inverted arithmetic) passes at head, and a renewed independent exact-head review records no finding on the sampled cost (ordinary full-point overhead at most 26.66%/0.184 ns; residual f32 stream-axis 0.37 ns against a 0.20 ns baseline).
-- evidence (`e8ee1d2`): landed in PR #182 (merged; CHANGELOG 0.6.7); `CI` on main passes at `e8ee1d2`. Four regressions failed on 0.6.5 and on the 0.6.6 source; the oracle script is `scripts/regressions/check_aabb_center_oracle.py`. Ray/GAIA-029 policy stays separate.
-- scope: `src/domain/geometry/aabb.rs`, `tests/aabb_center_range.rs`, `tests/support/aabb_center_driver.rs`.
-- next step: run the independent review at current main, then delete this block citing it; the GAIA-NEXTEST-PIPE hold stays.
-- basis: `e8ee1d223d49ec63edb32bc6570797b17af0903a`
+<a id="GAIA-035"></a>
+## GAIA-035 — Finite triangle centroids and Newell normals (GAIA-036) [patch]
+- status: todo; priority: correctness; milestone: M-robustness; needs: none
+- outcome: `triangle_centroid` and `newell_normal` in `src/domain/geometry/normal.rs` return the representable result for finite inputs: finite equal large x coordinates give their exact mean, not infinity; translated finite coordinate-plane triangles give their exact unit normal, not NaN (f32, f64). Ordinary bits, nonfinite behavior and thresholds are unchanged.
+- acceptance: `tests/normal_range_audit.rs` (20 tests), `tests/normal_determinant_regression.rs` (10) and `tests/normal_translation_regression.rs` (6) from `refs/pull/184/head` pass on a rebase onto current main, the ten determinant tests fail on the head before the repair (PR #184 body), and an independent exact-head review records no finding; the O3 f64 centroid regression 3.018 to 20.161 ns (`docs/verification/normal-range.md` in that ref) is removed or accepted by that review with its measurements recorded.
+- evidence (`9daa782`): PR #184 is CLOSED, released by the stale-claim sweep on 2026-11-10; `git ls-remote origin refs/pull/184/head` resolves its head, and its tests, `src/domain/geometry/normal/expansion.rs` and the verification record are absent from main. Review of that head found no new correctness issue in verified scope; merge stayed held for centroid performance and resource acceptance. Holds: `gap_audit.md:32-35`, `CHECKLIST.md:15-19,35`.
+- scope: `src/domain/geometry/normal.rs`, `gap_audit.md`, `CHECKLIST.md`.
+- next step: `git fetch origin pull/184/head`, rebase onto current main, choose the then-current available version, rerun the gates and renew the independent review; clear the `gap_audit.md` and `CHECKLIST.md` hold text when it lands.
+- basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
 
 <a id="GAIA-029"></a>
 ## GAIA-029 — Specify checked ray/slab range and invalid bounds [minor]
@@ -146,16 +118,13 @@ Triage order: correctness → architecture → verification → tightening → f
 
 <a id="GAIA-MOIRAI-09-COHERENCE"></a>
 ## GAIA-MOIRAI-09-COHERENCE — Verify current provider compatibility [patch]
-- status: todo
-- priority: correctness
-- milestone: M-coherence
-- needs: none
+- status: todo; priority: correctness; milestone: M-coherence; needs: none
 - outcome: fresh Gaia and Metis consumers resolve one coherent Moirai provider identity through the existing internal scheduling API; Moirai types stay out of Gaia's public fields, signatures, bounds, aliases and re-exports.
-- acceptance: none recorded in the original item; it needs specification (see next step).
-- evidence (`e8ee1d2`): both `Cargo.toml` declarations now require Moirai `0.12.0` (PRs #191 and #205), so the original 0.10.0 candidate and its 0.9.3 resolution failure are superseded; the item's earlier receipts (Gaia 0.6.2, PR #176) cover the 0.10.0 cohort only. Prior detail: `git show e8ee1d2:backlog.md`.
-- scope: the Moirai declarations in `Cargo.toml` and the nine-package lock cohort.
-- next step: specify the oracle (proposed: a fresh packaged consumer resolves one `moirai-runtime` version, and the locked package build and publish dry-run pass) and run it on current main; delete this block if it holds, otherwise repair. Downstream Metis verification stays on its owner's board.
-- basis: `e8ee1d223d49ec63edb32bc6570797b17af0903a`
+- acceptance: at current main (a) a fresh consumer crate that depends on the packaged `gaia-mesh` runs `cargo generate-lockfile`, and its `Cargo.lock` holds one `moirai-runtime` entry and every `moirai-*` entry shares one version and one source (M-coherence exit), (b) `cargo package --locked` and (c) `cargo publish --dry-run --locked` pass in this repository; a second version or source in (a), or a failed command, is the defect.
+- evidence (`9daa782`): from tracked files only; no cargo command has run for this item. `Cargo.lock` lists twelve `moirai-*` packages (async, async-macros, core, executor, pal, parallel, quic, runtime, scheduler, sync, transport, utils), all 0.12.0 from `Moirai.git#9e78bb77`; `Cargo.toml:82` and `:88` both require `moirai-runtime` 0.12.0 (PRs #191, #205). The 0.10.0 candidate and its receipts (Gaia 0.6.2, PR #176) are superseded: `git show e8ee1d2:backlog.md`.
+- scope: the two `moirai-runtime` lines in `Cargo.toml` and the twelve-package `moirai-*` cohort in `Cargo.lock`.
+- next step: run (a) to (c); delete this block citing the run if they pass, otherwise repair. Downstream Metis verification stays on its owner's board.
+- basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
 
 <a id="GAIA-NEXTEST-PIPE"></a>
 ## GAIA-NEXTEST-PIPE — Explain retained test output pipes [patch]
@@ -190,11 +159,11 @@ Triage order: correctness → architecture → verification → tightening → f
 - milestone: M-seam
 - needs: none; the predicate seam landed in PR #73 / ADR 0005.
 - outcome: `T: Scalar` is the internal precision contract; `Real` remains only as the public default type parameter.
-- acceptance: `git grep -w Real -- src` reports no internal site outside the intentional f64 boundary (the CDT and CSG arrangement backends at the exact-predicate boundary, ADR 0007), and no workspace cast `allow` remains; each slice migrates one module family, updates its callers and passes its gate.
-- evidence (`e8ee1d2`): 722 `Real` hits in 106 `src/` files (`domain/core/constants.rs` 61, `render/camera.rs` 35, `channel/branching.rs` 31, `channel/venturi.rs` 26, `csg/coplanar/operations.rs` 24), from 848 initially. The `Cargo.toml` comment states 0 production cast sites (not re-measured) and keeps `cast_precision_loss = "allow"` for non-library targets. Delivery narrative: `git show e8ee1d2:backlog.md`.
+- acceptance: `git grep -w Real -- src` reports no internal site outside the intentional `f64` boundary, which ADR 0007 names as "the CDT and CSG arrangement backends" at the exact-predicate boundary, and no workspace cast `allow` remains; each slice migrates one module family, updates its callers and passes its gate.
+- evidence (`9daa782`): 722 `Real` hits in 106 `src/` files (`domain/core/constants.rs` 61, `render/camera.rs` 35, `channel/branching.rs` 31, `channel/venturi.rs` 26, `csg/coplanar/operations.rs` 24), from 848 initially. The `Cargo.toml` comment states 0 production cast sites (not re-measured) and keeps `cast_precision_loss = "allow"` for non-library targets. Delivery narrative: `git show e8ee1d2:backlog.md`.
 - scope: `src/domain/core/scalar.rs` and its consumer modules; preserve public defaults. Index-to-float conversion uses eunomia `FloatElement::from_count` and `from_integer`; `Scalar` carries no conversion methods (GAIA-COUNT-CONV-001).
-- next step: make the CSG arrangement generic over the PSLG scalar, then `render/camera.rs` and `channel/`.
-- basis: `e8ee1d223d49ec63edb32bc6570797b17af0903a`
+- next step: migrate `render/camera.rs`, then `channel/`, one family per slice; the CDT and CSG arrangement backends stay at `f64` per ADR 0007 and are excluded by path. ADR 0007 does not list those paths: `.to_f64()` occurs in `csg` and `delaunay` only in `arrangement/planar.rs` (8), `clip/polygon2d/geometry.rs` (2) and `dim3/lattice.rs` (13), and ADR 0005 makes the predicate wrappers generic over `T`, so the first slice records the path list in an ADR 0007 revision note.
+- basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
 
 ---
 
@@ -364,10 +333,10 @@ type-checking, so no bench body has ever been executed by a gate.
 - needs: none
 - outcome: the allow entries under `[workspace.lints.clippy]` in `Cargo.toml` are deleted as their counts reach zero, and every `src/` file is at most 500 lines or carries a recorded cohesion exception (ADR 0003 owns CSG repair module ownership).
 - acceptance: each increment lowers at least one measured count (allow entries, `cargo clippy --all-targets --all-features -- --force-warn clippy::too_many_lines` emissions, `src/` files over 500 lines) and raises none; an increment that deletes an allow line shows its zero emission count from that command.
-- evidence (`e8ee1d2`): 19 `src/` files exceed 500 lines (largest: `csg/arrangement/adversarial_tests.rs` 2312, `csg/arrangement/tests.rs` 1064, `csg/boolean/indexed_tests.rs` 1045, `domain/geometry/predicates.rs` 788). `Cargo.toml` keeps `cast_precision_loss = "allow"` and `too_many_lines = "allow"` with comments that state 0; the clippy emission counts were not re-measured, and the earlier "58 emissions" and "two `unwrap_used` sites" are superseded (`unwrap_used = "deny"`). Delivery narrative: `git show e8ee1d2:backlog.md`.
+- evidence (`9daa782`): 19 `src/` files exceed 500 lines (largest: `csg/arrangement/adversarial_tests.rs` 2312, `csg/arrangement/tests.rs` 1064, `csg/boolean/indexed_tests.rs` 1045, `domain/geometry/predicates.rs` 788). `Cargo.toml` keeps `cast_precision_loss = "allow"` and `too_many_lines = "allow"` with comments that state 0; the clippy emission counts were not re-measured, and the earlier "58 emissions" and "two `unwrap_used` sites" are superseded (`unwrap_used = "deny"`). Delivery narrative: `git show e8ee1d2:backlog.md`.
 - scope: `Cargo.toml` `[workspace.lints.clippy]` and the over-500-line files. Non-goal: slicing that breaks domain cohesion.
 - next step: run the force-warn command and delete each `allow` whose count is 0, then split `predicates.rs`, `csg/coplanar/operations.rs` and `csg/arrangement/patch.rs` by operation family. GAIA-003 retires the `cast_precision_loss` allow.
-- basis: `e8ee1d223d49ec63edb32bc6570797b17af0903a`
+- basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
 
 ---
 
@@ -618,7 +587,7 @@ never in an optimization pass. The audit's finding still holds.
 - needs: none
 - outcome: every open item is about 15 lines or fewer and has an `<a id>` anchor immediately before its heading.
 - acceptance: heading-to-heading line count (anchor excluded) is at most 15 for every `## GAIA-` item and an anchor precedes each; long delivery narrative moves to commits, PRs or ADRs.
-- evidence (`e8ee1d2`): 12 of 35 `## GAIA-` items still exceed 15 lines by that count (GAIA-010 28, -008 27, -011 27, -015 27, -027 26, -NEXTEST-PIPE 25, -005 25, -012 24, -007 21, -014 21, -029 16, -021 16); every item has an anchor. Separately, GAIA-017 to -021 carry `priority: P1` outside the closed set (lint violations). `atlas-artifact-budget.py` reports item length only for per-item files and the lint checks neither length nor anchors, so no check sees the length class.
+- evidence (`9daa782` plus this change): 12 of 33 `## GAIA-` items still exceed 15 lines by that count (GAIA-010 28, -008 27, -011 27, -015 27, -027 26, -NEXTEST-PIPE 25, -005 25, -012 24, -007 21, -014 21, -029 16, -021 16); every item has an anchor. Separately, GAIA-017 to -021 carry `priority: P1` outside the closed set (lint violations). `atlas-artifact-budget.py` reports item length only for per-item files and the lint checks neither length nor anchors, so no check sees the length class.
 - scope: `backlog.md` only.
 - next step: compact the twelve items above, largest first, keeping outcome, acceptance oracle and next step; GAIA-029 and -021 each exceed by one line.
-- basis: `e8ee1d223d49ec63edb32bc6570797b17af0903a`
+- basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
