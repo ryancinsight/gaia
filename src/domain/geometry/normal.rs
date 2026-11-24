@@ -3,6 +3,9 @@
 use crate::domain::core::scalar::Scalar;
 use leto::geometry::{Point3, Vector3};
 
+mod expansion;
+use expansion::ExactSum;
+
 /// Compute the face normal of a triangle (CCW winding → outward).
 ///
 /// Returns `None` if the triangle is degenerate.
@@ -173,6 +176,33 @@ fn finite_point<T: Scalar>(point: &Point3<T>) -> bool {
 ///
 /// Robust for non-planar polygons and concave cases.
 /// Returns `None` if the polygon is degenerate.
+///
+/// # Contract
+///
+/// - Finite accumulated components give the legacy result bit for bit,
+///   rounding error included: a distant polygon whose sums stay finite is
+///   not corrected.
+/// - If a component is nonfinite and every vertex is finite, a cold path
+///   recomputes all three. Subtracting one point from every vertex leaves
+///   the closed sum of cross products unchanged, so the path sums the fan
+///   anchored at the first vertex. Each difference from that vertex is an
+///   unevaluated pair (Two-Diff, section 2.3), each product a value plus its
+///   fused-multiply residual, and each sum a floating expansion
+///   (Grow-Expansion, section 2.4 Theorem 10, over Knuth's Two-Sum, Theorem
+///   7). While no difference, product or partial sum overflows and no
+///   product residual underflows, the expansion equals the real-number fan
+///   sum of the stored coordinates, and an expansion with no components is
+///   exactly zero. Only the collapse to one value rounds; no accuracy bound
+///   is claimed for it.
+/// - If a vertex, or any value computed on the cold path, is nonfinite, the
+///   legacy components are kept, so NaN and infinity propagate as before.
+///
+/// The degeneracy test and normalisation are unchanged and apply to
+/// whichever vector results.
+///
+/// Sections and theorems are those of J. R. Shewchuk, "Adaptive Precision
+/// Floating-Point Arithmetic and Fast Robust Geometric Predicates", Discrete
+/// & Computational Geometry 18(3):305-363, 1997 (report CMU-CS-96-140R).
 #[inline]
 pub fn newell_normal<T: Scalar>(vertices: &[Point3<T>]) -> Option<Vector3<T>> {
     if vertices.len() < 3 {
@@ -187,11 +217,79 @@ pub fn newell_normal<T: Scalar>(vertices: &[Point3<T>]) -> Option<Vector3<T>> {
         normal[1] += (curr.z - next.z) * (curr.x + next.x);
         normal[2] += (curr.x - next.x) * (curr.y + next.y);
     }
+    if ![normal.x, normal.y, normal.z]
+        .into_iter()
+        .all(<T as eunomia::NumericElement>::is_finite)
+    {
+        normal = recover_newell_normal(vertices, normal);
+    }
     let len = normal.norm();
     if len < T::tolerance() {
         return None;
     }
     Some(normal / len)
+}
+
+#[cold]
+#[inline(never)]
+fn recover_newell_normal<T: Scalar>(vertices: &[Point3<T>], original: Vector3<T>) -> Vector3<T> {
+    if !vertices.iter().all(finite_point) {
+        return original;
+    }
+    // The fan anchored at the first vertex; see the `newell_normal` contract.
+    let origin = &vertices[0];
+    let mut previous = compensated_difference(&vertices[1], origin);
+    let mut sums: [ExactSum<T, 8>; 3] = core::array::from_fn(|_| ExactSum::new());
+    for vertex in &vertices[2..] {
+        let current = compensated_difference(vertex, origin);
+        // Keep both signed products of each determinant separate. Reducing
+        // cross() first would discard its subtraction residual before summing.
+        for (u, v) in [
+            (previous.0, current.0),
+            (previous.0, current.1),
+            (previous.1, current.0),
+            (previous.1, current.1),
+        ] {
+            for (axis, sum) in sums.iter_mut().enumerate() {
+                let first = (axis + 1) % 3;
+                let second = (axis + 2) % 3;
+                if !sum.add_product(u[first], v[second]) || !sum.add_product(-u[second], v[first]) {
+                    return original;
+                }
+            }
+        }
+        previous = current;
+    }
+    let normal = Vector3::new(sums[0].estimate(), sums[1].estimate(), sums[2].estimate());
+    if [normal.x, normal.y, normal.z]
+        .into_iter()
+        .all(<T as eunomia::NumericElement>::is_finite)
+    {
+        normal
+    } else {
+        // Unrepresentable anchored arithmetic has no new rejection policy.
+        original
+    }
+}
+
+// Two-Diff: `low` is the exact rounding error of a finite `high`. A nonfinite
+// `high` makes a nonfinite product, which `ExactSum::add_product` refuses.
+#[inline]
+fn compensated_difference<T: Scalar>(
+    point: &Point3<T>,
+    origin: &Point3<T>,
+) -> (Vector3<T>, Vector3<T>) {
+    let high = *point - *origin;
+    let residual = |a: T, b: T, difference: T| {
+        let virtual_b = a - difference;
+        (a - (difference + virtual_b)) + (virtual_b - b)
+    };
+    let low = Vector3::new(
+        residual(point.x, origin.x, high.x),
+        residual(point.y, origin.y, high.y),
+        residual(point.z, origin.z, high.z),
+    );
+    (high, low)
 }
 
 /// Compute vertex normal by averaging adjacent face normals.
