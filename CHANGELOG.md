@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- [patch] `triangle_centroid` stays finite when the raw sum of finite
+  coordinates overflows (three `f32` coordinates of `2^127` gave infinity).
+  Finite-sum bits and nonfinite-input results are unchanged.
+
 ## [0.8.0] - 2026-11-20
 
 ### Breaking

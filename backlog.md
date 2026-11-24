@@ -69,7 +69,7 @@
 - acceptance: `tests/normal_range_audit.rs` (20 tests), `tests/normal_determinant_regression.rs` (10) and `tests/normal_translation_regression.rs` (6) from `refs/pull/184/head` pass on a rebase onto current main, the ten determinant tests fail on the head before the repair (PR #184 body), and an independent exact-head review records no finding; the O3 f64 centroid regression 3.018 to 20.161 ns (`docs/verification/normal-range.md` in that ref) is removed or accepted by that review with its measurements recorded.
 - evidence (`9daa782`): PR #184 is CLOSED, released by the stale-claim sweep on 2026-11-10; `git ls-remote origin refs/pull/184/head` resolves its head, and its tests, `src/domain/geometry/normal/expansion.rs` and the verification record are absent from main. Review of that head found no new correctness issue in verified scope; merge stayed held for centroid performance and resource acceptance. Holds: `gap_audit.md:32-35`, `CHECKLIST.md:15-19,35`.
 - scope: `src/domain/geometry/normal.rs`, `gap_audit.md`, `CHECKLIST.md`.
-- next step: `git fetch origin pull/184/head`, rebase onto current main, choose the then-current available version, rerun the gates and renew the independent review; clear the `gap_audit.md` and `CHECKLIST.md` hold text when it lands.
+- next step: centroid slice is gaia#245. Remaining slices from `refs/pull/246/head`: Newell fan with TwoDiff (translation tests); expansion accumulator with determinant tests; verification record rewrite, `gap_audit.md`/`CHECKLIST.md` hold text and this block's deletion, with the centroid performance clause measured.
 - basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
 
 <a id="GAIA-029"></a>
