@@ -55,7 +55,7 @@ fn assert_exact_variants<T: Scalar>(vertices: &[Point3<T>], expected: Option<Vec
         // Premise: the legacy accumulation fails here, so the cold path runs.
         assert!(!is_finite(&legacy_sum(&vertices)));
         for _ in 0..vertices.len() {
-            assert_eq!(newell_normal(&vertices), expected);
+            assert_eq!(newell_normal(&vertices), expected, "{vertices:?}");
             let reversed: Vec<_> = vertices.iter().rev().copied().collect();
             assert_eq!(newell_normal(&reversed), expected.map(|n| -n));
             vertices.rotate_left(1);
@@ -255,9 +255,11 @@ fn ordinary_or_nonfinite_input_keeps_legacy_bits() {
 
 #[test]
 fn overflowing_products_and_differences_are_scaled() {
-    let (far, faint) = (2.0_f32.powi(127), 2.0_f32.powi(-135));
+    // `powi` may return one over an overflowed power, which is zero, so each
+    // subnormal `faint` is an exact multiple of the least normal value.
+    let (far, faint) = (2.0_f32.powi(127), f32::MIN_POSITIVE * 2.0_f32.powi(-9));
     verify_scaled_products(2.0_f32.powi(64), 2.0_f32.powi(5), far, faint);
-    let (far, faint) = (2.0_f64.powi(1023), 2.0_f64.powi(-1053));
+    let (far, faint) = (2.0_f64.powi(1023), f64::MIN_POSITIVE * 2.0_f64.powi(-31));
     verify_scaled_products(2.0_f64.powi(512), 2.0_f64.powi(60), far, faint);
 }
 
