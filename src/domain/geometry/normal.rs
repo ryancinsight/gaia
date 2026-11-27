@@ -198,8 +198,12 @@ fn finite_point<T: Scalar>(point: &Point3<T>) -> bool {
 ///   values, divided by `c^2`, is below the tolerance. A length that
 ///   overflows is not degenerate, so a direction is returned even where `S`
 ///   is not representable.
-/// - Summing each expansion, the length and the division round; no bound on
-///   those roundings is stated here.
+/// - Each returned component in the normal range is within 11 unit roundoffs
+///   (`5.5 EPSILON`), relatively, of the unit vector of the expansion values:
+///   2.5 from summing each expansion smallest first (`ExactSum::estimate`),
+///   2.5 from those errors in the length, 4.5 from `leto`'s scaled norm
+///   (three quotients, three fused squares, a root and a product), 1 from
+///   the division, and 0.5 for second-order terms.
 ///
 /// Sections and theorems are those of J. R. Shewchuk, "Adaptive Precision
 /// Floating-Point Arithmetic and Fast Robust Geometric Predicates", Discrete
