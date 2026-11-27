@@ -241,7 +241,9 @@ fn cancelling_subloops_have_exact_sign_and_zero() {
 
 #[test]
 fn nine_separated_scales_keep_every_component() {
-    let single: Vec<_> = (0..9).map(|i| 2.0_f32.powi(25 * i - 143)).collect();
+    // No `powi` exponent is below the least normal one; see `faint` below.
+    let low = 2.0_f32.powi(-64);
+    let single: Vec<_> = (0..9).map(|i| low * 2.0_f32.powi(25 * i - 79)).collect();
     let double: Vec<_> = (0..9).map(|i| 2.0_f64.powi(54 * i - 216)).collect();
     verify_many_scales(&single, 2.0_f32.powi(127));
     verify_many_scales(&double, 2.0_f64.powi(1023));
