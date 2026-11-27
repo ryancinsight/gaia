@@ -703,7 +703,7 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 [[package]]
 name = "leto"
 version = "0.52.0"
-source = "git+https://github.com/ryancinsight/leto.git#d47f37f2854e75df35908985a6ff3f0e5296afd4"
+source = "git+https://github.com/ryancinsight/leto.git#01402d7fbf674300cdfd3da3d1056b8da8fb925a"
 dependencies = [
  "aequitas",
  "eunomia",
@@ -765,8 +765,8 @@ dependencies = [
 
 [[package]]
 name = "melinoe"
-version = "0.10.0"
-source = "git+https://github.com/ryancinsight/melinoe.git#396fb53f305639b8eb87f71feac90df220b00a0a"
+version = "0.10.1"
+source = "git+https://github.com/ryancinsight/melinoe.git#3d0311446b7bcfb6cde5076448e368e28a8181c7"
 
 [[package]]
 name = "memchr"
