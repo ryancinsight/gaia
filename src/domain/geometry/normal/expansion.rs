@@ -1,96 +1,62 @@
-//! Floating-point expansions for the nonfinite Newell recovery path.
+//! Floating-point expansions for the Newell recovery path; theorems are
+//! those of the paper `newell_normal` cites.
 
 use crate::domain::core::scalar::Scalar;
 use eunomia::NumericElement;
 
-// Inline capacity is a storage choice, not an arithmetic precision limit.
-// A spill retains every component rather than truncating residuals.
-pub(super) struct ExactSum<T: Scalar, const INLINE: usize> {
-    inline: [T; INLINE],
-    spill: Option<Vec<T>>,
-    len: usize,
-}
+/// An exact sum: nonadjacent components in order of increasing magnitude.
+pub(super) struct ExactSum<T>(Vec<T>);
 
-impl<T: Scalar, const INLINE: usize> ExactSum<T, INLINE> {
+impl<T: Scalar> ExactSum<T> {
     pub(super) fn new() -> Self {
-        Self {
-            inline: [<T as NumericElement>::ZERO; INLINE],
-            spill: None,
-            len: 0,
-        }
+        Self(Vec::new())
     }
 
-    pub(super) fn add_product(&mut self, a: T, b: T) -> bool {
-        let product = a * b;
-        if !<T as NumericElement>::is_finite(product) {
-            return false;
-        }
-        // After the finite-product guard, a zero operand makes both the
-        // product and its fused residual exactly zero (including signed zero).
-        if a == <T as NumericElement>::ZERO || b == <T as NumericElement>::ZERO {
-            return true;
-        }
-        // Fused in `T`: the product's rounding error whenever it is representable.
-        let error = a.scalar_fmadd(b, -product);
-        self.add(error) && self.add(product)
-    }
-
-    fn add(&mut self, value: T) -> bool {
-        if !<T as NumericElement>::is_finite(value) {
-            return false;
-        }
-        if value == <T as NumericElement>::ZERO {
-            return true;
-        }
-        if self.len == INLINE && self.spill.is_none() {
-            let mut spill = Vec::with_capacity(INLINE.saturating_mul(2).max(1));
-            spill.extend_from_slice(&self.inline[..self.len]);
-            self.spill = Some(spill);
-        }
-        let words = match self.spill.as_deref_mut() {
-            Some(words) => words,
-            None => &mut self.inline[..self.len],
+    /// Adds `shrink^2 * a * b` for a power of two `shrink <= 1`, to within
+    /// two least subnormals and exactly when no scaled bit falls below one.
+    /// A factor of magnitude at least 1 keeps every bit under one `shrink`
+    /// (`shrink` is far above `eta / EPSILON`; see `scaled_fan_sum`). A
+    /// smaller factor stays unscaled: the other then rounds by at most one
+    /// least subnormal, and the product by less.
+    pub(super) fn add_product(&mut self, a: T, b: T, shrink: T) {
+        let (small, large) = if a.abs() < b.abs() { (a, b) } else { (b, a) };
+        let (x, y) = if small.abs() < <T as NumericElement>::ONE {
+            (small, large * shrink * shrink)
+        } else {
+            (small * shrink, large * shrink)
         };
-        let mut carry = value;
-        let mut written = 0;
-        // Grow-Expansion: each exact Two-Sum residual survives, with
-        // the final carry stored last. Components stay ordered/nonoverlapping.
-        for index in 0..self.len {
-            let word = words[index];
+        let product = x * y;
+        // A product's rounding error is representable (Theorem 18), so the
+        // fused `x * y - product` returns it exactly unless a bit of it lies
+        // below the least subnormal.
+        self.add(x.scalar_fmadd(y, -product));
+        self.add(product);
+    }
+
+    // Grow-Expansion with zero elimination: every Two-Sum error survives and
+    // the final carry is stored last.
+    fn add(&mut self, value: T) {
+        let (mut carry, mut written) = (value, 0);
+        for index in 0..self.0.len() {
+            let word = self.0[index];
             let sum = carry + word;
             let virtual_word = sum - carry;
             let error = (carry - (sum - virtual_word)) + (word - virtual_word);
-            if !<T as NumericElement>::is_finite(sum) || !<T as NumericElement>::is_finite(error) {
-                return false;
-            }
             if error != <T as NumericElement>::ZERO {
-                words[written] = error;
+                self.0[written] = error;
                 written += 1;
             }
             carry = sum;
         }
-        if let Some(spill) = &mut self.spill {
-            spill.truncate(written);
-            if carry != <T as NumericElement>::ZERO {
-                spill.push(carry);
-                written += 1;
-            }
-        } else if carry != <T as NumericElement>::ZERO {
-            self.inline[written] = carry;
-            written += 1;
+        self.0.truncate(written);
+        if carry != <T as NumericElement>::ZERO {
+            self.0.push(carry);
         }
-        self.len = written;
-        true
     }
 
+    /// The components summed from the smallest; only this rounds.
     pub(super) fn estimate(&self) -> T {
-        let words = match self.spill.as_deref() {
-            Some(words) => words,
-            None => &self.inline[..self.len],
-        };
-        words
-            .iter()
-            .copied()
-            .fold(<T as NumericElement>::ZERO, |a, b| a + b)
+        let zero = <T as NumericElement>::ZERO;
+        self.0.iter().copied().fold(zero, |a, b| a + b)
     }
 }

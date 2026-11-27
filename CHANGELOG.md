@@ -7,9 +7,9 @@
 - [patch] `triangle_centroid` stays finite when the raw sum of finite
   coordinates overflows (three `f32` coordinates of `2^127` gave infinity).
   Finite-sum bits and nonfinite-input results are unchanged.
-- [patch] `newell_normal` returns the polygon normal instead of NaN when its
-  accumulation overflows for a finite polygon far from the origin (heights
-  of `2^127` in `f32`). Results with finite sums are unchanged.
+- [patch] `newell_normal` returns a finite unit normal, or `None` for a
+  degenerate polygon, where its accumulation over finite vertices overflowed
+  and gave NaN. Results whose accumulated sums are finite are unchanged.
 
 ## [0.8.0] - 2026-11-20
 
