@@ -231,7 +231,7 @@ fn deterministic_point_seed<T: Scalar>(points: &[Point3<T>], h: T) -> u64 {
 
 /// Deduplicate BCC seeds, restore spatial locality, and apply deterministic perturbation.
 fn weld_and_order_points<T: Scalar>(points: Vec<Point3<T>>, h: T) -> Vec<Point3<T>> {
-    use rand::{rngs::StdRng, seq::SliceRandom, Rng, SeedableRng};
+    use rand::{rngs::StdRng, seq::SliceRandom, RngExt, SeedableRng};
 
     if points.is_empty() {
         return Vec::new();
