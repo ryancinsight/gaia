@@ -17,6 +17,10 @@ fn legacy_sum<T: Scalar>(vertices: &[Point3<T>]) -> Vector3<T> {
     normal
 }
 
+fn is_finite<T: Scalar>(normal: &Vector3<T>) -> bool {
+    (0..3).all(|axis| <T as eunomia::NumericElement>::is_finite(normal[axis]))
+}
+
 fn assert_legacy<T: Scalar>(vertices: &[Point3<T>]) {
     let sum = legacy_sum(vertices);
     let len = sum.norm();
@@ -35,6 +39,86 @@ fn assert_legacy<T: Scalar>(vertices: &[Point3<T>]) {
             }
         }
         values => panic!("changed legacy result: {values:?}"),
+    }
+}
+
+fn unit_z<T: Scalar>(sign: i32) -> Vector3<T> {
+    Vector3::new(T::from_int(0), T::from_int(0), T::from_int(sign))
+}
+
+/// Checks `expected` for every cyclic start vertex, both windings (which
+/// negate it) and all three axis rotations (which rotate it). Each start
+/// vertex is a different fan anchor over the same exact sum.
+fn assert_exact_variants<T: Scalar>(vertices: &[Point3<T>], expected: Option<Vector3<T>>) {
+    let (mut vertices, mut expected) = (vertices.to_vec(), expected);
+    for _ in 0..3 {
+        // Premise: the legacy accumulation fails here, so the cold path runs.
+        assert!(!is_finite(&legacy_sum(&vertices)));
+        for _ in 0..vertices.len() {
+            assert_eq!(newell_normal(&vertices), expected, "{vertices:?}");
+            let reversed: Vec<_> = vertices.iter().rev().copied().collect();
+            assert_eq!(newell_normal(&reversed), expected.map(|n| -n));
+            vertices.rotate_left(1);
+        }
+        for p in &mut vertices {
+            *p = Point3::new(p.y, p.z, p.x);
+        }
+        expected = expected.map(|n| Vector3::new(n.y, n.z, n.x));
+    }
+}
+
+/// Triangles with exact doubled areas 9, 2, 1 and `T::tolerance()` under a
+/// large height. `1 + length` is not representable (the Two-Diff residual
+/// keeps it) and the native product `(half - 1)(half + 1)` rounds to `half^2`
+/// (the fused residual restores `half^2 - 1`), where `half = length / 2` is
+/// the largest power of two with `half + 1` representable. The unchanged
+/// `len < tolerance` test admits a doubled area equal to the tolerance (leto's
+/// scaled norm of `(0, 0, a)` is exactly `a`) and rejects half of it. The
+/// sliver's unscaled fan products `side^2` overflow; its doubled area
+/// `side^2 EPSILON` does not.
+fn verify_exact_triangles<T: Scalar>(length: T, height: T, side: T) {
+    let (z, one, three) = (T::from_int(0), T::from_int(1), T::from_int(3));
+    let (half, tolerance) = (length / T::from_int(2), T::tolerance());
+    let at = |x, y| Point3::new(x, y, height);
+    let tip = side + side * T::EPSILON;
+    let sliver = |h| [(z, z), (side, side), (side, tip)].map(|(x, y)| Point3::new(x, y, h));
+    for triangle in [
+        [at(z, z), at(three, z), at(z, three)],
+        [at(one, -length), at(-one, one), at(-one, z)],
+        [at(z, z), at(half, half - one), at(half + one, half)],
+        [at(z, z), at(one, z), at(z, tolerance)],
+        sliver(height),
+        sliver(z),
+    ] {
+        assert_exact_variants(&triangle, Some(unit_z(1)));
+    }
+    let rejected = [at(z, z), at(one, z), at(z, tolerance / T::from_int(2))];
+    assert_exact_variants(&rejected, None);
+}
+
+/// Closed subloops through one shared vertex, so their doubled areas add to
+/// `1 - k`. With areas 1, `length^2 - k` and `-length^2`, differences from
+/// the shared vertex and their products are exact and only the middle loop's
+/// subtraction rounds. With areas `length^2 + 2 length - k`, `2 - length^2`
+/// and `-2 length - 1`, the first loop's two differences from the shared
+/// vertex round in crossed coordinates and their residuals multiply to 1.
+fn verify_cancelling_subloops<T: Scalar>(length: T, height: T) {
+    let (z, one, two) = (T::from_int(0), T::from_int(1), T::from_int(2));
+    let at = |x, y| Point3::new(x, y, height);
+    for k in 0..3 {
+        let exact = [
+            [at(z, z), at(one, z), at(z, one)],
+            [at(z, z), at(length, one), at(T::from_int(k), length)],
+            [at(z, z), at(z, length), at(length, z)],
+        ];
+        let rounded = [
+            [at(one, one), at(-length, z), at(T::from_int(-k), -length)],
+            [at(one, one), at(z, length), at(length + two, z)],
+            [at(one, one), at(z, z), at(-two * length, one)],
+        ];
+        for loops in [exact, rounded] {
+            assert_exact_variants(&loops.concat(), (k != 1).then(|| unit_z(1 - k)));
+        }
     }
 }
 
@@ -75,8 +159,88 @@ fn verify_legacy_bits<T: Scalar>(large: T) {
     }
 }
 
+/// Polygons the cold path must scale, with `lobe = 3 root / 4` and
+/// `big = lobe^2`. The lobes' fan terms `lobe^2` are finite and overflow when
+/// two are added. `1 / big` vanishes under the scale that tames `big`, so
+/// that scale must go to `big` alone. `fine = grain (1 + EPSILON)` loses its
+/// last bit under the whole scale, so it must be shared with `grain`, or the
+/// loops of area `fine grain` and its negative stop cancelling. A difference
+/// `2 MAX` overflows before any scaling (once against only zero factors);
+/// beside it `faint` gives a doubled area `faint MAX` at least the tolerance,
+/// and for `f64` under four times it, so the halved vertices must count
+/// twice in the degeneracy test. The last sum, `root^2`, is not
+/// representable while its direction is. Each corner `(height, 0, 0),
+/// (-back, a, a), (0, 0, 0)` has an exact sum, a power of two times
+/// `(0, -1, 1)`, and exact scaled products, so its unit normal is
+/// `(0, -h, h)` with `h = 1 / sqrt(2)`. Each `a` in `slants` leaves a
+/// subnormal scaled sum, for `f32` down to the least subnormal; `steep` has
+/// an ordinary one. From either far vertex `reach` lies strictly between
+/// `MAX / 2` and `MAX`, where only halved differences are finite. The
+/// expansion and the norm's quotients and squares are exact; the root and the
+/// quotient round once each here and in `h`: four unit roundoffs, `2 EPSILON`.
+fn verify_scaled_products<T: Scalar>(root: T, grain: T, height: T, faint: T, slants: &[T]) {
+    let (z, one, max) = (T::from_int(0), T::from_int(1), T::max_value());
+    let (half, lobe) = (
+        root / T::from_int(2),
+        root * T::from_int(3) / T::from_int(4),
+    );
+    let (big, fine, up) = (lobe * lobe, grain + grain * T::EPSILON, Some(unit_z(1)));
+    let p = |x, y| Point3::new(x, y, z);
+    let q = |x, y| Point3::new(x, y, height);
+    let lobes = [p(z, z), p(lobe, z), p(z, lobe), p(-lobe, z), p(z, lobe)];
+    assert_exact_variants(&lobes, up);
+    assert_exact_variants(&[q(z, z), q(big, z), q(z, one / big)], up);
+    let loops = [
+        [q(z, z), q(fine, z), q(z, grain)],
+        [q(z, z), q(z, one), q(fine * grain, z)],
+        [q(z, z), q(big, z), q(z, big)],
+        [q(z, z), q(z, big), q(big, z)],
+    ];
+    assert_exact_variants(&loops.concat(), None);
+    assert_exact_variants(&[p(max, z), p(-max, faint), p(z, z)], up);
+    assert_exact_variants(&[p(max, z), p(-max, z), p(z, z)], None);
+    assert_exact_variants(&[p(z, z), p(root, -root), p(half, half)], up);
+    let (two, h) = (one + one, one / (one + one).sqrt());
+    let (bound, steep) = (two * T::EPSILON * h, (height + height / two, one));
+    for (back, a) in slants.iter().map(|&a| (height, a)).chain([steep]) {
+        let mut corner = [(height, z), (-back, a), (z, z)].map(|(x, y)| Point3::new(x, y, y));
+        for _ in 0..3 {
+            assert!(!is_finite(&legacy_sum(&corner)));
+            let off = newell_normal(&corner).map_or([one; 3], |n| [n.x, n.y + h, n.z - h]);
+            assert!(off.iter().all(|e| e.abs() <= bound), "{corner:?} {off:?}");
+            corner.rotate_left(1);
+        }
+    }
+}
+
+#[test]
+fn translated_triangles_keep_exact_normals() {
+    verify_exact_triangles(2.0_f32.powi(24), 2.0_f32.powi(127), 2.0_f32.powi(70));
+    verify_exact_triangles(2.0_f64.powi(53), 2.0_f64.powi(1023), 2.0_f64.powi(520));
+}
+
+#[test]
+fn cancelling_subloops_have_exact_sign_and_zero() {
+    verify_cancelling_subloops(2.0_f32.powi(24), 2.0_f32.powi(127));
+    verify_cancelling_subloops(2.0_f64.powi(53), 2.0_f64.powi(1023));
+}
+
 #[test]
 fn ordinary_or_nonfinite_input_keeps_legacy_bits() {
     verify_legacy_bits(2.0_f32.powi(127));
     verify_legacy_bits(2.0_f64.powi(1023));
+}
+
+#[test]
+fn overflowing_products_and_differences_are_scaled() {
+    // `powi` may return one over an overflowed power, which is zero, so each
+    // subnormal is the least normal value divided by a power of two.
+    let (far, tiny) = (2.0_f32.powi(127), f32::MIN_POSITIVE);
+    let slants = [0, 10, 14].map(|k| tiny / 2.0_f32.powi(k));
+    let (root, faint) = (2.0_f32.powi(64), tiny / 512.0);
+    verify_scaled_products(root, 2.0_f32.powi(5), far, faint, &slants);
+    let (far, tiny) = (2.0_f64.powi(1023), f64::MIN_POSITIVE);
+    let slants = [0, 23].map(|k| tiny / 2.0_f64.powi(k));
+    let (root, faint) = (2.0_f64.powi(512), tiny / 2.0_f64.powi(31));
+    verify_scaled_products(root, 2.0_f64.powi(60), far, faint, &slants);
 }

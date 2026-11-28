@@ -7,6 +7,10 @@
 - [patch] `triangle_centroid` stays finite when the raw sum of finite
   coordinates overflows (three `f32` coordinates of `2^127` gave infinity).
   Finite-sum bits and nonfinite-input results are unchanged.
+- [patch] `newell_normal` returns a finite unit vector, or `None`, where its
+  accumulation over finite vertices overflowed and gave NaN. Terms of the sum
+  below the documented loss limit can make it `None` or misdirect it. Results
+  whose accumulated sums are finite are unchanged.
 
 ## [0.8.0] - 2026-11-20
 
