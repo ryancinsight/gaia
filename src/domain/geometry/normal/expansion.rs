@@ -14,10 +14,10 @@ impl<T: Scalar> ExactSum<T> {
 
     /// Adds `shrink^2 * a * b` for a power of two `shrink <= 1`, to within
     /// two least subnormals and exactly when no scaled bit falls below one.
-    /// A factor of magnitude at least 1 keeps every bit under one `shrink`
-    /// (`shrink` is far above `eta / EPSILON`; see `scaled_fan_sum`). A
-    /// smaller factor stays unscaled: the other then rounds by at most one
-    /// least subnormal, and the product by less.
+    /// A factor of magnitude at least 1 keeps every bit under one `shrink`:
+    /// the loop in `scaled_fan_sum` leaves `shrink > 1 / (16 sqrt(n MAX))`,
+    /// far above `eta / EPSILON`. A smaller factor stays unscaled: the other
+    /// then rounds by at most one least subnormal, and the product by less.
     pub(super) fn add_product(&mut self, a: T, b: T, shrink: T) {
         let (small, large) = if a.abs() < b.abs() { (a, b) } else { (b, a) };
         let (x, y) = if small.abs() < <T as NumericElement>::ONE {
@@ -54,7 +54,7 @@ impl<T: Scalar> ExactSum<T> {
         }
     }
 
-    /// The components summed from the smallest; only this rounds.
+    /// The components summed from the smallest; each addition may round.
     pub(super) fn estimate(&self) -> T {
         let zero = <T as NumericElement>::ZERO;
         self.0.iter().copied().fold(zero, |a, b| a + b)
