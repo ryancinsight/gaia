@@ -246,6 +246,51 @@ fn verify_tilted_triangle<T: Scalar>(height: T) {
     }
 }
 
+/// A residual triangle with edges `fine (3, -2, 0)` and `step (0, 1, -1)`
+/// inside nine cancelling pairs with edges `far (3, -2, 0)` and
+/// `far (0, 1, -1)`, one pair per `far` in `scales`, traversed and then
+/// reversed. Every loop passes through the origin, the fan anchor, so each
+/// difference is exact; the legacy sum overflows and the exact sum is
+/// `area (2, 3, 3)` with `area = fine step`, of length `sqrt(22) area`. A
+/// subnormal length holds the tilted triangle's `7 fine step` exactly; it
+/// cannot hold this irrational multiple of `eta`. With `n = 57` vertices and
+/// `reach = 3 scales[0] / 2`, the loop that sets the scale stops at
+/// `c^2 > MAX / (256 n reach^2)`, above `1 / (1024 MAX)` for
+/// `scales[0] = 2^(emax - 2)`. Each coordinate is 1, 2 or 3 times a power of
+/// two, so every scaled product is exact while `area >= 1024 eta MAX`, and
+/// the expansion values are then `c^2` times the exact sum. The reference
+/// `k / sqrt(22)` rounds twice, once more than `k / 7`. Returns how many
+/// cases have a component beyond the bound.
+fn verify_tilted_stacks<T: Scalar>(scales: &[T], fines: &[T], areas: &[T]) -> usize {
+    let [z, two, three] = [0, 2, 3].map(T::from_int);
+    let (origin, root) = (Point3::new(z, z, z), T::from_int(22).sqrt());
+    let slack = T::from_int(RECOVERED_ROUNDOFFS + 1) * (T::EPSILON / two);
+    let edges = |a: T, b: T| [Point3::new(three * a, -two * a, z), Point3::new(z, b, -b)];
+    let mut missed = 0;
+    for (&fine, &area) in fines.iter().flat_map(|f| areas.iter().map(move |a| (f, a))) {
+        let mut vertices = Vec::new();
+        for &far in scales {
+            vertices.push(origin);
+            vertices.extend(edges(far, far));
+        }
+        vertices.push(origin);
+        vertices.extend(edges(fine, area / fine));
+        for [a, b] in scales.iter().rev().map(|&far| edges(far, far)) {
+            vertices.extend([origin, b, a]);
+        }
+        assert!(!is_finite(&legacy_sum(&vertices)));
+        let normal = newell_normal(&vertices).unwrap_or_else(Vector3::zeros);
+        let near = |(axis, k): (usize, i32)| {
+            let expected = T::from_int(k) / root;
+            (normal[axis] - expected).abs() <= slack * expected
+        };
+        if ![2, 3, 3].into_iter().enumerate().all(near) {
+            missed += 1;
+        }
+    }
+    missed
+}
+
 #[test]
 fn translated_triangles_keep_exact_normals() {
     verify_exact_triangles(2.0_f32.powi(24), 2.0_f32.powi(127), 2.0_f32.powi(70));
@@ -292,4 +337,17 @@ fn overflowing_products_and_differences_are_scaled() {
 fn tilted_scaled_triangle_meets_the_accuracy_bound() {
     verify_tilted_triangle(2.0_f32.powi(127));
     verify_tilted_triangle(2.0_f64.powi(1023));
+    // The scale is `c^2 = 2^-136` (`2^-1032`), so the scaled sum is subnormal
+    // for areas up to `2^8`. Areas start at `2^-11`, the least power of two
+    // the fixture's bound keeps exact, and for `f64` at the least with
+    // `sqrt(22) area` above the tolerance. No `powi` power overflows.
+    let scales: Vec<_> = (0..9).map(|i| 2.0_f32.powi(125 - 13 * i)).collect();
+    let areas: Vec<_> = (-11..=29).map(|e| 2.0_f32.powi(e)).collect();
+    let fines = [-30, -5, 0, 7, 40].map(|e| 2.0_f32.powi(e));
+    let single = verify_tilted_stacks(&scales, &fines, &areas);
+    let scales: Vec<_> = (0..9).map(|i| 2.0_f64.powi(1021 - 110 * i)).collect();
+    let areas: Vec<_> = (-32..=18).map(|e| 2.0_f64.powi(e)).collect();
+    let fines = [-40, -9, 0, 33].map(|e| 2.0_f64.powi(e));
+    let double = verify_tilted_stacks(&scales, &fines, &areas);
+    assert_eq!([single, double], [0, 0], "of 205 and 204 cases");
 }
