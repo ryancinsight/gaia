@@ -173,8 +173,16 @@ fn verify_legacy_bits<T: Scalar>(large: T) {
 /// beside it `faint` gives a doubled area `faint MAX` at least the tolerance,
 /// and for `f64` under four times it, so the halved vertices must count
 /// twice in the degeneracy test. The last sum, `root^2`, is not
-/// representable while its direction is.
-fn verify_scaled_products<T: Scalar>(root: T, grain: T, height: T, faint: T) {
+/// representable while its direction is. Each corner `(height, 0, 0),
+/// (-back, a, a), (0, 0, 0)` has an exact sum, a power of two times
+/// `(0, -1, 1)`, and exact scaled products, so its unit normal is
+/// `(0, -h, h)` with `h = 1 / sqrt(2)`. Each `a` in `slants` leaves a
+/// subnormal scaled sum, for `f32` down to the least subnormal; `steep` has
+/// an ordinary one. From either far vertex `reach` lies strictly between
+/// `MAX / 2` and `MAX`, where only halved differences are finite. The
+/// expansion and the norm's quotients and squares are exact; the root and the
+/// quotient round once each here and in `h`: four unit roundoffs, `2 EPSILON`.
+fn verify_scaled_products<T: Scalar>(root: T, grain: T, height: T, faint: T, slants: &[T]) {
     let (z, one, max) = (T::from_int(0), T::from_int(1), T::max_value());
     let (half, lobe) = (
         root / T::from_int(2),
@@ -196,6 +204,17 @@ fn verify_scaled_products<T: Scalar>(root: T, grain: T, height: T, faint: T) {
     assert_exact_variants(&[p(max, z), p(-max, faint), p(z, z)], up);
     assert_exact_variants(&[p(max, z), p(-max, z), p(z, z)], None);
     assert_exact_variants(&[p(z, z), p(root, -root), p(half, half)], up);
+    let (two, h) = (one + one, one / (one + one).sqrt());
+    let (bound, steep) = (two * T::EPSILON * h, (height + height / two, one));
+    for (back, a) in slants.iter().map(|&a| (height, a)).chain([steep]) {
+        let mut corner = [(height, z), (-back, a), (z, z)].map(|(x, y)| Point3::new(x, y, y));
+        for _ in 0..3 {
+            assert!(!is_finite(&legacy_sum(&corner)));
+            let off = newell_normal(&corner).map_or([one; 3], |n| [n.x, n.y + h, n.z - h]);
+            assert!(off.iter().all(|e| e.abs() <= bound), "{corner:?} {off:?}");
+            corner.rotate_left(1);
+        }
+    }
 }
 
 /// Unit roundoffs between a recovered component and the unit vector of the
@@ -258,11 +277,15 @@ fn ordinary_or_nonfinite_input_keeps_legacy_bits() {
 #[test]
 fn overflowing_products_and_differences_are_scaled() {
     // `powi` may return one over an overflowed power, which is zero, so each
-    // subnormal `faint` is an exact multiple of the least normal value.
-    let (far, faint) = (2.0_f32.powi(127), f32::MIN_POSITIVE * 2.0_f32.powi(-9));
-    verify_scaled_products(2.0_f32.powi(64), 2.0_f32.powi(5), far, faint);
-    let (far, faint) = (2.0_f64.powi(1023), f64::MIN_POSITIVE * 2.0_f64.powi(-31));
-    verify_scaled_products(2.0_f64.powi(512), 2.0_f64.powi(60), far, faint);
+    // subnormal is the least normal value divided by a power of two.
+    let (far, tiny) = (2.0_f32.powi(127), f32::MIN_POSITIVE);
+    let slants = [0, 10, 14].map(|k| tiny / 2.0_f32.powi(k));
+    let (root, faint) = (2.0_f32.powi(64), tiny / 512.0);
+    verify_scaled_products(root, 2.0_f32.powi(5), far, faint, &slants);
+    let (far, tiny) = (2.0_f64.powi(1023), f64::MIN_POSITIVE);
+    let slants = [0, 23].map(|k| tiny / 2.0_f64.powi(k));
+    let (root, faint) = (2.0_f64.powi(512), tiny / 2.0_f64.powi(31));
+    verify_scaled_products(root, 2.0_f64.powi(60), far, faint, &slants);
 }
 
 #[test]

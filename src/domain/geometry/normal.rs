@@ -198,12 +198,15 @@ fn finite_point<T: Scalar>(point: &Point3<T>) -> bool {
 ///   values, divided by `c^2`, is below the tolerance. A length that
 ///   overflows is not degenerate, so a direction is returned even where `S`
 ///   is not representable.
+/// - Expansion values all below 1 are first multiplied by `1 / EPSILON`,
+///   exactly, so the largest is zero or a normal number.
 /// - Each returned component in the normal range is within 11 unit roundoffs
 ///   (`5.5 EPSILON`), relatively, of the unit vector of the expansion values:
 ///   2.5 from summing each expansion smallest first (`ExactSum::estimate`),
 ///   2.5 from those errors in the length, 4.5 from `leto`'s scaled norm
-///   (three quotients, three fused squares, a root and a product), 1 from
-///   the division, and 0.5 for second-order terms.
+///   (three quotients, three fused squares, a root and a product, which the
+///   lift keeps a normal number), 1 from the division, and 0.5 for
+///   second-order terms.
 ///
 /// Sections and theorems are those of J. R. Shewchuk, "Adaptive Precision
 /// Floating-Point Arithmetic and Fast Robust Geometric Predicates", Discrete
@@ -238,14 +241,22 @@ pub fn newell_normal<T: Scalar>(vertices: &[Point3<T>]) -> Option<Vector3<T>> {
 #[cold]
 #[inline(never)]
 fn recover_newell<T: Scalar>(vertices: &[Point3<T>], legacy: Vector3<T>) -> Option<Vector3<T>> {
-    let (normal, grow) = if vertices.iter().all(finite_point) {
+    let one = <T as eunomia::NumericElement>::ONE;
+    let (sum, grow) = if vertices.iter().all(finite_point) {
         scaled_fan_sum(vertices)
     } else {
-        (legacy, <T as eunomia::NumericElement>::ONE)
+        (legacy, one)
     };
+    // A subnormal length rounds to a multiple of `eta`, far from the true one.
+    // Values all below 1 take the power of two `lift = 1 / EPSILON` exactly;
+    // the largest is then zero or at least `eta / EPSILON`, the least normal
+    // value. A legacy sum has a nonfinite component and keeps its bits.
+    let small = (0..3).all(|axis| sum[axis].abs() < one);
+    let lift = if small { one / T::EPSILON } else { one };
+    let normal = if small { sum * lift } else { sum };
     let len = normal.norm();
-    // `grow = 1 / c` is a power of two, so each product is exact or infinite.
-    if len * grow * grow < T::tolerance() {
+    // `grow = 1 / c` and `lift` are powers of two: each product is exact or infinite.
+    if len * grow * grow < T::tolerance() * lift {
         return None;
     }
     Some(normal / len)
