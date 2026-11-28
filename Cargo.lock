@@ -555,7 +555,7 @@ dependencies = [
  "moirai-runtime",
  "num-bigint",
  "proptest",
- "rand 0.9.5",
+ "rand 0.10.3",
  "serde",
  "serde_json",
  "slotmap",
