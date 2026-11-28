@@ -49,6 +49,16 @@
 - next step: dispatch the judge at current main with the cases above. `CHECKLIST.md:7` owns the GAIA-037 re-run on the 0.8.0 baseline; GAIA-038 owns the custom-zero-epsilon policy; GAIA-NEXTEST-PIPE stays open.
 - basis: `9daa782f4ac78aa9e900e6cb6a5912d85713885d`
 
+<a id="GAIA-JUDGE-GATE"></a>
+## GAIA-JUDGE-GATE — Bind independent verdicts to merge [patch]
+- status: todo; priority: verification; milestone: M-gates; needs: none
+- outcome: a `judge-required` pull request cannot merge until an independent verdict succeeds on its exact head.
+- acceptance: the pull-request workflow posts no success for a live `judge-required` label, branch protection requires the `judge` context, and a regression exercise proves auto-merge remains held until an independent status succeeds on the unchanged head.
+- evidence (`8349d59e4ae48aa439293294cd1d842a57913246`): Gaia #251 carried `judge-required` and auto-rebase merged before any judge context existed; the later independent PASS matched the landed tree, so this is a merge-control escape rather than a code defect.
+- scope: `.github/workflows/ci.yml`, repository required-check rules, and a workflow regression test.
+- next step: implement the labeled/unlabeled status workflow, require `judge`, test the hold, then remove this block in its delivery PR.
+- basis: `8349d59e4ae48aa439293294cd1d842a57913246`
+
 <a id="GAIA-038"></a>
 ## GAIA-038 — Zero-epsilon parallel rejection policy [patch]
 - milestone: M-robustness.
