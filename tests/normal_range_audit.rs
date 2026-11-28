@@ -82,7 +82,7 @@ fn verify_centroid_cancellation<T: Scalar + Into<f64>>(large: T, maximum: T, ulp
                 ulp * sign * third,
             );
         }
-        // Half an ulp is a tie near MAX; only the overflowing order recovers.
+        // Half an ulp is a tie near MAX; this order overflows, so it recovers.
         let tie = [maximum * sign, ulp / T::from_int(2) * sign, -maximum * sign];
         if !<T as eunomia::NumericElement>::is_finite(tie[0] + tie[1] + tie[2]) {
             assert_recovery_bound(tie, maximum);
