@@ -54,7 +54,11 @@ impl<T: Scalar> ExactSum<T> {
         }
     }
 
-    /// The components summed from the smallest; only this rounds.
+    /// The components summed from the smallest; only this rounds. A partial
+    /// sum is below half the lowest bit of the next component (nonadjacency),
+    /// so the total exceeds half the largest component, the roundings before
+    /// the last addition total under 1.5 unit roundoffs of it, and the last
+    /// adds 1.
     pub(super) fn estimate(&self) -> T {
         let zero = <T as NumericElement>::ZERO;
         self.0.iter().copied().fold(zero, |a, b| a + b)

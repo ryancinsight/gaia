@@ -122,6 +122,23 @@ fn verify_cancelling_subloops<T: Scalar>(length: T, height: T) {
     }
 }
 
+/// Nine separated scales, so an expansion holds nine components at once.
+fn verify_many_scales<T: Scalar>(powers: &[T], height: T) {
+    let (z, one) = (T::from_int(0), T::from_int(1));
+    let (origin, up) = (Point3::new(z, z, height), Point3::new(z, one, height));
+    let along = |x| Point3::new(x, z, height);
+    for residual in [-1, 0, 1] {
+        let mut vertices = Vec::new();
+        vertices.extend(powers.iter().flat_map(|&p| [origin, along(p), up]));
+        if residual != 0 {
+            let tail = Point3::new(z, T::from_int(residual), height);
+            vertices.extend([origin, along(one), tail]);
+        }
+        vertices.extend(powers.iter().rev().flat_map(|&p| [origin, up, along(p)]));
+        assert_exact_variants(&vertices, (residual != 0).then(|| unit_z(residual)));
+    }
+}
+
 /// Finite legacy sums keep their bits, and so does every poisoned coordinate.
 fn verify_legacy_bits<T: Scalar>(large: T) {
     for shift in -16..=16 {
@@ -181,6 +198,35 @@ fn verify_scaled_products<T: Scalar>(root: T, grain: T, height: T, faint: T) {
     assert_exact_variants(&[p(z, z), p(root, -root), p(half, half)], up);
 }
 
+/// Unit roundoffs between a recovered component and the unit vector of the
+/// exact sum: the 11 that `newell_normal` documents and derives, and 1 for
+/// the correctly rounded quotient `k / 7` this test compares with.
+const RECOVERED_ROUNDOFFS: i32 = 12;
+
+/// A triangle at `height` with edges `fine (3, -2, 0)` and `step (0, 2, -1)`,
+/// so its sum is `fine step (2, 3, 6)`, of length `7 fine step`. With
+/// `fine = 1 + 8 EPSILON` and `step = (1 - EPSILON) height / 2` the vertices
+/// are representable, the products need the scale, and each rounds when its
+/// expansion is summed.
+fn verify_tilted_triangle<T: Scalar>(height: T) {
+    let [z, one, two, three] = [0, 1, 2, 3].map(T::from_int);
+    let fine = one + T::from_int(8) * T::EPSILON;
+    let step = (one - T::EPSILON) * height / two;
+    let anchor = Point3::new(z, z, height);
+    let points = [
+        anchor,
+        anchor + Vector3::new(three * fine, -two * fine, z),
+        anchor + Vector3::new(z, two * step, -step),
+    ];
+    assert!(!is_finite(&legacy_sum(&points)));
+    let normal = newell_normal(&points).unwrap_or_else(Vector3::zeros);
+    for (axis, k) in [2, 3, 6].into_iter().enumerate() {
+        let expected = T::from_int(k) / T::from_int(7);
+        let bound = T::from_int(RECOVERED_ROUNDOFFS) * (T::EPSILON / two) * expected;
+        assert!((normal[axis] - expected).abs() <= bound, "{normal:?}");
+    }
+}
+
 #[test]
 fn translated_triangles_keep_exact_normals() {
     verify_exact_triangles(2.0_f32.powi(24), 2.0_f32.powi(127), 2.0_f32.powi(70));
@@ -191,6 +237,16 @@ fn translated_triangles_keep_exact_normals() {
 fn cancelling_subloops_have_exact_sign_and_zero() {
     verify_cancelling_subloops(2.0_f32.powi(24), 2.0_f32.powi(127));
     verify_cancelling_subloops(2.0_f64.powi(53), 2.0_f64.powi(1023));
+}
+
+#[test]
+fn nine_separated_scales_keep_every_component() {
+    // No `powi` exponent is below the least normal one; see `faint` below.
+    let low = 2.0_f32.powi(-64);
+    let single: Vec<_> = (0..9).map(|i| low * 2.0_f32.powi(25 * i - 79)).collect();
+    let double: Vec<_> = (0..9).map(|i| 2.0_f64.powi(54 * i - 216)).collect();
+    verify_many_scales(&single, 2.0_f32.powi(127));
+    verify_many_scales(&double, 2.0_f64.powi(1023));
 }
 
 #[test]
@@ -207,4 +263,10 @@ fn overflowing_products_and_differences_are_scaled() {
     verify_scaled_products(2.0_f32.powi(64), 2.0_f32.powi(5), far, faint);
     let (far, faint) = (2.0_f64.powi(1023), f64::MIN_POSITIVE * 2.0_f64.powi(-31));
     verify_scaled_products(2.0_f64.powi(512), 2.0_f64.powi(60), far, faint);
+}
+
+#[test]
+fn tilted_scaled_triangle_meets_the_accuracy_bound() {
+    verify_tilted_triangle(2.0_f32.powi(127));
+    verify_tilted_triangle(2.0_f64.powi(1023));
 }
